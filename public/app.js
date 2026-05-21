@@ -1,5 +1,6 @@
 const state = {
   dashboard: null,
+  selectedDashboardLanguageId: null,
   selectedCollectionId: null,
   search: "",
   activeTab: "dashboard"
@@ -9,6 +10,7 @@ const elements = {
   tabButtons: document.querySelectorAll(".tab-button"),
   dashboardView: document.querySelector("#dashboardView"),
   collectionsView: document.querySelector("#collectionsView"),
+  dashboardLanguageSelect: document.querySelector("#dashboardLanguageSelect"),
   knownTotal: document.querySelector("#knownTotal"),
   totalWords: document.querySelector("#totalWords"),
   unknownTotal: document.querySelector("#unknownTotal"),
@@ -18,12 +20,16 @@ const elements = {
   deleteCollectionButton: document.querySelector("#deleteCollectionButton"),
   searchInput: document.querySelector("#searchInput"),
   selectedCollectionStats: document.querySelector("#selectedCollectionStats"),
+  collectionLanguageName: document.querySelector("#collectionLanguageName"),
+  saveCollectionLanguageButton: document.querySelector("#saveCollectionLanguageButton"),
   wordRows: document.querySelector("#wordRows"),
   emptyState: document.querySelector("#emptyState"),
   uploadForm: document.querySelector("#uploadForm"),
+  uploadLanguageName: document.querySelector("#uploadLanguageName"),
   collectionName: document.querySelector("#collectionName"),
   csvFile: document.querySelector("#csvFile"),
-  uploadStatus: document.querySelector("#uploadStatus")
+  uploadStatus: document.querySelector("#uploadStatus"),
+  languageOptions: document.querySelector("#languageOptions")
 };
 
 function formatCount(value) {
@@ -72,38 +78,60 @@ async function requestJson(url, options) {
 }
 
 async function loadDashboard() {
-  state.dashboard = await requestJson("/api/dashboard");
-  if (!state.selectedCollectionId && state.dashboard.collections.length) {
-    state.selectedCollectionId = state.dashboard.collections[0].id;
+  const params = new URLSearchParams();
+  if (state.selectedDashboardLanguageId) {
+    params.set("languageId", state.selectedDashboardLanguageId);
   }
-  if (state.selectedCollectionId && !state.dashboard.collections.some((collection) => collection.id === state.selectedCollectionId)) {
-    state.selectedCollectionId = state.dashboard.collections[0]?.id || null;
+  state.dashboard = await requestJson(`/api/dashboard?${params}`);
+
+  const allCollections = state.dashboard.allCollections || state.dashboard.collections;
+  if (!state.selectedCollectionId && allCollections.length) {
+    state.selectedCollectionId = allCollections[0].id;
+  }
+  if (state.selectedCollectionId && !allCollections.some((collection) => collection.id === state.selectedCollectionId)) {
+    state.selectedCollectionId = allCollections[0]?.id || null;
   }
   renderDashboard();
   await loadWords();
 }
 
 function renderDashboard() {
-  const { totalWords, knownWords, collections } = state.dashboard;
+  const { totalWords, knownWords, collections, languages } = state.dashboard;
+  const allCollections = state.dashboard.allCollections || collections;
   elements.knownTotal.textContent = formatCount(knownWords);
   elements.totalWords.textContent = formatCount(totalWords);
   elements.unknownTotal.textContent = formatCount(totalWords - knownWords);
   elements.collectionCount.textContent = formatCount(collections.length);
 
+  elements.dashboardLanguageSelect.innerHTML = `
+    <option value="">すべての言語</option>
+    ${languages
+      .map((language) => {
+        const selected = language.id === state.selectedDashboardLanguageId ? "selected" : "";
+        return `<option value="${language.id}" ${selected}>${escapeHtml(language.name)}</option>`;
+      })
+      .join("")}
+  `;
+
+  elements.languageOptions.innerHTML = languages
+    .map((language) => `<option value="${escapeHtml(language.name)}"></option>`)
+    .join("");
+
   elements.collectionCharts.innerHTML = collections.length
     ? collections.map(renderChartCard).join("")
     : `<p class="empty">まだコレクションがありません。</p>`;
 
-  elements.collectionSelect.innerHTML = collections.length
-    ? collections
+  elements.collectionSelect.innerHTML = allCollections.length
+    ? allCollections
         .map((collection) => {
           const selected = collection.id === state.selectedCollectionId ? "selected" : "";
-          return `<option value="${collection.id}" ${selected}>${escapeHtml(collection.name)}</option>`;
+          return `<option value="${collection.id}" ${selected}>${escapeHtml(collection.languageName)} / ${escapeHtml(collection.name)}</option>`;
         })
         .join("")
     : `<option value="">コレクションなし</option>`;
 
   elements.deleteCollectionButton.disabled = !state.selectedCollectionId;
+  elements.saveCollectionLanguageButton.disabled = !state.selectedCollectionId;
   renderSelectedCollectionStats();
 }
 
@@ -114,6 +142,7 @@ function renderChartCard(collection) {
       <div class="pie" style="--knownPercent: ${percent}%"></div>
       <div>
         <strong>${escapeHtml(collection.name)}</strong>
+        <span>${escapeHtml(collection.languageName)}</span>
         <span>${formatCount(collection.totalWords)}語中 ${formatCount(collection.knownWords)}語が既知</span>
         <span>${percent}% 完了</span>
       </div>
@@ -122,15 +151,19 @@ function renderChartCard(collection) {
 }
 
 function renderSelectedCollectionStats() {
-  const collection = state.dashboard?.collections.find((entry) => entry.id === state.selectedCollectionId);
+  const allCollections = state.dashboard?.allCollections || state.dashboard?.collections || [];
+  const collection = allCollections.find((entry) => entry.id === state.selectedCollectionId);
   if (!collection) {
     elements.selectedCollectionStats.innerHTML = "";
+    elements.collectionLanguageName.value = "";
     return;
   }
 
   const percent = collection.totalWords ? Math.round((collection.knownWords / collection.totalWords) * 100) : 0;
+  elements.collectionLanguageName.value = collection.languageName;
   elements.selectedCollectionStats.innerHTML = `
     <span>${escapeHtml(collection.name)}</span>
+    <small>${escapeHtml(collection.languageName)}</small>
     <strong>${formatCount(collection.knownWords)} / ${formatCount(collection.totalWords)}</strong>
     <small>${percent}% 既知</small>
   `;
@@ -170,8 +203,9 @@ function renderWords(words) {
     )
     .join("");
 
-  elements.emptyState.hidden = words.length > 0 || state.dashboard.collections.length > 0;
-  if (!words.length && state.dashboard.collections.length > 0) {
+  const hasCollections = (state.dashboard.allCollections || state.dashboard.collections).length > 0;
+  elements.emptyState.hidden = words.length > 0 || hasCollections;
+  if (!words.length && hasCollections) {
     elements.emptyState.hidden = false;
     elements.emptyState.textContent = "検索に一致する単語はありません。";
   } else {
@@ -204,6 +238,7 @@ elements.uploadForm.addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify({
         collectionName: elements.collectionName.value,
+        languageName: elements.uploadLanguageName.value,
         words: rows
       })
     });
@@ -226,11 +261,34 @@ elements.tabButtons.forEach((button) => {
   button.addEventListener("click", () => setActiveTab(button.dataset.tab));
 });
 
+elements.dashboardLanguageSelect.addEventListener("change", async (event) => {
+  state.selectedDashboardLanguageId = Number(event.target.value) || null;
+  await loadDashboard();
+});
+
 elements.collectionSelect.addEventListener("change", async (event) => {
   state.selectedCollectionId = Number(event.target.value) || null;
   state.search = "";
   elements.searchInput.value = "";
+  renderSelectedCollectionStats();
   await loadWords();
+});
+
+elements.saveCollectionLanguageButton.addEventListener("click", async () => {
+  if (!state.selectedCollectionId) {
+    return;
+  }
+
+  elements.saveCollectionLanguageButton.disabled = true;
+  try {
+    await requestJson(`/api/collections/${state.selectedCollectionId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ languageName: elements.collectionLanguageName.value })
+    });
+    await loadDashboard();
+  } finally {
+    elements.saveCollectionLanguageButton.disabled = false;
+  }
 });
 
 elements.deleteCollectionButton.addEventListener("click", async () => {
@@ -238,7 +296,7 @@ elements.deleteCollectionButton.addEventListener("click", async () => {
     return;
   }
 
-  const collection = state.dashboard.collections.find((entry) => entry.id === state.selectedCollectionId);
+  const collection = (state.dashboard.allCollections || state.dashboard.collections).find((entry) => entry.id === state.selectedCollectionId);
   const confirmed = window.confirm(`「${collection?.name || "このコレクション"}」と含まれる単語をすべて削除しますか？`);
   if (!confirmed) {
     return;

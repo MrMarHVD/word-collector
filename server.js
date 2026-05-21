@@ -16,11 +16,62 @@ const db = new DatabaseSync(DB_PATH);
 db.exec(`
   PRAGMA foreign_keys = ON;
 
-  CREATE TABLE IF NOT EXISTS collections (
+  CREATE TABLE IF NOT EXISTS languages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
+`);
+
+const collectionsTable = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'collections'").get();
+if (!collectionsTable) {
+  db.exec(`
+    CREATE TABLE collections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      language_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (language_id) REFERENCES languages(id) ON DELETE RESTRICT,
+      UNIQUE (language_id, name)
+    );
+  `);
+} else {
+  const collectionColumns = db.prepare("PRAGMA table_info(collections)").all();
+  const hasLanguageId = collectionColumns.some((column) => column.name === "language_id");
+  if (!hasLanguageId) {
+    db.prepare("INSERT OR IGNORE INTO languages (name) VALUES (?)").run("未分類");
+    const defaultLanguage = db.prepare("SELECT id FROM languages WHERE name = ?").get("未分類");
+    db.exec("PRAGMA foreign_keys = OFF");
+    db.exec("BEGIN");
+    try {
+      db.exec(`
+        CREATE TABLE collections_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          language_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (language_id) REFERENCES languages(id) ON DELETE RESTRICT,
+          UNIQUE (language_id, name)
+        );
+      `);
+      db.prepare(`
+        INSERT INTO collections_new (id, language_id, name, created_at)
+        SELECT id, ?, name, created_at FROM collections
+      `).run(defaultLanguage.id);
+      db.exec("DROP TABLE collections");
+      db.exec("ALTER TABLE collections_new RENAME TO collections");
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    } finally {
+      db.exec("PRAGMA foreign_keys = ON");
+    }
+  }
+}
+
+db.exec(`
+  PRAGMA foreign_keys = ON;
 
   CREATE TABLE IF NOT EXISTS words (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,10 +86,24 @@ db.exec(`
 `);
 
 const statements = {
-  collectionByName: db.prepare("SELECT id, name FROM collections WHERE lower(name) = lower(?)"),
-  collectionById: db.prepare("SELECT id, name FROM collections WHERE id = ?"),
-  createCollection: db.prepare("INSERT INTO collections (name) VALUES (?)"),
+  languageById: db.prepare("SELECT id, name FROM languages WHERE id = ?"),
+  languageByName: db.prepare("SELECT id, name FROM languages WHERE lower(name) = lower(?)"),
+  createLanguage: db.prepare("INSERT INTO languages (name) VALUES (?)"),
+  collectionByName: db.prepare(`
+    SELECT c.id, c.name, c.language_id AS languageId, l.name AS languageName
+    FROM collections c
+    JOIN languages l ON l.id = c.language_id
+    WHERE c.language_id = ? AND lower(c.name) = lower(?)
+  `),
+  collectionById: db.prepare(`
+    SELECT c.id, c.name, c.language_id AS languageId, l.name AS languageName
+    FROM collections c
+    JOIN languages l ON l.id = c.language_id
+    WHERE c.id = ?
+  `),
+  createCollection: db.prepare("INSERT INTO collections (language_id, name) VALUES (?, ?)"),
   deleteCollection: db.prepare("DELETE FROM collections WHERE id = ?"),
+  updateCollectionLanguage: db.prepare("UPDATE collections SET language_id = ? WHERE id = ?"),
   insertWord: db.prepare(`
     INSERT INTO words (collection_id, word, translation)
     VALUES (?, ?, ?)
@@ -77,27 +142,62 @@ function normalizeName(value) {
   return String(value || "").trim().replace(/\s+/g, " ");
 }
 
-function getDashboard() {
+function getLanguages() {
+  return db.prepare(`
+    SELECT id, name
+    FROM languages
+    ORDER BY lower(name)
+  `).all();
+}
+
+function getDashboard(languageId) {
+  const selectedLanguageId = Number(languageId) || null;
+  const filter = selectedLanguageId ? "WHERE c.language_id = ?" : "";
+  const params = selectedLanguageId ? [selectedLanguageId] : [];
+
   const totals = db.prepare(`
     SELECT
-      COUNT(*) AS totalWords,
-      COALESCE(SUM(known), 0) AS knownWords
-    FROM words
-  `).get();
+      COUNT(w.id) AS totalWords,
+      COALESCE(SUM(w.known), 0) AS knownWords
+    FROM collections c
+    LEFT JOIN words w ON w.collection_id = c.id
+    ${filter}
+  `).get(...params);
 
   const collections = db.prepare(`
     SELECT
       c.id,
       c.name,
+      c.language_id AS languageId,
+      l.name AS languageName,
       COUNT(w.id) AS totalWords,
       COALESCE(SUM(w.known), 0) AS knownWords
     FROM collections c
+    JOIN languages l ON l.id = c.language_id
+    LEFT JOIN words w ON w.collection_id = c.id
+    ${filter}
+    GROUP BY c.id
+    ORDER BY lower(l.name), lower(c.name)
+  `).all(...params);
+
+  const allCollections = db.prepare(`
+    SELECT
+      c.id,
+      c.name,
+      c.language_id AS languageId,
+      l.name AS languageName,
+      COUNT(w.id) AS totalWords,
+      COALESCE(SUM(w.known), 0) AS knownWords
+    FROM collections c
+    JOIN languages l ON l.id = c.language_id
     LEFT JOIN words w ON w.collection_id = c.id
     GROUP BY c.id
-    ORDER BY lower(c.name)
+    ORDER BY lower(l.name), lower(c.name)
   `).all();
 
   return {
+    languages: getLanguages(),
+    selectedLanguageId,
     totalWords: Number(totals.totalWords || 0),
     knownWords: Number(totals.knownWords || 0),
     collections: collections.map((collection) => ({
@@ -105,8 +205,33 @@ function getDashboard() {
       totalWords: Number(collection.totalWords || 0),
       knownWords: Number(collection.knownWords || 0),
       unknownWords: Number(collection.totalWords || 0) - Number(collection.knownWords || 0)
+    })),
+    allCollections: allCollections.map((collection) => ({
+      ...collection,
+      totalWords: Number(collection.totalWords || 0),
+      knownWords: Number(collection.knownWords || 0),
+      unknownWords: Number(collection.totalWords || 0) - Number(collection.knownWords || 0)
     }))
   };
+}
+
+function getOrCreateLanguage(languageName, languageId) {
+  const id = Number(languageId) || null;
+  if (id) {
+    return statements.languageById.get(id);
+  }
+
+  const name = normalizeName(languageName);
+  if (!name) {
+    return null;
+  }
+
+  let language = statements.languageByName.get(name);
+  if (!language) {
+    statements.createLanguage.run(name);
+    language = statements.languageByName.get(name);
+  }
+  return language;
 }
 
 function getWords(collectionId, search) {
@@ -129,10 +254,15 @@ function getWords(collectionId, search) {
   `).all(collectionId);
 }
 
-function importWords(collectionName, words) {
+function importWords(collectionName, languageName, languageId, words) {
   const name = normalizeName(collectionName);
   if (!name) {
     return { error: "Collection name is required." };
+  }
+
+  const language = getOrCreateLanguage(languageName, languageId);
+  if (!language) {
+    return { error: "Language is required." };
   }
 
   const cleanWords = Array.isArray(words)
@@ -148,10 +278,10 @@ function importWords(collectionName, words) {
     return { error: "Upload at least one row with a word and translation." };
   }
 
-  let collection = statements.collectionByName.get(name);
+  let collection = statements.collectionByName.get(language.id, name);
   if (!collection) {
-    statements.createCollection.run(name);
-    collection = statements.collectionByName.get(name);
+    statements.createCollection.run(language.id, name);
+    collection = statements.collectionByName.get(language.id, name);
   }
 
   let inserted = 0;
@@ -177,7 +307,11 @@ function importWords(collectionName, words) {
 
 async function handleApi(req, res, url) {
   if (req.method === "GET" && url.pathname === "/api/dashboard") {
-    return jsonResponse(res, 200, getDashboard());
+    return jsonResponse(res, 200, getDashboard(url.searchParams.get("languageId")));
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/languages") {
+    return jsonResponse(res, 200, { languages: getLanguages() });
   }
 
   const wordsMatch = url.pathname.match(/^\/api\/collections\/(\d+)\/words$/);
@@ -194,6 +328,25 @@ async function handleApi(req, res, url) {
   }
 
   const collectionMatch = url.pathname.match(/^\/api\/collections\/(\d+)$/);
+  if (req.method === "PATCH" && collectionMatch) {
+    const collectionId = Number(collectionMatch[1]);
+    const body = await readJson(req);
+    const language = getOrCreateLanguage(body.languageName, body.languageId);
+    if (!language) {
+      return jsonResponse(res, 400, { error: "Language is required." });
+    }
+    const collection = statements.collectionById.get(collectionId);
+    if (!collection) {
+      return jsonResponse(res, 404, { error: "Collection not found." });
+    }
+    try {
+      statements.updateCollectionLanguage.run(language.id, collectionId);
+    } catch (error) {
+      return jsonResponse(res, 409, { error: "A collection with this name already exists in that language." });
+    }
+    return jsonResponse(res, 200, statements.collectionById.get(collectionId));
+  }
+
   if (req.method === "DELETE" && collectionMatch) {
     const collectionId = Number(collectionMatch[1]);
     const result = statements.deleteCollection.run(collectionId);
@@ -205,7 +358,7 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/import") {
     const body = await readJson(req);
-    const result = importWords(body.collectionName, body.words);
+    const result = importWords(body.collectionName, body.languageName, body.languageId, body.words);
     if (result.error) {
       return jsonResponse(res, 400, result);
     }

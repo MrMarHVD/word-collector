@@ -25,6 +25,15 @@
       </nav>
 
       <section id="dashboardView" class="tab-view">
+        <section class="filter-panel">
+          <label>
+            表示する言語
+            <select id="dashboardLanguageSelect">
+              <option value="">すべての言語</option>
+            </select>
+          </label>
+        </section>
+
         <section class="metrics" aria-label="Overall progress">
           <article>
             <span id="totalWords">0</span>
@@ -55,6 +64,10 @@
               <h2>CSVアップロード</h2>
             </div>
             <label>
+              言語
+              <input id="uploadLanguageName" name="uploadLanguageName" type="text" list="languageOptions" placeholder="日本語" required />
+            </label>
+            <label>
               コレクション名
               <input id="collectionName" name="collectionName" type="text" placeholder="日本語 基本単語" required />
             </label>
@@ -78,6 +91,11 @@
                 <select id="collectionSelect"></select>
               </label>
               <label>
+                言語
+                <input id="collectionLanguageName" type="text" list="languageOptions" placeholder="日本語" />
+              </label>
+              <button id="saveCollectionLanguageButton" class="secondary-button" type="button">保存</button>
+              <label>
                 検索
                 <input id="searchInput" type="search" placeholder="単語または翻訳で検索" />
               </label>
@@ -99,6 +117,7 @@
           </section>
         </section>
       </section>
+      <datalist id="languageOptions"></datalist>
     </main>
 
     <script src="/app.js" type="module"></script>
