@@ -1,4 +1,5 @@
 import { clearAuthCookie, createSessionHelpers } from "../auth/session.js";
+import { NATIVE_LANGUAGE_OPTIONS } from "../config.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { jsonResponse } from "../http/response.js";
 import { readJson } from "../http/request.js";
@@ -15,13 +16,20 @@ export function createApiHandler({ db, statements }) {
     if (req.method === "GET" && url.pathname === "/api/auth/me") {
       const user = getAuthenticatedUser(req);
       if (!user) {
-        return jsonResponse(res, 200, { user: null, languages: [], predefinedLanguages: statements.predefinedLanguages.all() });
+        return jsonResponse(res, 200, {
+          user: null,
+          languages: [],
+          predefinedLanguages: statements.predefinedLanguages.all(),
+          nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS
+        });
       }
       const languages = getLanguages(db, user.userId);
+      const profile = statements.userById.get(user.userId);
       return jsonResponse(res, 200, {
-        user: { id: user.userId, email: user.email },
+        user: { id: user.userId, email: user.email, nativeLanguage: profile.nativeLanguage },
         languages,
         predefinedLanguages: statements.predefinedLanguages.all(),
+        nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS,
         needsOnboarding: languages.length === 0
       });
     }
@@ -34,7 +42,7 @@ export function createApiHandler({ db, statements }) {
         return jsonResponse(res, 401, { error: "Invalid email or password." });
       }
       setJwtForUser(res, user);
-      return jsonResponse(res, 200, { user: { id: user.id, email: user.email } });
+      return jsonResponse(res, 200, { user: { id: user.id, email: user.email, nativeLanguage: user.nativeLanguage } });
     }
 
     if (req.method === "POST" && url.pathname === "/api/auth/register") {
@@ -52,7 +60,7 @@ export function createApiHandler({ db, statements }) {
       statements.createUser.run(email, passwordHash.hash, passwordHash.salt);
       const user = statements.userByEmail.get(email);
       setJwtForUser(res, user);
-      return jsonResponse(res, 201, { user: { id: user.id, email: user.email } });
+      return jsonResponse(res, 201, { user: { id: user.id, email: user.email, nativeLanguage: user.nativeLanguage } });
     }
 
     if (req.method === "POST" && url.pathname === "/api/auth/logout") {
@@ -81,6 +89,23 @@ export function createApiHandler({ db, statements }) {
 
     if (req.method === "GET" && url.pathname === "/api/languages") {
       return jsonResponse(res, 200, { languages: getLanguages(db, user.userId), predefinedLanguages: statements.predefinedLanguages.all() });
+    }
+
+    if (req.method === "PATCH" && url.pathname === "/api/settings") {
+      const body = await readJson(req);
+      const nativeLanguage = String(body.nativeLanguage || "");
+      if (!NATIVE_LANGUAGE_OPTIONS.includes(nativeLanguage)) {
+        return jsonResponse(res, 400, { error: "Unsupported native language." });
+      }
+      statements.updateNativeLanguage.run(nativeLanguage, user.userId);
+      return jsonResponse(res, 200, {
+        user: {
+          id: user.userId,
+          email: user.email,
+          nativeLanguage
+        },
+        nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS
+      });
     }
 
     const wordsMatch = url.pathname.match(/^\/api\/collections\/(\d+)\/words$/);

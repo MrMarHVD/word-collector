@@ -1,8 +1,9 @@
 export function createStatements(db) {
   return {
-    userByEmail: db.prepare("SELECT id, email, password_hash AS passwordHash, password_salt AS passwordSalt FROM users WHERE lower(email) = lower(?)"),
-    userById: db.prepare("SELECT id, email FROM users WHERE id = ?"),
+    userByEmail: db.prepare("SELECT id, email, native_language AS nativeLanguage, password_hash AS passwordHash, password_salt AS passwordSalt FROM users WHERE lower(email) = lower(?)"),
+    userById: db.prepare("SELECT id, email, native_language AS nativeLanguage FROM users WHERE id = ?"),
     createUser: db.prepare("INSERT INTO users (email, password_hash, password_salt) VALUES (?, ?, ?)"),
+    updateNativeLanguage: db.prepare("UPDATE users SET native_language = ? WHERE id = ?"),
     predefinedLanguages: db.prepare("SELECT id, name FROM predefined_languages ORDER BY lower(name)"),
     predefinedLanguageById: db.prepare("SELECT id, name FROM predefined_languages WHERE id = ?"),
     languageById: db.prepare("SELECT id, user_id AS userId, name FROM languages WHERE id = ? AND user_id = ?"),

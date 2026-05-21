@@ -2,6 +2,7 @@ import { requestJson, setUnauthorizedHandler } from "./api.js";
 import { parseCsv } from "./csv.js";
 import { elements } from "./dom.js";
 import { formatCount, loadMessages, t } from "./i18n.js";
+import { escapeHtml } from "./shared/html.js";
 import { state } from "./state.js";
 import { renderAuthMode } from "./views/auth.js";
 import { renderDashboard, renderSelectedCollectionStats } from "./views/dashboard.js";
@@ -24,16 +25,30 @@ function applyLocale() {
 
   renderAuthMode();
   renderOnboarding(state.predefinedLanguages);
+  renderSettings();
   if (state.dashboard) {
     renderDashboard();
     renderWords(state.words);
   }
 }
 
+function renderSettings() {
+  if (!elements.nativeLanguageSelect) {
+    return;
+  }
+  elements.nativeLanguageSelect.innerHTML = state.nativeLanguageOptions
+    .map((language) => {
+      const selected = language === state.user?.nativeLanguage ? "selected" : "";
+      return `<option value="${escapeHtml(language)}" ${selected}>${escapeHtml(t(`settings.nativeLanguage.${language}`))}</option>`;
+    })
+    .join("");
+}
+
 async function loadSession() {
   const result = await requestJson("/api/auth/me");
   state.user = result.user;
   state.predefinedLanguages = result.predefinedLanguages || [];
+  state.nativeLanguageOptions = result.nativeLanguageOptions || [];
   if (!state.user) {
     showView("auth");
     renderAuthMode();
@@ -49,6 +64,7 @@ async function loadSession() {
   state.selectedDashboardLanguageId = languages.some((language) => language.id === savedLanguageId) ? savedLanguageId : languages[0]?.id || null;
   showView("app");
   setActiveTab(state.activeTab);
+  renderSettings();
   await loadDashboard();
 }
 
@@ -202,6 +218,27 @@ function bindEvents() {
       state.words = [];
       showView("auth");
       elements.logoutButton.disabled = false;
+    }
+  });
+
+  elements.settingsForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    elements.settingsStatus.textContent = t("settings.saving");
+    const submitButton = elements.settingsForm.querySelector("button");
+    submitButton.disabled = true;
+    try {
+      const result = await requestJson("/api/settings", {
+        method: "PATCH",
+        body: JSON.stringify({ nativeLanguage: elements.nativeLanguageSelect.value })
+      });
+      state.user = result.user;
+      state.nativeLanguageOptions = result.nativeLanguageOptions || state.nativeLanguageOptions;
+      renderSettings();
+      elements.settingsStatus.textContent = t("settings.saved");
+    } catch (error) {
+      elements.settingsStatus.textContent = error.message;
+    } finally {
+      submitButton.disabled = false;
     }
   });
 

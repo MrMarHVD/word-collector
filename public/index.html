@@ -57,6 +57,13 @@
             <button class="locale-button" type="button" data-locale="ja" data-i18n="ui.japanese">日本語</button>
             <button class="locale-button" type="button" data-locale="en" data-i18n="ui.english">English</button>
           </div>
+          <button id="settingsButton" class="secondary-button icon-button tab-button" type="button" data-tab="settings">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.3a2 2 0 0 1-4 0V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 0 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H2.7a2 2 0 0 1 0-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7A2 2 0 0 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6v-.3a2 2 0 0 1 4 0V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 0 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.3a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z" />
+            </svg>
+            <span class="visually-hidden" data-i18n="tabs.settings">Settings</span>
+          </button>
           <button id="logoutButton" class="secondary-button logout-button" type="button" data-i18n="auth.logout">ログアウト</button>
         </div>
       </header>
@@ -169,6 +176,22 @@
             <p id="wordListStatus" class="list-status" role="status"></p>
             <p id="emptyState" class="empty" data-i18n="collections.empty">CSVをアップロードして最初のコレクションを作成してください。</p>
           </section>
+        </section>
+      </section>
+      <section id="settingsView" class="tab-view" hidden>
+        <section class="settings-panel">
+          <div class="section-head">
+            <h2 data-i18n="settings.title">設定</h2>
+          </div>
+          <form id="settingsForm">
+            <label>
+              <span data-i18n="settings.nativeLanguage">母語</span>
+              <select id="nativeLanguageSelect"></select>
+            </label>
+            <p class="hint" data-i18n="settings.nativeLanguageHint">翻訳や説明に使う言語です。</p>
+            <button type="submit" data-i18n="settings.save">保存</button>
+            <p id="settingsStatus" class="status" role="status"></p>
+          </form>
         </section>
       </section>
       <datalist id="languageOptions"></datalist>

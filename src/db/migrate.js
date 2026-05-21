@@ -38,6 +38,11 @@ export function runMigrations(db) {
     );
   `);
 
+  const userColumns = db.prepare("PRAGMA table_info(users)").all();
+  if (!userColumns.some((column) => column.name === "native_language")) {
+    db.exec("ALTER TABLE users ADD COLUMN native_language TEXT NOT NULL DEFAULT 'English'");
+  }
+
   const seedUser = ensureSeedUser(db);
   db.prepare("INSERT OR IGNORE INTO predefined_languages (name) VALUES (?)").run("English");
 

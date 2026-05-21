@@ -139,7 +139,7 @@ button:disabled {
   right: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 480px);
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -205,7 +205,8 @@ h2 {
 .filter-panel,
 .upload-panel,
 .collection-panel,
-.browser-panel {
+.browser-panel,
+.settings-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -265,7 +266,7 @@ small,
 
 .menu-actions {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(120px, 160px);
+  grid-template-columns: minmax(180px, 1fr) 52px minmax(132px, 160px);
   align-items: center;
   gap: 8px;
   justify-items: stretch;
@@ -294,6 +295,37 @@ small,
 .logout-button {
   width: 100%;
   min-height: 52px;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 52px;
+  min-height: 52px;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--accent-dark);
+}
+
+.icon-button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .tab-button:hover,
@@ -342,8 +374,13 @@ small,
 
 .upload-panel,
 .collection-panel,
-.browser-panel {
+.browser-panel,
+.settings-panel {
   padding: 18px;
+}
+
+.settings-panel {
+  max-width: 520px;
 }
 
 .section-head {
