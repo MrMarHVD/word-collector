@@ -1,0 +1,162 @@
+import { SEED_EMAIL, SEED_PASSWORD } from "../config.js";
+import { hashPassword } from "../auth/password.js";
+
+function ensureSeedUser(db) {
+  let user = db.prepare("SELECT id, email FROM users WHERE lower(email) = lower(?)").get(SEED_EMAIL);
+  if (!user) {
+    const password = hashPassword(SEED_PASSWORD);
+    db.prepare("INSERT INTO users (email, password_hash, password_salt) VALUES (?, ?, ?)").run(SEED_EMAIL, password.hash, password.salt);
+    user = db.prepare("SELECT id, email FROM users WHERE lower(email) = lower(?)").get(SEED_EMAIL);
+  }
+  return user;
+}
+
+export function runMigrations(db) {
+  db.exec(`
+    PRAGMA foreign_keys = ON;
+
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      password_salt TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS predefined_languages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  const seedUser = ensureSeedUser(db);
+  db.prepare("INSERT OR IGNORE INTO predefined_languages (name) VALUES (?)").run("English");
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS languages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      name TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
+
+  const languageColumns = db.prepare("PRAGMA table_info(languages)").all();
+  const hasLanguageUserId = languageColumns.some((column) => column.name === "user_id");
+  const languageUserIdNotNull = languageColumns.find((column) => column.name === "user_id")?.notnull === 1;
+  if (!hasLanguageUserId || !languageUserIdNotNull) {
+    db.exec("PRAGMA foreign_keys = OFF");
+    db.exec("BEGIN");
+    try {
+      db.exec(`
+        CREATE TABLE languages_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+          UNIQUE (user_id, name)
+        );
+      `);
+      db.prepare(`
+        INSERT INTO languages_new (id, user_id, name, created_at)
+        SELECT id, ?, name, created_at FROM languages
+      `).run(seedUser.id);
+      db.exec("DROP TABLE languages");
+      db.exec("ALTER TABLE languages_new RENAME TO languages");
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    } finally {
+      db.exec("PRAGMA foreign_keys = ON");
+    }
+  }
+
+  const collectionsTable = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'collections'").get();
+  if (!collectionsTable) {
+    db.exec(`
+      CREATE TABLE collections (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        language_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (language_id) REFERENCES languages(id) ON DELETE RESTRICT,
+        UNIQUE (language_id, name)
+      );
+    `);
+  } else {
+    const collectionColumns = db.prepare("PRAGMA table_info(collections)").all();
+    const hasLanguageId = collectionColumns.some((column) => column.name === "language_id");
+    if (!hasLanguageId) {
+      db.prepare("INSERT OR IGNORE INTO languages (name) VALUES (?)").run("未分類");
+      const defaultLanguage = db.prepare("SELECT id FROM languages WHERE name = ?").get("未分類");
+      db.exec("PRAGMA foreign_keys = OFF");
+      db.exec("BEGIN");
+      try {
+        db.exec(`
+          CREATE TABLE collections_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            language_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (language_id) REFERENCES languages(id) ON DELETE RESTRICT,
+            UNIQUE (language_id, name)
+          );
+        `);
+        db.prepare(`
+          INSERT INTO collections_new (id, language_id, name, created_at)
+          SELECT id, ?, name, created_at FROM collections
+        `).run(defaultLanguage.id);
+        db.exec("DROP TABLE collections");
+        db.exec("ALTER TABLE collections_new RENAME TO collections");
+        db.exec("COMMIT");
+      } catch (error) {
+        db.exec("ROLLBACK");
+        throw error;
+      } finally {
+        db.exec("PRAGMA foreign_keys = ON");
+      }
+    }
+  }
+
+  db.exec(`
+    PRAGMA foreign_keys = ON;
+
+    CREATE TABLE IF NOT EXISTS words (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      collection_id INTEGER NOT NULL,
+      word TEXT NOT NULL,
+      translation TEXT NOT NULL,
+      known INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE,
+      UNIQUE (collection_id, word, translation)
+    );
+
+    CREATE TABLE IF NOT EXISTS user_word_status (
+      user_id INTEGER NOT NULL,
+      word_id INTEGER NOT NULL,
+      known INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, word_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
+    );
+  `);
+
+  db.prepare(`
+    INSERT OR IGNORE INTO user_word_status (user_id, word_id, known)
+    SELECT ?, id, known FROM words WHERE known = 1
+  `).run(seedUser.id);
+}
