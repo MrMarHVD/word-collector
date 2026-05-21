@@ -44,36 +44,38 @@
     </main>
 
     <main id="appShell" class="shell" hidden>
-      <header class="topbar">
-        <div>
-          <p class="eyebrow" data-i18n="brand">Word Collector</p>
-          <h1 data-i18n="app.title">Word Collector</h1>
-        </div>
-        <div class="locale-switcher" aria-label="UI language">
-          <span data-i18n="ui.language">UI言語</span>
-          <div class="locale-buttons">
-            <button class="locale-button" type="button" data-locale="ja" data-i18n="ui.japanese">日本語</button>
-            <button class="locale-button" type="button" data-locale="en" data-i18n="ui.english">English</button>
-          </div>
-        </div>
+      <header class="menu-bar">
+        <div class="menu-brand" data-i18n="brand">Word Collector</div>
+        <nav class="tabs" aria-label="Main views">
+          <button class="tab-button is-active" type="button" data-tab="dashboard" data-i18n="tabs.dashboard">ダッシュボード</button>
+          <button class="tab-button" type="button" data-tab="collections" data-i18n="tabs.collections">コレクション</button>
+        </nav>
         <div class="learning-switcher">
-          <label for="dashboardLanguageSelect" data-i18n="learning.current">勉強している言語</label>
+          <label for="dashboardLanguageSelect" data-i18n="learning.current">学習中の言語</label>
           <div class="learning-controls">
             <select id="dashboardLanguageSelect"></select>
             <select id="predefinedLanguageSelect"></select>
             <button id="addLanguageButton" class="secondary-button" type="button" data-i18n="learning.add">言語を追加</button>
           </div>
         </div>
+        <div class="menu-spacer"></div>
+        <div class="locale-buttons" aria-label="UI language">
+          <button class="locale-button" type="button" data-locale="ja" data-i18n="ui.japanese">日本語</button>
+          <button class="locale-button" type="button" data-locale="en" data-i18n="ui.english">English</button>
+        </div>
+        <button id="logoutButton" class="secondary-button logout-button" type="button" data-i18n="auth.logout">ログアウト</button>
+      </header>
+
+      <header class="page-head">
+        <div>
+          <p class="eyebrow" data-i18n="brand">Word Collector</p>
+          <h1 data-i18n="app.title">Word Collector</h1>
+        </div>
         <div class="total-panel">
           <span id="knownTotal">0</span>
           <small data-i18n="stats.knownAll">全コレクションの既知単語</small>
         </div>
       </header>
-
-      <nav class="tabs" aria-label="Main views">
-        <button class="tab-button is-active" type="button" data-tab="dashboard" data-i18n="tabs.dashboard">ダッシュボード</button>
-        <button class="tab-button" type="button" data-tab="collections" data-i18n="tabs.collections">コレクション</button>
-      </nav>
 
       <section id="dashboardView" class="tab-view">
         <section class="metrics" aria-label="Overall progress">

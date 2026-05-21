@@ -7,3 +7,4 @@
 - Test changes with temporary data only, and remove only the temporary data you created.
 - When adding or changing UI text, labels, placeholders, messages, confirmations, or status text, update `public/locales.json` for every supported locale and use localization keys in the UI.
 - Do not hard-code user-facing UI strings outside the localization layer unless the text is data from the database or user input.
+- Choose natural, concise UI names and labels. Prefer simple product language over literal translations or overly formal phrasing.

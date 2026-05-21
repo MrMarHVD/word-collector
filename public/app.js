@@ -39,6 +39,7 @@ const elements = {
   dashboardLanguageSelect: document.querySelector("#dashboardLanguageSelect"),
   predefinedLanguageSelect: document.querySelector("#predefinedLanguageSelect"),
   addLanguageButton: document.querySelector("#addLanguageButton"),
+  logoutButton: document.querySelector("#logoutButton"),
   knownTotal: document.querySelector("#knownTotal"),
   totalWords: document.querySelector("#totalWords"),
   unknownTotal: document.querySelector("#unknownTotal"),
@@ -529,6 +530,19 @@ elements.addLanguageButton.addEventListener("click", async () => {
     await loadDashboard();
   } finally {
     elements.addLanguageButton.disabled = false;
+  }
+});
+
+elements.logoutButton.addEventListener("click", async () => {
+  elements.logoutButton.disabled = true;
+  try {
+    await requestJson("/api/auth/logout", { method: "POST" });
+  } finally {
+    state.user = null;
+    state.dashboard = null;
+    state.words = [];
+    showView("auth");
+    elements.logoutButton.disabled = false;
   }
 });
 
