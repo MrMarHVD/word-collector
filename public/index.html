@@ -90,7 +90,14 @@
           <section class="browser-panel">
             <div class="section-head">
               <h2 data-i18n="collections.wordsTitle">単語一覧</h2>
-              <button id="deleteCollectionButton" class="danger-button" type="button" data-i18n="collections.delete">削除</button>
+              <div class="collection-actions">
+                <div class="display-mode-buttons">
+                  <button class="display-mode-button is-active" type="button" data-display-mode="all" data-i18n="collections.displayAll">すべて</button>
+                  <button class="display-mode-button" type="button" data-display-mode="infinite" data-i18n="collections.displayInfinite">Infinite Scroll</button>
+                </div>
+                <button id="saveCollectionLanguageButton" class="secondary-button" type="button" data-i18n="collections.save">保存</button>
+                <button id="deleteCollectionButton" class="danger-button" type="button" data-i18n="collections.delete">削除</button>
+              </div>
             </div>
             <div class="browser-tools">
               <label>
@@ -99,9 +106,8 @@
               </label>
               <label>
                 <span data-i18n="collections.language">言語</span>
-                <input id="collectionLanguageName" type="text" list="languageOptions" data-i18n-placeholder="upload.languagePlaceholder" placeholder="日本語" />
+                <select id="collectionLanguageSelect"></select>
               </label>
-              <button id="saveCollectionLanguageButton" class="secondary-button" type="button" data-i18n="collections.save">保存</button>
               <label>
                 <span data-i18n="collections.search">検索</span>
                 <input id="searchInput" type="search" data-i18n-placeholder="collections.searchPlaceholder" placeholder="単語または翻訳で検索" />
@@ -120,6 +126,7 @@
                 <tbody id="wordRows"></tbody>
               </table>
             </div>
+            <p id="wordListStatus" class="list-status" role="status"></p>
             <p id="emptyState" class="empty" data-i18n="collections.empty">CSVをアップロードして最初のコレクションを作成してください。</p>
           </section>
         </section>

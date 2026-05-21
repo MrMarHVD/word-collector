@@ -1,8 +1,12 @@
+const WORD_PAGE_SIZE = 50;
+
 const state = {
   dashboard: null,
   selectedDashboardLanguageId: null,
   selectedCollectionId: null,
   words: [],
+  visibleWordCount: WORD_PAGE_SIZE,
+  wordDisplayMode: localStorage.getItem("wordMarkerDisplayMode") || "all",
   search: "",
   activeTab: "dashboard",
   locale: localStorage.getItem("wordMarkerLocale") || "ja",
@@ -25,10 +29,13 @@ const elements = {
   collectionSelect: document.querySelector("#collectionSelect"),
   deleteCollectionButton: document.querySelector("#deleteCollectionButton"),
   searchInput: document.querySelector("#searchInput"),
+  displayModeButtons: document.querySelectorAll(".display-mode-button"),
   selectedCollectionStats: document.querySelector("#selectedCollectionStats"),
-  collectionLanguageName: document.querySelector("#collectionLanguageName"),
+  collectionLanguageSelect: document.querySelector("#collectionLanguageSelect"),
   saveCollectionLanguageButton: document.querySelector("#saveCollectionLanguageButton"),
+  tableWrap: document.querySelector(".table-wrap"),
   wordRows: document.querySelector("#wordRows"),
+  wordListStatus: document.querySelector("#wordListStatus"),
   emptyState: document.querySelector("#emptyState"),
   uploadForm: document.querySelector("#uploadForm"),
   uploadLanguageName: document.querySelector("#uploadLanguageName"),
@@ -42,6 +49,9 @@ async function loadMessages() {
   state.messages = await requestJson("/locales.json");
   if (!state.messages[state.locale]) {
     state.locale = "ja";
+  }
+  if (!["all", "infinite"].includes(state.wordDisplayMode)) {
+    state.wordDisplayMode = "all";
   }
 }
 
@@ -60,6 +70,7 @@ function applyLocale() {
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", String(active));
   });
+  renderDisplayModeButtons();
 
   document.querySelectorAll("[data-i18n]").forEach((node) => {
     node.textContent = t(node.dataset.i18n);
@@ -72,6 +83,19 @@ function applyLocale() {
     renderDashboard();
     renderWords(state.words);
   }
+}
+
+function renderDisplayModeButtons() {
+  elements.displayModeButtons.forEach((button) => {
+    const active = button.dataset.displayMode === state.wordDisplayMode;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
+
+function resetWordWindow() {
+  state.visibleWordCount = WORD_PAGE_SIZE;
+  elements.tableWrap.scrollTop = 0;
 }
 
 function formatCount(value) {
@@ -172,9 +196,23 @@ function renderDashboard() {
         .join("")
     : `<option value="">${escapeHtml(t("collections.noCollections"))}</option>`;
 
+  elements.collectionLanguageSelect.innerHTML = languages.length
+    ? languages
+        .map((language) => {
+          const selected = language.id === getSelectedCollection()?.languageId ? "selected" : "";
+          return `<option value="${language.id}" ${selected}>${escapeHtml(language.name)}</option>`;
+        })
+        .join("")
+    : `<option value="">${escapeHtml(t("collections.noLanguages"))}</option>`;
+
   elements.deleteCollectionButton.disabled = !state.selectedCollectionId;
   elements.saveCollectionLanguageButton.disabled = !state.selectedCollectionId;
   renderSelectedCollectionStats();
+}
+
+function getSelectedCollection() {
+  const allCollections = state.dashboard?.allCollections || state.dashboard?.collections || [];
+  return allCollections.find((entry) => entry.id === state.selectedCollectionId);
 }
 
 function renderChartCard(collection) {
@@ -193,16 +231,15 @@ function renderChartCard(collection) {
 }
 
 function renderSelectedCollectionStats() {
-  const allCollections = state.dashboard?.allCollections || state.dashboard?.collections || [];
-  const collection = allCollections.find((entry) => entry.id === state.selectedCollectionId);
+  const collection = getSelectedCollection();
   if (!collection) {
     elements.selectedCollectionStats.innerHTML = "";
-    elements.collectionLanguageName.value = "";
+    elements.collectionLanguageSelect.value = "";
     return;
   }
 
   const percent = collection.totalWords ? Math.round((collection.knownWords / collection.totalWords) * 100) : 0;
-  elements.collectionLanguageName.value = collection.languageName;
+  elements.collectionLanguageSelect.value = String(collection.languageId);
   elements.selectedCollectionStats.innerHTML = `
     <span>${escapeHtml(collection.name)}</span>
     <small>${escapeHtml(collection.languageName)}</small>
@@ -231,7 +268,11 @@ async function loadWords() {
 }
 
 function renderWords(words) {
-  elements.wordRows.innerHTML = words
+  renderDisplayModeButtons();
+  const visibleWords = state.wordDisplayMode === "infinite" ? words.slice(0, state.visibleWordCount) : words;
+  elements.tableWrap.classList.toggle("is-scrollable", state.wordDisplayMode === "infinite" && words.length > WORD_PAGE_SIZE);
+
+  elements.wordRows.innerHTML = visibleWords
     .map(
       (entry) => `
       <tr>
@@ -249,12 +290,35 @@ function renderWords(words) {
 
   const hasCollections = (state.dashboard.allCollections || state.dashboard.collections).length > 0;
   elements.emptyState.hidden = words.length > 0 || hasCollections;
+  elements.wordListStatus.hidden = !words.length;
+  elements.wordListStatus.textContent =
+    state.wordDisplayMode === "infinite"
+      ? t("collections.showingWords", {
+          shown: formatCount(visibleWords.length),
+          total: formatCount(words.length)
+        })
+      : t("collections.totalWords", { total: formatCount(words.length) });
+
   if (!words.length && hasCollections) {
     elements.emptyState.hidden = false;
     elements.emptyState.textContent = t("collections.noSearchResults");
   } else {
     elements.emptyState.textContent = t("collections.empty");
   }
+}
+
+function loadMoreWordsIfNeeded() {
+  if (state.wordDisplayMode !== "infinite" || state.visibleWordCount >= state.words.length) {
+    return;
+  }
+
+  const remainingScroll = elements.tableWrap.scrollHeight - elements.tableWrap.scrollTop - elements.tableWrap.clientHeight;
+  if (remainingScroll > 120) {
+    return;
+  }
+
+  state.visibleWordCount = Math.min(state.visibleWordCount + WORD_PAGE_SIZE, state.words.length);
+  renderWords(state.words);
 }
 
 function escapeHtml(value) {
@@ -308,6 +372,16 @@ elements.tabButtons.forEach((button) => {
   button.addEventListener("click", () => setActiveTab(button.dataset.tab));
 });
 
+elements.displayModeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    state.wordDisplayMode = button.dataset.displayMode;
+    localStorage.setItem("wordMarkerDisplayMode", state.wordDisplayMode);
+    resetWordWindow();
+    renderDisplayModeButtons();
+    renderWords(state.words);
+  });
+});
+
 elements.localeButtons.forEach((button) => {
   button.addEventListener("click", () => {
     state.locale = button.dataset.locale;
@@ -325,6 +399,7 @@ elements.collectionSelect.addEventListener("change", async (event) => {
   state.selectedCollectionId = Number(event.target.value) || null;
   state.search = "";
   elements.searchInput.value = "";
+  resetWordWindow();
   renderSelectedCollectionStats();
   await loadWords();
 });
@@ -338,7 +413,7 @@ elements.saveCollectionLanguageButton.addEventListener("click", async () => {
   try {
     await requestJson(`/api/collections/${state.selectedCollectionId}`, {
       method: "PATCH",
-      body: JSON.stringify({ languageName: elements.collectionLanguageName.value })
+      body: JSON.stringify({ languageId: Number(elements.collectionLanguageSelect.value) })
     });
     await loadDashboard();
   } finally {
@@ -367,8 +442,11 @@ elements.deleteCollectionButton.addEventListener("click", async () => {
 
 elements.searchInput.addEventListener("input", async (event) => {
   state.search = event.target.value.trim();
+  resetWordWindow();
   await loadWords();
 });
+
+elements.tableWrap.addEventListener("scroll", loadMoreWordsIfNeeded);
 
 elements.wordRows.addEventListener("click", async (event) => {
   const button = event.target.closest(".known-toggle");
