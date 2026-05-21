@@ -2,11 +2,17 @@ const state = {
   dashboard: null,
   selectedDashboardLanguageId: null,
   selectedCollectionId: null,
+  words: [],
   search: "",
-  activeTab: "dashboard"
+  activeTab: "dashboard",
+  locale: localStorage.getItem("wordMarkerLocale") || "ja",
+  messages: {}
 };
 
 const elements = {
+  html: document.documentElement,
+  title: document.querySelector("title"),
+  localeButtons: document.querySelectorAll(".locale-button"),
   tabButtons: document.querySelectorAll(".tab-button"),
   dashboardView: document.querySelector("#dashboardView"),
   collectionsView: document.querySelector("#collectionsView"),
@@ -32,8 +38,44 @@ const elements = {
   languageOptions: document.querySelector("#languageOptions")
 };
 
+async function loadMessages() {
+  state.messages = await requestJson("/locales.json");
+  if (!state.messages[state.locale]) {
+    state.locale = "ja";
+  }
+}
+
+function t(key, values = {}) {
+  const message = state.messages[state.locale]?.[key] || state.messages.ja?.[key] || key;
+  return Object.entries(values).reduce((text, [name, value]) => {
+    return text.replaceAll(`{${name}}`, value);
+  }, message);
+}
+
+function applyLocale() {
+  elements.html.lang = state.locale;
+  elements.title.textContent = `${t("brand")} - ${t("app.title")}`;
+  elements.localeButtons.forEach((button) => {
+    const active = button.dataset.locale === state.locale;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    node.textContent = t(node.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    node.placeholder = t(node.dataset.i18nPlaceholder);
+  });
+
+  if (state.dashboard) {
+    renderDashboard();
+    renderWords(state.words);
+  }
+}
+
 function formatCount(value) {
-  return new Intl.NumberFormat().format(value);
+  return new Intl.NumberFormat(state.locale).format(value);
 }
 
 function setActiveTab(tabName) {
@@ -72,7 +114,7 @@ async function requestJson(url, options) {
   });
   const payload = await response.json();
   if (!response.ok) {
-    throw new Error(payload.error || "Request failed.");
+    throw new Error(payload.error || t("errors.requestFailed"));
   }
   return payload;
 }
@@ -104,7 +146,7 @@ function renderDashboard() {
   elements.collectionCount.textContent = formatCount(collections.length);
 
   elements.dashboardLanguageSelect.innerHTML = `
-    <option value="">すべての言語</option>
+    <option value="">${escapeHtml(t("dashboard.allLanguages"))}</option>
     ${languages
       .map((language) => {
         const selected = language.id === state.selectedDashboardLanguageId ? "selected" : "";
@@ -119,7 +161,7 @@ function renderDashboard() {
 
   elements.collectionCharts.innerHTML = collections.length
     ? collections.map(renderChartCard).join("")
-    : `<p class="empty">まだコレクションがありません。</p>`;
+    : `<p class="empty">${escapeHtml(t("dashboard.noCollections"))}</p>`;
 
   elements.collectionSelect.innerHTML = allCollections.length
     ? allCollections
@@ -128,7 +170,7 @@ function renderDashboard() {
           return `<option value="${collection.id}" ${selected}>${escapeHtml(collection.languageName)} / ${escapeHtml(collection.name)}</option>`;
         })
         .join("")
-    : `<option value="">コレクションなし</option>`;
+    : `<option value="">${escapeHtml(t("collections.noCollections"))}</option>`;
 
   elements.deleteCollectionButton.disabled = !state.selectedCollectionId;
   elements.saveCollectionLanguageButton.disabled = !state.selectedCollectionId;
@@ -143,8 +185,8 @@ function renderChartCard(collection) {
       <div>
         <strong>${escapeHtml(collection.name)}</strong>
         <span>${escapeHtml(collection.languageName)}</span>
-        <span>${formatCount(collection.totalWords)}語中 ${formatCount(collection.knownWords)}語が既知</span>
-        <span>${percent}% 完了</span>
+        <span>${escapeHtml(t("progress.knownOfTotal", { total: formatCount(collection.totalWords), known: formatCount(collection.knownWords) }))}</span>
+        <span>${escapeHtml(t("progress.complete", { percent }))}</span>
       </div>
     </article>
   `;
@@ -165,15 +207,16 @@ function renderSelectedCollectionStats() {
     <span>${escapeHtml(collection.name)}</span>
     <small>${escapeHtml(collection.languageName)}</small>
     <strong>${formatCount(collection.knownWords)} / ${formatCount(collection.totalWords)}</strong>
-    <small>${percent}% 既知</small>
+    <small>${escapeHtml(t("progress.knownPercent", { percent }))}</small>
   `;
 }
 
 async function loadWords() {
   if (!state.selectedCollectionId) {
+    state.words = [];
     elements.wordRows.innerHTML = "";
     elements.emptyState.hidden = false;
-    elements.emptyState.textContent = "CSVをアップロードして最初のコレクションを作成してください。";
+    elements.emptyState.textContent = t("collections.empty");
     return;
   }
 
@@ -183,6 +226,7 @@ async function loadWords() {
   }
 
   const result = await requestJson(`/api/collections/${state.selectedCollectionId}/words?${params}`);
+  state.words = result.words;
   renderWords(result.words);
 }
 
@@ -195,7 +239,7 @@ function renderWords(words) {
         <td>${escapeHtml(entry.translation)}</td>
         <td class="known-cell">
           <button class="known-toggle" data-word-id="${entry.id}" data-known="${Boolean(entry.known)}">
-            ${entry.known ? "既知" : "未習得"}
+            ${entry.known ? escapeHtml(t("word.known")) : escapeHtml(t("word.unknown"))}
           </button>
         </td>
       </tr>
@@ -207,9 +251,9 @@ function renderWords(words) {
   elements.emptyState.hidden = words.length > 0 || hasCollections;
   if (!words.length && hasCollections) {
     elements.emptyState.hidden = false;
-    elements.emptyState.textContent = "検索に一致する単語はありません。";
+    elements.emptyState.textContent = t("collections.noSearchResults");
   } else {
-    elements.emptyState.textContent = "CSVをアップロードして最初のコレクションを作成してください。";
+    elements.emptyState.textContent = t("collections.empty");
   }
 }
 
@@ -229,7 +273,7 @@ elements.uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const submitButton = elements.uploadForm.querySelector("button");
   submitButton.disabled = true;
-  elements.uploadStatus.textContent = "Uploading...";
+  elements.uploadStatus.textContent = t("upload.inProgress");
 
   try {
     const file = elements.csvFile.files[0];
@@ -247,7 +291,10 @@ elements.uploadForm.addEventListener("submit", async (event) => {
     state.search = "";
     setActiveTab("collections");
     elements.searchInput.value = "";
-    elements.uploadStatus.textContent = `${result.inserted}件を追加、${result.skipped}件をスキップしました。`;
+    elements.uploadStatus.textContent = t("upload.result", {
+      inserted: formatCount(result.inserted),
+      skipped: formatCount(result.skipped)
+    });
     elements.uploadForm.reset();
     await loadDashboard();
   } catch (error) {
@@ -259,6 +306,14 @@ elements.uploadForm.addEventListener("submit", async (event) => {
 
 elements.tabButtons.forEach((button) => {
   button.addEventListener("click", () => setActiveTab(button.dataset.tab));
+});
+
+elements.localeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    state.locale = button.dataset.locale;
+    localStorage.setItem("wordMarkerLocale", state.locale);
+    applyLocale();
+  });
 });
 
 elements.dashboardLanguageSelect.addEventListener("change", async (event) => {
@@ -297,7 +352,7 @@ elements.deleteCollectionButton.addEventListener("click", async () => {
   }
 
   const collection = (state.dashboard.allCollections || state.dashboard.collections).find((entry) => entry.id === state.selectedCollectionId);
-  const confirmed = window.confirm(`「${collection?.name || "このコレクション"}」と含まれる単語をすべて削除しますか？`);
+  const confirmed = window.confirm(t("collections.deleteConfirm", { name: collection?.name || t("collections.collection") }));
   if (!confirmed) {
     return;
   }
@@ -337,4 +392,6 @@ elements.wordRows.addEventListener("click", async (event) => {
 });
 
 setActiveTab("dashboard");
+await loadMessages();
+applyLocale();
 await loadDashboard();

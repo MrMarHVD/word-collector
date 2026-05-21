@@ -10,26 +10,33 @@
     <main class="shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Word Marker</p>
-          <h1>単語コレクション</h1>
+          <p class="eyebrow" data-i18n="brand">Word Marker</p>
+          <h1 data-i18n="app.title">単語コレクション</h1>
+        </div>
+        <div class="locale-switcher" aria-label="UI language">
+          <span data-i18n="ui.language">UI言語</span>
+          <div class="locale-buttons">
+            <button class="locale-button" type="button" data-locale="ja" data-i18n="ui.japanese">日本語</button>
+            <button class="locale-button" type="button" data-locale="en" data-i18n="ui.english">English</button>
+          </div>
         </div>
         <div class="total-panel">
           <span id="knownTotal">0</span>
-          <small>全コレクションの既知単語</small>
+          <small data-i18n="stats.knownAll">全コレクションの既知単語</small>
         </div>
       </header>
 
       <nav class="tabs" aria-label="Main views">
-        <button class="tab-button is-active" type="button" data-tab="dashboard">ダッシュボード</button>
-        <button class="tab-button" type="button" data-tab="collections">コレクション</button>
+        <button class="tab-button is-active" type="button" data-tab="dashboard" data-i18n="tabs.dashboard">ダッシュボード</button>
+        <button class="tab-button" type="button" data-tab="collections" data-i18n="tabs.collections">コレクション</button>
       </nav>
 
       <section id="dashboardView" class="tab-view">
         <section class="filter-panel">
           <label>
-            表示する言語
+            <span data-i18n="dashboard.languageFilter">表示する言語</span>
             <select id="dashboardLanguageSelect">
-              <option value="">すべての言語</option>
+              <option value="" data-i18n="dashboard.allLanguages">すべての言語</option>
             </select>
           </label>
         </section>
@@ -37,21 +44,21 @@
         <section class="metrics" aria-label="Overall progress">
           <article>
             <span id="totalWords">0</span>
-            <small>単語数</small>
+            <small data-i18n="dashboard.totalWords">単語数</small>
           </article>
           <article>
             <span id="unknownTotal">0</span>
-            <small>未習得</small>
+            <small data-i18n="dashboard.unknownWords">未習得</small>
           </article>
           <article>
             <span id="collectionCount">0</span>
-            <small>コレクション数</small>
+            <small data-i18n="dashboard.collectionCount">コレクション数</small>
           </article>
         </section>
 
         <section class="collection-panel">
           <div class="section-head">
-            <h2>コレクション別の進捗</h2>
+            <h2 data-i18n="dashboard.collectionProgress">コレクション別の進捗</h2>
           </div>
           <div id="collectionCharts" class="chart-grid"></div>
         </section>
@@ -61,43 +68,43 @@
         <section class="workspace">
           <form id="uploadForm" class="upload-panel">
             <div class="section-head">
-              <h2>CSVアップロード</h2>
+              <h2 data-i18n="upload.title">CSVアップロード</h2>
             </div>
             <label>
-              言語
-              <input id="uploadLanguageName" name="uploadLanguageName" type="text" list="languageOptions" placeholder="日本語" required />
+              <span data-i18n="upload.language">言語</span>
+              <input id="uploadLanguageName" name="uploadLanguageName" type="text" list="languageOptions" data-i18n-placeholder="upload.languagePlaceholder" placeholder="日本語" required />
             </label>
             <label>
-              コレクション名
-              <input id="collectionName" name="collectionName" type="text" placeholder="日本語 基本単語" required />
+              <span data-i18n="upload.collection">コレクション名</span>
+              <input id="collectionName" name="collectionName" type="text" data-i18n-placeholder="upload.collectionPlaceholder" placeholder="日本語 基本単語" required />
             </label>
             <label>
-              CSVファイル
+              <span data-i18n="upload.file">CSVファイル</span>
               <input id="csvFile" name="csvFile" type="file" accept=".csv,text/csv,text/plain" required />
             </label>
-            <p class="hint">形式: word translation</p>
-            <button type="submit">アップロード</button>
+            <p class="hint" data-i18n="upload.format">形式: word translation</p>
+            <button type="submit" data-i18n="upload.button">アップロード</button>
             <p id="uploadStatus" class="status" role="status"></p>
           </form>
 
           <section class="browser-panel">
             <div class="section-head">
-              <h2>単語一覧</h2>
-              <button id="deleteCollectionButton" class="danger-button" type="button">削除</button>
+              <h2 data-i18n="collections.wordsTitle">単語一覧</h2>
+              <button id="deleteCollectionButton" class="danger-button" type="button" data-i18n="collections.delete">削除</button>
             </div>
             <div class="browser-tools">
               <label>
-                コレクション
+                <span data-i18n="collections.collection">コレクション</span>
                 <select id="collectionSelect"></select>
               </label>
               <label>
-                言語
-                <input id="collectionLanguageName" type="text" list="languageOptions" placeholder="日本語" />
+                <span data-i18n="collections.language">言語</span>
+                <input id="collectionLanguageName" type="text" list="languageOptions" data-i18n-placeholder="upload.languagePlaceholder" placeholder="日本語" />
               </label>
-              <button id="saveCollectionLanguageButton" class="secondary-button" type="button">保存</button>
+              <button id="saveCollectionLanguageButton" class="secondary-button" type="button" data-i18n="collections.save">保存</button>
               <label>
-                検索
-                <input id="searchInput" type="search" placeholder="単語または翻訳で検索" />
+                <span data-i18n="collections.search">検索</span>
+                <input id="searchInput" type="search" data-i18n-placeholder="collections.searchPlaceholder" placeholder="単語または翻訳で検索" />
               </label>
             </div>
             <div id="selectedCollectionStats" class="selected-stats"></div>
@@ -105,15 +112,15 @@
               <table>
                 <thead>
                   <tr>
-                    <th>単語</th>
-                    <th>翻訳</th>
-                    <th>状態</th>
+                    <th data-i18n="table.word">単語</th>
+                    <th data-i18n="table.translation">翻訳</th>
+                    <th data-i18n="table.status">状態</th>
                   </tr>
                 </thead>
                 <tbody id="wordRows"></tbody>
               </table>
             </div>
-            <p id="emptyState" class="empty">CSVをアップロードして最初のコレクションを作成してください。</p>
+            <p id="emptyState" class="empty" data-i18n="collections.empty">CSVをアップロードして最初のコレクションを作成してください。</p>
           </section>
         </section>
       </section>

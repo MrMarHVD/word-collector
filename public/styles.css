@@ -158,6 +158,25 @@ small,
   background: #e9eee9;
 }
 
+.locale-switcher {
+  display: grid;
+  gap: 6px;
+  min-width: 190px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.locale-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #e9eee9;
+}
+
 .tab-button {
   min-height: 38px;
   border-radius: 6px;
@@ -165,8 +184,17 @@ small,
   color: var(--muted);
 }
 
+.locale-button {
+  min-height: 34px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+}
+
 .tab-button:hover,
-.tab-button.is-active {
+.tab-button.is-active,
+.locale-button:hover,
+.locale-button.is-active {
   background: #ffffff;
   color: var(--text);
 }
@@ -382,7 +410,8 @@ tbody tr:last-child td {
   .topbar,
   .workspace,
   .browser-tools,
-  .tabs {
+  .tabs,
+  .locale-buttons {
     grid-template-columns: 1fr;
   }
 
