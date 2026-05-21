@@ -1,7 +1,7 @@
 {
   "ja": {
-    "app.title": "単語コレクション",
-    "brand": "Word Marker",
+    "app.title": "Word Collector",
+    "brand": "Word Collector",
     "ui.language": "UI言語",
     "ui.japanese": "日本語",
     "ui.english": "English",
@@ -36,7 +36,7 @@
     "collections.searchPlaceholder": "単語または翻訳で検索",
     "collections.displayMode": "表示方式",
     "collections.displayAll": "すべて",
-    "collections.displayInfinite": "Infinite Scroll",
+    "collections.displayInfinite": "無限スクロール",
     "collections.showingWords": "{total}件中 {shown}件を表示",
     "collections.totalWords": "{total}件を表示",
     "collections.empty": "CSVをアップロードして最初のコレクションを作成してください。",
@@ -53,8 +53,8 @@
     "errors.requestFailed": "リクエストに失敗しました。"
   },
   "en": {
-    "app.title": "Word Collections",
-    "brand": "Word Marker",
+    "app.title": "Word Collector",
+    "brand": "Word Collector",
     "ui.language": "UI language",
     "ui.japanese": "日本語",
     "ui.english": "English",

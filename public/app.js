@@ -6,9 +6,9 @@ const state = {
   selectedCollectionId: null,
   words: [],
   visibleWordCount: WORD_PAGE_SIZE,
-  wordDisplayMode: localStorage.getItem("wordMarkerDisplayMode") || "all",
+  wordDisplayMode: localStorage.getItem("wordMarkerDisplayMode") || "infinite",
   search: "",
-  activeTab: "dashboard",
+  activeTab: localStorage.getItem("wordMarkerActiveTab") || "dashboard",
   locale: localStorage.getItem("wordMarkerLocale") || "ja",
   messages: {}
 };
@@ -51,7 +51,10 @@ async function loadMessages() {
     state.locale = "ja";
   }
   if (!["all", "infinite"].includes(state.wordDisplayMode)) {
-    state.wordDisplayMode = "all";
+    state.wordDisplayMode = "infinite";
+  }
+  if (!["dashboard", "collections"].includes(state.activeTab)) {
+    state.activeTab = "dashboard";
   }
 }
 
@@ -104,6 +107,7 @@ function formatCount(value) {
 
 function setActiveTab(tabName) {
   state.activeTab = tabName;
+  localStorage.setItem("wordMarkerActiveTab", tabName);
   elements.dashboardView.hidden = tabName !== "dashboard";
   elements.collectionsView.hidden = tabName !== "collections";
   elements.tabButtons.forEach((button) => {
@@ -469,7 +473,7 @@ elements.wordRows.addEventListener("click", async (event) => {
   }
 });
 
-setActiveTab("dashboard");
 await loadMessages();
 applyLocale();
+setActiveTab(state.activeTab);
 await loadDashboard();
