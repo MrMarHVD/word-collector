@@ -32,13 +32,11 @@ const elements = {
   authStatus: document.querySelector("#authStatus"),
   onboardingLanguages: document.querySelector("#onboardingLanguages"),
   onboardingStatus: document.querySelector("#onboardingStatus"),
-  localeButtons: document.querySelectorAll(".locale-button"),
   tabButtons: document.querySelectorAll(".tab-button"),
+  localeButtons: document.querySelectorAll(".locale-button"),
   dashboardView: document.querySelector("#dashboardView"),
   collectionsView: document.querySelector("#collectionsView"),
   dashboardLanguageSelect: document.querySelector("#dashboardLanguageSelect"),
-  predefinedLanguageSelect: document.querySelector("#predefinedLanguageSelect"),
-  addLanguageButton: document.querySelector("#addLanguageButton"),
   logoutButton: document.querySelector("#logoutButton"),
   knownTotal: document.querySelector("#knownTotal"),
   totalWords: document.querySelector("#totalWords"),
@@ -87,11 +85,7 @@ function t(key, values = {}) {
 function applyLocale() {
   elements.html.lang = state.locale;
   elements.title.textContent = `${t("brand")} - ${t("app.title")}`;
-  elements.localeButtons.forEach((button) => {
-    const active = button.dataset.locale === state.locale;
-    button.classList.toggle("is-active", active);
-    button.setAttribute("aria-pressed", String(active));
-  });
+  renderLocaleButtons();
   renderDisplayModeButtons();
 
   document.querySelectorAll("[data-i18n]").forEach((node) => {
@@ -107,6 +101,14 @@ function applyLocale() {
     renderDashboard();
     renderWords(state.words);
   }
+}
+
+function renderLocaleButtons() {
+  elements.localeButtons.forEach((button) => {
+    const active = button.dataset.locale === state.locale;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
 }
 
 function renderDisplayModeButtons() {
@@ -255,12 +257,6 @@ function renderDashboard() {
       })
       .join("")}
   `;
-  elements.predefinedLanguageSelect.innerHTML = state.predefinedLanguages
-    .filter((predefined) => !languages.some((language) => language.name.toLowerCase() === predefined.name.toLowerCase()))
-    .map((language) => `<option value="${language.id}">${escapeHtml(language.name)}</option>`)
-    .join("");
-  elements.addLanguageButton.disabled = !elements.predefinedLanguageSelect.value;
-
   elements.languageOptions.innerHTML = languages
     .map((language) => `<option value="${escapeHtml(language.name)}"></option>`)
     .join("");
@@ -469,6 +465,14 @@ elements.authModeButtons.forEach((button) => {
   });
 });
 
+elements.localeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    state.locale = button.dataset.locale;
+    localStorage.setItem("wordMarkerLocale", state.locale);
+    applyLocale();
+  });
+});
+
 elements.authForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const isRegister = state.authMode === "register";
@@ -514,25 +518,6 @@ elements.onboardingLanguages.addEventListener("click", async (event) => {
   }
 });
 
-elements.addLanguageButton.addEventListener("click", async () => {
-  const predefinedLanguageId = Number(elements.predefinedLanguageSelect.value);
-  if (!predefinedLanguageId) {
-    return;
-  }
-  elements.addLanguageButton.disabled = true;
-  try {
-    const result = await requestJson("/api/user/languages", {
-      method: "POST",
-      body: JSON.stringify({ predefinedLanguageId })
-    });
-    state.selectedDashboardLanguageId = result.language.id;
-    localStorage.setItem("wordMarkerLearningLanguageId", String(result.language.id));
-    await loadDashboard();
-  } finally {
-    elements.addLanguageButton.disabled = false;
-  }
-});
-
 elements.logoutButton.addEventListener("click", async () => {
   elements.logoutButton.disabled = true;
   try {
@@ -553,14 +538,6 @@ elements.displayModeButtons.forEach((button) => {
     resetWordWindow();
     renderDisplayModeButtons();
     renderWords(state.words);
-  });
-});
-
-elements.localeButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    state.locale = button.dataset.locale;
-    localStorage.setItem("wordMarkerLocale", state.locale);
-    applyLocale();
   });
 });
 

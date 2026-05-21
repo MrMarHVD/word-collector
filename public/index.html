@@ -45,18 +45,12 @@
 
     <main id="appShell" class="shell" hidden>
       <header class="menu-bar">
-        <div class="menu-brand" data-i18n="brand">Word Collector</div>
-        <nav class="tabs" aria-label="Main views">
-          <button class="tab-button is-active" type="button" data-tab="dashboard" data-i18n="tabs.dashboard">ダッシュボード</button>
-          <button class="tab-button" type="button" data-tab="collections" data-i18n="tabs.collections">コレクション</button>
-        </nav>
-        <div class="learning-switcher">
-          <label for="dashboardLanguageSelect" data-i18n="learning.current">学習中の言語</label>
-          <div class="learning-controls">
-            <select id="dashboardLanguageSelect"></select>
-            <select id="predefinedLanguageSelect"></select>
-            <button id="addLanguageButton" class="secondary-button" type="button" data-i18n="learning.add">言語を追加</button>
-          </div>
+        <div class="menu-left">
+          <div class="menu-brand" data-i18n="brand">Word Collector</div>
+          <nav class="tabs" aria-label="Main views">
+            <button class="tab-button is-active" type="button" data-tab="dashboard" data-i18n="tabs.dashboard">ダッシュボード</button>
+            <button class="tab-button" type="button" data-tab="collections" data-i18n="tabs.collections">コレクション</button>
+          </nav>
         </div>
         <div class="menu-actions">
           <div class="locale-buttons" aria-label="UI language">
@@ -72,9 +66,17 @@
           <p class="eyebrow" data-i18n="brand">Word Collector</p>
           <h1 data-i18n="app.title">Word Collector</h1>
         </div>
-        <div class="total-panel">
-          <span id="knownTotal">0</span>
-          <small data-i18n="stats.knownAll">全コレクションの既知単語</small>
+        <div class="page-head-actions">
+          <div class="learning-switcher">
+            <label for="dashboardLanguageSelect" data-i18n="learning.current">学習中の言語</label>
+            <div class="learning-controls">
+              <select id="dashboardLanguageSelect"></select>
+            </div>
+          </div>
+          <div class="total-panel">
+            <span id="knownTotal">0</span>
+            <small data-i18n="stats.knownAll">全コレクションの既知単語</small>
+          </div>
         </div>
       </header>
 
