@@ -17,6 +17,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -77,6 +81,50 @@ button:disabled {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
   padding: 32px 0;
+}
+
+.auth-shell {
+  width: min(440px, calc(100% - 32px));
+  min-height: 100vh;
+  margin: 0 auto;
+  display: grid;
+  align-items: center;
+  padding: 32px 0;
+}
+
+.auth-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 22px;
+}
+
+.auth-tabs,
+.language-picks {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.auth-tabs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #e9eee9;
+}
+
+.auth-mode-button,
+.language-pick {
+  background: #ffffff;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.auth-mode-button.is-active {
+  border-color: rgba(15, 118, 110, 0.28);
+  color: var(--accent-dark);
 }
 
 .topbar {
@@ -165,6 +213,21 @@ small,
   color: var(--muted);
   font-size: 0.82rem;
   font-weight: 800;
+}
+
+.learning-switcher {
+  display: grid;
+  gap: 6px;
+  min-width: min(420px, 100%);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.learning-controls {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(130px, 1fr) auto;
+  gap: 8px;
 }
 
 .locale-buttons {
@@ -464,6 +527,7 @@ tbody tr:last-child td {
   .topbar,
   .workspace,
   .browser-tools,
+  .learning-controls,
   .tabs,
   .locale-buttons,
   .display-mode-buttons {

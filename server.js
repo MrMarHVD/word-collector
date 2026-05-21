@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { readFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
+import { pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
 const PORT = Number(process.env.PORT || 3000);
@@ -9,19 +10,105 @@ const ROOT = process.cwd();
 const PUBLIC_DIR = join(ROOT, "public");
 const DATA_DIR = join(ROOT, "data");
 const DB_PATH = join(DATA_DIR, "words.db");
+const SESSION_COOKIE = "word_collector_session";
+const SEED_EMAIL = "havardjvd@gmail.com";
+const SEED_PASSWORD = "MelkeMannen22";
 
 await mkdir(DATA_DIR, { recursive: true });
 
 const db = new DatabaseSync(DB_PATH);
+
+function hashPassword(password, salt = randomBytes(16).toString("hex")) {
+  const hash = pbkdf2Sync(password, salt, 120_000, 32, "sha256").toString("hex");
+  return { salt, hash };
+}
+
+function verifyPassword(password, salt, expectedHash) {
+  const actual = pbkdf2Sync(password, salt, 120_000, 32, "sha256");
+  const expected = Buffer.from(expectedHash, "hex");
+  return expected.length === actual.length && timingSafeEqual(actual, expected);
+}
+
 db.exec(`
   PRAGMA foreign_keys = ON;
 
-  CREATE TABLE IF NOT EXISTS languages (
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    password_salt TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS sessions (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS predefined_languages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 `);
+
+function ensureSeedUser() {
+  let user = db.prepare("SELECT id, email FROM users WHERE lower(email) = lower(?)").get(SEED_EMAIL);
+  if (!user) {
+    const password = hashPassword(SEED_PASSWORD);
+    db.prepare("INSERT INTO users (email, password_hash, password_salt) VALUES (?, ?, ?)").run(SEED_EMAIL, password.hash, password.salt);
+    user = db.prepare("SELECT id, email FROM users WHERE lower(email) = lower(?)").get(SEED_EMAIL);
+  }
+  return user;
+}
+
+const seedUser = ensureSeedUser();
+db.prepare("INSERT OR IGNORE INTO predefined_languages (name) VALUES (?)").run("English");
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS languages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    name TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+`);
+
+const languageColumns = db.prepare("PRAGMA table_info(languages)").all();
+const hasLanguageUserId = languageColumns.some((column) => column.name === "user_id");
+const languageUserIdNotNull = languageColumns.find((column) => column.name === "user_id")?.notnull === 1;
+if (!hasLanguageUserId || !languageUserIdNotNull) {
+  db.exec("PRAGMA foreign_keys = OFF");
+  db.exec("BEGIN");
+  try {
+    db.exec(`
+      CREATE TABLE languages_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE (user_id, name)
+      );
+    `);
+    db.prepare(`
+      INSERT INTO languages_new (id, user_id, name, created_at)
+      SELECT id, ?, name, created_at FROM languages
+    `).run(seedUser.id);
+    db.exec("DROP TABLE languages");
+    db.exec("ALTER TABLE languages_new RENAME TO languages");
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  } finally {
+    db.exec("PRAGMA foreign_keys = ON");
+  }
+}
 
 const collectionsTable = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'collections'").get();
 if (!collectionsTable) {
@@ -83,23 +170,51 @@ db.exec(`
     FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE,
     UNIQUE (collection_id, word, translation)
   );
+
+  CREATE TABLE IF NOT EXISTS user_word_status (
+    user_id INTEGER NOT NULL,
+    word_id INTEGER NOT NULL,
+    known INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, word_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
+  );
 `);
 
+db.prepare(`
+  INSERT OR IGNORE INTO user_word_status (user_id, word_id, known)
+  SELECT ?, id, known FROM words WHERE known = 1
+`).run(seedUser.id);
+
 const statements = {
-  languageById: db.prepare("SELECT id, name FROM languages WHERE id = ?"),
-  languageByName: db.prepare("SELECT id, name FROM languages WHERE lower(name) = lower(?)"),
-  createLanguage: db.prepare("INSERT INTO languages (name) VALUES (?)"),
+  userByEmail: db.prepare("SELECT id, email, password_hash AS passwordHash, password_salt AS passwordSalt FROM users WHERE lower(email) = lower(?)"),
+  userById: db.prepare("SELECT id, email FROM users WHERE id = ?"),
+  createUser: db.prepare("INSERT INTO users (email, password_hash, password_salt) VALUES (?, ?, ?)"),
+  createSession: db.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)"),
+  sessionById: db.prepare(`
+    SELECT s.id, s.user_id AS userId, u.email, s.expires_at AS expiresAt
+    FROM sessions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.id = ? AND datetime(s.expires_at) > datetime('now')
+  `),
+  deleteSession: db.prepare("DELETE FROM sessions WHERE id = ?"),
+  predefinedLanguages: db.prepare("SELECT id, name FROM predefined_languages ORDER BY lower(name)"),
+  predefinedLanguageById: db.prepare("SELECT id, name FROM predefined_languages WHERE id = ?"),
+  languageById: db.prepare("SELECT id, user_id AS userId, name FROM languages WHERE id = ? AND user_id = ?"),
+  languageByName: db.prepare("SELECT id, user_id AS userId, name FROM languages WHERE user_id = ? AND lower(name) = lower(?)"),
+  createLanguage: db.prepare("INSERT INTO languages (user_id, name) VALUES (?, ?)"),
   collectionByName: db.prepare(`
     SELECT c.id, c.name, c.language_id AS languageId, l.name AS languageName
     FROM collections c
     JOIN languages l ON l.id = c.language_id
-    WHERE c.language_id = ? AND lower(c.name) = lower(?)
+    WHERE l.user_id = ? AND c.language_id = ? AND lower(c.name) = lower(?)
   `),
   collectionById: db.prepare(`
     SELECT c.id, c.name, c.language_id AS languageId, l.name AS languageName
     FROM collections c
     JOIN languages l ON l.id = c.language_id
-    WHERE c.id = ?
+    WHERE c.id = ? AND l.user_id = ?
   `),
   createCollection: db.prepare("INSERT INTO collections (language_id, name) VALUES (?, ?)"),
   deleteCollection: db.prepare("DELETE FROM collections WHERE id = ?"),
@@ -110,7 +225,19 @@ const statements = {
     ON CONFLICT(collection_id, word, translation) DO NOTHING
   `),
   updateKnown: db.prepare("UPDATE words SET known = ? WHERE id = ?"),
-  wordById: db.prepare("SELECT id, collection_id AS collectionId, word, translation, known FROM words WHERE id = ?")
+  upsertKnown: db.prepare(`
+    INSERT INTO user_word_status (user_id, word_id, known, updated_at)
+    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(user_id, word_id) DO UPDATE SET known = excluded.known, updated_at = CURRENT_TIMESTAMP
+  `),
+  wordById: db.prepare(`
+    SELECT w.id, w.collection_id AS collectionId, w.word, w.translation, COALESCE(uws.known, 0) AS known
+    FROM words w
+    JOIN collections c ON c.id = w.collection_id
+    JOIN languages l ON l.id = c.language_id
+    LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
+    WHERE w.id = ? AND l.user_id = ?
+  `)
 };
 
 function jsonResponse(res, status, payload) {
@@ -125,6 +252,51 @@ function jsonResponse(res, status, payload) {
 function textResponse(res, status, body) {
   res.writeHead(status, { "content-type": "text/plain; charset=utf-8" });
   res.end(body);
+}
+
+function parseCookies(req) {
+  return Object.fromEntries(
+    String(req.headers.cookie || "")
+      .split(";")
+      .map((cookie) => cookie.trim())
+      .filter(Boolean)
+      .map((cookie) => {
+        const index = cookie.indexOf("=");
+        return [decodeURIComponent(cookie.slice(0, index)), decodeURIComponent(cookie.slice(index + 1))];
+      })
+  );
+}
+
+function setSessionCookie(res, sessionId) {
+  res.setHeader("set-cookie", `${SESSION_COOKIE}=${encodeURIComponent(sessionId)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000`);
+}
+
+function clearSessionCookie(res) {
+  res.setHeader("set-cookie", `${SESSION_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`);
+}
+
+function getSessionUser(req) {
+  const sessionId = parseCookies(req)[SESSION_COOKIE];
+  if (!sessionId) {
+    return null;
+  }
+  return statements.sessionById.get(sessionId) || null;
+}
+
+function requireUser(req, res) {
+  const user = getSessionUser(req);
+  if (!user) {
+    jsonResponse(res, 401, { error: "Authentication required." });
+    return null;
+  }
+  return user;
+}
+
+function createSessionForUser(res, userId) {
+  const sessionId = randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  statements.createSession.run(sessionId, userId, expiresAt);
+  setSessionCookie(res, sessionId);
 }
 
 async function readJson(req) {
@@ -142,27 +314,30 @@ function normalizeName(value) {
   return String(value || "").trim().replace(/\s+/g, " ");
 }
 
-function getLanguages() {
+function getLanguages(userId) {
   return db.prepare(`
     SELECT id, name
     FROM languages
+    WHERE user_id = ?
     ORDER BY lower(name)
-  `).all();
+  `).all(userId);
 }
 
-function getDashboard(languageId) {
+function getDashboard(userId, languageId) {
   const selectedLanguageId = Number(languageId) || null;
-  const filter = selectedLanguageId ? "WHERE c.language_id = ?" : "";
-  const params = selectedLanguageId ? [selectedLanguageId] : [];
+  const filter = selectedLanguageId ? "WHERE l.user_id = ? AND c.language_id = ?" : "WHERE l.user_id = ?";
+  const params = selectedLanguageId ? [userId, selectedLanguageId] : [userId];
 
   const totals = db.prepare(`
     SELECT
       COUNT(w.id) AS totalWords,
-      COALESCE(SUM(w.known), 0) AS knownWords
+      COALESCE(SUM(CASE WHEN uws.known = 1 THEN 1 ELSE 0 END), 0) AS knownWords
     FROM collections c
+    JOIN languages l ON l.id = c.language_id
     LEFT JOIN words w ON w.collection_id = c.id
+    LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
     ${filter}
-  `).get(...params);
+  `).get(userId, ...params);
 
   const collections = db.prepare(`
     SELECT
@@ -171,14 +346,15 @@ function getDashboard(languageId) {
       c.language_id AS languageId,
       l.name AS languageName,
       COUNT(w.id) AS totalWords,
-      COALESCE(SUM(w.known), 0) AS knownWords
+      COALESCE(SUM(CASE WHEN uws.known = 1 THEN 1 ELSE 0 END), 0) AS knownWords
     FROM collections c
     JOIN languages l ON l.id = c.language_id
     LEFT JOIN words w ON w.collection_id = c.id
+    LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
     ${filter}
     GROUP BY c.id
     ORDER BY lower(l.name), lower(c.name)
-  `).all(...params);
+  `).all(userId, ...params);
 
   const allCollections = db.prepare(`
     SELECT
@@ -187,16 +363,19 @@ function getDashboard(languageId) {
       c.language_id AS languageId,
       l.name AS languageName,
       COUNT(w.id) AS totalWords,
-      COALESCE(SUM(w.known), 0) AS knownWords
+      COALESCE(SUM(CASE WHEN uws.known = 1 THEN 1 ELSE 0 END), 0) AS knownWords
     FROM collections c
     JOIN languages l ON l.id = c.language_id
     LEFT JOIN words w ON w.collection_id = c.id
+    LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
+    WHERE l.user_id = ?
     GROUP BY c.id
     ORDER BY lower(l.name), lower(c.name)
-  `).all();
+  `).all(userId, userId);
 
   return {
-    languages: getLanguages(),
+    languages: getLanguages(userId),
+    predefinedLanguages: statements.predefinedLanguages.all(),
     selectedLanguageId,
     totalWords: Number(totals.totalWords || 0),
     knownWords: Number(totals.knownWords || 0),
@@ -215,10 +394,10 @@ function getDashboard(languageId) {
   };
 }
 
-function getOrCreateLanguage(languageName, languageId) {
+function getOrCreateLanguage(userId, languageName, languageId) {
   const id = Number(languageId) || null;
   if (id) {
-    return statements.languageById.get(id);
+    return statements.languageById.get(id, userId);
   }
 
   const name = normalizeName(languageName);
@@ -226,41 +405,47 @@ function getOrCreateLanguage(languageName, languageId) {
     return null;
   }
 
-  let language = statements.languageByName.get(name);
+  let language = statements.languageByName.get(userId, name);
   if (!language) {
-    statements.createLanguage.run(name);
-    language = statements.languageByName.get(name);
+    statements.createLanguage.run(userId, name);
+    language = statements.languageByName.get(userId, name);
   }
   return language;
 }
 
-function getWords(collectionId, search) {
+function getWords(userId, collectionId, search) {
   const term = normalizeName(search);
   if (term) {
     return db.prepare(`
-      SELECT id, collection_id AS collectionId, word, translation, known
-      FROM words
-      WHERE collection_id = ?
-        AND (lower(word) LIKE lower(?) OR lower(translation) LIKE lower(?))
-      ORDER BY lower(word), lower(translation)
-    `).all(collectionId, `%${term}%`, `%${term}%`);
+      SELECT w.id, w.collection_id AS collectionId, w.word, w.translation, COALESCE(uws.known, 0) AS known
+      FROM words w
+      JOIN collections c ON c.id = w.collection_id
+      JOIN languages l ON l.id = c.language_id
+      LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
+      WHERE l.user_id = ? AND w.collection_id = ?
+        AND (lower(w.word) LIKE lower(?) OR lower(w.translation) LIKE lower(?))
+      ORDER BY lower(w.word), lower(w.translation)
+    `).all(userId, userId, collectionId, `%${term}%`, `%${term}%`);
   }
 
   return db.prepare(`
-    SELECT id, collection_id AS collectionId, word, translation, known
-    FROM words
-    WHERE collection_id = ?
-    ORDER BY lower(word), lower(translation)
-  `).all(collectionId);
+    SELECT w.id, w.collection_id AS collectionId, w.word, w.translation, COALESCE(uws.known, 0) AS known
+    FROM words w
+    JOIN collections c ON c.id = w.collection_id
+    JOIN languages l ON l.id = c.language_id
+    LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
+    WHERE l.user_id = ? AND w.collection_id = ?
+    ORDER BY lower(w.word), lower(w.translation)
+  `).all(userId, userId, collectionId);
 }
 
-function importWords(collectionName, languageName, languageId, words) {
+function importWords(userId, collectionName, languageName, languageId, words) {
   const name = normalizeName(collectionName);
   if (!name) {
     return { error: "Collection name is required." };
   }
 
-  const language = getOrCreateLanguage(languageName, languageId);
+  const language = getOrCreateLanguage(userId, languageName, languageId);
   if (!language) {
     return { error: "Language is required." };
   }
@@ -278,10 +463,10 @@ function importWords(collectionName, languageName, languageId, words) {
     return { error: "Upload at least one row with a word and translation." };
   }
 
-  let collection = statements.collectionByName.get(language.id, name);
+  let collection = statements.collectionByName.get(userId, language.id, name);
   if (!collection) {
     statements.createCollection.run(language.id, name);
-    collection = statements.collectionByName.get(language.id, name);
+    collection = statements.collectionByName.get(userId, language.id, name);
   }
 
   let inserted = 0;
@@ -306,24 +491,91 @@ function importWords(collectionName, languageName, languageId, words) {
 }
 
 async function handleApi(req, res, url) {
+  if (req.method === "GET" && url.pathname === "/api/auth/me") {
+    const user = getSessionUser(req);
+    if (!user) {
+      return jsonResponse(res, 200, { user: null, languages: [], predefinedLanguages: statements.predefinedLanguages.all() });
+    }
+    const languages = getLanguages(user.userId);
+    return jsonResponse(res, 200, {
+      user: { id: user.userId, email: user.email },
+      languages,
+      predefinedLanguages: statements.predefinedLanguages.all(),
+      needsOnboarding: languages.length === 0
+    });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/auth/login") {
+    const body = await readJson(req);
+    const email = normalizeName(body.email).toLowerCase();
+    const user = statements.userByEmail.get(email);
+    if (!user || !verifyPassword(String(body.password || ""), user.passwordSalt, user.passwordHash)) {
+      return jsonResponse(res, 401, { error: "Invalid email or password." });
+    }
+    createSessionForUser(res, user.id);
+    return jsonResponse(res, 200, { user: { id: user.id, email: user.email } });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/auth/register") {
+    const body = await readJson(req);
+    const email = normalizeName(body.email).toLowerCase();
+    const password = String(body.password || "");
+    const confirmPassword = String(body.confirmPassword || "");
+    if (!email || !password || password !== confirmPassword) {
+      return jsonResponse(res, 400, { error: "Email, password, and matching confirmation are required." });
+    }
+    if (statements.userByEmail.get(email)) {
+      return jsonResponse(res, 409, { error: "User already exists." });
+    }
+    const passwordHash = hashPassword(password);
+    statements.createUser.run(email, passwordHash.hash, passwordHash.salt);
+    const user = statements.userByEmail.get(email);
+    createSessionForUser(res, user.id);
+    return jsonResponse(res, 201, { user: { id: user.id, email: user.email } });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/auth/logout") {
+    const sessionId = parseCookies(req)[SESSION_COOKIE];
+    if (sessionId) {
+      statements.deleteSession.run(sessionId);
+    }
+    clearSessionCookie(res);
+    return jsonResponse(res, 200, { loggedOut: true });
+  }
+
+  const user = requireUser(req, res);
+  if (!user) {
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/user/languages") {
+    const body = await readJson(req);
+    const predefined = statements.predefinedLanguageById.get(Number(body.predefinedLanguageId));
+    if (!predefined) {
+      return jsonResponse(res, 404, { error: "Predefined language not found." });
+    }
+    const language = getOrCreateLanguage(user.userId, predefined.name, null);
+    return jsonResponse(res, 201, { language, languages: getLanguages(user.userId) });
+  }
+
   if (req.method === "GET" && url.pathname === "/api/dashboard") {
-    return jsonResponse(res, 200, getDashboard(url.searchParams.get("languageId")));
+    return jsonResponse(res, 200, getDashboard(user.userId, url.searchParams.get("languageId")));
   }
 
   if (req.method === "GET" && url.pathname === "/api/languages") {
-    return jsonResponse(res, 200, { languages: getLanguages() });
+    return jsonResponse(res, 200, { languages: getLanguages(user.userId), predefinedLanguages: statements.predefinedLanguages.all() });
   }
 
   const wordsMatch = url.pathname.match(/^\/api\/collections\/(\d+)\/words$/);
   if (req.method === "GET" && wordsMatch) {
     const collectionId = Number(wordsMatch[1]);
-    const collection = statements.collectionById.get(collectionId);
+    const collection = statements.collectionById.get(collectionId, user.userId);
     if (!collection) {
       return jsonResponse(res, 404, { error: "Collection not found." });
     }
     return jsonResponse(res, 200, {
       collection,
-      words: getWords(collectionId, url.searchParams.get("search") || "")
+      words: getWords(user.userId, collectionId, url.searchParams.get("search") || "")
     });
   }
 
@@ -331,11 +583,11 @@ async function handleApi(req, res, url) {
   if (req.method === "PATCH" && collectionMatch) {
     const collectionId = Number(collectionMatch[1]);
     const body = await readJson(req);
-    const language = getOrCreateLanguage(body.languageName, body.languageId);
+    const language = getOrCreateLanguage(user.userId, body.languageName, body.languageId);
     if (!language) {
       return jsonResponse(res, 400, { error: "Language is required." });
     }
-    const collection = statements.collectionById.get(collectionId);
+    const collection = statements.collectionById.get(collectionId, user.userId);
     if (!collection) {
       return jsonResponse(res, 404, { error: "Collection not found." });
     }
@@ -344,11 +596,14 @@ async function handleApi(req, res, url) {
     } catch (error) {
       return jsonResponse(res, 409, { error: "A collection with this name already exists in that language." });
     }
-    return jsonResponse(res, 200, statements.collectionById.get(collectionId));
+    return jsonResponse(res, 200, statements.collectionById.get(collectionId, user.userId));
   }
 
   if (req.method === "DELETE" && collectionMatch) {
     const collectionId = Number(collectionMatch[1]);
+    if (!statements.collectionById.get(collectionId, user.userId)) {
+      return jsonResponse(res, 404, { error: "Collection not found." });
+    }
     const result = statements.deleteCollection.run(collectionId);
     if (!result.changes) {
       return jsonResponse(res, 404, { error: "Collection not found." });
@@ -358,7 +613,7 @@ async function handleApi(req, res, url) {
 
   if (req.method === "POST" && url.pathname === "/api/import") {
     const body = await readJson(req);
-    const result = importWords(body.collectionName, body.languageName, body.languageId, body.words);
+    const result = importWords(user.userId, body.collectionName, body.languageName, body.languageId, body.words);
     if (result.error) {
       return jsonResponse(res, 400, result);
     }
@@ -370,11 +625,12 @@ async function handleApi(req, res, url) {
     const id = Number(knownMatch[1]);
     const body = await readJson(req);
     const known = body.known ? 1 : 0;
-    const result = statements.updateKnown.run(known, id);
-    if (!result.changes) {
+    const existingWord = statements.wordById.get(user.userId, id, user.userId);
+    if (!existingWord) {
       return jsonResponse(res, 404, { error: "Word not found." });
     }
-    return jsonResponse(res, 200, statements.wordById.get(id));
+    statements.upsertKnown.run(user.userId, id, known);
+    return jsonResponse(res, 200, statements.wordById.get(user.userId, id, user.userId));
   }
 
   return jsonResponse(res, 404, { error: "Not found." });

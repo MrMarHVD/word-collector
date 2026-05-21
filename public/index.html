@@ -7,7 +7,43 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main class="shell">
+    <main id="authView" class="auth-shell" hidden>
+      <section class="auth-panel">
+        <p class="eyebrow" data-i18n="brand">Word Collector</p>
+        <h1 data-i18n="auth.title">ログイン</h1>
+        <div class="auth-tabs">
+          <button class="auth-mode-button is-active" type="button" data-auth-mode="login" data-i18n="auth.login">ログイン</button>
+          <button class="auth-mode-button" type="button" data-auth-mode="register" data-i18n="auth.register">登録</button>
+        </div>
+        <form id="authForm">
+          <label>
+            <span data-i18n="auth.email">メール</span>
+            <input id="authEmail" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            <span data-i18n="auth.password">パスワード</span>
+            <input id="authPassword" type="password" autocomplete="current-password" required />
+          </label>
+          <label id="authConfirmWrap" hidden>
+            <span data-i18n="auth.confirmPassword">パスワード確認</span>
+            <input id="authConfirmPassword" type="password" autocomplete="new-password" />
+          </label>
+          <button id="authSubmit" type="submit" data-i18n="auth.login">ログイン</button>
+          <p id="authStatus" class="status" role="status"></p>
+        </form>
+      </section>
+    </main>
+
+    <main id="onboardingView" class="auth-shell" hidden>
+      <section class="auth-panel">
+        <p class="eyebrow" data-i18n="brand">Word Collector</p>
+        <h1 data-i18n="onboarding.title">What language do you want to learn?</h1>
+        <div id="onboardingLanguages" class="language-picks"></div>
+        <p id="onboardingStatus" class="status" role="status"></p>
+      </section>
+    </main>
+
+    <main id="appShell" class="shell" hidden>
       <header class="topbar">
         <div>
           <p class="eyebrow" data-i18n="brand">Word Collector</p>
@@ -18,6 +54,14 @@
           <div class="locale-buttons">
             <button class="locale-button" type="button" data-locale="ja" data-i18n="ui.japanese">日本語</button>
             <button class="locale-button" type="button" data-locale="en" data-i18n="ui.english">English</button>
+          </div>
+        </div>
+        <div class="learning-switcher">
+          <label for="dashboardLanguageSelect" data-i18n="learning.current">勉強している言語</label>
+          <div class="learning-controls">
+            <select id="dashboardLanguageSelect"></select>
+            <select id="predefinedLanguageSelect"></select>
+            <button id="addLanguageButton" class="secondary-button" type="button" data-i18n="learning.add">言語を追加</button>
           </div>
         </div>
         <div class="total-panel">
@@ -32,15 +76,6 @@
       </nav>
 
       <section id="dashboardView" class="tab-view">
-        <section class="filter-panel">
-          <label>
-            <span data-i18n="dashboard.languageFilter">表示する言語</span>
-            <select id="dashboardLanguageSelect">
-              <option value="" data-i18n="dashboard.allLanguages">すべての言語</option>
-            </select>
-          </label>
-        </section>
-
         <section class="metrics" aria-label="Overall progress">
           <article>
             <span id="totalWords">0</span>
@@ -72,7 +107,7 @@
             </div>
             <label>
               <span data-i18n="upload.language">言語</span>
-              <input id="uploadLanguageName" name="uploadLanguageName" type="text" list="languageOptions" data-i18n-placeholder="upload.languagePlaceholder" placeholder="日本語" required />
+              <select id="uploadLanguageSelect"></select>
             </label>
             <label>
               <span data-i18n="upload.collection">コレクション名</span>

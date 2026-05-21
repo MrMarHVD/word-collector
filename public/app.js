@@ -1,6 +1,9 @@
 const WORD_PAGE_SIZE = 50;
 
 const state = {
+  user: null,
+  predefinedLanguages: [],
+  authMode: "login",
   dashboard: null,
   selectedDashboardLanguageId: null,
   selectedCollectionId: null,
@@ -16,11 +19,26 @@ const state = {
 const elements = {
   html: document.documentElement,
   title: document.querySelector("title"),
+  authView: document.querySelector("#authView"),
+  onboardingView: document.querySelector("#onboardingView"),
+  appShell: document.querySelector("#appShell"),
+  authForm: document.querySelector("#authForm"),
+  authModeButtons: document.querySelectorAll(".auth-mode-button"),
+  authEmail: document.querySelector("#authEmail"),
+  authPassword: document.querySelector("#authPassword"),
+  authConfirmWrap: document.querySelector("#authConfirmWrap"),
+  authConfirmPassword: document.querySelector("#authConfirmPassword"),
+  authSubmit: document.querySelector("#authSubmit"),
+  authStatus: document.querySelector("#authStatus"),
+  onboardingLanguages: document.querySelector("#onboardingLanguages"),
+  onboardingStatus: document.querySelector("#onboardingStatus"),
   localeButtons: document.querySelectorAll(".locale-button"),
   tabButtons: document.querySelectorAll(".tab-button"),
   dashboardView: document.querySelector("#dashboardView"),
   collectionsView: document.querySelector("#collectionsView"),
   dashboardLanguageSelect: document.querySelector("#dashboardLanguageSelect"),
+  predefinedLanguageSelect: document.querySelector("#predefinedLanguageSelect"),
+  addLanguageButton: document.querySelector("#addLanguageButton"),
   knownTotal: document.querySelector("#knownTotal"),
   totalWords: document.querySelector("#totalWords"),
   unknownTotal: document.querySelector("#unknownTotal"),
@@ -38,7 +56,7 @@ const elements = {
   wordListStatus: document.querySelector("#wordListStatus"),
   emptyState: document.querySelector("#emptyState"),
   uploadForm: document.querySelector("#uploadForm"),
-  uploadLanguageName: document.querySelector("#uploadLanguageName"),
+  uploadLanguageSelect: document.querySelector("#uploadLanguageSelect"),
   collectionName: document.querySelector("#collectionName"),
   csvFile: document.querySelector("#csvFile"),
   uploadStatus: document.querySelector("#uploadStatus"),
@@ -82,6 +100,8 @@ function applyLocale() {
     node.placeholder = t(node.dataset.i18nPlaceholder);
   });
 
+  renderAuthMode();
+  renderOnboarding(state.predefinedLanguages);
   if (state.dashboard) {
     renderDashboard();
     renderWords(state.words);
@@ -117,6 +137,32 @@ function setActiveTab(tabName) {
   });
 }
 
+function showView(viewName) {
+  elements.authView.hidden = viewName !== "auth";
+  elements.onboardingView.hidden = viewName !== "onboarding";
+  elements.appShell.hidden = viewName !== "app";
+}
+
+function renderAuthMode() {
+  elements.authModeButtons.forEach((button) => {
+    const active = button.dataset.authMode === state.authMode;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  const isRegister = state.authMode === "register";
+  elements.authConfirmWrap.hidden = !isRegister;
+  elements.authConfirmPassword.required = isRegister;
+  elements.authSubmit.textContent = t(isRegister ? "auth.register" : "auth.login");
+}
+
+function renderOnboarding(predefinedLanguages) {
+  elements.onboardingLanguages.innerHTML = predefinedLanguages.length
+    ? predefinedLanguages
+        .map((language) => `<button class="language-pick" type="button" data-predefined-language-id="${language.id}">${escapeHtml(language.name)}</button>`)
+        .join("")
+    : `<p class="empty">${escapeHtml(t("onboarding.noLanguages"))}</p>`;
+}
+
 function parseCsv(text) {
   return text
     .split(/\r?\n/)
@@ -141,10 +187,36 @@ async function requestJson(url, options) {
     ...options
   });
   const payload = await response.json();
+  if (response.status === 401) {
+    state.user = null;
+    showView("auth");
+  }
   if (!response.ok) {
     throw new Error(payload.error || t("errors.requestFailed"));
   }
   return payload;
+}
+
+async function loadSession() {
+  const result = await requestJson("/api/auth/me");
+  state.user = result.user;
+  state.predefinedLanguages = result.predefinedLanguages || [];
+  if (!state.user) {
+    showView("auth");
+    renderAuthMode();
+    return;
+  }
+  if (result.needsOnboarding) {
+    showView("onboarding");
+    renderOnboarding(state.predefinedLanguages);
+    return;
+  }
+  const languages = result.languages || [];
+  const savedLanguageId = Number(localStorage.getItem("wordMarkerLearningLanguageId")) || null;
+  state.selectedDashboardLanguageId = languages.some((language) => language.id === savedLanguageId) ? savedLanguageId : languages[0]?.id || null;
+  showView("app");
+  setActiveTab(state.activeTab);
+  await loadDashboard();
 }
 
 async function loadDashboard() {
@@ -154,7 +226,8 @@ async function loadDashboard() {
   }
   state.dashboard = await requestJson(`/api/dashboard?${params}`);
 
-  const allCollections = state.dashboard.allCollections || state.dashboard.collections;
+  state.predefinedLanguages = state.dashboard.predefinedLanguages || state.predefinedLanguages;
+  const allCollections = state.dashboard.collections;
   if (!state.selectedCollectionId && allCollections.length) {
     state.selectedCollectionId = allCollections[0].id;
   }
@@ -167,14 +240,13 @@ async function loadDashboard() {
 
 function renderDashboard() {
   const { totalWords, knownWords, collections, languages } = state.dashboard;
-  const allCollections = state.dashboard.allCollections || collections;
+  const allCollections = collections;
   elements.knownTotal.textContent = formatCount(knownWords);
   elements.totalWords.textContent = formatCount(totalWords);
   elements.unknownTotal.textContent = formatCount(totalWords - knownWords);
   elements.collectionCount.textContent = formatCount(collections.length);
 
   elements.dashboardLanguageSelect.innerHTML = `
-    <option value="">${escapeHtml(t("dashboard.allLanguages"))}</option>
     ${languages
       .map((language) => {
         const selected = language.id === state.selectedDashboardLanguageId ? "selected" : "";
@@ -182,6 +254,11 @@ function renderDashboard() {
       })
       .join("")}
   `;
+  elements.predefinedLanguageSelect.innerHTML = state.predefinedLanguages
+    .filter((predefined) => !languages.some((language) => language.name.toLowerCase() === predefined.name.toLowerCase()))
+    .map((language) => `<option value="${language.id}">${escapeHtml(language.name)}</option>`)
+    .join("");
+  elements.addLanguageButton.disabled = !elements.predefinedLanguageSelect.value;
 
   elements.languageOptions.innerHTML = languages
     .map((language) => `<option value="${escapeHtml(language.name)}"></option>`)
@@ -211,6 +288,12 @@ function renderDashboard() {
 
   elements.deleteCollectionButton.disabled = !state.selectedCollectionId;
   elements.saveCollectionLanguageButton.disabled = !state.selectedCollectionId;
+  elements.uploadLanguageSelect.innerHTML = languages
+    .map((language) => {
+      const selected = language.id === state.selectedDashboardLanguageId ? "selected" : "";
+      return `<option value="${language.id}" ${selected}>${escapeHtml(language.name)}</option>`;
+    })
+    .join("");
   renderSelectedCollectionStats();
 }
 
@@ -256,6 +339,7 @@ async function loadWords() {
   if (!state.selectedCollectionId) {
     state.words = [];
     elements.wordRows.innerHTML = "";
+    elements.wordListStatus.hidden = true;
     elements.emptyState.hidden = false;
     elements.emptyState.textContent = t("collections.empty");
     return;
@@ -350,7 +434,7 @@ elements.uploadForm.addEventListener("submit", async (event) => {
       method: "POST",
       body: JSON.stringify({
         collectionName: elements.collectionName.value,
-        languageName: elements.uploadLanguageName.value,
+        languageId: Number(elements.uploadLanguageSelect.value || state.selectedDashboardLanguageId),
         words: rows
       })
     });
@@ -376,6 +460,78 @@ elements.tabButtons.forEach((button) => {
   button.addEventListener("click", () => setActiveTab(button.dataset.tab));
 });
 
+elements.authModeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    state.authMode = button.dataset.authMode;
+    elements.authStatus.textContent = "";
+    renderAuthMode();
+  });
+});
+
+elements.authForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const isRegister = state.authMode === "register";
+  elements.authSubmit.disabled = true;
+  elements.authStatus.textContent = t(isRegister ? "auth.registering" : "auth.loggingIn");
+  try {
+    await requestJson(isRegister ? "/api/auth/register" : "/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email: elements.authEmail.value,
+        password: elements.authPassword.value,
+        confirmPassword: elements.authConfirmPassword.value
+      })
+    });
+    elements.authForm.reset();
+    await loadSession();
+  } catch (error) {
+    elements.authStatus.textContent = error.message;
+  } finally {
+    elements.authSubmit.disabled = false;
+  }
+});
+
+elements.onboardingLanguages.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-predefined-language-id]");
+  if (!button) {
+    return;
+  }
+  button.disabled = true;
+  try {
+    const result = await requestJson("/api/user/languages", {
+      method: "POST",
+      body: JSON.stringify({ predefinedLanguageId: Number(button.dataset.predefinedLanguageId) })
+    });
+    state.selectedDashboardLanguageId = result.language.id;
+    localStorage.setItem("wordMarkerLearningLanguageId", String(result.language.id));
+    showView("app");
+    await loadDashboard();
+  } catch (error) {
+    elements.onboardingStatus.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+
+elements.addLanguageButton.addEventListener("click", async () => {
+  const predefinedLanguageId = Number(elements.predefinedLanguageSelect.value);
+  if (!predefinedLanguageId) {
+    return;
+  }
+  elements.addLanguageButton.disabled = true;
+  try {
+    const result = await requestJson("/api/user/languages", {
+      method: "POST",
+      body: JSON.stringify({ predefinedLanguageId })
+    });
+    state.selectedDashboardLanguageId = result.language.id;
+    localStorage.setItem("wordMarkerLearningLanguageId", String(result.language.id));
+    await loadDashboard();
+  } finally {
+    elements.addLanguageButton.disabled = false;
+  }
+});
+
 elements.displayModeButtons.forEach((button) => {
   button.addEventListener("click", () => {
     state.wordDisplayMode = button.dataset.displayMode;
@@ -396,6 +552,9 @@ elements.localeButtons.forEach((button) => {
 
 elements.dashboardLanguageSelect.addEventListener("change", async (event) => {
   state.selectedDashboardLanguageId = Number(event.target.value) || null;
+  localStorage.setItem("wordMarkerLearningLanguageId", String(state.selectedDashboardLanguageId || ""));
+  state.selectedCollectionId = null;
+  resetWordWindow();
   await loadDashboard();
 });
 
@@ -475,5 +634,5 @@ elements.wordRows.addEventListener("click", async (event) => {
 
 await loadMessages();
 applyLocale();
-setActiveTab(state.activeTab);
-await loadDashboard();
+renderAuthMode();
+await loadSession();
