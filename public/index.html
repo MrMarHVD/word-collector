@@ -11,80 +11,93 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">Word Marker</p>
-          <h1>Dashboard</h1>
+          <h1>単語コレクション</h1>
         </div>
         <div class="total-panel">
           <span id="knownTotal">0</span>
-          <small>known across all collections</small>
+          <small>全コレクションの既知単語</small>
         </div>
       </header>
 
-      <section class="metrics" aria-label="Overall progress">
-        <article>
-          <span id="totalWords">0</span>
-          <small>total words</small>
-        </article>
-        <article>
-          <span id="unknownTotal">0</span>
-          <small>unknown words</small>
-        </article>
-        <article>
-          <span id="collectionCount">0</span>
-          <small>collections</small>
-        </article>
-      </section>
+      <nav class="tabs" aria-label="Main views">
+        <button class="tab-button is-active" type="button" data-tab="dashboard">ダッシュボード</button>
+        <button class="tab-button" type="button" data-tab="collections">コレクション</button>
+      </nav>
 
-      <section class="workspace">
-        <form id="uploadForm" class="upload-panel">
-          <div class="section-head">
-            <h2>Upload Words</h2>
-          </div>
-          <label>
-            Collection
-            <input id="collectionName" name="collectionName" type="text" placeholder="Norwegian basics" required />
-          </label>
-          <label>
-            CSV file
-            <input id="csvFile" name="csvFile" type="file" accept=".csv,text/csv,text/plain" required />
-          </label>
-          <p class="hint">Each row should contain: word translation</p>
-          <button type="submit">Upload</button>
-          <p id="uploadStatus" class="status" role="status"></p>
-        </form>
+      <section id="dashboardView" class="tab-view">
+        <section class="metrics" aria-label="Overall progress">
+          <article>
+            <span id="totalWords">0</span>
+            <small>単語数</small>
+          </article>
+          <article>
+            <span id="unknownTotal">0</span>
+            <small>未習得</small>
+          </article>
+          <article>
+            <span id="collectionCount">0</span>
+            <small>コレクション数</small>
+          </article>
+        </section>
 
         <section class="collection-panel">
           <div class="section-head">
-            <h2>Collections</h2>
+            <h2>コレクション別の進捗</h2>
           </div>
           <div id="collectionCharts" class="chart-grid"></div>
         </section>
       </section>
 
-      <section class="browser-panel">
-        <div class="browser-tools">
-          <label>
-            Collection
-            <select id="collectionSelect"></select>
-          </label>
-          <button id="deleteCollectionButton" class="danger-button" type="button">Delete Collection</button>
-          <label>
-            Search
-            <input id="searchInput" type="search" placeholder="Search words or translations" />
-          </label>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Word</th>
-                <th>Translation</th>
-                <th>Known</th>
-              </tr>
-            </thead>
-            <tbody id="wordRows"></tbody>
-          </table>
-        </div>
-        <p id="emptyState" class="empty">Upload a CSV file to create your first collection.</p>
+      <section id="collectionsView" class="tab-view" hidden>
+        <section class="workspace">
+          <form id="uploadForm" class="upload-panel">
+            <div class="section-head">
+              <h2>CSVアップロード</h2>
+            </div>
+            <label>
+              コレクション名
+              <input id="collectionName" name="collectionName" type="text" placeholder="日本語 基本単語" required />
+            </label>
+            <label>
+              CSVファイル
+              <input id="csvFile" name="csvFile" type="file" accept=".csv,text/csv,text/plain" required />
+            </label>
+            <p class="hint">形式: word translation</p>
+            <button type="submit">アップロード</button>
+            <p id="uploadStatus" class="status" role="status"></p>
+          </form>
+
+          <section class="browser-panel">
+            <div class="section-head">
+              <h2>単語一覧</h2>
+              <button id="deleteCollectionButton" class="danger-button" type="button">削除</button>
+            </div>
+            <div class="browser-tools">
+              <label>
+                コレクション
+                <select id="collectionSelect"></select>
+              </label>
+              <label>
+                検索
+                <input id="searchInput" type="search" placeholder="単語または翻訳で検索" />
+              </label>
+            </div>
+            <div id="selectedCollectionStats" class="selected-stats"></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>単語</th>
+                    <th>翻訳</th>
+                    <th>状態</th>
+                  </tr>
+                </thead>
+                <tbody id="wordRows"></tbody>
+              </table>
+            </div>
+            <p id="emptyState" class="empty">CSVをアップロードして最初のコレクションを作成してください。</p>
+          </section>
+        </section>
       </section>
     </main>
 

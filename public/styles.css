@@ -9,7 +9,8 @@
   --accent-dark: #0b5f59;
   --known: #0f766e;
   --unknown: #d9a441;
-  --shadow: 0 16px 40px rgba(30, 36, 40, 0.08);
+  --danger: #b94242;
+  --shadow: 0 12px 28px rgba(30, 36, 40, 0.07);
 }
 
 * {
@@ -44,13 +45,14 @@ button:hover {
 }
 
 button:disabled {
-  cursor: wait;
+  cursor: not-allowed;
   opacity: 0.7;
 }
 
 .danger-button {
   align-self: end;
-  border: 1px solid #b94242;
+  min-width: 86px;
+  border: 1px solid var(--danger);
   background: #ffffff;
   color: #9f2f2f;
 }
@@ -70,7 +72,7 @@ button:disabled {
   align-items: end;
   justify-content: space-between;
   gap: 20px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .eyebrow {
@@ -132,6 +134,34 @@ small,
   color: var(--muted);
 }
 
+.tabs {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #e9eee9;
+}
+
+.tab-button {
+  min-height: 38px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.tab-button:hover,
+.tab-button.is-active {
+  background: #ffffff;
+  color: var(--text);
+}
+
+.tab-view[hidden] {
+  display: none;
+}
+
 .metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -145,9 +175,10 @@ small,
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(280px, 360px) 1fr;
+  grid-template-columns: minmax(280px, 340px) 1fr;
   gap: 14px;
   margin-bottom: 14px;
+  align-items: start;
 }
 
 .upload-panel,
@@ -197,7 +228,7 @@ input[type="file"] {
 
 .chart-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
 }
 
@@ -241,9 +272,28 @@ input[type="file"] {
 
 .browser-tools {
   display: grid;
-  grid-template-columns: minmax(220px, 320px) minmax(150px, 190px) 1fr;
+  grid-template-columns: minmax(220px, 320px) 1fr;
   gap: 12px;
   align-items: end;
+}
+
+.selected-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 34px;
+  margin: 4px 0 12px;
+  color: var(--muted);
+}
+
+.selected-stats span {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.selected-stats strong {
+  color: var(--accent-dark);
 }
 
 .table-wrap {
@@ -312,7 +362,8 @@ tbody tr:last-child td {
 
   .topbar,
   .workspace,
-  .browser-tools {
+  .browser-tools,
+  .tabs {
     grid-template-columns: 1fr;
   }
 

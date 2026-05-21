@@ -1,10 +1,14 @@
 const state = {
   dashboard: null,
   selectedCollectionId: null,
-  search: ""
+  search: "",
+  activeTab: "dashboard"
 };
 
 const elements = {
+  tabButtons: document.querySelectorAll(".tab-button"),
+  dashboardView: document.querySelector("#dashboardView"),
+  collectionsView: document.querySelector("#collectionsView"),
   knownTotal: document.querySelector("#knownTotal"),
   totalWords: document.querySelector("#totalWords"),
   unknownTotal: document.querySelector("#unknownTotal"),
@@ -13,6 +17,7 @@ const elements = {
   collectionSelect: document.querySelector("#collectionSelect"),
   deleteCollectionButton: document.querySelector("#deleteCollectionButton"),
   searchInput: document.querySelector("#searchInput"),
+  selectedCollectionStats: document.querySelector("#selectedCollectionStats"),
   wordRows: document.querySelector("#wordRows"),
   emptyState: document.querySelector("#emptyState"),
   uploadForm: document.querySelector("#uploadForm"),
@@ -23,6 +28,17 @@ const elements = {
 
 function formatCount(value) {
   return new Intl.NumberFormat().format(value);
+}
+
+function setActiveTab(tabName) {
+  state.activeTab = tabName;
+  elements.dashboardView.hidden = tabName !== "dashboard";
+  elements.collectionsView.hidden = tabName !== "collections";
+  elements.tabButtons.forEach((button) => {
+    const active = button.dataset.tab === tabName;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
 }
 
 function parseCsv(text) {
@@ -76,7 +92,7 @@ function renderDashboard() {
 
   elements.collectionCharts.innerHTML = collections.length
     ? collections.map(renderChartCard).join("")
-    : `<p class="empty">No collections yet.</p>`;
+    : `<p class="empty">まだコレクションがありません。</p>`;
 
   elements.collectionSelect.innerHTML = collections.length
     ? collections
@@ -85,9 +101,10 @@ function renderDashboard() {
           return `<option value="${collection.id}" ${selected}>${escapeHtml(collection.name)}</option>`;
         })
         .join("")
-    : `<option value="">No collections</option>`;
+    : `<option value="">コレクションなし</option>`;
 
   elements.deleteCollectionButton.disabled = !state.selectedCollectionId;
+  renderSelectedCollectionStats();
 }
 
 function renderChartCard(collection) {
@@ -97,10 +114,25 @@ function renderChartCard(collection) {
       <div class="pie" style="--knownPercent: ${percent}%"></div>
       <div>
         <strong>${escapeHtml(collection.name)}</strong>
-        <span>${formatCount(collection.knownWords)} known of ${formatCount(collection.totalWords)}</span>
-        <span>${percent}% known</span>
+        <span>${formatCount(collection.totalWords)}語中 ${formatCount(collection.knownWords)}語が既知</span>
+        <span>${percent}% 完了</span>
       </div>
     </article>
+  `;
+}
+
+function renderSelectedCollectionStats() {
+  const collection = state.dashboard?.collections.find((entry) => entry.id === state.selectedCollectionId);
+  if (!collection) {
+    elements.selectedCollectionStats.innerHTML = "";
+    return;
+  }
+
+  const percent = collection.totalWords ? Math.round((collection.knownWords / collection.totalWords) * 100) : 0;
+  elements.selectedCollectionStats.innerHTML = `
+    <span>${escapeHtml(collection.name)}</span>
+    <strong>${formatCount(collection.knownWords)} / ${formatCount(collection.totalWords)}</strong>
+    <small>${percent}% 既知</small>
   `;
 }
 
@@ -108,6 +140,7 @@ async function loadWords() {
   if (!state.selectedCollectionId) {
     elements.wordRows.innerHTML = "";
     elements.emptyState.hidden = false;
+    elements.emptyState.textContent = "CSVをアップロードして最初のコレクションを作成してください。";
     return;
   }
 
@@ -129,7 +162,7 @@ function renderWords(words) {
         <td>${escapeHtml(entry.translation)}</td>
         <td class="known-cell">
           <button class="known-toggle" data-word-id="${entry.id}" data-known="${Boolean(entry.known)}">
-            ${entry.known ? "Known" : "Mark"}
+            ${entry.known ? "既知" : "未習得"}
           </button>
         </td>
       </tr>
@@ -140,9 +173,9 @@ function renderWords(words) {
   elements.emptyState.hidden = words.length > 0 || state.dashboard.collections.length > 0;
   if (!words.length && state.dashboard.collections.length > 0) {
     elements.emptyState.hidden = false;
-    elements.emptyState.textContent = "No words match this search.";
+    elements.emptyState.textContent = "検索に一致する単語はありません。";
   } else {
-    elements.emptyState.textContent = "Upload a CSV file to create your first collection.";
+    elements.emptyState.textContent = "CSVをアップロードして最初のコレクションを作成してください。";
   }
 }
 
@@ -177,8 +210,9 @@ elements.uploadForm.addEventListener("submit", async (event) => {
 
     state.selectedCollectionId = result.collection.id;
     state.search = "";
+    setActiveTab("collections");
     elements.searchInput.value = "";
-    elements.uploadStatus.textContent = `${result.inserted} added, ${result.skipped} skipped.`;
+    elements.uploadStatus.textContent = `${result.inserted}件を追加、${result.skipped}件をスキップしました。`;
     elements.uploadForm.reset();
     await loadDashboard();
   } catch (error) {
@@ -186,6 +220,10 @@ elements.uploadForm.addEventListener("submit", async (event) => {
   } finally {
     submitButton.disabled = false;
   }
+});
+
+elements.tabButtons.forEach((button) => {
+  button.addEventListener("click", () => setActiveTab(button.dataset.tab));
 });
 
 elements.collectionSelect.addEventListener("change", async (event) => {
@@ -201,7 +239,7 @@ elements.deleteCollectionButton.addEventListener("click", async () => {
   }
 
   const collection = state.dashboard.collections.find((entry) => entry.id === state.selectedCollectionId);
-  const confirmed = window.confirm(`Delete "${collection?.name || "this collection"}" and all its words?`);
+  const confirmed = window.confirm(`「${collection?.name || "このコレクション"}」と含まれる単語をすべて削除しますか？`);
   if (!confirmed) {
     return;
   }
@@ -240,4 +278,5 @@ elements.wordRows.addEventListener("click", async (event) => {
   }
 });
 
+setActiveTab("dashboard");
 await loadDashboard();
