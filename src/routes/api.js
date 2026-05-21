@@ -2,12 +2,13 @@ import { clearAuthCookie, createSessionHelpers } from "../auth/session.js";
 import { NATIVE_LANGUAGE_OPTIONS } from "../config.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { jsonResponse } from "../http/response.js";
-import { readJson } from "../http/request.js";
+import { readJson, readMultipart } from "../http/request.js";
 import { normalizeName } from "../shared/normalize.js";
 import { getDashboard } from "../services/dashboard.js";
 import { getLanguages, getOrCreateLanguage } from "../services/languages.js";
 import { getWords } from "../services/words.js";
 import { importWords } from "../services/importWords.js";
+import { getMaterialReader, getMaterials, importMaterial } from "../services/materials.js";
 
 export function createApiHandler({ db, statements }) {
   const { getAuthenticatedUser, requireUser, setJwtForUser } = createSessionHelpers(statements);
@@ -89,6 +90,35 @@ export function createApiHandler({ db, statements }) {
 
     if (req.method === "GET" && url.pathname === "/api/languages") {
       return jsonResponse(res, 200, { languages: getLanguages(db, user.userId), predefinedLanguages: statements.predefinedLanguages.all() });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/materials") {
+      const languageId = Number(url.searchParams.get("languageId"));
+      if (!statements.languageById.get(languageId, user.userId)) {
+        return jsonResponse(res, 404, { error: "Language not found." });
+      }
+      return jsonResponse(res, 200, {
+        materials: getMaterials(db, user.userId, languageId, url.searchParams.get("offset")),
+        pageSize: 50
+      });
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/materials") {
+      const { fields, files } = await readMultipart(req);
+      const result = await importMaterial(db, statements, user.userId, fields.languageId, files.file);
+      if (result.error) {
+        return jsonResponse(res, 400, result);
+      }
+      return jsonResponse(res, 201, result);
+    }
+
+    const materialMatch = url.pathname.match(/^\/api\/materials\/(\d+)$/);
+    if (req.method === "GET" && materialMatch) {
+      const reader = getMaterialReader(db, statements, user.userId, Number(materialMatch[1]), url.searchParams.get("start"), url.searchParams.get("limit"));
+      if (!reader) {
+        return jsonResponse(res, 404, { error: "Material not found." });
+      }
+      return jsonResponse(res, 200, reader);
     }
 
     if (req.method === "PATCH" && url.pathname === "/api/settings") {

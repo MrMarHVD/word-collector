@@ -7,6 +7,7 @@ import { state } from "./state.js";
 import { renderAuthMode } from "./views/auth.js";
 import { renderDashboard, renderSelectedCollectionStats } from "./views/dashboard.js";
 import { renderOnboarding } from "./views/onboarding.js";
+import { renderMaterialList, renderReaderLanguageOptions, renderReaderSidebar, renderReaderTokens, renderReaderWordInfo } from "./views/reader.js";
 import { renderDisplayModeButtons, renderLocaleButtons, resetWordWindow, setActiveTab, showView } from "./views/shell.js";
 import { loadMoreWordsIfNeeded, renderWords } from "./views/words.js";
 
@@ -28,6 +29,10 @@ function applyLocale() {
   renderSettings();
   if (state.dashboard) {
     renderDashboard();
+    renderReaderLanguageOptions();
+    renderReaderSidebar();
+    renderMaterialList();
+    renderReaderTokens();
     renderWords(state.words);
   }
 }
@@ -76,6 +81,11 @@ async function loadDashboard() {
   state.dashboard = await requestJson(`/api/dashboard?${params}`);
 
   state.predefinedLanguages = state.dashboard.predefinedLanguages || state.predefinedLanguages;
+  const readerLanguageId = state.selectedReaderLanguageId || state.selectedDashboardLanguageId;
+  state.selectedReaderLanguageId = state.dashboard.languages.some((language) => language.id === readerLanguageId)
+    ? readerLanguageId
+    : state.dashboard.languages[0]?.id || null;
+  localStorage.setItem("wordMarkerReaderLanguageId", String(state.selectedReaderLanguageId || ""));
   const allCollections = state.dashboard.collections;
   if (!state.selectedCollectionId && allCollections.length) {
     state.selectedCollectionId = allCollections[0].id;
@@ -84,7 +94,50 @@ async function loadDashboard() {
     state.selectedCollectionId = allCollections[0]?.id || null;
   }
   renderDashboard();
+  renderReaderLanguageOptions();
+  await loadMaterials(true);
   await loadWords();
+}
+
+async function loadMaterials(reset = false) {
+  if (!state.selectedReaderLanguageId) {
+    state.materials = [];
+    state.selectedMaterialId = null;
+    renderMaterialList();
+    renderReaderTokens();
+    return;
+  }
+  if (reset) {
+    state.materialOffset = 0;
+    state.materialHasMore = true;
+    state.materials = [];
+  }
+  if (!state.materialHasMore) {
+    return;
+  }
+  const result = await requestJson(`/api/materials?languageId=${state.selectedReaderLanguageId}&offset=${state.materialOffset}`);
+  state.materials = state.materials.concat(result.materials);
+  state.materialOffset += result.materials.length;
+  state.materialHasMore = result.materials.length === result.pageSize;
+  if (state.selectedMaterialId && !state.materials.some((material) => material.id === state.selectedMaterialId)) {
+    state.selectedMaterialId = null;
+  }
+  renderMaterialList();
+  renderReaderTokens();
+}
+
+async function loadMaterialReader(start = 0) {
+  if (!state.selectedMaterialId) {
+    state.currentMaterial = null;
+    state.readerTokens = [];
+    renderReaderTokens();
+    return;
+  }
+  state.readerStart = Math.max(start, 0);
+  const result = await requestJson(`/api/materials/${state.selectedMaterialId}?start=${state.readerStart}&limit=${state.readerWordsPerPage}`);
+  state.currentMaterial = result.material;
+  state.readerTokens = result.tokens;
+  renderReaderTokens();
 }
 
 async function loadWords() {
@@ -250,6 +303,128 @@ function bindEvents() {
       renderDisplayModeButtons();
       renderWords(state.words);
     });
+  });
+
+  elements.readerSidebarToggle.addEventListener("click", () => {
+    state.readerSidebarCollapsed = !state.readerSidebarCollapsed;
+    localStorage.setItem("wordMarkerReaderSidebarCollapsed", String(state.readerSidebarCollapsed));
+    renderReaderSidebar();
+  });
+
+  elements.readerSidebarOpen.addEventListener("click", () => {
+    state.readerSidebarCollapsed = false;
+    localStorage.setItem("wordMarkerReaderSidebarCollapsed", String(state.readerSidebarCollapsed));
+    renderReaderSidebar();
+  });
+
+  elements.readerLanguageSelect.addEventListener("change", async (event) => {
+    state.selectedReaderLanguageId = Number(event.target.value) || null;
+    localStorage.setItem("wordMarkerReaderLanguageId", String(state.selectedReaderLanguageId || ""));
+    state.selectedMaterialId = null;
+    state.currentMaterial = null;
+    state.readerTokens = [];
+    state.readerStart = 0;
+    await loadMaterials(true);
+  });
+
+  elements.materialImportForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const file = elements.materialFile.files[0];
+    if (!file) {
+      elements.materialImportStatus.textContent = t("reader.chooseFile");
+      return;
+    }
+    const submitButton = elements.materialImportForm.querySelector("button");
+    submitButton.disabled = true;
+    elements.materialImportStatus.textContent = t("reader.importing");
+    try {
+      const form = new FormData();
+      form.append("languageId", String(state.selectedReaderLanguageId));
+      form.append("file", file);
+      const response = await fetch("/api/materials", { method: "POST", body: form });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || t("errors.requestFailed"));
+      }
+      elements.materialImportForm.reset();
+      elements.materialImportStatus.textContent = t("reader.imported", { words: formatCount(payload.tokenCount) });
+      state.selectedMaterialId = payload.material.id;
+      await loadMaterials(true);
+      await loadMaterialReader(0);
+      await loadDashboard();
+    } catch (error) {
+      elements.materialImportStatus.textContent = error.message;
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+
+  elements.materialList.addEventListener("scroll", async () => {
+    const remainingScroll = elements.materialList.scrollHeight - elements.materialList.scrollTop - elements.materialList.clientHeight;
+    if (remainingScroll < 120) {
+      await loadMaterials(false);
+    }
+  });
+
+  elements.materialList.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-material-id]");
+    if (!button) {
+      return;
+    }
+    state.selectedMaterialId = Number(button.dataset.materialId);
+    state.readerStart = 0;
+    renderMaterialList();
+    await loadMaterialReader(0);
+  });
+
+  elements.readerFontSize.addEventListener("input", (event) => {
+    state.readerFontSize = Number(event.target.value);
+    localStorage.setItem("wordMarkerReaderFontSize", String(state.readerFontSize));
+    renderReaderTokens();
+  });
+
+  elements.readerWordsPerPage.addEventListener("change", async (event) => {
+    state.readerWordsPerPage = Number(event.target.value);
+    localStorage.setItem("wordMarkerReaderWordsPerPage", String(state.readerWordsPerPage));
+    await loadMaterialReader(0);
+  });
+
+  elements.readerPrevPage.addEventListener("click", async () => {
+    await loadMaterialReader(Math.max(state.readerStart - state.readerWordsPerPage, 0));
+  });
+
+  elements.readerNextPage.addEventListener("click", async () => {
+    await loadMaterialReader(state.readerStart + state.readerWordsPerPage);
+  });
+
+  elements.readerText.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-token-id]");
+    if (!button) {
+      return;
+    }
+    elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
+    button.classList.add("is-selected");
+    const token = state.readerTokens.find((entry) => entry.id === Number(button.dataset.tokenId));
+    renderReaderWordInfo(token);
+  });
+
+  elements.readerWordInfo.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-reader-word-id]");
+    if (!button) {
+      return;
+    }
+    const known = button.dataset.known !== "true";
+    button.disabled = true;
+    try {
+      await requestJson(`/api/words/${button.dataset.readerWordId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ known })
+      });
+      await loadMaterialReader(state.readerStart);
+      await loadDashboard();
+    } finally {
+      button.disabled = false;
+    }
   });
 
   elements.dashboardLanguageSelect.addEventListener("change", async (event) => {

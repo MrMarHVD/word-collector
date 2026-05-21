@@ -8,7 +8,7 @@ export async function loadMessages() {
   if (!["all", "infinite"].includes(state.wordDisplayMode)) {
     state.wordDisplayMode = "infinite";
   }
-  if (!["dashboard", "collections", "settings"].includes(state.activeTab)) {
+  if (!["dashboard", "collections", "reader", "settings"].includes(state.activeTab)) {
     state.activeTab = "dashboard";
   }
 }

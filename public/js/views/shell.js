@@ -6,7 +6,9 @@ export function setActiveTab(tabName) {
   localStorage.setItem("wordMarkerActiveTab", tabName);
   elements.dashboardView.hidden = tabName !== "dashboard";
   elements.collectionsView.hidden = tabName !== "collections";
+  elements.readerView.hidden = tabName !== "reader";
   elements.settingsView.hidden = tabName !== "settings";
+  elements.pageHead.hidden = tabName === "reader";
   elements.tabButtons.forEach((button) => {
     const active = button.dataset.tab === tabName;
     button.classList.toggle("is-active", active);

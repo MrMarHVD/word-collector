@@ -35,7 +35,13 @@ export function importWords(db, statements, userId, collectionName, languageName
   db.exec("BEGIN");
   try {
     for (const row of cleanWords) {
-      const result = statements.insertWord.run(collection.id, row.word, row.translation);
+      const result = statements.insertWord.run(collection.id, row.word, row.translation, row.word);
+      if (result.changes) {
+        const word = statements.wordByCollectionAndLemma.get(collection.id, row.word);
+        if (word) {
+          statements.upsertWordTranslation.run(word.id, "English", row.translation);
+        }
+      }
       inserted += result.changes;
     }
     db.exec("COMMIT");

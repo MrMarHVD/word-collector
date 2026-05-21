@@ -160,6 +160,64 @@ export function runMigrations(db) {
     );
   `);
 
+  const wordColumns = db.prepare("PRAGMA table_info(words)").all();
+  if (!wordColumns.some((column) => column.name === "lemma")) {
+    db.exec("ALTER TABLE words ADD COLUMN lemma TEXT");
+    db.exec("UPDATE words SET lemma = word WHERE lemma IS NULL OR trim(lemma) = ''");
+  }
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS word_translations (
+      word_id INTEGER NOT NULL,
+      native_language TEXT NOT NULL,
+      translation TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (word_id, native_language),
+      FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS materials (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      language_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      file_name TEXT NOT NULL,
+      file_type TEXT NOT NULL,
+      raw_text TEXT NOT NULL,
+      word_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (language_id) REFERENCES languages(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS material_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      material_id INTEGER NOT NULL,
+      position INTEGER NOT NULL,
+      surface TEXT NOT NULL,
+      normalized TEXT NOT NULL,
+      lemma TEXT NOT NULL,
+      pos TEXT,
+      word_id INTEGER NOT NULL,
+      paragraph_index INTEGER NOT NULL DEFAULT 0,
+      sentence_index INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE CASCADE,
+      FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE,
+      UNIQUE (material_id, position)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_materials_user_language ON materials(user_id, language_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_material_tokens_material_position ON material_tokens(material_id, position);
+    CREATE INDEX IF NOT EXISTS idx_material_tokens_word ON material_tokens(word_id);
+    CREATE INDEX IF NOT EXISTS idx_words_collection_lemma ON words(collection_id, lemma);
+  `);
+
+  db.prepare(`
+    INSERT OR IGNORE INTO word_translations (word_id, native_language, translation)
+    SELECT id, 'English', translation FROM words
+  `).run();
+
   db.prepare(`
     INSERT OR IGNORE INTO user_word_status (user_id, word_id, known)
     SELECT ?, id, known FROM words WHERE known = 1
