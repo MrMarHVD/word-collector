@@ -1,8 +1,8 @@
 import { createServer } from "node:http";
-import { readFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
-import { pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHmac, pbkdf2Sync, randomBytes, timingSafeEqual } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
 const PORT = Number(process.env.PORT || 3000);
@@ -10,11 +10,24 @@ const ROOT = process.cwd();
 const PUBLIC_DIR = join(ROOT, "public");
 const DATA_DIR = join(ROOT, "data");
 const DB_PATH = join(DATA_DIR, "words.db");
-const SESSION_COOKIE = "word_collector_session";
+const JWT_SECRET_PATH = join(DATA_DIR, "jwt.secret");
+const AUTH_COOKIE = "word_collector_token";
+const JWT_TTL_SECONDS = 7 * 24 * 60 * 60;
 const SEED_EMAIL = "havardjvd@gmail.com";
 const SEED_PASSWORD = "MelkeMannen22";
 
 await mkdir(DATA_DIR, { recursive: true });
+
+async function getJwtSecret() {
+  if (existsSync(JWT_SECRET_PATH)) {
+    return (await readFile(JWT_SECRET_PATH, "utf8")).trim();
+  }
+  const secret = randomBytes(48).toString("base64url");
+  await writeFile(JWT_SECRET_PATH, `${secret}\n`, { mode: 0o600 });
+  return secret;
+}
+
+const JWT_SECRET = await getJwtSecret();
 
 const db = new DatabaseSync(DB_PATH);
 
@@ -27,6 +40,58 @@ function verifyPassword(password, salt, expectedHash) {
   const actual = pbkdf2Sync(password, salt, 120_000, 32, "sha256");
   const expected = Buffer.from(expectedHash, "hex");
   return expected.length === actual.length && timingSafeEqual(actual, expected);
+}
+
+function base64UrlJson(value) {
+  return Buffer.from(JSON.stringify(value)).toString("base64url");
+}
+
+function signJwt(header, payload) {
+  const data = `${base64UrlJson(header)}.${base64UrlJson(payload)}`;
+  const signature = createHmac("sha256", JWT_SECRET).update(data).digest("base64url");
+  return `${data}.${signature}`;
+}
+
+function createJwt(user) {
+  const now = Math.floor(Date.now() / 1000);
+  return signJwt(
+    { alg: "HS256", typ: "JWT" },
+    {
+      sub: String(user.id),
+      email: user.email,
+      iat: now,
+      exp: now + JWT_TTL_SECONDS,
+      jti: randomBytes(16).toString("hex")
+    }
+  );
+}
+
+function verifyJwt(token) {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  const [encodedHeader, encodedPayload, signature] = parts;
+  const data = `${encodedHeader}.${encodedPayload}`;
+  const expected = createHmac("sha256", JWT_SECRET).update(data).digest("base64url");
+  const actual = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (actual.length !== expectedBuffer.length || !timingSafeEqual(actual, expectedBuffer)) {
+    return null;
+  }
+
+  try {
+    const header = JSON.parse(Buffer.from(encodedHeader, "base64url").toString("utf8"));
+    const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8"));
+    const now = Math.floor(Date.now() / 1000);
+    if (header.alg !== "HS256" || header.typ !== "JWT" || !payload.sub || !payload.exp || payload.exp <= now) {
+      return null;
+    }
+    return payload;
+  } catch {
+    return null;
+  }
 }
 
 db.exec(`
@@ -191,14 +256,6 @@ const statements = {
   userByEmail: db.prepare("SELECT id, email, password_hash AS passwordHash, password_salt AS passwordSalt FROM users WHERE lower(email) = lower(?)"),
   userById: db.prepare("SELECT id, email FROM users WHERE id = ?"),
   createUser: db.prepare("INSERT INTO users (email, password_hash, password_salt) VALUES (?, ?, ?)"),
-  createSession: db.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)"),
-  sessionById: db.prepare(`
-    SELECT s.id, s.user_id AS userId, u.email, s.expires_at AS expiresAt
-    FROM sessions s
-    JOIN users u ON u.id = s.user_id
-    WHERE s.id = ? AND datetime(s.expires_at) > datetime('now')
-  `),
-  deleteSession: db.prepare("DELETE FROM sessions WHERE id = ?"),
   predefinedLanguages: db.prepare("SELECT id, name FROM predefined_languages ORDER BY lower(name)"),
   predefinedLanguageById: db.prepare("SELECT id, name FROM predefined_languages WHERE id = ?"),
   languageById: db.prepare("SELECT id, user_id AS userId, name FROM languages WHERE id = ? AND user_id = ?"),
@@ -267,24 +324,29 @@ function parseCookies(req) {
   );
 }
 
-function setSessionCookie(res, sessionId) {
-  res.setHeader("set-cookie", `${SESSION_COOKIE}=${encodeURIComponent(sessionId)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000`);
+function setAuthCookie(res, token) {
+  res.setHeader("set-cookie", `${AUTH_COOKIE}=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${JWT_TTL_SECONDS}`);
 }
 
-function clearSessionCookie(res) {
-  res.setHeader("set-cookie", `${SESSION_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`);
+function clearAuthCookie(res) {
+  res.setHeader("set-cookie", `${AUTH_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`);
 }
 
-function getSessionUser(req) {
-  const sessionId = parseCookies(req)[SESSION_COOKIE];
-  if (!sessionId) {
+function getAuthenticatedUser(req) {
+  const token = parseCookies(req)[AUTH_COOKIE];
+  const payload = verifyJwt(token);
+  if (!payload) {
     return null;
   }
-  return statements.sessionById.get(sessionId) || null;
+  const user = statements.userById.get(Number(payload.sub));
+  if (!user || user.email !== payload.email) {
+    return null;
+  }
+  return { userId: user.id, email: user.email };
 }
 
 function requireUser(req, res) {
-  const user = getSessionUser(req);
+  const user = getAuthenticatedUser(req);
   if (!user) {
     jsonResponse(res, 401, { error: "Authentication required." });
     return null;
@@ -292,11 +354,8 @@ function requireUser(req, res) {
   return user;
 }
 
-function createSessionForUser(res, userId) {
-  const sessionId = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-  statements.createSession.run(sessionId, userId, expiresAt);
-  setSessionCookie(res, sessionId);
+function setJwtForUser(res, user) {
+  setAuthCookie(res, createJwt(user));
 }
 
 async function readJson(req) {
@@ -492,7 +551,7 @@ function importWords(userId, collectionName, languageName, languageId, words) {
 
 async function handleApi(req, res, url) {
   if (req.method === "GET" && url.pathname === "/api/auth/me") {
-    const user = getSessionUser(req);
+    const user = getAuthenticatedUser(req);
     if (!user) {
       return jsonResponse(res, 200, { user: null, languages: [], predefinedLanguages: statements.predefinedLanguages.all() });
     }
@@ -512,7 +571,7 @@ async function handleApi(req, res, url) {
     if (!user || !verifyPassword(String(body.password || ""), user.passwordSalt, user.passwordHash)) {
       return jsonResponse(res, 401, { error: "Invalid email or password." });
     }
-    createSessionForUser(res, user.id);
+    setJwtForUser(res, user);
     return jsonResponse(res, 200, { user: { id: user.id, email: user.email } });
   }
 
@@ -530,16 +589,12 @@ async function handleApi(req, res, url) {
     const passwordHash = hashPassword(password);
     statements.createUser.run(email, passwordHash.hash, passwordHash.salt);
     const user = statements.userByEmail.get(email);
-    createSessionForUser(res, user.id);
+    setJwtForUser(res, user);
     return jsonResponse(res, 201, { user: { id: user.id, email: user.email } });
   }
 
   if (req.method === "POST" && url.pathname === "/api/auth/logout") {
-    const sessionId = parseCookies(req)[SESSION_COOKIE];
-    if (sessionId) {
-      statements.deleteSession.run(sessionId);
-    }
-    clearSessionCookie(res);
+    clearAuthCookie(res);
     return jsonResponse(res, 200, { loggedOut: true });
   }
 
