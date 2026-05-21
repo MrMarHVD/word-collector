@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Word Marker</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Word Marker</p>
+          <h1>Dashboard</h1>
+        </div>
+        <div class="total-panel">
+          <span id="knownTotal">0</span>
+          <small>known across all collections</small>
+        </div>
+      </header>
+
+      <section class="metrics" aria-label="Overall progress">
+        <article>
+          <span id="totalWords">0</span>
+          <small>total words</small>
+        </article>
+        <article>
+          <span id="unknownTotal">0</span>
+          <small>unknown words</small>
+        </article>
+        <article>
+          <span id="collectionCount">0</span>
+          <small>collections</small>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <form id="uploadForm" class="upload-panel">
+          <div class="section-head">
+            <h2>Upload Words</h2>
+          </div>
+          <label>
+            Collection
+            <input id="collectionName" name="collectionName" type="text" placeholder="Norwegian basics" required />
+          </label>
+          <label>
+            CSV file
+            <input id="csvFile" name="csvFile" type="file" accept=".csv,text/csv,text/plain" required />
+          </label>
+          <p class="hint">Each row should contain: word translation</p>
+          <button type="submit">Upload</button>
+          <p id="uploadStatus" class="status" role="status"></p>
+        </form>
+
+        <section class="collection-panel">
+          <div class="section-head">
+            <h2>Collections</h2>
+          </div>
+          <div id="collectionCharts" class="chart-grid"></div>
+        </section>
+      </section>
+
+      <section class="browser-panel">
+        <div class="browser-tools">
+          <label>
+            Collection
+            <select id="collectionSelect"></select>
+          </label>
+          <label>
+            Search
+            <input id="searchInput" type="search" placeholder="Search words or translations" />
+          </label>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Word</th>
+                <th>Translation</th>
+                <th>Known</th>
+              </tr>
+            </thead>
+            <tbody id="wordRows"></tbody>
+          </table>
+        </div>
+        <p id="emptyState" class="empty">Upload a CSV file to create your first collection.</p>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
