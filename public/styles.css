@@ -453,12 +453,12 @@ small,
   position: relative;
   min-height: 620px;
   padding: 18px;
-  margin-left: 338px;
+  margin-left: 660px;
   transition: margin-left 220ms ease;
 }
 
 .reader-layout.is-sidebar-collapsed .reader-panel {
-  margin-left: 0;
+  margin-left: 322px;
 }
 
 .reader-sidebar-open {
@@ -540,15 +540,23 @@ small,
 }
 
 .reader-word-info {
-  position: absolute;
-  right: 18px;
-  bottom: 18px;
-  width: min(320px, calc(100% - 36px));
+  position: fixed;
+  top: 72px;
+  left: 340px;
+  bottom: 0;
+  z-index: 7;
+  width: 306px;
+  overflow: auto;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 0 8px 0 0;
   background: #ffffff;
   box-shadow: var(--shadow);
   padding: 14px;
+  transition: left 220ms ease, opacity 180ms ease;
+}
+
+.reader-layout.is-sidebar-collapsed .reader-word-info {
+  left: 0;
 }
 
 .reader-word-info strong {
@@ -870,6 +878,17 @@ tbody tr:last-child td {
   .reader-panel,
   .reader-layout.is-sidebar-collapsed .reader-panel {
     margin-left: 0;
+  }
+
+  .reader-word-info,
+  .reader-layout.is-sidebar-collapsed .reader-word-info {
+    top: auto;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    width: auto;
+    max-height: 42vh;
+    border-radius: 8px;
   }
 
   .reader-sidebar-open {
