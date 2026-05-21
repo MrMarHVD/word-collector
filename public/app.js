@@ -11,6 +11,7 @@ const elements = {
   collectionCount: document.querySelector("#collectionCount"),
   collectionCharts: document.querySelector("#collectionCharts"),
   collectionSelect: document.querySelector("#collectionSelect"),
+  deleteCollectionButton: document.querySelector("#deleteCollectionButton"),
   searchInput: document.querySelector("#searchInput"),
   wordRows: document.querySelector("#wordRows"),
   emptyState: document.querySelector("#emptyState"),
@@ -59,6 +60,9 @@ async function loadDashboard() {
   if (!state.selectedCollectionId && state.dashboard.collections.length) {
     state.selectedCollectionId = state.dashboard.collections[0].id;
   }
+  if (state.selectedCollectionId && !state.dashboard.collections.some((collection) => collection.id === state.selectedCollectionId)) {
+    state.selectedCollectionId = state.dashboard.collections[0]?.id || null;
+  }
   renderDashboard();
   await loadWords();
 }
@@ -82,6 +86,8 @@ function renderDashboard() {
         })
         .join("")
     : `<option value="">No collections</option>`;
+
+  elements.deleteCollectionButton.disabled = !state.selectedCollectionId;
 }
 
 function renderChartCard(collection) {
@@ -187,6 +193,25 @@ elements.collectionSelect.addEventListener("change", async (event) => {
   state.search = "";
   elements.searchInput.value = "";
   await loadWords();
+});
+
+elements.deleteCollectionButton.addEventListener("click", async () => {
+  if (!state.selectedCollectionId) {
+    return;
+  }
+
+  const collection = state.dashboard.collections.find((entry) => entry.id === state.selectedCollectionId);
+  const confirmed = window.confirm(`Delete "${collection?.name || "this collection"}" and all its words?`);
+  if (!confirmed) {
+    return;
+  }
+
+  elements.deleteCollectionButton.disabled = true;
+  await requestJson(`/api/collections/${state.selectedCollectionId}`, { method: "DELETE" });
+  state.selectedCollectionId = null;
+  state.search = "";
+  elements.searchInput.value = "";
+  await loadDashboard();
 });
 
 elements.searchInput.addEventListener("input", async (event) => {

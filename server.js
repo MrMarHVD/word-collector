@@ -38,6 +38,7 @@ const statements = {
   collectionByName: db.prepare("SELECT id, name FROM collections WHERE lower(name) = lower(?)"),
   collectionById: db.prepare("SELECT id, name FROM collections WHERE id = ?"),
   createCollection: db.prepare("INSERT INTO collections (name) VALUES (?)"),
+  deleteCollection: db.prepare("DELETE FROM collections WHERE id = ?"),
   insertWord: db.prepare(`
     INSERT INTO words (collection_id, word, translation)
     VALUES (?, ?, ?)
@@ -190,6 +191,16 @@ async function handleApi(req, res, url) {
       collection,
       words: getWords(collectionId, url.searchParams.get("search") || "")
     });
+  }
+
+  const collectionMatch = url.pathname.match(/^\/api\/collections\/(\d+)$/);
+  if (req.method === "DELETE" && collectionMatch) {
+    const collectionId = Number(collectionMatch[1]);
+    const result = statements.deleteCollection.run(collectionId);
+    if (!result.changes) {
+      return jsonResponse(res, 404, { error: "Collection not found." });
+    }
+    return jsonResponse(res, 200, { deleted: true, id: collectionId });
   }
 
   if (req.method === "POST" && url.pathname === "/api/import") {
