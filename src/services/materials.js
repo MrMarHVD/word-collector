@@ -2,6 +2,7 @@ import { NATIVE_LANGUAGE_OPTIONS, READER_WORK_PAGE_SIZE } from "../config.js";
 import { normalizeName } from "../shared/normalize.js";
 import { extractTextFromUpload } from "./textExtraction.js";
 import { tokenizeForLanguage } from "./lemmatizer.js";
+import { lookupJapaneseEnglish } from "./jmdict.js";
 
 const UNCOLLECTED_COLLECTION_NAME = "Uncollected";
 
@@ -14,9 +15,20 @@ function getUncollectedCollection(db, statements, userId, languageId) {
   return collection;
 }
 
+function isJapaneseLanguage(language) {
+  return language.name.toLowerCase() === "japanese" || language.name === "日本語";
+}
+
+function getEnglishTranslation(statements, wordId) {
+  return normalizeName(statements.wordTranslation.get(wordId, "English")?.translation || "");
+}
+
 function getOrCreateDictionaryWord(db, statements, userId, language, token, fallbackTranslation) {
   const existing = statements.wordInLanguageBySurfaceOrLemma.get(userId, language.id, token.surface, token.lemma, token.surface);
   if (existing) {
+    if (fallbackTranslation && !getEnglishTranslation(statements, existing.id)) {
+      statements.upsertWordTranslation.run(existing.id, "English", fallbackTranslation);
+    }
     return existing;
   }
 
@@ -28,9 +40,35 @@ function getOrCreateDictionaryWord(db, statements, userId, language, token, fall
   }
 
   for (const nativeLanguage of NATIVE_LANGUAGE_OPTIONS) {
-    statements.upsertWordTranslation.run(word.id, nativeLanguage, nativeLanguage === "Japanese" ? token.lemma : "");
+    const translation = nativeLanguage === "English" ? fallbackTranslation : nativeLanguage === "Japanese" ? token.lemma : "";
+    statements.upsertWordTranslation.run(word.id, nativeLanguage, translation);
   }
   return word;
+}
+
+function getTranslationCandidates(db, statements, userId, language, tokens) {
+  if (!isJapaneseLanguage(language)) {
+    return new Map();
+  }
+
+  const candidates = new Map();
+  for (const token of tokens) {
+    const key = token.lemma.toLowerCase();
+    if (candidates.has(key)) {
+      continue;
+    }
+    const existing = statements.wordInLanguageBySurfaceOrLemma.get(userId, language.id, token.surface, token.lemma, token.surface);
+    if (existing && getEnglishTranslation(statements, existing.id)) {
+      continue;
+    }
+    candidates.set(key, token.lemma);
+  }
+
+  return new Map(
+    [...candidates.values()].map((lemma) => {
+      return [lemma.toLowerCase(), lookupJapaneseEnglish(db, lemma)];
+    })
+  );
 }
 
 function materialTitleFromFilename(filename) {
@@ -56,6 +94,7 @@ export async function importMaterial(db, statements, userId, languageId, file) {
   if (!tokens.length) {
     return { error: "No readable words were found in this file." };
   }
+  const englishTranslations = getTranslationCandidates(db, statements, userId, language, tokens);
 
   let materialId;
   db.exec("BEGIN");
@@ -72,7 +111,7 @@ export async function importMaterial(db, statements, userId, languageId, file) {
     materialId = Number(materialResult.lastInsertRowid);
 
     for (const token of tokens) {
-      const word = getOrCreateDictionaryWord(db, statements, userId, language, token, "");
+      const word = getOrCreateDictionaryWord(db, statements, userId, language, token, englishTranslations.get(token.lemma.toLowerCase()) || "");
       statements.insertMaterialToken.run(
         materialId,
         token.position,

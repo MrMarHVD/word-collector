@@ -51,6 +51,7 @@ export function createStatements(db) {
       VALUES (?, ?, ?, CURRENT_TIMESTAMP)
       ON CONFLICT(word_id, native_language) DO UPDATE SET translation = excluded.translation, updated_at = CURRENT_TIMESTAMP
     `),
+    wordTranslation: db.prepare("SELECT translation FROM word_translations WHERE word_id = ? AND native_language = ?"),
     createMaterial: db.prepare(`
       INSERT INTO materials (user_id, language_id, title, file_name, file_type, raw_text, word_count)
       VALUES (?, ?, ?, ?, ?, ?, ?)

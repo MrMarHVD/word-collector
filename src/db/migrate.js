@@ -211,6 +211,17 @@ export function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_material_tokens_material_position ON material_tokens(material_id, position);
     CREATE INDEX IF NOT EXISTS idx_material_tokens_word ON material_tokens(word_id);
     CREATE INDEX IF NOT EXISTS idx_words_collection_lemma ON words(collection_id, lemma);
+
+    CREATE TABLE IF NOT EXISTS jmdict_entries (
+      expression TEXT NOT NULL,
+      reading TEXT,
+      gloss TEXT NOT NULL,
+      priority INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (expression, gloss)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_jmdict_expression ON jmdict_entries(expression);
+    CREATE INDEX IF NOT EXISTS idx_jmdict_reading ON jmdict_entries(reading);
   `);
 
   db.prepare(`
