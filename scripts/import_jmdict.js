@@ -42,6 +42,25 @@ const insert = db.prepare(`
   INSERT OR REPLACE INTO jmdict_entries (expression, reading, gloss, priority)
   VALUES (?, ?, ?, ?)
 `);
+const insertEnglish = db.prepare(`
+  INSERT OR REPLACE INTO jmdict_english_index (english, expression, gloss, priority)
+  VALUES (?, ?, ?, ?)
+`);
+
+function englishKeys(glosses) {
+  const keys = new Set();
+  for (const gloss of glosses) {
+    const first = gloss.split(";")[0].split(",")[0].trim().toLowerCase();
+    if (/^[a-z][a-z '-]{1,60}$/.test(first)) {
+      keys.add(first);
+      first
+        .split(/\s+/)
+        .filter((part) => /^[a-z][a-z'-]{2,}$/.test(part))
+        .forEach((part) => keys.add(part));
+    }
+  }
+  return [...keys];
+}
 
 let entries = 0;
 let rows = 0;
@@ -61,6 +80,9 @@ try {
       const gloss = [...new Set(glosses)].slice(0, 6).join("; ");
       if (form && gloss) {
         insert.run(form, reading, gloss, priority);
+        for (const english of englishKeys(glosses)) {
+          insertEnglish.run(english, form, gloss, priority);
+        }
         rows += 1;
       }
     }

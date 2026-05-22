@@ -2,7 +2,7 @@ import { NATIVE_LANGUAGE_OPTIONS, READER_WORK_PAGE_SIZE } from "../config.js";
 import { normalizeName } from "../shared/normalize.js";
 import { extractTextFromUpload } from "./textExtraction.js";
 import { tokenizeForLanguage } from "./lemmatizer.js";
-import { lookupJapaneseEnglish } from "./jmdict.js";
+import { lookupEnglishJapanese, lookupJapaneseEnglish } from "./jmdict.js";
 
 const UNCOLLECTED_COLLECTION_NAME = "Uncollected";
 
@@ -19,15 +19,46 @@ function isJapaneseLanguage(language) {
   return language.name.toLowerCase() === "japanese" || language.name === "日本語";
 }
 
-function getEnglishTranslation(statements, wordId) {
-  return normalizeName(statements.wordTranslation.get(wordId, "English")?.translation || "");
+function isEnglishLanguage(language) {
+  return language.name.toLowerCase() === "english";
+}
+
+function targetNativeLanguageForStudyLanguage(language) {
+  if (isJapaneseLanguage(language)) return "English";
+  if (isEnglishLanguage(language)) return "Japanese";
+  return "English";
+}
+
+function getStoredTranslation(statements, wordId, nativeLanguage) {
+  return normalizeName(statements.wordTranslation.get(wordId, nativeLanguage)?.translation || "");
+}
+
+function hasUsableStoredTranslation(statements, wordId, nativeLanguage, token) {
+  const stored = getStoredTranslation(statements, wordId, nativeLanguage);
+  if (!stored) return false;
+  return stored.toLowerCase() !== token.lemma.toLowerCase() && stored.toLowerCase() !== token.surface.toLowerCase();
+}
+
+function defaultTranslationForNativeLanguage(language, token, nativeLanguage, fallbackTranslation) {
+  const targetNativeLanguage = targetNativeLanguageForStudyLanguage(language);
+  if (nativeLanguage === targetNativeLanguage) {
+    return fallbackTranslation;
+  }
+  if (nativeLanguage === "English" && isEnglishLanguage(language)) {
+    return token.lemma;
+  }
+  if (nativeLanguage === "Japanese" && isJapaneseLanguage(language)) {
+    return token.lemma;
+  }
+  return "";
 }
 
 function getOrCreateDictionaryWord(db, statements, userId, language, token, fallbackTranslation) {
+  const targetNativeLanguage = targetNativeLanguageForStudyLanguage(language);
   const existing = statements.wordInLanguageBySurfaceOrLemma.get(userId, language.id, token.surface, token.lemma, token.surface);
   if (existing) {
-    if (fallbackTranslation && !getEnglishTranslation(statements, existing.id)) {
-      statements.upsertWordTranslation.run(existing.id, "English", fallbackTranslation);
+    if (fallbackTranslation && !hasUsableStoredTranslation(statements, existing.id, targetNativeLanguage, token)) {
+      statements.upsertWordTranslation.run(existing.id, targetNativeLanguage, fallbackTranslation);
     }
     return existing;
   }
@@ -40,14 +71,14 @@ function getOrCreateDictionaryWord(db, statements, userId, language, token, fall
   }
 
   for (const nativeLanguage of NATIVE_LANGUAGE_OPTIONS) {
-    const translation = nativeLanguage === "English" ? fallbackTranslation : nativeLanguage === "Japanese" ? token.lemma : "";
+    const translation = defaultTranslationForNativeLanguage(language, token, nativeLanguage, fallbackTranslation);
     statements.upsertWordTranslation.run(word.id, nativeLanguage, translation);
   }
   return word;
 }
 
 function getTranslationCandidates(db, statements, userId, language, tokens) {
-  if (!isJapaneseLanguage(language)) {
+  if (!isJapaneseLanguage(language) && !isEnglishLanguage(language)) {
     return new Map();
   }
 
@@ -58,7 +89,7 @@ function getTranslationCandidates(db, statements, userId, language, tokens) {
       continue;
     }
     const existing = statements.wordInLanguageBySurfaceOrLemma.get(userId, language.id, token.surface, token.lemma, token.surface);
-    if (existing && getEnglishTranslation(statements, existing.id)) {
+    if (existing && hasUsableStoredTranslation(statements, existing.id, targetNativeLanguageForStudyLanguage(language), token)) {
       continue;
     }
     candidates.set(key, token.lemma);
@@ -66,7 +97,8 @@ function getTranslationCandidates(db, statements, userId, language, tokens) {
 
   return new Map(
     [...candidates.values()].map((lemma) => {
-      return [lemma.toLowerCase(), lookupJapaneseEnglish(db, lemma)];
+      const translation = isJapaneseLanguage(language) ? lookupJapaneseEnglish(db, lemma) : lookupEnglishJapanese(db, lemma);
+      return [lemma.toLowerCase(), translation];
     })
   );
 }
@@ -157,7 +189,11 @@ export function getMaterialReader(db, statements, userId, materialId, start = 0,
   const tokens = db.prepare(`
     SELECT mt.id, mt.position, mt.surface, mt.lemma, mt.pos, mt.word_id AS wordId,
            w.word AS dictionaryForm,
-           COALESCE(wt.translation, w.translation, '') AS translation,
+           CASE
+             WHEN wt.translation IS NOT NULL AND trim(wt.translation) <> '' THEN wt.translation
+             WHEN ? = 'English' THEN w.translation
+             ELSE ''
+           END AS translation,
            COALESCE(uws.known, 0) AS known
     FROM material_tokens mt
     JOIN words w ON w.id = mt.word_id
@@ -166,6 +202,6 @@ export function getMaterialReader(db, statements, userId, materialId, start = 0,
     WHERE mt.material_id = ?
     ORDER BY mt.position
     LIMIT ? OFFSET ?
-  `).all(nativeLanguage, userId, material.id, safeLimit, safeStart);
+  `).all(nativeLanguage, nativeLanguage, userId, material.id, safeLimit, safeStart);
   return { material, tokens, start: safeStart, limit: safeLimit, nativeLanguage };
 }

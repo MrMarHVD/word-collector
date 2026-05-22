@@ -13,6 +13,7 @@
   "dependencies": {
     "jszip": "^3.10.1",
     "kuromoji": "^0.1.2",
-    "pdfjs-dist": "^5.7.284"
+    "pdfjs-dist": "^5.7.284",
+    "wink-lemmatizer": "^3.0.4"
   }
 }

@@ -222,6 +222,16 @@ export function runMigrations(db) {
 
     CREATE INDEX IF NOT EXISTS idx_jmdict_expression ON jmdict_entries(expression);
     CREATE INDEX IF NOT EXISTS idx_jmdict_reading ON jmdict_entries(reading);
+
+    CREATE TABLE IF NOT EXISTS jmdict_english_index (
+      english TEXT NOT NULL,
+      expression TEXT NOT NULL,
+      gloss TEXT NOT NULL,
+      priority INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (english, expression)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_jmdict_english ON jmdict_english_index(english);
   `);
 
   db.prepare(`

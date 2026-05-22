@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
+import lemmatizer from "wink-lemmatizer";
 
 const require = createRequire(import.meta.url);
 const kuromoji = require("kuromoji");
@@ -43,6 +44,24 @@ export async function tokenizeForLanguage(text, languageName) {
           sentenceIndex: 0
         };
       });
+  }
+
+  if (languageName.toLowerCase() === "english") {
+    return (
+      text.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g)?.map((surface, index) => {
+        const lower = surface.toLowerCase();
+        const lemma = lemmatizer.verb(lemmatizer.noun(lemmatizer.adjective(lower)));
+        return {
+          position: index,
+          surface,
+          normalized: lower,
+          lemma,
+          pos: null,
+          paragraphIndex: 0,
+          sentenceIndex: 0
+        };
+      }) || []
+    );
   }
 
   return text
