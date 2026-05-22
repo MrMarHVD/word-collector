@@ -95,6 +95,7 @@ async function loadDashboard() {
   }
   renderDashboard();
   renderReaderLanguageOptions();
+  renderReaderSidebar();
   await loadMaterials(true);
   await loadWords();
 }
@@ -138,6 +139,50 @@ async function loadMaterialReader(start = 0) {
   state.currentMaterial = result.material;
   state.readerTokens = result.tokens;
   renderReaderTokens();
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function startReaderResize(event, target) {
+  event.preventDefault();
+  const startX = event.clientX;
+  const startY = event.clientY;
+  const initialWidth = target === "sidebar" ? state.readerSidebarWidth : target === "info" ? state.readerInfoWidth : elements.readerLayout.getBoundingClientRect().width;
+  const initialHeight = elements.readerLayout.getBoundingClientRect().height;
+  const minWidth = target === "sidebar" ? 240 : target === "info" ? 220 : 360;
+  const maxWidth = target === "panel" ? window.innerWidth : Math.max(minWidth, Math.floor(window.innerWidth * 0.55));
+  const minHeight = 320;
+  const maxHeight = Math.max(minHeight, window.innerHeight - 90);
+
+  function resize(moveEvent) {
+    const nextWidth = clamp(initialWidth + moveEvent.clientX - startX, minWidth, maxWidth);
+    if (target === "sidebar") {
+      state.readerSidebarWidth = nextWidth;
+      localStorage.setItem("wordMarkerReaderSidebarWidth", String(nextWidth));
+    } else if (target === "info") {
+      state.readerInfoWidth = nextWidth;
+      localStorage.setItem("wordMarkerReaderInfoWidth", String(nextWidth));
+    } else {
+      const nextHeight = clamp(initialHeight + moveEvent.clientY - startY, minHeight, maxHeight);
+      state.readerPanelWidth = nextWidth;
+      state.readerPanelHeight = nextHeight;
+      localStorage.setItem("wordMarkerReaderPanelWidth", String(nextWidth));
+      localStorage.setItem("wordMarkerReaderPanelHeight", String(nextHeight));
+    }
+    renderReaderSidebar();
+  }
+
+  function stopResize() {
+    document.removeEventListener("pointermove", resize);
+    document.removeEventListener("pointerup", stopResize);
+    document.body.classList.remove("is-resizing-reader");
+  }
+
+  document.body.classList.add("is-resizing-reader");
+  document.addEventListener("pointermove", resize);
+  document.addEventListener("pointerup", stopResize);
 }
 
 async function loadWords() {
@@ -317,6 +362,9 @@ function bindEvents() {
     renderReaderSidebar();
   });
 
+  elements.readerSidebarResize.addEventListener("pointerdown", (event) => startReaderResize(event, "sidebar"));
+  elements.readerPanelResize.addEventListener("pointerdown", (event) => startReaderResize(event, "panel"));
+
   elements.readerLanguageSelect.addEventListener("change", async (event) => {
     state.selectedReaderLanguageId = Number(event.target.value) || null;
     localStorage.setItem("wordMarkerReaderLanguageId", String(state.selectedReaderLanguageId || ""));
@@ -424,6 +472,12 @@ function bindEvents() {
       await loadDashboard();
     } finally {
       button.disabled = false;
+    }
+  });
+
+  elements.readerWordInfo.addEventListener("pointerdown", (event) => {
+    if (event.target.closest(".reader-word-info-resize")) {
+      startReaderResize(event, "info");
     }
   });
 

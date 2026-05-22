@@ -14,6 +14,10 @@ export function renderReaderLanguageOptions() {
 }
 
 export function renderReaderSidebar() {
+  elements.readerLayout.style.setProperty("--readerSidebarWidth", `${state.readerSidebarWidth}px`);
+  elements.readerLayout.style.setProperty("--readerInfoWidth", `${state.readerInfoWidth}px`);
+  elements.readerLayout.style.setProperty("--readerPanelWidth", state.readerPanelWidth ? `${state.readerPanelWidth}px` : "100%");
+  elements.readerLayout.style.setProperty("--readerPanelHeight", state.readerPanelHeight ? `${state.readerPanelHeight}px` : "auto");
   elements.readerLayout.classList.toggle("is-sidebar-collapsed", state.readerSidebarCollapsed);
   elements.readerSidebarToggle.setAttribute("aria-expanded", String(!state.readerSidebarCollapsed));
   elements.readerSidebarOpen.hidden = !state.readerSidebarCollapsed;
@@ -86,5 +90,6 @@ export function renderReaderWordInfo(token) {
       <dd>${escapeHtml(known ? t("word.known") : t("word.unknown"))}</dd>
     </dl>
     <button class="known-toggle" data-reader-word-id="${token.wordId}" data-known="${known}">${escapeHtml(known ? t("word.known") : t("word.unknown"))}</button>
+    <div class="reader-word-info-resize" role="separator" aria-orientation="vertical"></div>
   `;
 }

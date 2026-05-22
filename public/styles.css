@@ -374,6 +374,10 @@ small,
 
 .reader-layout {
   position: relative;
+  --readerSidebarWidth: 300px;
+  --readerInfoWidth: 300px;
+  --readerPanelWidth: 100%;
+  --readerPanelHeight: auto;
 }
 
 .reader-sidebar,
@@ -390,7 +394,7 @@ small,
   left: 0;
   bottom: 0;
   z-index: 8;
-  width: min(340px, calc(100vw - 48px));
+  width: min(var(--readerSidebarWidth), calc(100vw - 48px));
   overflow: auto;
   padding: 14px;
   border-left: 0;
@@ -452,13 +456,13 @@ small,
 .reader-panel {
   position: relative;
   min-height: 620px;
+  width: min(var(--readerPanelWidth), 100%);
+  height: var(--readerPanelHeight);
+  max-width: 100%;
+  overflow: auto;
   padding: 18px;
-  margin-left: 660px;
-  transition: margin-left 220ms ease;
-}
-
-.reader-layout.is-sidebar-collapsed .reader-panel {
-  margin-left: 322px;
+  margin-left: 0;
+  resize: both;
 }
 
 .reader-sidebar-open {
@@ -542,10 +546,10 @@ small,
 .reader-word-info {
   position: fixed;
   top: 72px;
-  left: 340px;
+  left: var(--readerSidebarWidth);
   bottom: 0;
   z-index: 7;
-  width: 306px;
+  width: var(--readerInfoWidth);
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 0 8px 0 0;
@@ -557,6 +561,58 @@ small,
 
 .reader-layout.is-sidebar-collapsed .reader-word-info {
   left: 0;
+}
+
+.reader-resize-handle,
+.reader-word-info-resize,
+.reader-panel-resize {
+  position: absolute;
+  right: -5px;
+  width: 10px;
+  cursor: col-resize;
+}
+
+.reader-resize-handle,
+.reader-word-info-resize {
+  top: 0;
+  bottom: 0;
+}
+
+.reader-panel-resize {
+  right: 0;
+  bottom: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+}
+
+.reader-resize-handle:hover::before,
+.reader-word-info-resize:hover::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 4px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.35);
+}
+
+.reader-panel-resize:hover::before {
+  content: "";
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 12px;
+  height: 12px;
+  border-right: 2px solid rgba(15, 118, 110, 0.45);
+  border-bottom: 2px solid rgba(15, 118, 110, 0.45);
+}
+
+.is-resizing-reader,
+.is-resizing-reader * {
+  cursor: col-resize !important;
+  user-select: none;
 }
 
 .reader-word-info strong {

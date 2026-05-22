@@ -56,6 +56,7 @@ export const elements = {
   readerLayout: document.querySelector(".reader-layout"),
   readerSidebarToggle: document.querySelector("#readerSidebarToggle"),
   readerSidebarOpen: document.querySelector("#readerSidebarOpen"),
+  readerSidebarResize: document.querySelector("#readerSidebarResize"),
   readerTitle: document.querySelector("#readerTitle"),
   readerMeta: document.querySelector("#readerMeta"),
   readerFontSize: document.querySelector("#readerFontSize"),
@@ -64,5 +65,6 @@ export const elements = {
   readerPrevPage: document.querySelector("#readerPrevPage"),
   readerNextPage: document.querySelector("#readerNextPage"),
   readerPageStatus: document.querySelector("#readerPageStatus"),
-  readerWordInfo: document.querySelector("#readerWordInfo")
+  readerWordInfo: document.querySelector("#readerWordInfo"),
+  readerPanelResize: document.querySelector("#readerPanelResize")
 };
