@@ -978,9 +978,9 @@ tbody tr:last-child td {
   color: #64748b;
 }
 .reader-layout {
-  grid-template-columns: minmax(240px, min(var(--readerSidebarWidth), 55vw)) minmax(0, 1fr);
-  width: 100%;
-  margin-left: 0;
+  grid-template-columns: minmax(240px, min(var(--readerSidebarWidth), 340px)) minmax(0, 1fr);
+  width: var(--readerViewportWidth, 100vw);
+  margin-left: calc(-1 * var(--readerViewportOffset, 0px));
   --readerSidebarWidth: 300px;
   --readerInfoWidth: 300px;
   --readerPanelWidth: 100%;
@@ -991,6 +991,9 @@ tbody tr:last-child td {
 }
 .reader-sidebar {
   width: 100%;
+  max-width: 340px;
+  overflow-x: hidden;
+  overflow-y: auto;
   transform: translateX(0);
   opacity: 1;
   transition: transform 220ms ease, opacity 180ms ease, box-shadow 220ms ease;
@@ -1171,13 +1174,14 @@ tbody tr:last-child td {
 }
 @media (max-width: 760px) {
   .reader-layout {
-    grid-template-columns: minmax(160px, min(var(--readerSidebarWidth), 46vw)) minmax(0, 1fr);
+    grid-template-columns: minmax(160px, min(var(--readerSidebarWidth), 240px)) minmax(0, 1fr);
   }
   .reader-layout.is-sidebar-collapsed {
     grid-template-columns: 0 minmax(0, 1fr);
   }
   .reader-sidebar {
     top: 0;
+    max-width: 240px;
     height: calc(100vh - 24px);
     border-radius: 0 8px 8px 0;
   }

@@ -13,6 +13,8 @@ import { loadMoreWordsIfNeeded, renderWords } from "./views/words.js";
 
 const MIN_READER_PANEL_WIDTH = 360;
 const MIN_READER_PANEL_HEIGHT = 520;
+const MAX_READER_SIDEBAR_WIDTH = 340;
+const MAX_READER_SIDEBAR_WIDTH_SMALL = 240;
 const READER_PANEL_BOTTOM_MARGIN = 16;
 
 // Re-render every visible string and locale-sensitive control after a language change.
@@ -234,9 +236,11 @@ function startReaderResize(event, target) {
   const initialHeight = panelRect.height;
   const availablePanelWidth = Math.max(1, Math.floor(layoutRect.width - sidebarWidth));
   const minPanelWidth = Math.min(MIN_READER_PANEL_WIDTH, availablePanelWidth);
-  const minWidth = target === "sidebar" ? 240 : target === "info" ? 220 : minPanelWidth;
+  const minSidebarWidth = window.matchMedia("(max-width: 760px)").matches ? 160 : 240;
+  const minWidth = target === "sidebar" ? minSidebarWidth : target === "info" ? 220 : minPanelWidth;
   const maxPanelWidth = Math.max(minPanelWidth, availablePanelWidth);
-  const maxWidth = target === "panel" ? maxPanelWidth : Math.max(minWidth, Math.floor(window.innerWidth * 0.55));
+  const maxSidebarWidth = window.matchMedia("(max-width: 760px)").matches ? MAX_READER_SIDEBAR_WIDTH_SMALL : MAX_READER_SIDEBAR_WIDTH;
+  const maxWidth = target === "panel" ? maxPanelWidth : target === "sidebar" ? Math.max(minWidth, maxSidebarWidth) : Math.max(minWidth, Math.floor(window.innerWidth * 0.55));
   const maxPanelHeight = Math.max(1, window.innerHeight - panelRect.top - READER_PANEL_BOTTOM_MARGIN);
   const minHeight = target === "panel" ? Math.min(MIN_READER_PANEL_HEIGHT, maxPanelHeight) : 320;
   const maxHeight = target === "panel" ? maxPanelHeight : Math.max(minHeight, window.innerHeight - 90);

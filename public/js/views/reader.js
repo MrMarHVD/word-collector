@@ -5,6 +5,8 @@ import { escapeHtml } from "../shared/html.js";
 
 const MIN_READER_PANEL_WIDTH = 360;
 const MIN_READER_PANEL_HEIGHT = 520;
+const MAX_READER_SIDEBAR_WIDTH = 340;
+const MAX_READER_SIDEBAR_WIDTH_SMALL = 240;
 const READER_PANEL_BOTTOM_MARGIN = 16;
 
 function clamp(value, min, max) {
@@ -15,9 +17,8 @@ function readerSidebarColumnWidth() {
   if (state.readerSidebarCollapsed) {
     return 0;
   }
-  const viewportWidth = window.innerWidth;
   const minimumWidth = window.matchMedia("(max-width: 760px)").matches ? 160 : 240;
-  const maximumWidth = viewportWidth * (window.matchMedia("(max-width: 760px)").matches ? 0.46 : 0.55);
+  const maximumWidth = window.matchMedia("(max-width: 760px)").matches ? MAX_READER_SIDEBAR_WIDTH_SMALL : MAX_READER_SIDEBAR_WIDTH;
   return Math.max(minimumWidth, Math.min(state.readerSidebarWidth, maximumWidth));
 }
 
@@ -31,12 +32,13 @@ export function renderReaderSidebar() {
   const minPanelHeight = Math.min(MIN_READER_PANEL_HEIGHT, maxPanelHeight);
   const panelWidth = state.readerPanelWidth ? clamp(state.readerPanelWidth, minPanelWidth, maxPanelWidth) : maxPanelWidth;
   const panelHeight = state.readerPanelHeight ? clamp(state.readerPanelHeight, minPanelHeight, maxPanelHeight) : clamp(620, minPanelHeight, maxPanelHeight);
+  const sidebarWidth = readerSidebarColumnWidth();
 
   state.readerPanelWidth = panelWidth;
   state.readerPanelHeight = panelHeight;
   elements.readerLayout.style.setProperty("--readerViewportWidth", `${document.documentElement.clientWidth}px`);
   elements.readerLayout.style.setProperty("--readerViewportOffset", `${parentRect.left}px`);
-  elements.readerLayout.style.setProperty("--readerSidebarWidth", `${state.readerSidebarWidth}px`);
+  elements.readerLayout.style.setProperty("--readerSidebarWidth", `${sidebarWidth}px`);
   elements.readerLayout.style.setProperty("--readerInfoWidth", `${state.readerInfoWidth}px`);
   elements.readerLayout.style.setProperty("--readerPanelMinWidth", `${minPanelWidth}px`);
   elements.readerLayout.style.setProperty("--readerPanelMaxHeight", `${maxPanelHeight}px`);
