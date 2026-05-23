@@ -11,6 +11,10 @@ import { renderMaterialList, renderReaderSidebar, renderReaderTokens, renderRead
 import { renderDisplayModeButtons, renderLocaleButtons, resetWordWindow, setActiveTab, showView } from "./views/shell.js";
 import { loadMoreWordsIfNeeded, renderWords } from "./views/words.js";
 
+const MIN_READER_PANEL_WIDTH = 360;
+const MIN_READER_PANEL_HEIGHT = 520;
+const READER_PANEL_BOTTOM_MARGIN = 16;
+
 // Re-render every visible string and locale-sensitive control after a language change.
 // Apply the active locale to static text, controls, and visible views.
 function applyLocale() {
@@ -228,11 +232,14 @@ function startReaderResize(event, target) {
   const panelRect = elements.readerPanel.getBoundingClientRect();
   const initialWidth = target === "sidebar" ? state.readerSidebarWidth : target === "info" ? state.readerInfoWidth : panelRect.width;
   const initialHeight = panelRect.height;
-  const minWidth = target === "sidebar" ? 240 : target === "info" ? 220 : 360;
-  const maxPanelWidth = Math.max(minWidth, Math.floor(layoutRect.width - sidebarWidth));
+  const availablePanelWidth = Math.max(1, Math.floor(layoutRect.width - sidebarWidth));
+  const minPanelWidth = Math.min(MIN_READER_PANEL_WIDTH, availablePanelWidth);
+  const minWidth = target === "sidebar" ? 240 : target === "info" ? 220 : minPanelWidth;
+  const maxPanelWidth = Math.max(minPanelWidth, availablePanelWidth);
   const maxWidth = target === "panel" ? maxPanelWidth : Math.max(minWidth, Math.floor(window.innerWidth * 0.55));
-  const minHeight = 320;
-  const maxHeight = Math.max(minHeight, window.innerHeight - 90);
+  const maxPanelHeight = Math.max(1, window.innerHeight - panelRect.top - READER_PANEL_BOTTOM_MARGIN);
+  const minHeight = target === "panel" ? Math.min(MIN_READER_PANEL_HEIGHT, maxPanelHeight) : 320;
+  const maxHeight = target === "panel" ? maxPanelHeight : Math.max(minHeight, window.innerHeight - 90);
 
   // Apply pointer movement to the active reader dimension.
   function resize(moveEvent) {

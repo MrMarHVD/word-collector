@@ -509,10 +509,12 @@ small,
   position: relative;
   display: grid;
   grid-template-rows: auto minmax(420px, 1fr) auto;
-  min-height: 620px;
-  width: min(var(--readerPanelWidth), 100%);
-  height: var(--readerPanelHeight);
+  min-width: var(--readerPanelMinWidth, 360px);
+  min-height: var(--readerPanelMinHeight, 520px);
+  width: clamp(var(--readerPanelMinWidth, 360px), var(--readerPanelWidth, 100%), 100%);
+  height: clamp(var(--readerPanelMinHeight, 520px), var(--readerPanelHeight, 620px), var(--readerPanelMaxHeight, calc(100vh - 104px)));
   max-width: 100%;
+  max-height: var(--readerPanelMaxHeight, calc(100vh - 104px));
   overflow: auto;
   padding: 18px;
   margin-left: 0;

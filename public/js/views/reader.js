@@ -3,16 +3,46 @@ import { formatCount, t } from "../i18n.js";
 import { state } from "../state.js";
 import { escapeHtml } from "../shared/html.js";
 
+const MIN_READER_PANEL_WIDTH = 360;
+const MIN_READER_PANEL_HEIGHT = 520;
+const READER_PANEL_BOTTOM_MARGIN = 16;
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function readerSidebarColumnWidth() {
+  if (state.readerSidebarCollapsed) {
+    return 0;
+  }
+  const viewportWidth = window.innerWidth;
+  const minimumWidth = window.matchMedia("(max-width: 760px)").matches ? 160 : 240;
+  const maximumWidth = viewportWidth * (window.matchMedia("(max-width: 760px)").matches ? 0.46 : 0.55);
+  return Math.max(minimumWidth, Math.min(state.readerSidebarWidth, maximumWidth));
+}
+
 // Apply persisted reader layout dimensions through CSS custom properties.
 // Render reader panel dimensions and sidebar collapsed state.
 export function renderReaderSidebar() {
   const parentRect = elements.readerLayout.parentElement.getBoundingClientRect();
+  const maxPanelWidth = Math.max(1, document.documentElement.clientWidth - readerSidebarColumnWidth());
+  const maxPanelHeight = Math.max(1, window.innerHeight - elements.readerPanel.getBoundingClientRect().top - READER_PANEL_BOTTOM_MARGIN);
+  const minPanelWidth = Math.min(MIN_READER_PANEL_WIDTH, maxPanelWidth);
+  const minPanelHeight = Math.min(MIN_READER_PANEL_HEIGHT, maxPanelHeight);
+  const panelWidth = state.readerPanelWidth ? clamp(state.readerPanelWidth, minPanelWidth, maxPanelWidth) : maxPanelWidth;
+  const panelHeight = state.readerPanelHeight ? clamp(state.readerPanelHeight, minPanelHeight, maxPanelHeight) : clamp(620, minPanelHeight, maxPanelHeight);
+
+  state.readerPanelWidth = panelWidth;
+  state.readerPanelHeight = panelHeight;
   elements.readerLayout.style.setProperty("--readerViewportWidth", `${document.documentElement.clientWidth}px`);
   elements.readerLayout.style.setProperty("--readerViewportOffset", `${parentRect.left}px`);
   elements.readerLayout.style.setProperty("--readerSidebarWidth", `${state.readerSidebarWidth}px`);
   elements.readerLayout.style.setProperty("--readerInfoWidth", `${state.readerInfoWidth}px`);
-  elements.readerLayout.style.setProperty("--readerPanelWidth", state.readerPanelWidth ? `${state.readerPanelWidth}px` : "100%");
-  elements.readerLayout.style.setProperty("--readerPanelHeight", state.readerPanelHeight ? `${state.readerPanelHeight}px` : "auto");
+  elements.readerLayout.style.setProperty("--readerPanelMinWidth", `${minPanelWidth}px`);
+  elements.readerLayout.style.setProperty("--readerPanelMaxHeight", `${maxPanelHeight}px`);
+  elements.readerLayout.style.setProperty("--readerPanelMinHeight", `${minPanelHeight}px`);
+  elements.readerLayout.style.setProperty("--readerPanelWidth", `${panelWidth}px`);
+  elements.readerLayout.style.setProperty("--readerPanelHeight", `${panelHeight}px`);
   elements.readerLayout.classList.toggle("is-sidebar-collapsed", state.readerSidebarCollapsed);
   elements.readerSidebarToggle.setAttribute("aria-expanded", String(!state.readerSidebarCollapsed));
   elements.readerSidebarOpen.hidden = !state.readerSidebarCollapsed;
