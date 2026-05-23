@@ -1,29 +1,42 @@
 import { normalizeName } from "../shared/normalize.js";
 
 // Collection word reads always join through language ownership.
-// Return words for a collection with optional word or translation search.
-export function getWords(db, userId, collectionId, search) {
+function displayedTranslationExpression() {
+  return `
+    CASE
+      WHEN wt.translation IS NOT NULL AND trim(wt.translation) <> '' THEN wt.translation
+      WHEN ? = 'English' THEN w.translation
+      ELSE ''
+    END
+  `;
+}
+
+// Return words for a collection with optional word or displayed-translation search.
+export function getWords(db, userId, collectionId, search, nativeLanguage = "English") {
   const term = normalizeName(search);
+  const translationExpression = displayedTranslationExpression();
   if (term) {
     return db.prepare(`
-      SELECT w.id, w.collection_id AS collectionId, w.word, w.translation, COALESCE(uws.known, 0) AS known
+      SELECT w.id, w.collection_id AS collectionId, w.word, ${translationExpression} AS translation, COALESCE(uws.known, 0) AS known
       FROM words w
       JOIN collections c ON c.id = w.collection_id
       JOIN languages l ON l.id = c.language_id
+      LEFT JOIN word_translations wt ON wt.word_id = w.id AND wt.native_language = ?
       LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
       WHERE l.user_id = ? AND w.collection_id = ?
-        AND (lower(w.word) LIKE lower(?) OR lower(w.translation) LIKE lower(?))
-      ORDER BY lower(w.word), lower(w.translation)
-    `).all(userId, userId, collectionId, `%${term}%`, `%${term}%`);
+        AND (lower(w.word) LIKE lower(?) OR lower(${translationExpression}) LIKE lower(?))
+      ORDER BY lower(w.word), lower(${translationExpression})
+    `).all(nativeLanguage, nativeLanguage, userId, userId, collectionId, `%${term}%`, nativeLanguage, `%${term}%`, nativeLanguage);
   }
 
   return db.prepare(`
-    SELECT w.id, w.collection_id AS collectionId, w.word, w.translation, COALESCE(uws.known, 0) AS known
+    SELECT w.id, w.collection_id AS collectionId, w.word, ${translationExpression} AS translation, COALESCE(uws.known, 0) AS known
     FROM words w
     JOIN collections c ON c.id = w.collection_id
     JOIN languages l ON l.id = c.language_id
+    LEFT JOIN word_translations wt ON wt.word_id = w.id AND wt.native_language = ?
     LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
     WHERE l.user_id = ? AND w.collection_id = ?
-    ORDER BY lower(w.word), lower(w.translation)
-  `).all(userId, userId, collectionId);
+    ORDER BY lower(w.word), lower(${translationExpression})
+  `).all(nativeLanguage, nativeLanguage, userId, userId, collectionId, nativeLanguage);
 }

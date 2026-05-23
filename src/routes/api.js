@@ -153,9 +153,10 @@ export function createApiHandler({ db, statements }) {
       if (!collection) {
         return jsonResponse(res, 404, { error: "Collection not found." });
       }
+      const nativeLanguage = statements.userById.get(user.userId)?.nativeLanguage || "English";
       return jsonResponse(res, 200, {
         collection,
-        words: getWords(db, user.userId, collectionId, url.searchParams.get("search") || "")
+        words: getWords(db, user.userId, collectionId, url.searchParams.get("search") || "", nativeLanguage)
       });
     }
 

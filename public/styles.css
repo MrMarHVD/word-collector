@@ -382,10 +382,20 @@ small,
 .reader-layout {
   /* JavaScript updates these custom properties from persisted reader settings. */
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(240px, min(var(--readerSidebarWidth), 55vw)) minmax(0, 1fr);
+  gap: 0;
+  align-items: start;
+  width: var(--readerViewportWidth, 100vw);
+  margin-left: calc(-1 * var(--readerViewportOffset, 0px));
   --readerSidebarWidth: 300px;
   --readerInfoWidth: 300px;
   --readerPanelWidth: 100%;
   --readerPanelHeight: auto;
+}
+
+.reader-layout.is-sidebar-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr);
 }
 
 .reader-sidebar,
@@ -397,16 +407,16 @@ small,
 }
 
 .reader-sidebar {
-  position: fixed;
-  top: 72px;
-  left: 0;
-  bottom: 0;
+  position: sticky;
+  top: 88px;
+  align-self: start;
   z-index: 8;
-  width: min(var(--readerSidebarWidth), calc(100vw - 48px));
+  width: 100%;
+  height: calc(100vh - 104px);
   overflow: auto;
   padding: 14px;
-  border-left: 0;
-  border-radius: 0 8px 0 0;
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
   transform: translateX(0);
   opacity: 1;
   transition: transform 220ms ease, opacity 180ms ease, box-shadow 220ms ease;
@@ -419,9 +429,14 @@ small,
 }
 
 .reader-layout.is-sidebar-collapsed .reader-sidebar {
-  transform: translateX(calc(-100% - 8px));
+  transform: translateX(-100%);
   opacity: 0;
   pointer-events: none;
+  width: 0;
+  min-width: 0;
+  padding-right: 0;
+  padding-left: 0;
+  border-width: 0;
 }
 
 .reader-import {
@@ -499,6 +514,7 @@ small,
   overflow: auto;
   padding: 18px;
   margin-left: 0;
+  border-radius: 0 8px 8px 0;
   resize: both;
 }
 
@@ -602,9 +618,13 @@ small,
 .reader-word-info-resize,
 .reader-panel-resize {
   position: absolute;
-  right: -5px;
   width: 10px;
   cursor: col-resize;
+}
+
+.reader-resize-handle,
+.reader-word-info-resize {
+  right: -5px;
 }
 
 .reader-resize-handle,
@@ -1005,8 +1025,17 @@ tbody tr:last-child td {
 
   .reader-sidebar {
     top: 0;
-    width: min(320px, calc(100vw - 44px));
+    width: 100%;
+    height: calc(100vh - 24px);
     border-radius: 0 8px 8px 0;
+  }
+
+  .reader-layout {
+    grid-template-columns: minmax(160px, min(var(--readerSidebarWidth), 46vw)) minmax(0, 1fr);
+  }
+
+  .reader-layout.is-sidebar-collapsed {
+    grid-template-columns: 0 minmax(0, 1fr);
   }
 
   .reader-panel,

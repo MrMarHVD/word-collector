@@ -13,10 +13,6 @@ export function renderDashboard() {
   elements.unknownTotal.textContent = formatCount(totalWords - knownWords);
   elements.collectionCount.textContent = formatCount(collections.length);
 
-  elements.languageOptions.innerHTML = languages
-    .map((language) => `<option value="${escapeHtml(language.name)}"></option>`)
-    .join("");
-
   elements.collectionCharts.innerHTML = collections.length
     ? collections.map(renderChartCard).join("")
     : `<p class="empty">${escapeHtml(t("dashboard.noCollections"))}</p>`;

@@ -223,10 +223,14 @@ function startReaderResize(event, target) {
   event.preventDefault();
   const startX = event.clientX;
   const startY = event.clientY;
-  const initialWidth = target === "sidebar" ? state.readerSidebarWidth : target === "info" ? state.readerInfoWidth : elements.readerLayout.getBoundingClientRect().width;
-  const initialHeight = elements.readerLayout.getBoundingClientRect().height;
+  const layoutRect = elements.readerLayout.getBoundingClientRect();
+  const sidebarWidth = state.readerSidebarCollapsed ? 0 : elements.readerSidebar.getBoundingClientRect().width;
+  const panelRect = elements.readerPanel.getBoundingClientRect();
+  const initialWidth = target === "sidebar" ? state.readerSidebarWidth : target === "info" ? state.readerInfoWidth : panelRect.width;
+  const initialHeight = panelRect.height;
   const minWidth = target === "sidebar" ? 240 : target === "info" ? 220 : 360;
-  const maxWidth = target === "panel" ? window.innerWidth : Math.max(minWidth, Math.floor(window.innerWidth * 0.55));
+  const maxPanelWidth = Math.max(minWidth, Math.floor(layoutRect.width - sidebarWidth));
+  const maxWidth = target === "panel" ? maxPanelWidth : Math.max(minWidth, Math.floor(window.innerWidth * 0.55));
   const minHeight = 320;
   const maxHeight = Math.max(minHeight, window.innerHeight - 90);
 
@@ -687,6 +691,8 @@ function bindEvents() {
     }
     await setStudyLanguage(event.newValue, { persist: false });
   });
+
+  window.addEventListener("resize", renderReaderSidebar);
 }
 
 setUnauthorizedHandler(() => showView("auth"));

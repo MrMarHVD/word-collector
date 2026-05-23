@@ -6,6 +6,9 @@ import { escapeHtml } from "../shared/html.js";
 // Apply persisted reader layout dimensions through CSS custom properties.
 // Render reader panel dimensions and sidebar collapsed state.
 export function renderReaderSidebar() {
+  const parentRect = elements.readerLayout.parentElement.getBoundingClientRect();
+  elements.readerLayout.style.setProperty("--readerViewportWidth", `${document.documentElement.clientWidth}px`);
+  elements.readerLayout.style.setProperty("--readerViewportOffset", `${parentRect.left}px`);
   elements.readerLayout.style.setProperty("--readerSidebarWidth", `${state.readerSidebarWidth}px`);
   elements.readerLayout.style.setProperty("--readerInfoWidth", `${state.readerInfoWidth}px`);
   elements.readerLayout.style.setProperty("--readerPanelWidth", state.readerPanelWidth ? `${state.readerPanelWidth}px` : "100%");
