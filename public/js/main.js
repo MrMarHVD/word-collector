@@ -261,6 +261,11 @@ function startReaderResize(event, target) {
   document.addEventListener("pointerup", stopResize);
 }
 
+function closeReaderWordInfo() {
+  renderReaderWordInfo(null);
+  elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
+}
+
 // Load words for the selected collection and active search term.
 async function loadWords() {
   if (!state.selectedCollectionId) {
@@ -522,8 +527,7 @@ function bindEvents() {
 
   elements.readerWordInfo.addEventListener("click", async (event) => {
     if (event.target.closest("[data-reader-word-info-close]")) {
-      renderReaderWordInfo(null);
-      elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
+      closeReaderWordInfo();
       return;
     }
     const button = event.target.closest("[data-reader-word-id]");
@@ -538,11 +542,18 @@ function bindEvents() {
         body: JSON.stringify({ known })
       });
       await loadMaterialReader(state.readerStart);
-      renderReaderWordInfo(null);
+      closeReaderWordInfo();
       await loadDashboard();
     } finally {
       button.disabled = false;
     }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (elements.readerWordInfo.hidden || elements.readerWordInfo.contains(event.target) || event.target.closest(".reader-token")) {
+      return;
+    }
+    closeReaderWordInfo();
   });
 
   elements.readerWordInfo.addEventListener("pointerdown", (event) => {

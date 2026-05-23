@@ -1,11 +1,10 @@
-import { NATIVE_LANGUAGE_OPTIONS, READER_WORK_PAGE_SIZE } from "../config.js";
+import { READER_WORK_PAGE_SIZE } from "../config.js";
 import { normalizeName } from "../shared/normalize.js";
 import { extractTextFromUpload } from "./textExtraction.js";
 import { tokenizeForLanguage } from "./lemmatizer.js";
-import { lookupChineseEnglish, lookupChineseJapanese, lookupEnglishChinese, lookupEnglishJapanese, lookupJapaneseChinese, lookupJapaneseEnglish } from "./jmdict.js";
+import { getTranslationCandidates, hasTranslationAttempt, hasUsableStoredTranslation, materialTranslationStatus, scheduleMaterialTranslationBackfill, supportedTargetNativeLanguage, translationForToken } from "./translations.js";
 
 const UNCOLLECTED_COLLECTION_NAME = "Uncollected";
-const SUPPORTED_TRANSLATION_LANGUAGES = ["English", "Japanese", "Chinese"];
 
 // Reader imports place auto-discovered words in a stable collection instead of
 // requiring users to create one before importing material.
@@ -19,92 +18,12 @@ function getUncollectedCollection(db, statements, userId, languageId) {
   return collection;
 }
 
-// Detect Japanese study languages across English and Japanese labels.
-function isJapaneseLanguage(language) {
-  return language.name.toLowerCase() === "japanese" || language.name === "日本語";
-}
-
-// Detect English study languages.
-function isEnglishLanguage(language) {
-  return language.name.toLowerCase() === "english";
-}
-
-// Detect Chinese study languages.
-function isChineseLanguage(language) {
-  return language.name.toLowerCase() === "chinese";
-}
-
-function languageKey(language) {
-  if (!language) return "";
-  if (typeof language === "string") {
-    const normalized = language.toLowerCase();
-    if (normalized === "english") return "English";
-    if (normalized === "japanese" || language === "日本語") return "Japanese";
-    if (normalized === "chinese") return "Chinese";
-    return "";
-  }
-  if (isEnglishLanguage(language)) return "English";
-  if (isJapaneseLanguage(language)) return "Japanese";
-  if (isChineseLanguage(language)) return "Chinese";
-  return "";
-}
-
-const TRANSLATION_ROUTES = [
-  { source: "English", target: "English", lookup: (_db, term) => term },
-  { source: "English", target: "Japanese", lookup: lookupEnglishJapanese },
-  { source: "English", target: "Chinese", lookup: lookupEnglishChinese },
-  { source: "Japanese", target: "English", lookup: lookupJapaneseEnglish },
-  { source: "Japanese", target: "Japanese", lookup: (_db, term) => term },
-  { source: "Japanese", target: "Chinese", lookup: lookupJapaneseChinese },
-  { source: "Chinese", target: "English", lookup: lookupChineseEnglish },
-  { source: "Chinese", target: "Japanese", lookup: lookupChineseJapanese },
-  { source: "Chinese", target: "Chinese", lookup: (_db, term) => term }
-];
-
-function translationRoute(sourceLanguage, targetLanguage) {
-  const source = languageKey(sourceLanguage);
-  const target = languageKey(targetLanguage);
-  return TRANSLATION_ROUTES.find((route) => route.source === source && route.target === target) || null;
-}
-
-function lookupTranslation(db, language, targetNativeLanguage, term) {
-  const route = translationRoute(language, targetNativeLanguage);
-  return route ? normalizeName(route.lookup(db, term)) : "";
-}
-
-// Choose the native language that can be filled from local dictionaries.
-function supportedTargetNativeLanguage(language, nativeLanguage) {
-  if (translationRoute(language, nativeLanguage)) return nativeLanguage;
-  if (translationRoute(language, "English")) return "English";
-  return "";
-}
-
-// Return the stored translation for a word and native language.
-function getStoredTranslation(statements, wordId, nativeLanguage) {
-  return normalizeName(statements.wordTranslation.get(wordId, nativeLanguage)?.translation || "");
-}
-
-// Check whether a stored translation is meaningful for the selected token.
-function hasUsableStoredTranslation(statements, wordId, nativeLanguage, token) {
-  const stored = getStoredTranslation(statements, wordId, nativeLanguage);
-  if (!stored) return false;
-  return stored.toLowerCase() !== token.lemma.toLowerCase() && stored.toLowerCase() !== token.surface.toLowerCase();
-}
-
-// Produce default translation text for each native-language row.
-function defaultTranslationForNativeLanguage(db, language, token, nativeLanguage, targetNativeLanguage, fallbackTranslation) {
-  if (nativeLanguage === targetNativeLanguage) {
-    return fallbackTranslation;
-  }
-  return lookupTranslation(db, language, nativeLanguage, token.lemma) || lookupTranslation(db, language, nativeLanguage, token.surface);
-}
-
 // Return a dictionary word row, creating and translating one when necessary.
 function getOrCreateDictionaryWord(db, statements, userId, language, token, targetNativeLanguage, fallbackTranslation) {
   // Reuse a matching user-owned word before creating an uncollected entry.
   const existing = statements.wordInLanguageBySurfaceOrLemma.get(userId, language.id, token.surface, token.lemma, token.surface);
   if (existing) {
-    if (fallbackTranslation && !hasUsableStoredTranslation(statements, existing.id, targetNativeLanguage, token)) {
+    if (targetNativeLanguage && !hasUsableStoredTranslation(statements, existing.id, targetNativeLanguage, token) && !hasTranslationAttempt(statements, existing.id, targetNativeLanguage)) {
       statements.upsertWordTranslation.run(existing.id, targetNativeLanguage, fallbackTranslation);
     }
     return existing;
@@ -117,46 +36,10 @@ function getOrCreateDictionaryWord(db, statements, userId, language, token, targ
     word = statements.wordByCollectionAndLemma.get(collection.id, token.lemma);
   }
 
-  for (const nativeLanguage of new Set([...NATIVE_LANGUAGE_OPTIONS, targetNativeLanguage])) {
-    const translation = defaultTranslationForNativeLanguage(db, language, token, nativeLanguage, targetNativeLanguage, fallbackTranslation);
-    statements.upsertWordTranslation.run(word.id, nativeLanguage, translation);
+  if (targetNativeLanguage) {
+    statements.upsertWordTranslation.run(word.id, targetNativeLanguage, fallbackTranslation);
   }
   return word;
-}
-
-// Build unique lemma translation candidates for tokens missing usable values.
-function getTranslationCandidates(db, statements, userId, language, targetNativeLanguage, tokens) {
-  if (!translationRoute(language, targetNativeLanguage)) {
-    return new Map();
-  }
-
-  const candidates = new Map();
-  for (const token of tokens) {
-    const key = token.lemma.toLowerCase();
-    if (candidates.has(key)) {
-      continue;
-    }
-    const existing = statements.wordInLanguageBySurfaceOrLemma.get(userId, language.id, token.surface, token.lemma, token.surface);
-    if (existing && hasUsableStoredTranslation(statements, existing.id, targetNativeLanguage, token)) {
-      continue;
-    }
-    candidates.set(key, token.lemma);
-  }
-
-  return new Map(
-    // Batch unique lemmas to avoid repeated local dictionary queries.
-    [...candidates.values()].map((lemma) => {
-      const translation = lookupTranslation(db, language, targetNativeLanguage, lemma);
-      return [lemma.toLowerCase(), translation];
-    })
-  );
-}
-
-// Resolve the best translation for one token, falling back to surface lookup.
-function translationForToken(db, language, targetNativeLanguage, token, translations) {
-  const stored = translations.get(token.lemma.toLowerCase()) || "";
-  if (stored) return stored;
-  return lookupTranslation(db, language, targetNativeLanguage, token.surface);
 }
 
 // Derive a readable material title from an uploaded filename.
@@ -222,6 +105,8 @@ export async function importMaterial(db, statements, userId, languageId, file) {
     throw error;
   }
 
+  scheduleMaterialTranslationBackfill(db, statements, userId, materialId, targetNativeLanguage);
+
   return {
     material: statements.materialById.get(materialId, userId),
     tokenCount: tokens.length
@@ -229,14 +114,20 @@ export async function importMaterial(db, statements, userId, languageId, file) {
 }
 
 // Return a page of imported materials for one language.
-export function getMaterials(db, userId, languageId, offset = 0) {
+export function getMaterials(db, statements, userId, languageId, offset = 0) {
+  const nativeLanguage = statements.userById.get(userId)?.nativeLanguage || "English";
   return db.prepare(`
     SELECT id, title, file_name AS fileName, file_type AS fileType, word_count AS wordCount, created_at AS createdAt
     FROM materials
     WHERE user_id = ? AND language_id = ?
     ORDER BY datetime(created_at) DESC, id DESC
     LIMIT ? OFFSET ?
-  `).all(userId, Number(languageId), READER_WORK_PAGE_SIZE, Number(offset) || 0);
+  `)
+    .all(userId, Number(languageId), READER_WORK_PAGE_SIZE, Number(offset) || 0)
+    .map((material) => ({
+      ...material,
+      translationStatus: materialTranslationStatus(db, material, nativeLanguage)
+    }));
 }
 
 // Return material metadata and a bounded page of token rows for the reader.
@@ -246,6 +137,10 @@ export function getMaterialReader(db, statements, userId, materialId, start = 0,
     return null;
   }
   const nativeLanguage = statements.userById.get(userId)?.nativeLanguage || "English";
+  const translationStatus = materialTranslationStatus(db, material, nativeLanguage);
+  if (!translationStatus.ready) {
+    return { material, tokens: [], start: 0, limit: 0, nativeLanguage, translationStatus };
+  }
   const safeLimit = Math.min(Math.max(Number(limit) || 250, 50), 1000);
   const safeStart = Math.max(Number(start) || 0, 0);
   const tokens = db.prepare(`
@@ -253,6 +148,7 @@ export function getMaterialReader(db, statements, userId, materialId, start = 0,
            w.word AS dictionaryForm,
            CASE
              WHEN wt.translation IS NOT NULL AND trim(wt.translation) <> '' THEN wt.translation
+             WHEN lower(?) = lower(?) THEN w.word
              WHEN ? = 'English' OR lower(?) = 'chinese' THEN w.translation
              ELSE ''
            END AS translation,
@@ -264,6 +160,6 @@ export function getMaterialReader(db, statements, userId, materialId, start = 0,
     WHERE mt.material_id = ?
     ORDER BY mt.position
     LIMIT ? OFFSET ?
-  `).all(nativeLanguage, material.languageName, nativeLanguage, userId, material.id, safeLimit, safeStart);
-  return { material, tokens, start: safeStart, limit: safeLimit, nativeLanguage };
+  `).all(nativeLanguage, material.languageName, nativeLanguage, material.languageName, nativeLanguage, userId, material.id, safeLimit, safeStart);
+  return { material, tokens, start: safeStart, limit: safeLimit, nativeLanguage, translationStatus };
 }
