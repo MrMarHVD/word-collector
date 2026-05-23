@@ -507,6 +507,8 @@ small,
 
 .reader-panel {
   position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(420px, 1fr) auto;
   min-height: 620px;
   width: min(var(--readerPanelWidth), 100%);
   height: var(--readerPanelHeight);
@@ -559,7 +561,9 @@ small,
 }
 
 .reader-text {
-  min-height: 420px;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fffefb;
