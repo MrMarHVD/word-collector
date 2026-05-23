@@ -26,6 +26,22 @@ function isUsableJapaneseToken(token) {
   return /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}A-Za-z0-9]/u.test(token.surface_form);
 }
 
+function englishLemma(lower) {
+  const adjective = lemmatizer.adjective(lower);
+  const noun = lemmatizer.noun(lower);
+  const verb = lemmatizer.verb(lower);
+
+  if (lower.endsWith("ing") && noun === lower) return lower;
+  if (noun !== lower && verb === lower) return noun;
+  if (verb !== lower && noun === lower) return verb;
+  if (noun !== lower && verb !== lower) {
+    if (lower.endsWith("s") && !lower.endsWith("ss")) return noun;
+    return verb;
+  }
+  if (adjective !== lower) return adjective;
+  return lower;
+}
+
 export async function tokenizeForLanguage(text, languageName) {
   if (languageName.toLowerCase() === "japanese" || languageName === "日本語") {
     const tokenizer = await getJapaneseTokenizer();
@@ -50,7 +66,7 @@ export async function tokenizeForLanguage(text, languageName) {
     return (
       text.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g)?.map((surface, index) => {
         const lower = surface.toLowerCase();
-        const lemma = lemmatizer.verb(lemmatizer.noun(lemmatizer.adjective(lower)));
+        const lemma = englishLemma(lower);
         return {
           position: index,
           surface,

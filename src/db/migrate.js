@@ -232,6 +232,18 @@ export function runMigrations(db) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_jmdict_english ON jmdict_english_index(english);
+
+    CREATE TABLE IF NOT EXISTS cedict_english_index (
+      english TEXT NOT NULL,
+      simplified TEXT NOT NULL,
+      traditional TEXT NOT NULL,
+      pinyin TEXT NOT NULL,
+      definitions TEXT NOT NULL,
+      priority INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (english, simplified)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_cedict_english ON cedict_english_index(english);
   `);
 
   db.prepare(`

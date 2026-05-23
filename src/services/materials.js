@@ -2,7 +2,7 @@ import { NATIVE_LANGUAGE_OPTIONS, READER_WORK_PAGE_SIZE } from "../config.js";
 import { normalizeName } from "../shared/normalize.js";
 import { extractTextFromUpload } from "./textExtraction.js";
 import { tokenizeForLanguage } from "./lemmatizer.js";
-import { lookupEnglishJapanese, lookupJapaneseEnglish } from "./jmdict.js";
+import { lookupEnglishChinese, lookupEnglishJapanese, lookupJapaneseEnglish } from "./jmdict.js";
 
 const UNCOLLECTED_COLLECTION_NAME = "Uncollected";
 
@@ -23,9 +23,9 @@ function isEnglishLanguage(language) {
   return language.name.toLowerCase() === "english";
 }
 
-function targetNativeLanguageForStudyLanguage(language) {
-  if (isJapaneseLanguage(language)) return "English";
-  if (isEnglishLanguage(language)) return "Japanese";
+function supportedTargetNativeLanguage(language, nativeLanguage) {
+  if (isJapaneseLanguage(language) && nativeLanguage === "English") return "English";
+  if (isEnglishLanguage(language) && ["Japanese", "Chinese"].includes(nativeLanguage)) return nativeLanguage;
   return "English";
 }
 
@@ -39,8 +39,7 @@ function hasUsableStoredTranslation(statements, wordId, nativeLanguage, token) {
   return stored.toLowerCase() !== token.lemma.toLowerCase() && stored.toLowerCase() !== token.surface.toLowerCase();
 }
 
-function defaultTranslationForNativeLanguage(language, token, nativeLanguage, fallbackTranslation) {
-  const targetNativeLanguage = targetNativeLanguageForStudyLanguage(language);
+function defaultTranslationForNativeLanguage(language, token, nativeLanguage, targetNativeLanguage, fallbackTranslation) {
   if (nativeLanguage === targetNativeLanguage) {
     return fallbackTranslation;
   }
@@ -53,8 +52,7 @@ function defaultTranslationForNativeLanguage(language, token, nativeLanguage, fa
   return "";
 }
 
-function getOrCreateDictionaryWord(db, statements, userId, language, token, fallbackTranslation) {
-  const targetNativeLanguage = targetNativeLanguageForStudyLanguage(language);
+function getOrCreateDictionaryWord(db, statements, userId, language, token, targetNativeLanguage, fallbackTranslation) {
   const existing = statements.wordInLanguageBySurfaceOrLemma.get(userId, language.id, token.surface, token.lemma, token.surface);
   if (existing) {
     if (fallbackTranslation && !hasUsableStoredTranslation(statements, existing.id, targetNativeLanguage, token)) {
@@ -71,14 +69,17 @@ function getOrCreateDictionaryWord(db, statements, userId, language, token, fall
   }
 
   for (const nativeLanguage of NATIVE_LANGUAGE_OPTIONS) {
-    const translation = defaultTranslationForNativeLanguage(language, token, nativeLanguage, fallbackTranslation);
+    const translation = defaultTranslationForNativeLanguage(language, token, nativeLanguage, targetNativeLanguage, fallbackTranslation);
     statements.upsertWordTranslation.run(word.id, nativeLanguage, translation);
   }
   return word;
 }
 
-function getTranslationCandidates(db, statements, userId, language, tokens) {
-  if (!isJapaneseLanguage(language) && !isEnglishLanguage(language)) {
+function getTranslationCandidates(db, statements, userId, language, targetNativeLanguage, tokens) {
+  const supported =
+    (isJapaneseLanguage(language) && targetNativeLanguage === "English") ||
+    (isEnglishLanguage(language) && ["Japanese", "Chinese"].includes(targetNativeLanguage));
+  if (!supported) {
     return new Map();
   }
 
@@ -89,7 +90,7 @@ function getTranslationCandidates(db, statements, userId, language, tokens) {
       continue;
     }
     const existing = statements.wordInLanguageBySurfaceOrLemma.get(userId, language.id, token.surface, token.lemma, token.surface);
-    if (existing && hasUsableStoredTranslation(statements, existing.id, targetNativeLanguageForStudyLanguage(language), token)) {
+    if (existing && hasUsableStoredTranslation(statements, existing.id, targetNativeLanguage, token)) {
       continue;
     }
     candidates.set(key, token.lemma);
@@ -97,10 +98,25 @@ function getTranslationCandidates(db, statements, userId, language, tokens) {
 
   return new Map(
     [...candidates.values()].map((lemma) => {
-      const translation = isJapaneseLanguage(language) ? lookupJapaneseEnglish(db, lemma) : lookupEnglishJapanese(db, lemma);
+      let translation = "";
+      if (isJapaneseLanguage(language) && targetNativeLanguage === "English") translation = lookupJapaneseEnglish(db, lemma);
+      if (isEnglishLanguage(language) && targetNativeLanguage === "Japanese") translation = lookupEnglishJapanese(db, lemma);
+      if (isEnglishLanguage(language) && targetNativeLanguage === "Chinese") translation = lookupEnglishChinese(db, lemma);
       return [lemma.toLowerCase(), translation];
     })
   );
+}
+
+function translationForToken(db, language, targetNativeLanguage, token, translations) {
+  const stored = translations.get(token.lemma.toLowerCase()) || "";
+  if (stored) return stored;
+  if (isEnglishLanguage(language) && targetNativeLanguage === "Chinese") {
+    return lookupEnglishChinese(db, token.surface.toLowerCase());
+  }
+  if (isEnglishLanguage(language) && targetNativeLanguage === "Japanese") {
+    return lookupEnglishJapanese(db, token.surface.toLowerCase());
+  }
+  return "";
 }
 
 function materialTitleFromFilename(filename) {
@@ -126,7 +142,8 @@ export async function importMaterial(db, statements, userId, languageId, file) {
   if (!tokens.length) {
     return { error: "No readable words were found in this file." };
   }
-  const englishTranslations = getTranslationCandidates(db, statements, userId, language, tokens);
+  const targetNativeLanguage = supportedTargetNativeLanguage(language, statements.userById.get(userId)?.nativeLanguage || "English");
+  const translations = getTranslationCandidates(db, statements, userId, language, targetNativeLanguage, tokens);
 
   let materialId;
   db.exec("BEGIN");
@@ -143,7 +160,7 @@ export async function importMaterial(db, statements, userId, languageId, file) {
     materialId = Number(materialResult.lastInsertRowid);
 
     for (const token of tokens) {
-      const word = getOrCreateDictionaryWord(db, statements, userId, language, token, englishTranslations.get(token.lemma.toLowerCase()) || "");
+      const word = getOrCreateDictionaryWord(db, statements, userId, language, token, targetNativeLanguage, translationForToken(db, language, targetNativeLanguage, token, translations));
       statements.insertMaterialToken.run(
         materialId,
         token.position,

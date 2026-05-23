@@ -42,3 +42,29 @@ export function lookupEnglishJapanese(db, term) {
   `).get(clean);
   return exact?.expression || "";
 }
+
+export function lookupEnglishChinese(db, term) {
+  const clean = normalizeName(term).toLowerCase();
+  if (!clean) {
+    return "";
+  }
+
+  const exact = db.prepare(`
+    SELECT simplified
+    FROM cedict_english_index
+    WHERE english = ?
+    ORDER BY
+      CASE
+        WHEN lower(definitions) LIKE ? THEN 0
+        WHEN lower(definitions) LIKE ? THEN 1
+        WHEN lower(definitions) LIKE ? THEN 2
+        WHEN lower(definitions) = ? THEN 3
+        ELSE 4
+      END,
+      priority DESC,
+      length(definitions),
+      length(simplified)
+    LIMIT 1
+  `).get(clean, `${clean};%cl:%`, `${clean} (%cl:%`, `${clean};%`, clean);
+  return exact?.simplified || "";
+}
