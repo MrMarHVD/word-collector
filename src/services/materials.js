@@ -23,7 +23,8 @@ function getOrCreateDictionaryWord(db, statements, userId, language, token, targ
   // Reuse a matching user-owned word before creating an uncollected entry.
   const existing = statements.wordInLanguageBySurfaceOrLemma.get(userId, language.id, token.surface, token.lemma, token.surface);
   if (existing) {
-    if (targetNativeLanguage && !hasUsableStoredTranslation(statements, existing.id, targetNativeLanguage, token) && !hasTranslationAttempt(statements, existing.id, targetNativeLanguage)) {
+    const attempted = targetNativeLanguage ? hasTranslationAttempt(statements, existing.id, targetNativeLanguage) : false;
+    if (targetNativeLanguage && !hasUsableStoredTranslation(statements, existing.id, targetNativeLanguage, token) && (fallbackTranslation || !attempted)) {
       statements.upsertWordTranslation.run(existing.id, targetNativeLanguage, fallbackTranslation);
     }
     return existing;
@@ -124,10 +125,16 @@ export function getMaterials(db, statements, userId, languageId, offset = 0) {
     LIMIT ? OFFSET ?
   `)
     .all(userId, Number(languageId), READER_WORK_PAGE_SIZE, Number(offset) || 0)
-    .map((material) => ({
-      ...material,
-      translationStatus: materialTranslationStatus(db, material, nativeLanguage)
-    }));
+    .map((material) => {
+      const translationStatus = materialTranslationStatus(db, material, nativeLanguage);
+      if (!translationStatus.ready) {
+        scheduleMaterialTranslationBackfill(db, statements, userId, material.id, "");
+      }
+      return {
+        ...material,
+        translationStatus
+      };
+    });
 }
 
 // Return material metadata and a bounded page of token rows for the reader.
@@ -139,6 +146,7 @@ export function getMaterialReader(db, statements, userId, materialId, start = 0,
   const nativeLanguage = statements.userById.get(userId)?.nativeLanguage || "English";
   const translationStatus = materialTranslationStatus(db, material, nativeLanguage);
   if (!translationStatus.ready) {
+    scheduleMaterialTranslationBackfill(db, statements, userId, material.id, "");
     return { material, tokens: [], start: 0, limit: 0, nativeLanguage, translationStatus };
   }
   const safeLimit = Math.min(Math.max(Number(limit) || 250, 50), 1000);

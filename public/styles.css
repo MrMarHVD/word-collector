@@ -439,6 +439,13 @@ small,
   overflow: auto;
 }
 
+.material-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: stretch;
+}
+
 .material-button {
   display: grid;
   gap: 4px;
@@ -449,9 +456,10 @@ small,
   color: var(--text);
   padding: 10px;
   text-align: left;
+  overflow: hidden;
 }
 
-.material-button.is-active,
+.material-row.is-active .material-button,
 .material-button:hover {
   border-color: rgba(15, 118, 110, 0.34);
   background: #eef7f5;
@@ -459,6 +467,27 @@ small,
 
 .material-button small {
   font-weight: 600;
+}
+
+.material-button span,
+.material-button small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.material-delete-button {
+  min-width: 58px;
+  border: 1px solid rgba(185, 28, 28, 0.34);
+  background: #ffffff;
+  color: #9f2f2f;
+  padding: 0 10px;
+  font-weight: 800;
+}
+
+.material-delete-button:hover {
+  background: #fff1f1;
+  border-color: rgba(185, 28, 28, 0.58);
 }
 
 .reader-panel {

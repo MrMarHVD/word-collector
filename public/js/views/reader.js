@@ -21,11 +21,17 @@ export function renderMaterialList() {
     ? state.materials
         .map((material) => {
           const active = material.id === state.selectedMaterialId ? "is-active" : "";
+          const translating = material.translationStatus && !material.translationStatus.ready;
           return `
-            <button class="material-button ${active}" type="button" data-material-id="${material.id}">
-              <span>${escapeHtml(material.title)}</span>
-              <small>${escapeHtml(t("reader.materialMeta", { words: formatCount(material.wordCount), type: material.fileType.toUpperCase() }))}</small>
-            </button>
+            <div class="material-row ${active}">
+              <button class="material-button" type="button" data-material-id="${material.id}" ${translating ? "disabled" : ""}>
+                <span>${escapeHtml(material.title)}</span>
+                <small>${escapeHtml(translating ? t("reader.translatingWait") : t("reader.materialMeta", { words: formatCount(material.wordCount), type: material.fileType.toUpperCase() }))}</small>
+              </button>
+              <button class="material-delete-button" type="button" data-delete-material-id="${material.id}" aria-label="${escapeHtml(t("reader.deleteMaterial"))}">
+                ${escapeHtml(t("reader.deleteMaterial"))}
+              </button>
+            </div>
           `;
         })
         .join("")
@@ -43,6 +49,17 @@ export function renderReaderTokens() {
     elements.readerTitle.textContent = t("reader.title");
     elements.readerMeta.textContent = "";
     elements.readerText.innerHTML = `<p class="empty">${escapeHtml(t("reader.selectMaterial"))}</p>`;
+    elements.readerPageStatus.textContent = "";
+    elements.readerPrevPage.disabled = true;
+    elements.readerNextPage.disabled = true;
+    elements.readerWordInfo.hidden = true;
+    return;
+  }
+
+  if (state.currentMaterial?.translationStatus && !state.currentMaterial.translationStatus.ready) {
+    elements.readerTitle.textContent = state.currentMaterial.title || t("reader.title");
+    elements.readerMeta.textContent = "";
+    elements.readerText.innerHTML = `<p class="empty">${escapeHtml(t("reader.translatingWait"))}</p>`;
     elements.readerPageStatus.textContent = "";
     elements.readerPrevPage.disabled = true;
     elements.readerNextPage.disabled = true;

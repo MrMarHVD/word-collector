@@ -94,7 +94,7 @@ export function createApiHandler({ db, statements }) {
         return jsonResponse(res, 404, { error: "Language not found." });
       }
       return jsonResponse(res, 200, {
-        materials: getMaterials(db, user.userId, languageId, url.searchParams.get("offset")),
+        materials: getMaterials(db, statements, user.userId, languageId, url.searchParams.get("offset")),
         pageSize: 50
       });
     }
@@ -115,6 +115,18 @@ export function createApiHandler({ db, statements }) {
         return jsonResponse(res, 404, { error: "Material not found." });
       }
       return jsonResponse(res, 200, reader);
+    }
+
+    if (req.method === "DELETE" && materialMatch) {
+      const materialId = Number(materialMatch[1]);
+      if (!statements.materialById.get(materialId, user.userId)) {
+        return jsonResponse(res, 404, { error: "Material not found." });
+      }
+      const result = statements.deleteMaterial.run(materialId, user.userId);
+      if (!result.changes) {
+        return jsonResponse(res, 404, { error: "Material not found." });
+      }
+      return jsonResponse(res, 200, { deleted: true, id: materialId });
     }
 
     if (req.method === "PATCH" && url.pathname === "/api/settings") {

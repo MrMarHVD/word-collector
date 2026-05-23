@@ -68,6 +68,7 @@ export function createStatements(db) {
       JOIN languages l ON l.id = m.language_id
       WHERE m.id = ? AND m.user_id = ?
     `),
+    deleteMaterial: db.prepare("DELETE FROM materials WHERE id = ? AND user_id = ?"),
     upsertKnown: db.prepare(`
       INSERT INTO user_word_status (user_id, word_id, known, updated_at)
       VALUES (?, ?, ?, CURRENT_TIMESTAMP)

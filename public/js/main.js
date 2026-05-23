@@ -208,6 +208,7 @@ async function loadMaterialReader(start = 0) {
   state.readerStart = Math.max(start, 0);
   const result = await requestJson(`/api/materials/${state.selectedMaterialId}?start=${state.readerStart}&limit=${state.readerWordsPerPage}`);
   state.currentMaterial = result.material;
+  state.currentMaterial.translationStatus = result.translationStatus;
   state.readerTokens = result.tokens;
   renderReaderTokens();
 }
@@ -412,6 +413,10 @@ function bindEvents() {
       state.nativeLanguageOptions = result.nativeLanguageOptions || state.nativeLanguageOptions;
       renderSettings();
       elements.settingsStatus.textContent = t("settings.saved");
+      state.selectedMaterialId = null;
+      state.currentMaterial = null;
+      state.readerTokens = [];
+      await loadDashboard();
     } catch (error) {
       elements.settingsStatus.textContent = error.message;
     } finally {
@@ -484,8 +489,41 @@ function bindEvents() {
   });
 
   elements.materialList.addEventListener("click", async (event) => {
+    const deleteButton = event.target.closest("[data-delete-material-id]");
+    if (deleteButton) {
+      const materialId = Number(deleteButton.dataset.deleteMaterialId);
+      const material = state.materials.find((entry) => entry.id === materialId);
+      if (!material || !confirm(t("reader.deleteMaterialConfirm", { title: material.title }))) {
+        return;
+      }
+      deleteButton.disabled = true;
+      try {
+        await requestJson(`/api/materials/${materialId}`, { method: "DELETE" });
+        state.materials = state.materials.filter((entry) => entry.id !== materialId);
+        if (state.selectedMaterialId === materialId) {
+          state.selectedMaterialId = null;
+          state.currentMaterial = null;
+          state.readerTokens = [];
+          state.readerStart = 0;
+        }
+        elements.materialImportStatus.textContent = t("reader.deletedMaterial");
+        renderMaterialList();
+        renderReaderTokens();
+        await loadDashboard();
+      } catch (error) {
+        elements.materialImportStatus.textContent = error.message;
+        deleteButton.disabled = false;
+      }
+      return;
+    }
+
     const button = event.target.closest("[data-material-id]");
     if (!button) {
+      return;
+    }
+    const material = state.materials.find((entry) => entry.id === Number(button.dataset.materialId));
+    if (material?.translationStatus && !material.translationStatus.ready) {
+      elements.materialImportStatus.textContent = t("reader.translatingWait");
       return;
     }
     state.selectedMaterialId = Number(button.dataset.materialId);
