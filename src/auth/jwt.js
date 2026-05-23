@@ -3,6 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { JWT_SECRET_PATH, JWT_TTL_SECONDS } from "../config.js";
 
+// Persist the signing secret so JWT sessions survive server restarts.
 async function getJwtSecret() {
   if (existsSync(JWT_SECRET_PATH)) {
     return (await readFile(JWT_SECRET_PATH, "utf8")).trim();
@@ -49,6 +50,7 @@ export function verifyJwt(token) {
   const expected = createHmac("sha256", JWT_SECRET).update(data).digest("base64url");
   const actual = Buffer.from(signature);
   const expectedBuffer = Buffer.from(expected);
+  // Compare only after checking lengths because timingSafeEqual requires it.
   if (actual.length !== expectedBuffer.length || !timingSafeEqual(actual, expectedBuffer)) {
     return null;
   }

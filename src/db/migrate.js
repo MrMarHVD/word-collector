@@ -1,6 +1,8 @@
 import { SEED_EMAIL, SEED_PASSWORD, STUDY_LANGUAGE_OPTIONS } from "../config.js";
 import { hashPassword } from "../auth/password.js";
 
+// Migrations are additive where possible and preserve legacy rows when a table
+// must be rebuilt to add ownership or constraints.
 function ensureSeedUser(db) {
   let user = db.prepare("SELECT id, email FROM users WHERE lower(email) = lower(?)").get(SEED_EMAIL);
   if (!user) {
@@ -12,6 +14,8 @@ function ensureSeedUser(db) {
 }
 
 export function runMigrations(db) {
+  // Identity tables come first because later migrations assign existing data to
+  // users and enforce per-user ownership.
   db.exec(`
     PRAGMA foreign_keys = ON;
 
@@ -63,6 +67,8 @@ export function runMigrations(db) {
   const hasLanguageUserId = languageColumns.some((column) => column.name === "user_id");
   const languageUserIdNotNull = languageColumns.find((column) => column.name === "user_id")?.notnull === 1;
   if (!hasLanguageUserId || !languageUserIdNotNull) {
+    // Older databases used global languages. Assign them to the seed user while
+    // rebuilding the table with required user ownership.
     db.exec("PRAGMA foreign_keys = OFF");
     db.exec("BEGIN");
     try {
@@ -115,6 +121,7 @@ export function runMigrations(db) {
     const collectionColumns = db.prepare("PRAGMA table_info(collections)").all();
     const hasLanguageId = collectionColumns.some((column) => column.name === "language_id");
     if (!hasLanguageId) {
+      // Legacy collections without a language are kept under a default bucket.
       db.prepare("INSERT OR IGNORE INTO languages (name) VALUES (?)").run("未分類");
       const defaultLanguage = db.prepare("SELECT id FROM languages WHERE name = ?").get("未分類");
       db.exec("PRAGMA foreign_keys = OFF");

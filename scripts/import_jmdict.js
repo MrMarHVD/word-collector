@@ -4,6 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { DB_PATH } from "../src/config.js";
 import { runMigrations } from "../src/db/migrate.js";
 
+// Build local Japanese-English and English-Japanese lookup indexes from JMdict.
 const sourcePath = process.argv[2] || "data/dictionaries/JMdict_e.gz";
 
 function readGzip(path) {
@@ -48,6 +49,7 @@ const insertEnglish = db.prepare(`
 `);
 
 function englishKeys(glosses) {
+  // Index compact English keys so reader imports can translate common lemmas.
   const keys = new Set();
   for (const gloss of glosses) {
     const first = gloss.split(";")[0].split(",")[0].trim().toLowerCase();
@@ -66,6 +68,7 @@ let entries = 0;
 let rows = 0;
 db.exec("BEGIN");
 try {
+  // Rebuild the derived index from source data.
   db.exec("DELETE FROM jmdict_entries");
   for (const match of xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)) {
     entries += 1;

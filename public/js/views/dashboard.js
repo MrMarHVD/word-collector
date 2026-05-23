@@ -3,6 +3,7 @@ import { state } from "../state.js";
 import { formatCount, t } from "../i18n.js";
 import { escapeHtml } from "../shared/html.js";
 
+// Render summary metrics, collection charts, and collection management controls.
 export function renderDashboard() {
   const { totalWords, knownWords, collections, languages } = state.dashboard;
   const allCollections = collections;

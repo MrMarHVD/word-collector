@@ -1,3 +1,4 @@
+// Escape interpolated data before inserting HTML strings.
 export function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => {
     return {

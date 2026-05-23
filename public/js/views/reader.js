@@ -3,6 +3,7 @@ import { formatCount, t } from "../i18n.js";
 import { state } from "../state.js";
 import { escapeHtml } from "../shared/html.js";
 
+// Apply persisted reader layout dimensions through CSS custom properties.
 export function renderReaderSidebar() {
   elements.readerLayout.style.setProperty("--readerSidebarWidth", `${state.readerSidebarWidth}px`);
   elements.readerLayout.style.setProperty("--readerInfoWidth", `${state.readerInfoWidth}px`);
@@ -30,6 +31,7 @@ export function renderMaterialList() {
 }
 
 export function renderReaderTokens() {
+  // Reader pages are rendered as token buttons so each word can expose details.
   elements.readerText.style.setProperty("--readerFontSize", `${state.readerFontSize}px`);
   elements.readerFontSize.value = String(state.readerFontSize);
   elements.readerWordsPerPage.value = String(state.readerWordsPerPage);

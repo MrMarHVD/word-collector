@@ -6,6 +6,8 @@ import { lookupChineseEnglish, lookupEnglishChinese, lookupEnglishJapanese, look
 
 const UNCOLLECTED_COLLECTION_NAME = "Uncollected";
 
+// Reader imports place auto-discovered words in a stable collection instead of
+// requiring users to create one before importing material.
 function getUncollectedCollection(db, statements, userId, languageId) {
   let collection = statements.collectionByName.get(userId, languageId, UNCOLLECTED_COLLECTION_NAME);
   if (!collection) {
@@ -28,6 +30,7 @@ function isChineseLanguage(language) {
 }
 
 function supportedTargetNativeLanguage(language, nativeLanguage) {
+  // Dictionary coverage is currently limited to English/Japanese/Chinese pairs.
   if (isJapaneseLanguage(language) && nativeLanguage === "English") return "English";
   if (isChineseLanguage(language) && nativeLanguage === "English") return "English";
   if (isEnglishLanguage(language) && ["Japanese", "Chinese"].includes(nativeLanguage)) return nativeLanguage;
@@ -61,6 +64,7 @@ function defaultTranslationForNativeLanguage(language, token, nativeLanguage, ta
 }
 
 function getOrCreateDictionaryWord(db, statements, userId, language, token, targetNativeLanguage, fallbackTranslation) {
+  // Reuse a matching user-owned word before creating an uncollected entry.
   const existing = statements.wordInLanguageBySurfaceOrLemma.get(userId, language.id, token.surface, token.lemma, token.surface);
   if (existing) {
     if (fallbackTranslation && !hasUsableStoredTranslation(statements, existing.id, targetNativeLanguage, token)) {
@@ -106,6 +110,7 @@ function getTranslationCandidates(db, statements, userId, language, targetNative
   }
 
   return new Map(
+    // Batch unique lemmas to avoid repeated local dictionary queries.
     [...candidates.values()].map((lemma) => {
       let translation = "";
       if (isJapaneseLanguage(language) && targetNativeLanguage === "English") translation = lookupJapaneseEnglish(db, lemma);
@@ -161,6 +166,7 @@ export async function importMaterial(db, statements, userId, languageId, file) {
   let materialId;
   db.exec("BEGIN");
   try {
+    // Persist the material and token-to-word links atomically.
     const materialResult = statements.createMaterial.run(
       userId,
       language.id,

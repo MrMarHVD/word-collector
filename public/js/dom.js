@@ -1,3 +1,4 @@
+// Cached DOM references shared by view and controller modules.
 export const elements = {
   html: document.documentElement,
   title: document.querySelector("title"),

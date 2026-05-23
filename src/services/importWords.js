@@ -1,6 +1,7 @@
 import { normalizeName } from "../shared/normalize.js";
 import { getLanguage } from "./languages.js";
 
+// CSV import creates the target collection if needed and skips duplicate rows.
 export function importWords(db, statements, userId, collectionName, languageId, words) {
   const name = normalizeName(collectionName);
   if (!name) {
@@ -34,6 +35,7 @@ export function importWords(db, statements, userId, collectionName, languageId, 
   let inserted = 0;
   db.exec("BEGIN");
   try {
+    // Keep each upload atomic so partial imports do not leave mixed results.
     for (const row of cleanWords) {
       const result = statements.insertWord.run(collection.id, row.word, row.translation, row.word);
       if (result.changes) {

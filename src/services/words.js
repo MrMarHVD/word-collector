@@ -1,5 +1,6 @@
 import { normalizeName } from "../shared/normalize.js";
 
+// Collection word reads always join through language ownership.
 export function getWords(db, userId, collectionId, search) {
   const term = normalizeName(search);
   if (term) {

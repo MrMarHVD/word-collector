@@ -2,6 +2,7 @@ import { AUTH_COOKIE, JWT_TTL_SECONDS } from "../config.js";
 import { jsonResponse } from "../http/response.js";
 import { createJwt, verifyJwt } from "./jwt.js";
 
+// Cookie helpers isolate auth transport from route behavior.
 export function parseCookies(req) {
   return Object.fromEntries(
     String(req.headers.cookie || "")
@@ -24,6 +25,7 @@ export function clearAuthCookie(res) {
 }
 
 export function createSessionHelpers(statements) {
+  // Verify the token and then require the referenced user row to still exist.
   function getAuthenticatedUser(req) {
     const token = parseCookies(req)[AUTH_COOKIE];
     const payload = verifyJwt(token);

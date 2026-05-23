@@ -4,6 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { DB_PATH } from "../src/config.js";
 import { runMigrations } from "../src/db/migrate.js";
 
+// Build the local English-to-Chinese lookup index from a gzipped CEDICT file.
 const sourcePath = process.argv[2] || "data/dictionaries/cedict_ts.u8.gz";
 const STOP_WORDS = new Set([
   "a",
@@ -42,6 +43,7 @@ function readGzip(path) {
 }
 
 function englishKeys(definitions) {
+  // Store both full glosses and useful individual words for reverse lookup.
   const keys = new Map();
   const addKey = (key, priority) => {
     if (STOP_WORDS.has(key)) return;
@@ -83,6 +85,7 @@ let entries = 0;
 let rows = 0;
 db.exec("BEGIN");
 try {
+  // Rebuild the derived index from source data.
   db.exec("DELETE FROM cedict_english_index");
   for (const line of text.split(/\r?\n/)) {
     if (!line || line.startsWith("#")) continue;

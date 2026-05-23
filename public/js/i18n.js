@@ -1,5 +1,6 @@
 import { state } from "./state.js";
 
+// Load message catalogs and repair stale persisted UI preferences.
 export async function loadMessages() {
   state.messages = await fetchJson("/locales.json");
   if (!state.messages[state.locale]) {
@@ -14,6 +15,7 @@ export async function loadMessages() {
 }
 
 export function t(key, values = {}) {
+  // Missing keys fall back to Japanese, then the key name for visibility.
   const message = state.messages[state.locale]?.[key] || state.messages.ja?.[key] || key;
   return Object.entries(values).reduce((text, [name, value]) => {
     return text.replaceAll(`{${name}}`, value);

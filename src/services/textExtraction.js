@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 
+// Convert supported document formats into plain text for tokenization.
 function stripXml(value) {
   return value
     .replace(/<script[\s\S]*?<\/script>/gi, " ")

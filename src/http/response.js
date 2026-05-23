@@ -1,3 +1,4 @@
+// Minimal response helpers for the Node HTTP server.
 export function jsonResponse(res, status, payload) {
   const body = JSON.stringify(payload);
   res.writeHead(status, {

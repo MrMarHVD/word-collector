@@ -13,6 +13,7 @@ import { getMaterialReader, getMaterials, importMaterial } from "../services/mat
 export function createApiHandler({ db, statements }) {
   const { getAuthenticatedUser, requireUser, setJwtForUser } = createSessionHelpers(statements);
 
+  // Dependency injection keeps startup wiring separate from route behavior.
   return async function handleApi(req, res, url) {
     if (req.method === "GET" && url.pathname === "/api/auth/me") {
       const user = getAuthenticatedUser(req);
@@ -77,6 +78,7 @@ export function createApiHandler({ db, statements }) {
       return;
     }
 
+    // Everything below requires a valid session and filters data by user.
     if (req.method === "GET" && url.pathname === "/api/dashboard") {
       return jsonResponse(res, 200, getDashboard(db, statements, user.userId, url.searchParams.get("languageId")));
     }

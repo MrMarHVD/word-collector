@@ -1,6 +1,7 @@
 import { elements } from "../dom.js";
 import { state, WORD_PAGE_SIZE } from "../state.js";
 
+// Shell helpers switch top-level views and keep tab state persisted.
 export function setActiveTab(tabName) {
   state.activeTab = tabName;
   localStorage.setItem("wordMarkerActiveTab", tabName);

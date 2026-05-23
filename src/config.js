@@ -1,5 +1,6 @@
 import { join } from "node:path";
 
+// Central runtime paths and fixed product options shared by server modules.
 export const PORT = Number(process.env.PORT || 3000);
 export const ROOT = process.cwd();
 export const PUBLIC_DIR = join(ROOT, "public");

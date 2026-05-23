@@ -1,5 +1,6 @@
 import { normalizeName } from "../shared/normalize.js";
 
+// Dictionary lookups use local JMdict and CEDICT indexes populated by scripts/.
 export function lookupJapaneseEnglish(db, term) {
   const clean = normalizeName(term);
   if (!clean) {
@@ -70,6 +71,7 @@ export function lookupEnglishChinese(db, term) {
 }
 
 function cleanCedictDefinition(definitions) {
+  // Remove classifier and parenthetical metadata before showing CEDICT glosses.
   return normalizeName(
     String(definitions || "")
       .split(";")

@@ -1,5 +1,6 @@
 export const WORD_PAGE_SIZE = 50;
 
+// Mutable browser state. Persisted preferences are read once during startup.
 export const state = {
   user: null,
   languages: [],

@@ -3,6 +3,7 @@ import { state } from "./state.js";
 
 let unauthorizedHandler = () => {};
 
+// Central fetch wrapper normalizes API errors and handles expired sessions.
 export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = handler;
 }

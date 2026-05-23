@@ -8,6 +8,7 @@ const kuromojiRoot = dirname(require.resolve("kuromoji/package.json"));
 
 let japaneseTokenizerPromise;
 
+// Kuromoji startup is expensive, so build one tokenizer lazily and reuse it.
 function getJapaneseTokenizer() {
   if (!japaneseTokenizerPromise) {
     japaneseTokenizerPromise = new Promise((resolve, reject) => {
@@ -27,6 +28,7 @@ function isUsableJapaneseToken(token) {
 }
 
 function englishLemma(lower) {
+  // Prefer lemmas that behave like dictionary headwords for study lists.
   const adjective = lemmatizer.adjective(lower);
   const noun = lemmatizer.noun(lower);
   const verb = lemmatizer.verb(lower);
@@ -89,6 +91,8 @@ export async function tokenizeForLanguage(text, languageName) {
   }
 
   if (normalizedLanguageName === "chinese") {
+    // Intl.Segmenter gives better word boundaries than character splitting when
+    // the runtime provides Chinese segmentation support.
     const segmenter = new Intl.Segmenter("zh", { granularity: "word" });
     return [...segmenter.segment(text)]
       .filter((segment) => segment.isWordLike && /[\p{Script=Han}A-Za-z0-9]/u.test(segment.segment))

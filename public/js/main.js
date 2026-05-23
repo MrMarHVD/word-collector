@@ -11,6 +11,7 @@ import { renderMaterialList, renderReaderSidebar, renderReaderTokens, renderRead
 import { renderDisplayModeButtons, renderLocaleButtons, resetWordWindow, setActiveTab, showView } from "./views/shell.js";
 import { loadMoreWordsIfNeeded, renderWords } from "./views/words.js";
 
+// Re-render every visible string and locale-sensitive control after a language change.
 function applyLocale() {
   elements.html.lang = state.locale;
   elements.title.textContent = `${t("brand")} - ${t("app.title")}`;
@@ -90,6 +91,7 @@ async function setStudyLanguage(languageName, { persist = true, reload = true } 
   }
   renderStudyLanguageSelect();
   if (reload) {
+    // Language changes invalidate reader, collection, and pagination state.
     state.selectedCollectionId = null;
     state.selectedMaterialId = null;
     state.currentMaterial = null;
@@ -101,6 +103,7 @@ async function setStudyLanguage(languageName, { persist = true, reload = true } 
 }
 
 async function loadSession() {
+  // Session loading is the gate between auth, onboarding, and the app shell.
   const result = await requestJson("/api/auth/me");
   state.user = result.user;
   state.languages = result.languages || [];
@@ -214,6 +217,7 @@ function startReaderResize(event, target) {
   const maxHeight = Math.max(minHeight, window.innerHeight - 90);
 
   function resize(moveEvent) {
+    // Reader dimensions are persisted so the layout survives reloads.
     const nextWidth = clamp(initialWidth + moveEvent.clientX - startX, minWidth, maxWidth);
     if (target === "sidebar") {
       state.readerSidebarWidth = nextWidth;
@@ -263,6 +267,7 @@ async function loadWords() {
 }
 
 function bindEvents() {
+  // Event handlers are centralized here; view modules only render DOM.
   elements.uploadForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const submitButton = elements.uploadForm.querySelector("button");

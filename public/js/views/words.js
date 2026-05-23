@@ -4,6 +4,7 @@ import { formatCount, t } from "../i18n.js";
 import { escapeHtml } from "../shared/html.js";
 import { renderDisplayModeButtons } from "./shell.js";
 
+// Render either the full collection or a windowed list for infinite scrolling.
 export function renderWords(words) {
   renderDisplayModeButtons();
   const visibleWords = state.wordDisplayMode === "infinite" ? words.slice(0, state.visibleWordCount) : words;

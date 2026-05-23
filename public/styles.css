@@ -1,4 +1,5 @@
 :root {
+  /* App-wide palette and component tokens. */
   color-scheme: light;
   --bg: #f4f1ec;
   --panel: #ffffff;
@@ -133,6 +134,7 @@ button:disabled {
 }
 
 .menu-bar {
+  /* Fixed header keeps core navigation available while reading or browsing. */
   position: fixed;
   top: 0;
   left: 0;
@@ -378,6 +380,7 @@ small,
 }
 
 .reader-layout {
+  /* JavaScript updates these custom properties from persisted reader settings. */
   position: relative;
   --readerSidebarWidth: 300px;
   --readerInfoWidth: 300px;
@@ -531,6 +534,7 @@ small,
 }
 
 .reader-token[data-known="false"] {
+  /* Unknown words are highlighted in the reader until marked known. */
   background: rgba(74, 144, 226, 0.14);
   box-shadow: 0 0 10px rgba(74, 144, 226, 0.14);
 }
@@ -867,6 +871,7 @@ tbody tr:last-child td {
 }
 
 @media (max-width: 760px) {
+  /* Collapse dense desktop layouts into single-column controls on small screens. */
   .shell {
     width: min(100% - 20px, 1180px);
     padding: 20px 0;

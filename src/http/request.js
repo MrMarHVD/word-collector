@@ -1,3 +1,4 @@
+// Request body helpers used by API routes.
 export async function readJson(req) {
   let raw = "";
   for await (const chunk of req) {
@@ -35,6 +36,7 @@ export async function readMultipart(req, maxBytes = 40_000_000) {
   const files = {};
   let offset = 0;
 
+  // Parse the simple browser FormData shape used by material uploads.
   while (offset < body.length) {
     const boundaryStart = body.indexOf(boundary, offset);
     if (boundaryStart === -1) break;

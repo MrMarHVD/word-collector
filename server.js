@@ -7,11 +7,13 @@ import { jsonResponse } from "./src/http/response.js";
 import { serveStatic } from "./src/http/static.js";
 import { createApiHandler } from "./src/routes/api.js";
 
+// Bootstrap the schema before creating statements that depend on it.
 runMigrations(db);
 
 const statements = createStatements(db);
 const handleApi = createApiHandler({ db, statements });
 
+// API requests are routed explicitly; all other paths are static app assets.
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);

@@ -1,4 +1,5 @@
 export function createStatements(db) {
+  // Shared prepared statements keep user ownership checks consistent.
   return {
     userByEmail: db.prepare("SELECT id, email, native_language AS nativeLanguage, password_hash AS passwordHash, password_salt AS passwordSalt FROM users WHERE lower(email) = lower(?)"),
     userById: db.prepare("SELECT id, email, native_language AS nativeLanguage FROM users WHERE id = ?"),

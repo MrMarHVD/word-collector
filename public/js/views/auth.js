@@ -2,6 +2,7 @@ import { elements } from "../dom.js";
 import { state } from "../state.js";
 import { t } from "../i18n.js";
 
+// Toggle login/register controls without changing form ownership.
 export function renderAuthMode() {
   elements.authModeButtons.forEach((button) => {
     const active = button.dataset.authMode === state.authMode;

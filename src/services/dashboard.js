@@ -1,6 +1,7 @@
 import { STUDY_LANGUAGE_OPTIONS } from "../config.js";
 import { getLanguages } from "./languages.js";
 
+// Dashboard rows are shaped for direct use by the browser views.
 function normalizeCollection(collection) {
   return {
     ...collection,

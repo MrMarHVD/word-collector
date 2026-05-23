@@ -1,3 +1,4 @@
+// Small CSV parser for the two-column word import format.
 export function parseCsv(text) {
   return text
     .split(/\r?\n/)
