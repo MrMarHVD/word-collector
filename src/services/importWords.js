@@ -1,13 +1,13 @@
 import { normalizeName } from "../shared/normalize.js";
-import { getOrCreateLanguage } from "./languages.js";
+import { getLanguage } from "./languages.js";
 
-export function importWords(db, statements, userId, collectionName, languageName, languageId, words) {
+export function importWords(db, statements, userId, collectionName, languageId, words) {
   const name = normalizeName(collectionName);
   if (!name) {
     return { error: "Collection name is required." };
   }
 
-  const language = getOrCreateLanguage(statements, userId, languageName, languageId);
+  const language = getLanguage(statements, userId, languageId);
   if (!language) {
     return { error: "Language is required." };
   }

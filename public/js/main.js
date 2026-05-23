@@ -7,7 +7,7 @@ import { state } from "./state.js";
 import { renderAuthMode } from "./views/auth.js";
 import { renderDashboard, renderSelectedCollectionStats } from "./views/dashboard.js";
 import { renderOnboarding } from "./views/onboarding.js";
-import { renderMaterialList, renderReaderLanguageOptions, renderReaderSidebar, renderReaderTokens, renderReaderWordInfo } from "./views/reader.js";
+import { renderMaterialList, renderReaderSidebar, renderReaderTokens, renderReaderWordInfo } from "./views/reader.js";
 import { renderDisplayModeButtons, renderLocaleButtons, resetWordWindow, setActiveTab, showView } from "./views/shell.js";
 import { loadMoreWordsIfNeeded, renderWords } from "./views/words.js";
 
@@ -27,9 +27,9 @@ function applyLocale() {
   renderAuthMode();
   renderOnboarding(state.predefinedLanguages);
   renderSettings();
+  renderStudyLanguageSelect();
   if (state.dashboard) {
     renderDashboard();
-    renderReaderLanguageOptions();
     renderReaderSidebar();
     renderMaterialList();
     renderReaderTokens();
@@ -49,10 +49,78 @@ function renderSettings() {
     .join("");
 }
 
+function studyLanguageLabel(language) {
+  return t(`studyLanguage.${language}`);
+}
+
+function renderStudyLanguageSelect() {
+  if (!elements.studyLanguageSelect) {
+    return;
+  }
+  elements.studyLanguageSelect.innerHTML = state.studyLanguageOptions
+    .map((language) => {
+      const selected = language === state.selectedStudyLanguageName ? "selected" : "";
+      return `<option value="${escapeHtml(language)}" ${selected}>${escapeHtml(studyLanguageLabel(language))}</option>`;
+    })
+    .join("");
+}
+
+function languageByName(languages, name) {
+  return languages.find((language) => language.name.toLowerCase() === name.toLowerCase());
+}
+
+async function ensureStudyLanguage(languageName) {
+  const name = languageName || state.studyLanguageOptions[0] || "";
+  if (!name) {
+    return null;
+  }
+
+  let language = languageByName(state.dashboard?.languages || [], name);
+  if (language) {
+    return language;
+  }
+
+  const result = await requestJson("/api/user/languages", {
+    method: "POST",
+    body: JSON.stringify({ languageName: name })
+  });
+  language = result.language;
+  if (state.dashboard) {
+    state.dashboard.languages = result.languages || state.dashboard.languages;
+  }
+  return language;
+}
+
+async function setStudyLanguage(languageName, { persist = true, reload = true } = {}) {
+  if (!state.studyLanguageOptions.includes(languageName)) {
+    return;
+  }
+  const language = await ensureStudyLanguage(languageName);
+  if (!language) {
+    return;
+  }
+  state.selectedStudyLanguageName = language.name;
+  state.selectedStudyLanguageId = language.id;
+  if (persist) {
+    localStorage.setItem("wordMarkerStudyLanguageName", language.name);
+  }
+  renderStudyLanguageSelect();
+  if (reload) {
+    state.selectedCollectionId = null;
+    state.selectedMaterialId = null;
+    state.currentMaterial = null;
+    state.readerTokens = [];
+    state.readerStart = 0;
+    resetWordWindow();
+    await loadDashboard();
+  }
+}
+
 async function loadSession() {
   const result = await requestJson("/api/auth/me");
   state.user = result.user;
   state.predefinedLanguages = result.predefinedLanguages || [];
+  state.studyLanguageOptions = result.studyLanguageOptions || [];
   state.nativeLanguageOptions = result.nativeLanguageOptions || [];
   if (!state.user) {
     showView("auth");
@@ -65,27 +133,30 @@ async function loadSession() {
     return;
   }
   const languages = result.languages || [];
-  const savedLanguageId = Number(localStorage.getItem("wordMarkerLearningLanguageId")) || null;
-  state.selectedDashboardLanguageId = languages.some((language) => language.id === savedLanguageId) ? savedLanguageId : languages[0]?.id || null;
+  const savedLanguageName = localStorage.getItem("wordMarkerStudyLanguageName") || "";
+  const fallbackLanguageName = languages[0]?.name || state.studyLanguageOptions[0] || "";
+  state.selectedStudyLanguageName = state.studyLanguageOptions.includes(savedLanguageName) ? savedLanguageName : fallbackLanguageName;
   showView("app");
   setActiveTab(state.activeTab);
   renderSettings();
+  await setStudyLanguage(state.selectedStudyLanguageName, { persist: true, reload: false });
   await loadDashboard();
 }
 
 async function loadDashboard() {
   const params = new URLSearchParams();
-  if (state.selectedDashboardLanguageId) {
-    params.set("languageId", state.selectedDashboardLanguageId);
+  if (state.selectedStudyLanguageId) {
+    params.set("languageId", state.selectedStudyLanguageId);
   }
   state.dashboard = await requestJson(`/api/dashboard?${params}`);
 
   state.predefinedLanguages = state.dashboard.predefinedLanguages || state.predefinedLanguages;
-  const readerLanguageId = state.selectedReaderLanguageId || state.selectedDashboardLanguageId;
-  state.selectedReaderLanguageId = state.dashboard.languages.some((language) => language.id === readerLanguageId)
-    ? readerLanguageId
-    : state.dashboard.languages[0]?.id || null;
-  localStorage.setItem("wordMarkerReaderLanguageId", String(state.selectedReaderLanguageId || ""));
+  state.studyLanguageOptions = state.dashboard.studyLanguageOptions || state.studyLanguageOptions;
+  const selectedLanguage = languageByName(state.dashboard.languages, state.selectedStudyLanguageName) || state.dashboard.languages.find((language) => language.id === state.selectedStudyLanguageId);
+  if (selectedLanguage) {
+    state.selectedStudyLanguageName = selectedLanguage.name;
+    state.selectedStudyLanguageId = selectedLanguage.id;
+  }
   const allCollections = state.dashboard.collections;
   if (!state.selectedCollectionId && allCollections.length) {
     state.selectedCollectionId = allCollections[0].id;
@@ -94,14 +165,14 @@ async function loadDashboard() {
     state.selectedCollectionId = allCollections[0]?.id || null;
   }
   renderDashboard();
-  renderReaderLanguageOptions();
+  renderStudyLanguageSelect();
   renderReaderSidebar();
   await loadMaterials(true);
   await loadWords();
 }
 
 async function loadMaterials(reset = false) {
-  if (!state.selectedReaderLanguageId) {
+  if (!state.selectedStudyLanguageId) {
     state.materials = [];
     state.selectedMaterialId = null;
     renderMaterialList();
@@ -116,7 +187,7 @@ async function loadMaterials(reset = false) {
   if (!state.materialHasMore) {
     return;
   }
-  const result = await requestJson(`/api/materials?languageId=${state.selectedReaderLanguageId}&offset=${state.materialOffset}`);
+  const result = await requestJson(`/api/materials?languageId=${state.selectedStudyLanguageId}&offset=${state.materialOffset}`);
   state.materials = state.materials.concat(result.materials);
   state.materialOffset += result.materials.length;
   state.materialHasMore = result.materials.length === result.pageSize;
@@ -219,7 +290,7 @@ function bindEvents() {
         method: "POST",
         body: JSON.stringify({
           collectionName: elements.collectionName.value,
-          languageId: Number(elements.uploadLanguageSelect.value || state.selectedDashboardLanguageId),
+          languageId: Number(state.selectedStudyLanguageId),
           words: rows
         })
       });
@@ -295,8 +366,9 @@ function bindEvents() {
         method: "POST",
         body: JSON.stringify({ predefinedLanguageId: Number(button.dataset.predefinedLanguageId) })
       });
-      state.selectedDashboardLanguageId = result.language.id;
-      localStorage.setItem("wordMarkerLearningLanguageId", String(result.language.id));
+      state.selectedStudyLanguageId = result.language.id;
+      state.selectedStudyLanguageName = result.language.name;
+      localStorage.setItem("wordMarkerStudyLanguageName", result.language.name);
       showView("app");
       await loadDashboard();
     } catch (error) {
@@ -365,16 +437,6 @@ function bindEvents() {
   elements.readerSidebarResize.addEventListener("pointerdown", (event) => startReaderResize(event, "sidebar"));
   elements.readerPanelResize.addEventListener("pointerdown", (event) => startReaderResize(event, "panel"));
 
-  elements.readerLanguageSelect.addEventListener("change", async (event) => {
-    state.selectedReaderLanguageId = Number(event.target.value) || null;
-    localStorage.setItem("wordMarkerReaderLanguageId", String(state.selectedReaderLanguageId || ""));
-    state.selectedMaterialId = null;
-    state.currentMaterial = null;
-    state.readerTokens = [];
-    state.readerStart = 0;
-    await loadMaterials(true);
-  });
-
   elements.materialImportForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const file = elements.materialFile.files[0];
@@ -387,7 +449,7 @@ function bindEvents() {
     elements.materialImportStatus.textContent = t("reader.importing");
     try {
       const form = new FormData();
-      form.append("languageId", String(state.selectedReaderLanguageId));
+      form.append("languageId", String(state.selectedStudyLanguageId));
       form.append("file", file);
       const response = await fetch("/api/materials", { method: "POST", body: form });
       const payload = await response.json();
@@ -481,12 +543,8 @@ function bindEvents() {
     }
   });
 
-  elements.dashboardLanguageSelect.addEventListener("change", async (event) => {
-    state.selectedDashboardLanguageId = Number(event.target.value) || null;
-    localStorage.setItem("wordMarkerLearningLanguageId", String(state.selectedDashboardLanguageId || ""));
-    state.selectedCollectionId = null;
-    resetWordWindow();
-    await loadDashboard();
+  elements.studyLanguageSelect.addEventListener("change", async (event) => {
+    await setStudyLanguage(event.target.value);
   });
 
   elements.collectionSelect.addEventListener("change", async (event) => {
@@ -561,6 +619,16 @@ function bindEvents() {
     } finally {
       button.disabled = false;
     }
+  });
+
+  window.addEventListener("storage", async (event) => {
+    if (event.key !== "wordMarkerStudyLanguageName" || !event.newValue || !state.user) {
+      return;
+    }
+    if (event.newValue === state.selectedStudyLanguageName) {
+      return;
+    }
+    await setStudyLanguage(event.newValue, { persist: false });
   });
 }
 

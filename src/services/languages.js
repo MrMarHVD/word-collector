@@ -1,4 +1,4 @@
-import { normalizeName } from "../shared/normalize.js";
+import { STUDY_LANGUAGE_OPTIONS } from "../config.js";
 
 export function getLanguages(db, userId) {
   return db.prepare(`
@@ -9,21 +9,15 @@ export function getLanguages(db, userId) {
   `).all(userId);
 }
 
-export function getOrCreateLanguage(statements, userId, languageName, languageId) {
+export function getLanguage(statements, userId, languageId) {
   const id = Number(languageId) || null;
-  if (id) {
-    return statements.languageById.get(id, userId);
-  }
+  return id ? statements.languageById.get(id, userId) : null;
+}
 
-  const name = normalizeName(languageName);
-  if (!name) {
-    return null;
+export function ensureStudyLanguagesForUser(statements, userId) {
+  for (const language of STUDY_LANGUAGE_OPTIONS) {
+    if (!statements.languageByName.get(userId, language)) {
+      statements.createLanguage.run(userId, language);
+    }
   }
-
-  let language = statements.languageByName.get(userId, name);
-  if (!language) {
-    statements.createLanguage.run(userId, name);
-    language = statements.languageByName.get(userId, name);
-  }
-  return language;
 }

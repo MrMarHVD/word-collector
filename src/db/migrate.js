@@ -1,4 +1,4 @@
-import { SEED_EMAIL, SEED_PASSWORD } from "../config.js";
+import { SEED_EMAIL, SEED_PASSWORD, STUDY_LANGUAGE_OPTIONS } from "../config.js";
 import { hashPassword } from "../auth/password.js";
 
 function ensureSeedUser(db) {
@@ -44,7 +44,10 @@ export function runMigrations(db) {
   }
 
   const seedUser = ensureSeedUser(db);
-  db.prepare("INSERT OR IGNORE INTO predefined_languages (name) VALUES (?)").run("English");
+  const insertPredefinedLanguage = db.prepare("INSERT OR IGNORE INTO predefined_languages (name) VALUES (?)");
+  for (const language of STUDY_LANGUAGE_OPTIONS) {
+    insertPredefinedLanguage.run(language);
+  }
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS languages (
@@ -85,6 +88,14 @@ export function runMigrations(db) {
       throw error;
     } finally {
       db.exec("PRAGMA foreign_keys = ON");
+    }
+  }
+
+  const insertUserLanguage = db.prepare("INSERT OR IGNORE INTO languages (user_id, name) VALUES (?, ?)");
+  const users = db.prepare("SELECT id FROM users").all();
+  for (const user of users) {
+    for (const language of STUDY_LANGUAGE_OPTIONS) {
+      insertUserLanguage.run(user.id, language);
     }
   }
 

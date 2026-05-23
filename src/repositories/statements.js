@@ -6,6 +6,7 @@ export function createStatements(db) {
     updateNativeLanguage: db.prepare("UPDATE users SET native_language = ? WHERE id = ?"),
     predefinedLanguages: db.prepare("SELECT id, name FROM predefined_languages ORDER BY lower(name)"),
     predefinedLanguageById: db.prepare("SELECT id, name FROM predefined_languages WHERE id = ?"),
+    predefinedLanguageByName: db.prepare("SELECT id, name FROM predefined_languages WHERE lower(name) = lower(?)"),
     languageById: db.prepare("SELECT id, user_id AS userId, name FROM languages WHERE id = ? AND user_id = ?"),
     languageByName: db.prepare("SELECT id, user_id AS userId, name FROM languages WHERE user_id = ? AND lower(name) = lower(?)"),
     createLanguage: db.prepare("INSERT INTO languages (user_id, name) VALUES (?, ?)"),

@@ -1,11 +1,11 @@
 import { clearAuthCookie, createSessionHelpers } from "../auth/session.js";
-import { NATIVE_LANGUAGE_OPTIONS } from "../config.js";
+import { NATIVE_LANGUAGE_OPTIONS, STUDY_LANGUAGE_OPTIONS } from "../config.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { jsonResponse } from "../http/response.js";
 import { readJson, readMultipart } from "../http/request.js";
 import { normalizeName } from "../shared/normalize.js";
 import { getDashboard } from "../services/dashboard.js";
-import { getLanguages, getOrCreateLanguage } from "../services/languages.js";
+import { ensureStudyLanguagesForUser, getLanguage, getLanguages } from "../services/languages.js";
 import { getWords } from "../services/words.js";
 import { importWords } from "../services/importWords.js";
 import { getMaterialReader, getMaterials, importMaterial } from "../services/materials.js";
@@ -21,6 +21,7 @@ export function createApiHandler({ db, statements }) {
           user: null,
           languages: [],
           predefinedLanguages: statements.predefinedLanguages.all(),
+          studyLanguageOptions: STUDY_LANGUAGE_OPTIONS,
           nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS
         });
       }
@@ -30,6 +31,7 @@ export function createApiHandler({ db, statements }) {
         user: { id: user.userId, email: user.email, nativeLanguage: profile.nativeLanguage },
         languages,
         predefinedLanguages: statements.predefinedLanguages.all(),
+        studyLanguageOptions: STUDY_LANGUAGE_OPTIONS,
         nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS,
         needsOnboarding: languages.length === 0
       });
@@ -60,6 +62,7 @@ export function createApiHandler({ db, statements }) {
       const passwordHash = hashPassword(password);
       statements.createUser.run(email, passwordHash.hash, passwordHash.salt);
       const user = statements.userByEmail.get(email);
+      ensureStudyLanguagesForUser(statements, user.id);
       setJwtForUser(res, user);
       return jsonResponse(res, 201, { user: { id: user.id, email: user.email, nativeLanguage: user.nativeLanguage } });
     }
@@ -74,22 +77,12 @@ export function createApiHandler({ db, statements }) {
       return;
     }
 
-    if (req.method === "POST" && url.pathname === "/api/user/languages") {
-      const body = await readJson(req);
-      const predefined = statements.predefinedLanguageById.get(Number(body.predefinedLanguageId));
-      if (!predefined) {
-        return jsonResponse(res, 404, { error: "Predefined language not found." });
-      }
-      const language = getOrCreateLanguage(statements, user.userId, predefined.name, null);
-      return jsonResponse(res, 201, { language, languages: getLanguages(db, user.userId) });
-    }
-
     if (req.method === "GET" && url.pathname === "/api/dashboard") {
       return jsonResponse(res, 200, getDashboard(db, statements, user.userId, url.searchParams.get("languageId")));
     }
 
     if (req.method === "GET" && url.pathname === "/api/languages") {
-      return jsonResponse(res, 200, { languages: getLanguages(db, user.userId), predefinedLanguages: statements.predefinedLanguages.all() });
+      return jsonResponse(res, 200, { languages: getLanguages(db, user.userId), predefinedLanguages: statements.predefinedLanguages.all(), studyLanguageOptions: STUDY_LANGUAGE_OPTIONS });
     }
 
     if (req.method === "GET" && url.pathname === "/api/materials") {
@@ -155,7 +148,7 @@ export function createApiHandler({ db, statements }) {
     if (req.method === "PATCH" && collectionMatch) {
       const collectionId = Number(collectionMatch[1]);
       const body = await readJson(req);
-      const language = getOrCreateLanguage(statements, user.userId, body.languageName, body.languageId);
+      const language = getLanguage(statements, user.userId, body.languageId);
       if (!language) {
         return jsonResponse(res, 400, { error: "Language is required." });
       }
@@ -185,7 +178,7 @@ export function createApiHandler({ db, statements }) {
 
     if (req.method === "POST" && url.pathname === "/api/import") {
       const body = await readJson(req);
-      const result = importWords(db, statements, user.userId, body.collectionName, body.languageName, body.languageId, body.words);
+      const result = importWords(db, statements, user.userId, body.collectionName, body.languageId, body.words);
       if (result.error) {
         return jsonResponse(res, 400, result);
       }

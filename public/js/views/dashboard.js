@@ -11,14 +11,6 @@ export function renderDashboard() {
   elements.unknownTotal.textContent = formatCount(totalWords - knownWords);
   elements.collectionCount.textContent = formatCount(collections.length);
 
-  elements.dashboardLanguageSelect.innerHTML = `
-    ${languages
-      .map((language) => {
-        const selected = language.id === state.selectedDashboardLanguageId ? "selected" : "";
-        return `<option value="${language.id}" ${selected}>${escapeHtml(language.name)}</option>`;
-      })
-      .join("")}
-  `;
   elements.languageOptions.innerHTML = languages
     .map((language) => `<option value="${escapeHtml(language.name)}"></option>`)
     .join("");
@@ -47,12 +39,6 @@ export function renderDashboard() {
 
   elements.deleteCollectionButton.disabled = !state.selectedCollectionId;
   elements.saveCollectionLanguageButton.disabled = !state.selectedCollectionId;
-  elements.uploadLanguageSelect.innerHTML = languages
-    .map((language) => {
-      const selected = language.id === state.selectedDashboardLanguageId ? "selected" : "";
-      return `<option value="${language.id}" ${selected}>${escapeHtml(language.name)}</option>`;
-    })
-    .join("");
   renderSelectedCollectionStats();
 }
 

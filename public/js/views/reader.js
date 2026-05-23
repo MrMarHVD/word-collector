@@ -3,16 +3,6 @@ import { formatCount, t } from "../i18n.js";
 import { state } from "../state.js";
 import { escapeHtml } from "../shared/html.js";
 
-export function renderReaderLanguageOptions() {
-  const languages = state.dashboard?.languages || [];
-  elements.readerLanguageSelect.innerHTML = languages
-    .map((language) => {
-      const selected = language.id === state.selectedReaderLanguageId ? "selected" : "";
-      return `<option value="${language.id}" ${selected}>${escapeHtml(language.name)}</option>`;
-    })
-    .join("");
-}
-
 export function renderReaderSidebar() {
   elements.readerLayout.style.setProperty("--readerSidebarWidth", `${state.readerSidebarWidth}px`);
   elements.readerLayout.style.setProperty("--readerInfoWidth", `${state.readerInfoWidth}px`);

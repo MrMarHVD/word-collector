@@ -139,7 +139,7 @@ button:disabled {
   right: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(420px, 480px);
+  grid-template-columns: minmax(0, 1fr) minmax(500px, 560px);
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -220,7 +220,7 @@ h2 {
 
 .page-head-actions {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(220px, auto);
+  grid-template-columns: minmax(220px, auto);
   align-items: end;
   gap: 14px;
 }
@@ -251,12 +251,17 @@ small,
   background: #e9eee9;
 }
 
-.learning-switcher {
+.learning-switcher,
+.menu-select-label {
   display: grid;
   gap: 4px;
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 800;
+}
+
+.menu-select-label select {
+  min-height: 42px;
 }
 
 .learning-controls {
@@ -266,7 +271,7 @@ small,
 
 .menu-actions {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) 52px minmax(132px, 160px);
+  grid-template-columns: minmax(140px, 160px) minmax(140px, 1fr) 52px minmax(116px, 132px);
   align-items: center;
   gap: 8px;
   justify-items: stretch;

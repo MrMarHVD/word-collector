@@ -1,3 +1,4 @@
+import { STUDY_LANGUAGE_OPTIONS } from "../config.js";
 import { getLanguages } from "./languages.js";
 
 function normalizeCollection(collection) {
@@ -62,6 +63,7 @@ export function getDashboard(db, statements, userId, languageId) {
   return {
     languages: getLanguages(db, userId),
     predefinedLanguages: statements.predefinedLanguages.all(),
+    studyLanguageOptions: STUDY_LANGUAGE_OPTIONS,
     selectedLanguageId,
     totalWords: Number(totals.totalWords || 0),
     knownWords: Number(totals.knownWords || 0),

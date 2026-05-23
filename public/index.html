@@ -54,6 +54,10 @@
           </nav>
         </div>
         <div class="menu-actions">
+          <label class="menu-select-label">
+            <span data-i18n="learning.studyLanguage">Study language</span>
+            <select id="studyLanguageSelect"></select>
+          </label>
           <div class="locale-buttons" aria-label="UI language">
             <button class="locale-button" type="button" data-locale="ja" data-i18n="ui.japanese">日本語</button>
             <button class="locale-button" type="button" data-locale="en" data-i18n="ui.english">English</button>
@@ -75,12 +79,6 @@
           <h1 data-i18n="app.title">Word Collector</h1>
         </div>
         <div class="page-head-actions">
-          <div class="learning-switcher">
-            <label for="dashboardLanguageSelect" data-i18n="learning.current">学習中の言語</label>
-            <div class="learning-controls">
-              <select id="dashboardLanguageSelect"></select>
-            </div>
-          </div>
           <div class="total-panel">
             <span id="knownTotal">0</span>
             <small data-i18n="stats.knownAll">全コレクションの既知単語</small>
@@ -118,10 +116,6 @@
             <div class="section-head">
               <h2 data-i18n="upload.title">CSVアップロード</h2>
             </div>
-            <label>
-              <span data-i18n="upload.language">言語</span>
-              <select id="uploadLanguageSelect"></select>
-            </label>
             <label>
               <span data-i18n="upload.collection">コレクション名</span>
               <input id="collectionName" name="collectionName" type="text" data-i18n-placeholder="upload.collectionPlaceholder" placeholder="日本語 基本単語" required />
@@ -197,10 +191,6 @@
               </button>
             </div>
             <form id="materialImportForm" class="reader-import">
-              <label>
-                <span data-i18n="reader.language">言語</span>
-                <select id="readerLanguageSelect"></select>
-              </label>
               <label>
                 <span data-i18n="reader.import">インポート</span>
                 <input id="materialFile" type="file" accept=".pdf,.epub,.txt,application/pdf,application/epub+zip,text/plain" />
