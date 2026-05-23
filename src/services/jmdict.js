@@ -68,3 +68,33 @@ export function lookupEnglishChinese(db, term) {
   `).get(clean, `${clean};%cl:%`, `${clean} (%cl:%`, `${clean};%`, clean);
   return exact?.simplified || "";
 }
+
+function cleanCedictDefinition(definitions) {
+  return normalizeName(
+    String(definitions || "")
+      .split(";")
+      .map((definition) =>
+        definition
+          .replace(/\bCL:[^;]+/gi, "")
+          .replace(/\([^)]*\)/g, "")
+          .trim()
+      )
+      .find(Boolean) || ""
+  );
+}
+
+export function lookupChineseEnglish(db, term) {
+  const clean = normalizeName(term);
+  if (!clean) {
+    return "";
+  }
+
+  const exact = db.prepare(`
+    SELECT definitions
+    FROM cedict_english_index
+    WHERE simplified = ? OR traditional = ?
+    ORDER BY priority DESC, length(definitions), length(simplified)
+    LIMIT 1
+  `).get(clean, clean);
+  return cleanCedictDefinition(exact?.definitions);
+}

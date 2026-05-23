@@ -2,7 +2,7 @@ import { NATIVE_LANGUAGE_OPTIONS, READER_WORK_PAGE_SIZE } from "../config.js";
 import { normalizeName } from "../shared/normalize.js";
 import { extractTextFromUpload } from "./textExtraction.js";
 import { tokenizeForLanguage } from "./lemmatizer.js";
-import { lookupEnglishChinese, lookupEnglishJapanese, lookupJapaneseEnglish } from "./jmdict.js";
+import { lookupChineseEnglish, lookupEnglishChinese, lookupEnglishJapanese, lookupJapaneseEnglish } from "./jmdict.js";
 
 const UNCOLLECTED_COLLECTION_NAME = "Uncollected";
 
@@ -23,8 +23,13 @@ function isEnglishLanguage(language) {
   return language.name.toLowerCase() === "english";
 }
 
+function isChineseLanguage(language) {
+  return language.name.toLowerCase() === "chinese";
+}
+
 function supportedTargetNativeLanguage(language, nativeLanguage) {
   if (isJapaneseLanguage(language) && nativeLanguage === "English") return "English";
+  if (isChineseLanguage(language) && nativeLanguage === "English") return "English";
   if (isEnglishLanguage(language) && ["Japanese", "Chinese"].includes(nativeLanguage)) return nativeLanguage;
   return "English";
 }
@@ -48,6 +53,9 @@ function defaultTranslationForNativeLanguage(language, token, nativeLanguage, ta
   }
   if (nativeLanguage === "Japanese" && isJapaneseLanguage(language)) {
     return token.lemma;
+  }
+  if (nativeLanguage === "English" && isChineseLanguage(language)) {
+    return fallbackTranslation;
   }
   return "";
 }
@@ -78,6 +86,7 @@ function getOrCreateDictionaryWord(db, statements, userId, language, token, targ
 function getTranslationCandidates(db, statements, userId, language, targetNativeLanguage, tokens) {
   const supported =
     (isJapaneseLanguage(language) && targetNativeLanguage === "English") ||
+    (isChineseLanguage(language) && targetNativeLanguage === "English") ||
     (isEnglishLanguage(language) && ["Japanese", "Chinese"].includes(targetNativeLanguage));
   if (!supported) {
     return new Map();
@@ -100,6 +109,7 @@ function getTranslationCandidates(db, statements, userId, language, targetNative
     [...candidates.values()].map((lemma) => {
       let translation = "";
       if (isJapaneseLanguage(language) && targetNativeLanguage === "English") translation = lookupJapaneseEnglish(db, lemma);
+      if (isChineseLanguage(language) && targetNativeLanguage === "English") translation = lookupChineseEnglish(db, lemma);
       if (isEnglishLanguage(language) && targetNativeLanguage === "Japanese") translation = lookupEnglishJapanese(db, lemma);
       if (isEnglishLanguage(language) && targetNativeLanguage === "Chinese") translation = lookupEnglishChinese(db, lemma);
       return [lemma.toLowerCase(), translation];
@@ -115,6 +125,9 @@ function translationForToken(db, language, targetNativeLanguage, token, translat
   }
   if (isEnglishLanguage(language) && targetNativeLanguage === "Japanese") {
     return lookupEnglishJapanese(db, token.surface.toLowerCase());
+  }
+  if (isChineseLanguage(language) && targetNativeLanguage === "English") {
+    return lookupChineseEnglish(db, token.surface);
   }
   return "";
 }
@@ -208,7 +221,7 @@ export function getMaterialReader(db, statements, userId, materialId, start = 0,
            w.word AS dictionaryForm,
            CASE
              WHEN wt.translation IS NOT NULL AND trim(wt.translation) <> '' THEN wt.translation
-             WHEN ? = 'English' THEN w.translation
+             WHEN ? = 'English' OR lower(?) = 'chinese' THEN w.translation
              ELSE ''
            END AS translation,
            COALESCE(uws.known, 0) AS known
@@ -219,6 +232,6 @@ export function getMaterialReader(db, statements, userId, materialId, start = 0,
     WHERE mt.material_id = ?
     ORDER BY mt.position
     LIMIT ? OFFSET ?
-  `).all(nativeLanguage, nativeLanguage, userId, material.id, safeLimit, safeStart);
+  `).all(nativeLanguage, material.languageName, nativeLanguage, userId, material.id, safeLimit, safeStart);
   return { material, tokens, start: safeStart, limit: safeLimit, nativeLanguage };
 }

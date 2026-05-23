@@ -255,6 +255,8 @@ export function runMigrations(db) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_cedict_english ON cedict_english_index(english);
+    CREATE INDEX IF NOT EXISTS idx_cedict_simplified ON cedict_english_index(simplified);
+    CREATE INDEX IF NOT EXISTS idx_cedict_traditional ON cedict_english_index(traditional);
   `);
 
   db.prepare(`

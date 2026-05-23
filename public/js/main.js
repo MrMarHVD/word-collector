@@ -53,14 +53,20 @@ function studyLanguageLabel(language) {
   return t(`studyLanguage.${language}`);
 }
 
+function availableStudyLanguages() {
+  return state.studyLanguageOptions
+    .map((name) => state.languages.find((language) => language.name.toLowerCase() === name.toLowerCase()))
+    .filter(Boolean);
+}
+
 function renderStudyLanguageSelect() {
   if (!elements.studyLanguageSelect) {
     return;
   }
-  elements.studyLanguageSelect.innerHTML = state.studyLanguageOptions
+  elements.studyLanguageSelect.innerHTML = availableStudyLanguages()
     .map((language) => {
-      const selected = language === state.selectedStudyLanguageName ? "selected" : "";
-      return `<option value="${escapeHtml(language)}" ${selected}>${escapeHtml(studyLanguageLabel(language))}</option>`;
+      const selected = language.id === state.selectedStudyLanguageId ? "selected" : "";
+      return `<option value="${escapeHtml(language.name)}" ${selected}>${escapeHtml(studyLanguageLabel(language.name))}</option>`;
     })
     .join("");
 }
@@ -69,33 +75,11 @@ function languageByName(languages, name) {
   return languages.find((language) => language.name.toLowerCase() === name.toLowerCase());
 }
 
-async function ensureStudyLanguage(languageName) {
-  const name = languageName || state.studyLanguageOptions[0] || "";
-  if (!name) {
-    return null;
-  }
-
-  let language = languageByName(state.dashboard?.languages || [], name);
-  if (language) {
-    return language;
-  }
-
-  const result = await requestJson("/api/user/languages", {
-    method: "POST",
-    body: JSON.stringify({ languageName: name })
-  });
-  language = result.language;
-  if (state.dashboard) {
-    state.dashboard.languages = result.languages || state.dashboard.languages;
-  }
-  return language;
-}
-
 async function setStudyLanguage(languageName, { persist = true, reload = true } = {}) {
   if (!state.studyLanguageOptions.includes(languageName)) {
     return;
   }
-  const language = await ensureStudyLanguage(languageName);
+  const language = languageByName(state.languages, languageName);
   if (!language) {
     return;
   }
@@ -119,6 +103,7 @@ async function setStudyLanguage(languageName, { persist = true, reload = true } 
 async function loadSession() {
   const result = await requestJson("/api/auth/me");
   state.user = result.user;
+  state.languages = result.languages || [];
   state.predefinedLanguages = result.predefinedLanguages || [];
   state.studyLanguageOptions = result.studyLanguageOptions || [];
   state.nativeLanguageOptions = result.nativeLanguageOptions || [];
@@ -132,10 +117,10 @@ async function loadSession() {
     renderOnboarding(state.predefinedLanguages);
     return;
   }
-  const languages = result.languages || [];
   const savedLanguageName = localStorage.getItem("wordMarkerStudyLanguageName") || "";
-  const fallbackLanguageName = languages[0]?.name || state.studyLanguageOptions[0] || "";
-  state.selectedStudyLanguageName = state.studyLanguageOptions.includes(savedLanguageName) ? savedLanguageName : fallbackLanguageName;
+  const availableLanguages = availableStudyLanguages();
+  const fallbackLanguageName = availableLanguages[0]?.name || "";
+  state.selectedStudyLanguageName = availableLanguages.some((language) => language.name === savedLanguageName) ? savedLanguageName : fallbackLanguageName;
   showView("app");
   setActiveTab(state.activeTab);
   renderSettings();
@@ -152,7 +137,8 @@ async function loadDashboard() {
 
   state.predefinedLanguages = state.dashboard.predefinedLanguages || state.predefinedLanguages;
   state.studyLanguageOptions = state.dashboard.studyLanguageOptions || state.studyLanguageOptions;
-  const selectedLanguage = languageByName(state.dashboard.languages, state.selectedStudyLanguageName) || state.dashboard.languages.find((language) => language.id === state.selectedStudyLanguageId);
+  state.languages = state.dashboard.languages || state.languages;
+  const selectedLanguage = languageByName(state.languages, state.selectedStudyLanguageName) || state.languages.find((language) => language.id === state.selectedStudyLanguageId);
   if (selectedLanguage) {
     state.selectedStudyLanguageName = selectedLanguage.name;
     state.selectedStudyLanguageId = selectedLanguage.id;
@@ -356,19 +342,13 @@ function bindEvents() {
   });
 
   elements.onboardingLanguages.addEventListener("click", async (event) => {
-    const button = event.target.closest("[data-predefined-language-id]");
+    const button = event.target.closest("[data-language-name]");
     if (!button) {
       return;
     }
     button.disabled = true;
     try {
-      const result = await requestJson("/api/user/languages", {
-        method: "POST",
-        body: JSON.stringify({ predefinedLanguageId: Number(button.dataset.predefinedLanguageId) })
-      });
-      state.selectedStudyLanguageId = result.language.id;
-      state.selectedStudyLanguageName = result.language.name;
-      localStorage.setItem("wordMarkerStudyLanguageName", result.language.name);
+      await setStudyLanguage(button.dataset.languageName, { persist: true, reload: false });
       showView("app");
       await loadDashboard();
     } catch (error) {

@@ -42,7 +42,15 @@ function englishLemma(lower) {
   return lower;
 }
 
+function chineseLemma(surface) {
+  if (surface.length > 1 && /[了着過过]$/u.test(surface)) {
+    return surface.slice(0, -1);
+  }
+  return surface;
+}
+
 export async function tokenizeForLanguage(text, languageName) {
+  const normalizedLanguageName = languageName.toLowerCase();
   if (languageName.toLowerCase() === "japanese" || languageName === "日本語") {
     const tokenizer = await getJapaneseTokenizer();
     return tokenizer
@@ -62,7 +70,7 @@ export async function tokenizeForLanguage(text, languageName) {
       });
   }
 
-  if (languageName.toLowerCase() === "english") {
+  if (normalizedLanguageName === "english") {
     return (
       text.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g)?.map((surface, index) => {
         const lower = surface.toLowerCase();
@@ -78,6 +86,24 @@ export async function tokenizeForLanguage(text, languageName) {
         };
       }) || []
     );
+  }
+
+  if (normalizedLanguageName === "chinese") {
+    const segmenter = new Intl.Segmenter("zh", { granularity: "word" });
+    return [...segmenter.segment(text)]
+      .filter((segment) => segment.isWordLike && /[\p{Script=Han}A-Za-z0-9]/u.test(segment.segment))
+      .map((segment, index) => {
+        const lemma = chineseLemma(segment.segment);
+        return {
+          position: index,
+          surface: segment.segment,
+          normalized: segment.segment,
+          lemma,
+          pos: null,
+          paragraphIndex: 0,
+          sentenceIndex: 0
+        };
+      });
   }
 
   return text
