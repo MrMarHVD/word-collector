@@ -3,6 +3,7 @@ import { t } from "../i18n.js";
 import { escapeHtml } from "../shared/html.js";
 
 // Onboarding starts users with one of the predefined study languages.
+// Render language selection buttons for the onboarding screen.
 export function renderOnboarding(predefinedLanguages) {
   elements.onboardingLanguages.innerHTML = predefinedLanguages.length
     ? predefinedLanguages

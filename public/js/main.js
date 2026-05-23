@@ -12,6 +12,7 @@ import { renderDisplayModeButtons, renderLocaleButtons, resetWordWindow, setActi
 import { loadMoreWordsIfNeeded, renderWords } from "./views/words.js";
 
 // Re-render every visible string and locale-sensitive control after a language change.
+// Apply the active locale to static text, controls, and visible views.
 function applyLocale() {
   elements.html.lang = state.locale;
   elements.title.textContent = `${t("brand")} - ${t("app.title")}`;
@@ -38,6 +39,7 @@ function applyLocale() {
   }
 }
 
+// Render native-language settings options for the current user profile.
 function renderSettings() {
   if (!elements.nativeLanguageSelect) {
     return;
@@ -50,16 +52,19 @@ function renderSettings() {
     .join("");
 }
 
+// Return the localized display label for a study language.
 function studyLanguageLabel(language) {
   return t(`studyLanguage.${language}`);
 }
 
+// Return configured study languages that exist for the signed-in user.
 function availableStudyLanguages() {
   return state.studyLanguageOptions
     .map((name) => state.languages.find((language) => language.name.toLowerCase() === name.toLowerCase()))
     .filter(Boolean);
 }
 
+// Render the study-language selector from available user languages.
 function renderStudyLanguageSelect() {
   if (!elements.studyLanguageSelect) {
     return;
@@ -72,10 +77,12 @@ function renderStudyLanguageSelect() {
     .join("");
 }
 
+// Find a language by case-insensitive name.
 function languageByName(languages, name) {
   return languages.find((language) => language.name.toLowerCase() === name.toLowerCase());
 }
 
+// Select the active study language and optionally reload dependent data.
 async function setStudyLanguage(languageName, { persist = true, reload = true } = {}) {
   if (!state.studyLanguageOptions.includes(languageName)) {
     return;
@@ -102,6 +109,7 @@ async function setStudyLanguage(languageName, { persist = true, reload = true } 
   }
 }
 
+// Load the current session and route the browser to the correct top-level view.
 async function loadSession() {
   // Session loading is the gate between auth, onboarding, and the app shell.
   const result = await requestJson("/api/auth/me");
@@ -131,6 +139,7 @@ async function loadSession() {
   await loadDashboard();
 }
 
+// Load dashboard data and refresh dependent collection, material, and word views.
 async function loadDashboard() {
   const params = new URLSearchParams();
   if (state.selectedStudyLanguageId) {
@@ -160,6 +169,7 @@ async function loadDashboard() {
   await loadWords();
 }
 
+// Load one page of materials, optionally resetting the material list.
 async function loadMaterials(reset = false) {
   if (!state.selectedStudyLanguageId) {
     state.materials = [];
@@ -187,6 +197,7 @@ async function loadMaterials(reset = false) {
   renderReaderTokens();
 }
 
+// Load a bounded reader token page for the selected material.
 async function loadMaterialReader(start = 0) {
   if (!state.selectedMaterialId) {
     state.currentMaterial = null;
@@ -201,10 +212,12 @@ async function loadMaterialReader(start = 0) {
   renderReaderTokens();
 }
 
+// Clamp a numeric value between inclusive minimum and maximum values.
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
+// Start pointer-based resizing for the reader sidebar, info pane, or panel.
 function startReaderResize(event, target) {
   event.preventDefault();
   const startX = event.clientX;
@@ -216,6 +229,7 @@ function startReaderResize(event, target) {
   const minHeight = 320;
   const maxHeight = Math.max(minHeight, window.innerHeight - 90);
 
+  // Apply pointer movement to the active reader dimension.
   function resize(moveEvent) {
     // Reader dimensions are persisted so the layout survives reloads.
     const nextWidth = clamp(initialWidth + moveEvent.clientX - startX, minWidth, maxWidth);
@@ -235,6 +249,7 @@ function startReaderResize(event, target) {
     renderReaderSidebar();
   }
 
+  // End reader resizing and remove document-level listeners.
   function stopResize() {
     document.removeEventListener("pointermove", resize);
     document.removeEventListener("pointerup", stopResize);
@@ -246,6 +261,7 @@ function startReaderResize(event, target) {
   document.addEventListener("pointerup", stopResize);
 }
 
+// Load words for the selected collection and active search term.
 async function loadWords() {
   if (!state.selectedCollectionId) {
     state.words = [];
@@ -266,6 +282,7 @@ async function loadWords() {
   renderWords(result.words);
 }
 
+// Bind all form, navigation, reader, and collection event handlers.
 function bindEvents() {
   // Event handlers are centralized here; view modules only render DOM.
   elements.uploadForm.addEventListener("submit", async (event) => {

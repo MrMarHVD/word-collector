@@ -10,6 +10,7 @@ import { getWords } from "../services/words.js";
 import { importWords } from "../services/importWords.js";
 import { getMaterialReader, getMaterials, importMaterial } from "../services/materials.js";
 
+// Create the HTTP API router with database dependencies supplied by server.js.
 export function createApiHandler({ db, statements }) {
   const { getAuthenticatedUser, requireUser, setJwtForUser } = createSessionHelpers(statements);
 

@@ -7,6 +7,7 @@ import { runMigrations } from "../src/db/migrate.js";
 // Build local Japanese-English and English-Japanese lookup indexes from JMdict.
 const sourcePath = process.argv[2] || "data/dictionaries/JMdict_e.gz";
 
+// Read and decompress a gzipped JMdict XML file.
 function readGzip(path) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -18,10 +19,12 @@ function readGzip(path) {
   });
 }
 
+// Extract decoded XML tag values from one dictionary entry.
 function values(entry, tag) {
   return [...entry.matchAll(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, "g"))].map((match) => decodeXml(match[1].trim()));
 }
 
+// Decode the XML entities used in JMdict text fields.
 function decodeXml(value) {
   return value
     .replaceAll("&amp;", "&")
@@ -31,6 +34,7 @@ function decodeXml(value) {
     .replaceAll("&apos;", "'");
 }
 
+// Give priority to entries that JMdict marks as common.
 function priorityFor(entry) {
   return /<ke_pri>|<re_pri>/.test(entry) ? 1 : 0;
 }
@@ -48,6 +52,7 @@ const insertEnglish = db.prepare(`
   VALUES (?, ?, ?, ?)
 `);
 
+// Produce reverse-lookup English keys from gloss text.
 function englishKeys(glosses) {
   // Index compact English keys so reader imports can translate common lemmas.
   const keys = new Set();

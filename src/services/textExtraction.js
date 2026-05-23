@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 
 // Convert supported document formats into plain text for tokenization.
+// Strip tags and common XML entities from HTML-like content.
 function stripXml(value) {
   return value
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -16,6 +17,7 @@ function stripXml(value) {
     .trim();
 }
 
+// Detect the uploaded file type and extract text with the matching parser.
 export async function extractTextFromUpload(file) {
   const filename = file.filename || "Untitled";
   const lowerName = filename.toLowerCase();
@@ -40,6 +42,7 @@ export async function extractTextFromUpload(file) {
   throw new Error("Upload a PDF, EPUB, or text file.");
 }
 
+// Extract text content from each page of a PDF buffer.
 async function extractPdfText(buffer) {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const document = await pdfjs.getDocument({ data: new Uint8Array(buffer), useWorkerFetch: false, isEvalSupported: false, disableFontFace: true }).promise;
@@ -52,6 +55,7 @@ async function extractPdfText(buffer) {
   return pages.join("\n\n");
 }
 
+// Extract readable chapter text from HTML files inside an EPUB archive.
 async function extractEpubText(buffer) {
   const zip = await JSZip.loadAsync(buffer);
   const files = Object.values(zip.files)

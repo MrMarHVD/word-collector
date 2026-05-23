@@ -3,6 +3,7 @@ import { jsonResponse } from "../http/response.js";
 import { createJwt, verifyJwt } from "./jwt.js";
 
 // Cookie helpers isolate auth transport from route behavior.
+// Parse the Cookie header into decoded key-value pairs.
 export function parseCookies(req) {
   return Object.fromEntries(
     String(req.headers.cookie || "")
@@ -16,14 +17,17 @@ export function parseCookies(req) {
   );
 }
 
+// Attach the auth JWT cookie to a response.
 export function setAuthCookie(res, token) {
   res.setHeader("set-cookie", `${AUTH_COOKIE}=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${JWT_TTL_SECONDS}`);
 }
 
+// Expire the auth cookie on the client.
 export function clearAuthCookie(res) {
   res.setHeader("set-cookie", `${AUTH_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`);
 }
 
+// Build request authentication helpers around the prepared user statements.
 export function createSessionHelpers(statements) {
   // Verify the token and then require the referenced user row to still exist.
   function getAuthenticatedUser(req) {
@@ -39,6 +43,7 @@ export function createSessionHelpers(statements) {
     return { userId: user.id, email: user.email };
   }
 
+  // Require a valid user or write a 401 response.
   function requireUser(req, res) {
     const user = getAuthenticatedUser(req);
     if (!user) {
@@ -48,6 +53,7 @@ export function createSessionHelpers(statements) {
     return user;
   }
 
+  // Create a JWT for a user and attach it as the auth cookie.
   function setJwtForUser(res, user) {
     setAuthCookie(res, createJwt(user));
   }

@@ -3,6 +3,7 @@ import { state } from "../state.js";
 import { t } from "../i18n.js";
 
 // Toggle login/register controls without changing form ownership.
+// Render the current auth mode and required confirmation field state.
 export function renderAuthMode() {
   elements.authModeButtons.forEach((button) => {
     const active = button.dataset.authMode === state.authMode;

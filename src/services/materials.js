@@ -2,12 +2,13 @@ import { NATIVE_LANGUAGE_OPTIONS, READER_WORK_PAGE_SIZE } from "../config.js";
 import { normalizeName } from "../shared/normalize.js";
 import { extractTextFromUpload } from "./textExtraction.js";
 import { tokenizeForLanguage } from "./lemmatizer.js";
-import { lookupChineseEnglish, lookupEnglishChinese, lookupEnglishJapanese, lookupJapaneseEnglish } from "./jmdict.js";
+import { lookupChineseEnglish, lookupChineseJapanese, lookupEnglishChinese, lookupEnglishJapanese, lookupJapaneseChinese, lookupJapaneseEnglish } from "./jmdict.js";
 
 const UNCOLLECTED_COLLECTION_NAME = "Uncollected";
 
 // Reader imports place auto-discovered words in a stable collection instead of
 // requiring users to create one before importing material.
+// Return the user's auto-created collection for imported reader words.
 function getUncollectedCollection(db, statements, userId, languageId) {
   let collection = statements.collectionByName.get(userId, languageId, UNCOLLECTED_COLLECTION_NAME);
   if (!collection) {
@@ -17,36 +18,45 @@ function getUncollectedCollection(db, statements, userId, languageId) {
   return collection;
 }
 
+// Detect Japanese study languages across English and Japanese labels.
 function isJapaneseLanguage(language) {
   return language.name.toLowerCase() === "japanese" || language.name === "日本語";
 }
 
+// Detect English study languages.
 function isEnglishLanguage(language) {
   return language.name.toLowerCase() === "english";
 }
 
+// Detect Chinese study languages.
 function isChineseLanguage(language) {
   return language.name.toLowerCase() === "chinese";
 }
 
+// Choose the native language that can be filled from local dictionaries.
 function supportedTargetNativeLanguage(language, nativeLanguage) {
   // Dictionary coverage is currently limited to English/Japanese/Chinese pairs.
   if (isJapaneseLanguage(language) && nativeLanguage === "English") return "English";
+  if (isJapaneseLanguage(language) && nativeLanguage === "Chinese") return "Chinese";
   if (isChineseLanguage(language) && nativeLanguage === "English") return "English";
+  if (isChineseLanguage(language) && nativeLanguage === "Japanese") return "Japanese";
   if (isEnglishLanguage(language) && ["Japanese", "Chinese"].includes(nativeLanguage)) return nativeLanguage;
   return "English";
 }
 
+// Return the stored translation for a word and native language.
 function getStoredTranslation(statements, wordId, nativeLanguage) {
   return normalizeName(statements.wordTranslation.get(wordId, nativeLanguage)?.translation || "");
 }
 
+// Check whether a stored translation is meaningful for the selected token.
 function hasUsableStoredTranslation(statements, wordId, nativeLanguage, token) {
   const stored = getStoredTranslation(statements, wordId, nativeLanguage);
   if (!stored) return false;
   return stored.toLowerCase() !== token.lemma.toLowerCase() && stored.toLowerCase() !== token.surface.toLowerCase();
 }
 
+// Produce default translation text for each native-language row.
 function defaultTranslationForNativeLanguage(language, token, nativeLanguage, targetNativeLanguage, fallbackTranslation) {
   if (nativeLanguage === targetNativeLanguage) {
     return fallbackTranslation;
@@ -63,6 +73,7 @@ function defaultTranslationForNativeLanguage(language, token, nativeLanguage, ta
   return "";
 }
 
+// Return a dictionary word row, creating and translating one when necessary.
 function getOrCreateDictionaryWord(db, statements, userId, language, token, targetNativeLanguage, fallbackTranslation) {
   // Reuse a matching user-owned word before creating an uncollected entry.
   const existing = statements.wordInLanguageBySurfaceOrLemma.get(userId, language.id, token.surface, token.lemma, token.surface);
@@ -80,17 +91,20 @@ function getOrCreateDictionaryWord(db, statements, userId, language, token, targ
     word = statements.wordByCollectionAndLemma.get(collection.id, token.lemma);
   }
 
-  for (const nativeLanguage of NATIVE_LANGUAGE_OPTIONS) {
+  for (const nativeLanguage of new Set([...NATIVE_LANGUAGE_OPTIONS, targetNativeLanguage])) {
     const translation = defaultTranslationForNativeLanguage(language, token, nativeLanguage, targetNativeLanguage, fallbackTranslation);
     statements.upsertWordTranslation.run(word.id, nativeLanguage, translation);
   }
   return word;
 }
 
+// Build unique lemma translation candidates for tokens missing usable values.
 function getTranslationCandidates(db, statements, userId, language, targetNativeLanguage, tokens) {
   const supported =
     (isJapaneseLanguage(language) && targetNativeLanguage === "English") ||
+    (isJapaneseLanguage(language) && targetNativeLanguage === "Chinese") ||
     (isChineseLanguage(language) && targetNativeLanguage === "English") ||
+    (isChineseLanguage(language) && targetNativeLanguage === "Japanese") ||
     (isEnglishLanguage(language) && ["Japanese", "Chinese"].includes(targetNativeLanguage));
   if (!supported) {
     return new Map();
@@ -114,7 +128,9 @@ function getTranslationCandidates(db, statements, userId, language, targetNative
     [...candidates.values()].map((lemma) => {
       let translation = "";
       if (isJapaneseLanguage(language) && targetNativeLanguage === "English") translation = lookupJapaneseEnglish(db, lemma);
+      if (isJapaneseLanguage(language) && targetNativeLanguage === "Chinese") translation = lookupJapaneseChinese(db, lemma);
       if (isChineseLanguage(language) && targetNativeLanguage === "English") translation = lookupChineseEnglish(db, lemma);
+      if (isChineseLanguage(language) && targetNativeLanguage === "Japanese") translation = lookupChineseJapanese(db, lemma);
       if (isEnglishLanguage(language) && targetNativeLanguage === "Japanese") translation = lookupEnglishJapanese(db, lemma);
       if (isEnglishLanguage(language) && targetNativeLanguage === "Chinese") translation = lookupEnglishChinese(db, lemma);
       return [lemma.toLowerCase(), translation];
@@ -122,6 +138,7 @@ function getTranslationCandidates(db, statements, userId, language, targetNative
   );
 }
 
+// Resolve the best translation for one token, falling back to surface lookup.
 function translationForToken(db, language, targetNativeLanguage, token, translations) {
   const stored = translations.get(token.lemma.toLowerCase()) || "";
   if (stored) return stored;
@@ -134,13 +151,21 @@ function translationForToken(db, language, targetNativeLanguage, token, translat
   if (isChineseLanguage(language) && targetNativeLanguage === "English") {
     return lookupChineseEnglish(db, token.surface);
   }
+  if (isChineseLanguage(language) && targetNativeLanguage === "Japanese") {
+    return lookupChineseJapanese(db, token.surface);
+  }
+  if (isJapaneseLanguage(language) && targetNativeLanguage === "Chinese") {
+    return lookupJapaneseChinese(db, token.surface);
+  }
   return "";
 }
 
+// Derive a readable material title from an uploaded filename.
 function materialTitleFromFilename(filename) {
   return normalizeName(filename.replace(/\.[^.]+$/, "")) || "Untitled";
 }
 
+// Import a document, tokenize it, create missing words, and persist reader tokens.
 export async function importMaterial(db, statements, userId, languageId, file) {
   const language = statements.languageById.get(Number(languageId), userId);
   if (!language) {
@@ -204,6 +229,7 @@ export async function importMaterial(db, statements, userId, languageId, file) {
   };
 }
 
+// Return a page of imported materials for one language.
 export function getMaterials(db, userId, languageId, offset = 0) {
   return db.prepare(`
     SELECT id, title, file_name AS fileName, file_type AS fileType, word_count AS wordCount, created_at AS createdAt
@@ -214,6 +240,7 @@ export function getMaterials(db, userId, languageId, offset = 0) {
   `).all(userId, Number(languageId), READER_WORK_PAGE_SIZE, Number(offset) || 0);
 }
 
+// Return material metadata and a bounded page of token rows for the reader.
 export function getMaterialReader(db, statements, userId, materialId, start = 0, limit = 250) {
   const material = statements.materialById.get(Number(materialId), userId);
   if (!material) {

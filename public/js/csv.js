@@ -1,4 +1,5 @@
 // Small CSV parser for the two-column word import format.
+// Parse word and translation rows from CSV, semicolon, tab, or whitespace text.
 export function parseCsv(text) {
   return text
     .split(/\r?\n/)

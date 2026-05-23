@@ -1,6 +1,7 @@
 import { normalizeName } from "../shared/normalize.js";
 
 // Dictionary lookups use local JMdict and CEDICT indexes populated by scripts/.
+// Look up an English gloss for a Japanese expression or reading.
 export function lookupJapaneseEnglish(db, term) {
   const clean = normalizeName(term);
   if (!clean) {
@@ -28,6 +29,7 @@ export function lookupJapaneseEnglish(db, term) {
   return reading?.gloss || "";
 }
 
+// Look up a Japanese expression from an English dictionary key.
 export function lookupEnglishJapanese(db, term) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
@@ -44,6 +46,7 @@ export function lookupEnglishJapanese(db, term) {
   return exact?.expression || "";
 }
 
+// Look up a simplified Chinese expression from an English dictionary key.
 export function lookupEnglishChinese(db, term) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
@@ -70,8 +73,8 @@ export function lookupEnglishChinese(db, term) {
   return exact?.simplified || "";
 }
 
+// Remove classifier and parenthetical metadata before showing CEDICT glosses.
 function cleanCedictDefinition(definitions) {
-  // Remove classifier and parenthetical metadata before showing CEDICT glosses.
   return normalizeName(
     String(definitions || "")
       .split(";")
@@ -85,6 +88,7 @@ function cleanCedictDefinition(definitions) {
   );
 }
 
+// Look up an English gloss for a Chinese simplified or traditional form.
 export function lookupChineseEnglish(db, term) {
   const clean = normalizeName(term);
   if (!clean) {
@@ -99,4 +103,46 @@ export function lookupChineseEnglish(db, term) {
     LIMIT 1
   `).get(clean, clean);
   return cleanCedictDefinition(exact?.definitions);
+}
+
+// Extract searchable normalized keys from a semicolon-delimited translation.
+function translationKeys(value) {
+  const clean = normalizeName(value)
+    .split(";")[0]
+    .split(",")[0]
+    .replace(/\([^)]*\)/g, "")
+    .trim()
+    .toLowerCase();
+  if (!clean) {
+    return [];
+  }
+  const keys = [clean];
+  if (clean.startsWith("to ")) {
+    keys.push(clean.slice(3).trim());
+  }
+  return keys.filter(Boolean);
+}
+
+// Translate a Japanese term to Chinese through the English dictionary index.
+export function lookupJapaneseChinese(db, term) {
+  const english = lookupJapaneseEnglish(db, term);
+  for (const key of translationKeys(english)) {
+    const chinese = lookupEnglishChinese(db, key);
+    if (chinese) {
+      return chinese;
+    }
+  }
+  return "";
+}
+
+// Translate a Chinese term to Japanese through the English dictionary index.
+export function lookupChineseJapanese(db, term) {
+  const english = lookupChineseEnglish(db, term);
+  for (const key of translationKeys(english)) {
+    const japanese = lookupEnglishJapanese(db, key);
+    if (japanese) {
+      return japanese;
+    }
+  }
+  return "";
 }

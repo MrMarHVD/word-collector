@@ -2,6 +2,7 @@ import { STUDY_LANGUAGE_OPTIONS } from "../config.js";
 import { getLanguages } from "./languages.js";
 
 // Dashboard rows are shaped for direct use by the browser views.
+// Add numeric progress fields that SQL returns as nullable aggregates.
 function normalizeCollection(collection) {
   return {
     ...collection,
@@ -11,6 +12,7 @@ function normalizeCollection(collection) {
   };
 }
 
+// Build the dashboard payload for the selected language or all user collections.
 export function getDashboard(db, statements, userId, languageId) {
   const selectedLanguageId = Number(languageId) || null;
   const filter = selectedLanguageId ? "WHERE l.user_id = ? AND c.language_id = ?" : "WHERE l.user_id = ?";

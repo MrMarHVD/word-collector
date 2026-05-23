@@ -9,6 +9,7 @@ const kuromojiRoot = dirname(require.resolve("kuromoji/package.json"));
 let japaneseTokenizerPromise;
 
 // Kuromoji startup is expensive, so build one tokenizer lazily and reuse it.
+// Return the shared Japanese tokenizer promise.
 function getJapaneseTokenizer() {
   if (!japaneseTokenizerPromise) {
     japaneseTokenizerPromise = new Promise((resolve, reject) => {
@@ -21,14 +22,15 @@ function getJapaneseTokenizer() {
   return japaneseTokenizerPromise;
 }
 
+// Filter out punctuation and whitespace from Kuromoji output.
 function isUsableJapaneseToken(token) {
   if (!token.surface_form || /^\s+$/.test(token.surface_form)) return false;
   if (token.pos === "記号") return false;
   return /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}A-Za-z0-9]/u.test(token.surface_form);
 }
 
+// Prefer lemmas that behave like dictionary headwords for study lists.
 function englishLemma(lower) {
-  // Prefer lemmas that behave like dictionary headwords for study lists.
   const adjective = lemmatizer.adjective(lower);
   const noun = lemmatizer.noun(lower);
   const verb = lemmatizer.verb(lower);
@@ -44,6 +46,7 @@ function englishLemma(lower) {
   return lower;
 }
 
+// Remove common Chinese aspect suffixes from simple token forms.
 function chineseLemma(surface) {
   if (surface.length > 1 && /[了着過过]$/u.test(surface)) {
     return surface.slice(0, -1);
@@ -51,6 +54,7 @@ function chineseLemma(surface) {
   return surface;
 }
 
+// Tokenize text into surface forms and lemmas for the selected study language.
 export async function tokenizeForLanguage(text, languageName) {
   const normalizedLanguageName = languageName.toLowerCase();
   if (languageName.toLowerCase() === "japanese" || languageName === "日本語") {

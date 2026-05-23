@@ -4,6 +4,7 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { JWT_SECRET_PATH, JWT_TTL_SECONDS } from "../config.js";
 
 // Persist the signing secret so JWT sessions survive server restarts.
+// Load an existing JWT secret or create one with restricted file permissions.
 async function getJwtSecret() {
   if (existsSync(JWT_SECRET_PATH)) {
     return (await readFile(JWT_SECRET_PATH, "utf8")).trim();
@@ -15,16 +16,19 @@ async function getJwtSecret() {
 
 const JWT_SECRET = await getJwtSecret();
 
+// Encode a value as base64url JSON for JWT segments.
 function base64UrlJson(value) {
   return Buffer.from(JSON.stringify(value)).toString("base64url");
 }
 
+// Sign a JWT header and payload using HMAC-SHA256.
 function signJwt(header, payload) {
   const data = `${base64UrlJson(header)}.${base64UrlJson(payload)}`;
   const signature = createHmac("sha256", JWT_SECRET).update(data).digest("base64url");
   return `${data}.${signature}`;
 }
 
+// Create a signed session token for a user row.
 export function createJwt(user) {
   const now = Math.floor(Date.now() / 1000);
   return signJwt(
@@ -39,6 +43,7 @@ export function createJwt(user) {
   );
 }
 
+// Verify a JWT and return its payload when signature and expiry are valid.
 export function verifyJwt(token) {
   const parts = String(token || "").split(".");
   if (parts.length !== 3) {

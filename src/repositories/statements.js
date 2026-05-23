@@ -1,3 +1,4 @@
+// Create all prepared SQL statements used by routes and services.
 export function createStatements(db) {
   // Shared prepared statements keep user ownership checks consistent.
   return {

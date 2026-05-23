@@ -4,6 +4,7 @@ import { state } from "../state.js";
 import { escapeHtml } from "../shared/html.js";
 
 // Apply persisted reader layout dimensions through CSS custom properties.
+// Render reader panel dimensions and sidebar collapsed state.
 export function renderReaderSidebar() {
   elements.readerLayout.style.setProperty("--readerSidebarWidth", `${state.readerSidebarWidth}px`);
   elements.readerLayout.style.setProperty("--readerInfoWidth", `${state.readerInfoWidth}px`);
@@ -14,6 +15,7 @@ export function renderReaderSidebar() {
   elements.readerSidebarOpen.hidden = !state.readerSidebarCollapsed;
 }
 
+// Render the imported material list and active material state.
 export function renderMaterialList() {
   elements.materialList.innerHTML = state.materials.length
     ? state.materials
@@ -30,6 +32,7 @@ export function renderMaterialList() {
     : `<p class="empty">${escapeHtml(t("reader.noMaterials"))}</p>`;
 }
 
+// Render the current reader token page and pagination controls.
 export function renderReaderTokens() {
   // Reader pages are rendered as token buttons so each word can expose details.
   elements.readerText.style.setProperty("--readerFontSize", `${state.readerFontSize}px`);
@@ -64,6 +67,7 @@ export function renderReaderTokens() {
   elements.readerNextPage.disabled = !material || end >= material.wordCount;
 }
 
+// Render details and known-toggle action for a selected reader token.
 export function renderReaderWordInfo(token) {
   if (!token) {
     elements.readerWordInfo.hidden = true;

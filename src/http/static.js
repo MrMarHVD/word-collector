@@ -12,6 +12,7 @@ const mimeTypes = {
   ".json": "application/json; charset=utf-8"
 };
 
+// Resolve and return a static file for non-API requests.
 export async function serveStatic(req, res, url) {
   const requestedPath = url.pathname === "/" ? "/index.html" : url.pathname;
   const filePath = normalize(join(PUBLIC_DIR, requestedPath));

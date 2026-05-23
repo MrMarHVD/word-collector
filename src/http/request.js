@@ -1,4 +1,5 @@
 // Request body helpers used by API routes.
+// Read and parse a bounded JSON request body.
 export async function readJson(req) {
   let raw = "";
   for await (const chunk of req) {
@@ -10,6 +11,7 @@ export async function readJson(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
+// Read a request body into a Buffer while enforcing a maximum size.
 export async function readBuffer(req, maxBytes = 40_000_000) {
   const chunks = [];
   let size = 0;
@@ -23,6 +25,7 @@ export async function readBuffer(req, maxBytes = 40_000_000) {
   return Buffer.concat(chunks);
 }
 
+// Parse multipart form data into field strings and uploaded file buffers.
 export async function readMultipart(req, maxBytes = 40_000_000) {
   const contentType = req.headers["content-type"] || "";
   const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);

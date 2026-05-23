@@ -5,6 +5,7 @@ import { escapeHtml } from "../shared/html.js";
 import { renderDisplayModeButtons } from "./shell.js";
 
 // Render either the full collection or a windowed list for infinite scrolling.
+// Render collection word rows, empty states, and result counts.
 export function renderWords(words) {
   renderDisplayModeButtons();
   const visibleWords = state.wordDisplayMode === "infinite" ? words.slice(0, state.visibleWordCount) : words;
@@ -45,6 +46,7 @@ export function renderWords(words) {
   }
 }
 
+// Extend the visible word window when the table scroll nears the bottom.
 export function loadMoreWordsIfNeeded() {
   if (state.wordDisplayMode !== "infinite" || state.visibleWordCount >= state.words.length) {
     return;

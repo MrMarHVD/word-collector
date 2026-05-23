@@ -2,6 +2,7 @@ import { normalizeName } from "../shared/normalize.js";
 import { getLanguage } from "./languages.js";
 
 // CSV import creates the target collection if needed and skips duplicate rows.
+// Validate imported rows and write them to a user-owned collection atomically.
 export function importWords(db, statements, userId, collectionName, languageId, words) {
   const name = normalizeName(collectionName);
   if (!name) {

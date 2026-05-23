@@ -3,6 +3,7 @@ import { hashPassword } from "../auth/password.js";
 
 // Migrations are additive where possible and preserve legacy rows when a table
 // must be rebuilt to add ownership or constraints.
+// Ensure the configured seed user exists for legacy data ownership.
 function ensureSeedUser(db) {
   let user = db.prepare("SELECT id, email FROM users WHERE lower(email) = lower(?)").get(SEED_EMAIL);
   if (!user) {
@@ -13,6 +14,7 @@ function ensureSeedUser(db) {
   return user;
 }
 
+// Create and migrate all application tables and derived indexes.
 export function runMigrations(db) {
   // Identity tables come first because later migrations assign existing data to
   // users and enforce per-user ownership.

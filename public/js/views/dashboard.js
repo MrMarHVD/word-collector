@@ -4,6 +4,7 @@ import { formatCount, t } from "../i18n.js";
 import { escapeHtml } from "../shared/html.js";
 
 // Render summary metrics, collection charts, and collection management controls.
+// Render dashboard totals and collection selectors from state.dashboard.
 export function renderDashboard() {
   const { totalWords, knownWords, collections, languages } = state.dashboard;
   const allCollections = collections;
@@ -43,11 +44,13 @@ export function renderDashboard() {
   renderSelectedCollectionStats();
 }
 
+// Return the currently selected collection from dashboard state.
 export function getSelectedCollection() {
   const allCollections = state.dashboard?.allCollections || state.dashboard?.collections || [];
   return allCollections.find((entry) => entry.id === state.selectedCollectionId);
 }
 
+// Render progress metadata for the selected collection.
 export function renderSelectedCollectionStats() {
   const collection = getSelectedCollection();
   if (!collection) {
@@ -66,6 +69,7 @@ export function renderSelectedCollectionStats() {
   `;
 }
 
+// Render one collection progress chart card.
 function renderChartCard(collection) {
   const percent = collection.totalWords ? Math.round((collection.knownWords / collection.totalWords) * 100) : 0;
   return `

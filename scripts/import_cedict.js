@@ -31,6 +31,7 @@ const STOP_WORDS = new Set([
   "with"
 ]);
 
+// Read and decompress a gzipped dictionary file.
 function readGzip(path) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -42,6 +43,7 @@ function readGzip(path) {
   });
 }
 
+// Produce English index keys with priorities from CEDICT definitions.
 function englishKeys(definitions) {
   // Store both full glosses and useful individual words for reverse lookup.
   const keys = new Map();
