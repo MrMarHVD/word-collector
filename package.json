@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:css": "tailwindcss -i ./public/tailwind.css -o ./public/styles.css",
+    "watch:css": "tailwindcss -i ./public/tailwind.css -o ./public/styles.css --watch",
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
@@ -15,5 +17,9 @@
     "kuromoji": "^0.1.2",
     "pdfjs-dist": "^5.7.284",
     "wink-lemmatizer": "^3.0.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.0",
+    "tailwindcss": "^4.3.0"
   }
 }

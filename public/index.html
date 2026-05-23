@@ -6,219 +6,216 @@
     <title>Word Collector</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body>
-    <!-- Auth and onboarding are separate top-level views controlled by session state. -->
-    <main id="authView" class="auth-shell" hidden>
-      <section class="auth-panel">
-        <p class="eyebrow" data-i18n="brand">Word Collector</p>
-        <h1 data-i18n="auth.title">ログイン</h1>
-        <div class="auth-tabs">
-          <button class="auth-mode-button is-active" type="button" data-auth-mode="login" data-i18n="auth.login">ログイン</button>
-          <button class="auth-mode-button" type="button" data-auth-mode="register" data-i18n="auth.register">登録</button>
+  <body class="min-h-screen bg-mist text-ink antialiased">
+    <main id="authView" class="auth-shell grid min-h-screen place-items-center px-4 py-8" hidden>
+      <section class="auth-panel w-full max-w-md rounded-lg border border-line bg-white p-6 shadow-panel">
+        <p class="eyebrow mb-2 text-xs font-bold uppercase text-brand" data-i18n="brand">Word Collector</p>
+        <h1 class="text-3xl font-bold tracking-tight" data-i18n="auth.title">ログイン</h1>
+        <div class="auth-tabs my-5 grid grid-cols-2 gap-1 rounded-lg border border-line bg-slate-100 p-1">
+          <button class="auth-mode-button is-active rounded-md px-4 py-2 text-sm font-semibold text-slate-600" type="button" data-auth-mode="login" data-i18n="auth.login">ログイン</button>
+          <button class="auth-mode-button rounded-md px-4 py-2 text-sm font-semibold text-slate-600" type="button" data-auth-mode="register" data-i18n="auth.register">登録</button>
         </div>
-        <form id="authForm">
-          <label>
+        <form id="authForm" class="grid gap-4">
+          <label class="grid gap-1.5 text-sm font-semibold text-slate-700">
             <span data-i18n="auth.email">メール</span>
-            <input id="authEmail" type="email" autocomplete="email" required />
+            <input id="authEmail" class="min-h-11 rounded-md border border-line bg-white px-3 text-ink outline-none focus:border-brand focus:ring-2 focus:ring-teal-100" type="email" autocomplete="email" required />
           </label>
-          <label>
+          <label class="grid gap-1.5 text-sm font-semibold text-slate-700">
             <span data-i18n="auth.password">パスワード</span>
-            <input id="authPassword" type="password" autocomplete="current-password" required />
+            <input id="authPassword" class="min-h-11 rounded-md border border-line bg-white px-3 text-ink outline-none focus:border-brand focus:ring-2 focus:ring-teal-100" type="password" autocomplete="current-password" required />
           </label>
-          <label id="authConfirmWrap" hidden>
+          <label id="authConfirmWrap" class="grid gap-1.5 text-sm font-semibold text-slate-700" hidden>
             <span data-i18n="auth.confirmPassword">パスワード確認</span>
-            <input id="authConfirmPassword" type="password" autocomplete="new-password" />
+            <input id="authConfirmPassword" class="min-h-11 rounded-md border border-line bg-white px-3 text-ink outline-none focus:border-brand focus:ring-2 focus:ring-teal-100" type="password" autocomplete="new-password" />
           </label>
-          <button id="authSubmit" type="submit" data-i18n="auth.login">ログイン</button>
-          <p id="authStatus" class="status" role="status"></p>
+          <button id="authSubmit" class="min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-teal-800" type="submit" data-i18n="auth.login">ログイン</button>
+          <p id="authStatus" class="status min-h-5 text-sm text-slate-500" role="status"></p>
         </form>
       </section>
     </main>
 
-    <main id="onboardingView" class="auth-shell" hidden>
-      <section class="auth-panel">
-        <p class="eyebrow" data-i18n="brand">Word Collector</p>
-        <h1 data-i18n="onboarding.title">What language do you want to learn?</h1>
-        <div id="onboardingLanguages" class="language-picks"></div>
-        <p id="onboardingStatus" class="status" role="status"></p>
+    <main id="onboardingView" class="auth-shell grid min-h-screen place-items-center px-4 py-8" hidden>
+      <section class="auth-panel w-full max-w-md rounded-lg border border-line bg-white p-6 shadow-panel">
+        <p class="eyebrow mb-2 text-xs font-bold uppercase text-brand" data-i18n="brand">Word Collector</p>
+        <h1 class="text-3xl font-bold tracking-tight" data-i18n="onboarding.title">What language do you want to learn?</h1>
+        <div id="onboardingLanguages" class="language-picks mt-5 grid gap-2"></div>
+        <p id="onboardingStatus" class="status min-h-5 text-sm text-slate-500" role="status"></p>
       </section>
     </main>
 
-    <main id="appShell" class="shell" hidden>
-      <!-- Shared navigation and language controls stay mounted across app tabs. -->
-      <header class="menu-bar">
-        <div class="menu-left">
-          <div class="menu-brand" data-i18n="brand">Word Collector</div>
-          <nav class="tabs" aria-label="Main views">
-            <button class="tab-button is-active" type="button" data-tab="dashboard" data-i18n="tabs.dashboard">ダッシュボード</button>
-            <button class="tab-button" type="button" data-tab="collections" data-i18n="tabs.collections">コレクション</button>
-            <button class="tab-button" type="button" data-tab="reader" data-i18n="tabs.reader">Reader</button>
+    <main id="appShell" class="shell mx-auto w-[min(1180px,calc(100%-32px))] pb-8 pt-24 max-md:w-[calc(100%-20px)] max-md:pt-5" hidden>
+      <header class="menu-bar fixed inset-x-0 top-0 z-10 grid min-h-[72px] grid-cols-[minmax(0,1fr)_minmax(500px,560px)] items-center gap-3 border-b border-line bg-mist/95 px-5 py-2.5 backdrop-blur max-md:static max-md:grid-cols-1 max-md:items-stretch">
+        <div class="menu-left flex min-w-0 items-center gap-4 max-md:grid max-md:grid-cols-1">
+          <div class="menu-brand whitespace-nowrap text-base font-black text-brand" data-i18n="brand">Word Collector</div>
+          <nav class="tabs grid w-[min(440px,100%)] grid-cols-3 gap-1 rounded-lg border border-line bg-slate-100 p-1 max-md:w-full max-md:grid-cols-1" aria-label="Main views">
+            <button class="tab-button is-active rounded-md px-3 py-2 text-sm font-semibold text-slate-600" type="button" data-tab="dashboard" data-i18n="tabs.dashboard">ダッシュボード</button>
+            <button class="tab-button rounded-md px-3 py-2 text-sm font-semibold text-slate-600" type="button" data-tab="collections" data-i18n="tabs.collections">コレクション</button>
+            <button class="tab-button rounded-md px-3 py-2 text-sm font-semibold text-slate-600" type="button" data-tab="reader" data-i18n="tabs.reader">Reader</button>
           </nav>
         </div>
-        <div class="menu-actions">
-          <label class="menu-select-label">
+        <div class="menu-actions grid w-full grid-cols-[minmax(140px,160px)_minmax(140px,1fr)_52px_minmax(116px,132px)] items-center gap-2 justify-self-end max-md:grid-cols-1">
+          <label class="menu-select-label grid gap-1 text-xs font-bold text-slate-500">
             <span data-i18n="learning.studyLanguage">Study language</span>
-            <select id="studyLanguageSelect"></select>
+            <select id="studyLanguageSelect" class="min-h-11 rounded-md border border-line bg-white px-3 text-sm text-ink outline-none focus:border-brand focus:ring-2 focus:ring-teal-100"></select>
           </label>
-          <div class="locale-buttons" aria-label="UI language">
-            <button class="locale-button" type="button" data-locale="ja" data-i18n="ui.japanese">日本語</button>
-            <button class="locale-button" type="button" data-locale="en" data-i18n="ui.english">English</button>
+          <div class="locale-buttons grid grid-cols-2 gap-1 rounded-lg border border-line bg-slate-100 p-1 max-md:grid-cols-1" aria-label="UI language">
+            <button class="locale-button rounded-md px-3 py-2 text-sm font-semibold text-slate-600" type="button" data-locale="ja" data-i18n="ui.japanese">日本語</button>
+            <button class="locale-button rounded-md px-3 py-2 text-sm font-semibold text-slate-600" type="button" data-locale="en" data-i18n="ui.english">English</button>
           </div>
-          <button id="settingsButton" class="secondary-button icon-button tab-button" type="button" data-tab="settings">
-            <svg aria-hidden="true" viewBox="0 0 24 24">
+          <button id="settingsButton" class="secondary-button icon-button tab-button grid h-[52px] w-[52px] place-items-center rounded-md border border-line bg-white text-brand hover:bg-teal-50" type="button" data-tab="settings">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[1.8]">
               <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
               <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.3a2 2 0 0 1-4 0V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 0 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H2.7a2 2 0 0 1 0-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7A2 2 0 0 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6v-.3a2 2 0 0 1 4 0V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 0 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.3a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z" />
             </svg>
             <span class="visually-hidden" data-i18n="tabs.settings">Settings</span>
           </button>
-          <button id="logoutButton" class="secondary-button logout-button" type="button" data-i18n="auth.logout">ログアウト</button>
+          <button id="logoutButton" class="secondary-button logout-button min-h-[52px] rounded-md border border-line bg-white px-4 text-sm font-bold text-brand hover:bg-teal-50" type="button" data-i18n="auth.logout">ログアウト</button>
         </div>
       </header>
 
-      <header id="pageHead" class="page-head">
+      <header id="pageHead" class="page-head mb-4 flex items-end justify-between gap-5 max-md:grid">
         <div>
-          <p class="eyebrow" data-i18n="brand">Word Collector</p>
-          <h1 data-i18n="app.title">Word Collector</h1>
+          <p class="eyebrow mb-1.5 text-xs font-bold uppercase text-brand" data-i18n="brand">Word Collector</p>
+          <h1 class="text-5xl font-black tracking-tight max-md:text-4xl" data-i18n="app.title">Word Collector</h1>
         </div>
-        <div class="page-head-actions">
-          <div class="total-panel">
-            <span id="knownTotal">0</span>
-            <small data-i18n="stats.knownAll">全コレクションの既知単語</small>
+        <div class="page-head-actions grid min-w-[220px]">
+          <div class="total-panel rounded-lg border border-line bg-white p-5 shadow-panel">
+            <span id="knownTotal" class="block text-3xl font-black leading-none">0</span>
+            <small class="mt-2 block text-sm text-slate-500" data-i18n="stats.knownAll">全コレクションの既知単語</small>
           </div>
         </div>
       </header>
 
       <section id="dashboardView" class="tab-view">
-        <section class="metrics" aria-label="Overall progress">
-          <article>
-            <span id="totalWords">0</span>
-            <small data-i18n="dashboard.totalWords">単語数</small>
+        <section class="metrics mb-4 grid grid-cols-3 gap-3.5 max-md:grid-cols-1" aria-label="Overall progress">
+          <article class="rounded-lg border border-line bg-white p-5 shadow-panel">
+            <span id="totalWords" class="block text-3xl font-black leading-none">0</span>
+            <small class="mt-2 block text-sm text-slate-500" data-i18n="dashboard.totalWords">単語数</small>
           </article>
-          <article>
-            <span id="unknownTotal">0</span>
-            <small data-i18n="dashboard.unknownWords">未習得</small>
+          <article class="rounded-lg border border-line bg-white p-5 shadow-panel">
+            <span id="unknownTotal" class="block text-3xl font-black leading-none">0</span>
+            <small class="mt-2 block text-sm text-slate-500" data-i18n="dashboard.unknownWords">未習得</small>
           </article>
-          <article>
-            <span id="collectionCount">0</span>
-            <small data-i18n="dashboard.collectionCount">コレクション数</small>
+          <article class="rounded-lg border border-line bg-white p-5 shadow-panel">
+            <span id="collectionCount" class="block text-3xl font-black leading-none">0</span>
+            <small class="mt-2 block text-sm text-slate-500" data-i18n="dashboard.collectionCount">コレクション数</small>
           </article>
         </section>
 
-        <section class="collection-panel">
-          <div class="section-head">
-            <h2 data-i18n="dashboard.collectionProgress">コレクション別の進捗</h2>
+        <section class="collection-panel rounded-lg border border-line bg-white p-5 shadow-panel">
+          <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
+            <h2 class="text-base font-bold" data-i18n="dashboard.collectionProgress">コレクション別の進捗</h2>
           </div>
-          <div id="collectionCharts" class="chart-grid"></div>
+          <div id="collectionCharts" class="chart-grid grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3"></div>
         </section>
       </section>
 
       <section id="collectionsView" class="tab-view" hidden>
-        <!-- CSV import and collection browsing share the selected study language. -->
-        <section class="workspace">
-          <form id="uploadForm" class="upload-panel">
-            <div class="section-head">
-              <h2 data-i18n="upload.title">CSVアップロード</h2>
+        <section class="workspace grid grid-cols-[minmax(280px,340px)_1fr] items-start gap-3.5 max-md:grid-cols-1">
+          <form id="uploadForm" class="upload-panel rounded-lg border border-line bg-white p-5 shadow-panel">
+            <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
+              <h2 class="text-base font-bold" data-i18n="upload.title">CSVアップロード</h2>
             </div>
-            <label>
+            <label class="grid gap-1.5 text-sm font-semibold text-slate-700">
               <span data-i18n="upload.collection">コレクション名</span>
-              <input id="collectionName" name="collectionName" type="text" data-i18n-placeholder="upload.collectionPlaceholder" placeholder="日本語 基本単語" required />
+              <input id="collectionName" class="min-h-11 rounded-md border border-line bg-white px-3 text-ink outline-none focus:border-brand focus:ring-2 focus:ring-teal-100" name="collectionName" type="text" data-i18n-placeholder="upload.collectionPlaceholder" placeholder="日本語 基本単語" required />
             </label>
-            <label>
+            <label class="mt-3 grid gap-1.5 text-sm font-semibold text-slate-700">
               <span data-i18n="upload.file">CSVファイル</span>
-              <input id="csvFile" name="csvFile" type="file" accept=".csv,text/csv,text/plain" required />
+              <input id="csvFile" class="min-h-11 rounded-md border border-line bg-white px-3 py-2 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700" name="csvFile" type="file" accept=".csv,text/csv,text/plain" required />
             </label>
-            <p class="hint" data-i18n="upload.format">形式: word translation</p>
-            <button type="submit" data-i18n="upload.button">アップロード</button>
-            <p id="uploadStatus" class="status" role="status"></p>
+            <p class="hint mt-3 min-h-5 text-sm text-slate-500" data-i18n="upload.format">形式: word translation</p>
+            <button class="mt-2 min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-teal-800" type="submit" data-i18n="upload.button">アップロード</button>
+            <p id="uploadStatus" class="status mt-3 min-h-5 text-sm text-slate-500" role="status"></p>
           </form>
 
-          <section class="browser-panel">
-            <div class="section-head">
-              <h2 data-i18n="collections.wordsTitle">単語一覧</h2>
-              <div class="collection-actions">
-                <div class="display-mode-buttons">
-                  <button class="display-mode-button is-active" type="button" data-display-mode="all" data-i18n="collections.displayAll">すべて</button>
-                  <button class="display-mode-button" type="button" data-display-mode="infinite" data-i18n="collections.displayInfinite">Infinite Scroll</button>
+          <section class="browser-panel rounded-lg border border-line bg-white p-5 shadow-panel">
+            <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3 max-md:grid">
+              <h2 class="text-base font-bold" data-i18n="collections.wordsTitle">単語一覧</h2>
+              <div class="collection-actions flex flex-wrap items-center justify-end gap-2.5 max-md:grid">
+                <div class="display-mode-buttons grid grid-cols-2 gap-1 rounded-lg border border-line bg-slate-100 p-1 max-md:grid-cols-1">
+                  <button class="display-mode-button is-active rounded-md px-3 py-2 text-sm font-semibold text-slate-600" type="button" data-display-mode="all" data-i18n="collections.displayAll">すべて</button>
+                  <button class="display-mode-button rounded-md px-3 py-2 text-sm font-semibold text-slate-600" type="button" data-display-mode="infinite" data-i18n="collections.displayInfinite">Infinite Scroll</button>
                 </div>
-                <button id="saveCollectionLanguageButton" class="secondary-button" type="button" data-i18n="collections.save">保存</button>
-                <button id="deleteCollectionButton" class="danger-button" type="button" data-i18n="collections.delete">削除</button>
+                <button id="saveCollectionLanguageButton" class="secondary-button min-h-10 rounded-md border border-line bg-white px-4 text-sm font-bold text-brand hover:bg-teal-50" type="button" data-i18n="collections.save">保存</button>
+                <button id="deleteCollectionButton" class="danger-button min-h-10 rounded-md border border-red-200 bg-white px-4 text-sm font-bold text-red-700 hover:bg-red-50" type="button" data-i18n="collections.delete">削除</button>
               </div>
             </div>
-            <div class="browser-tools">
-              <label>
+            <div class="browser-tools grid grid-cols-[minmax(190px,260px)_minmax(150px,220px)_1fr] items-end gap-3 max-md:grid-cols-1">
+              <label class="grid gap-1.5 text-sm font-semibold text-slate-700">
                 <span data-i18n="collections.collection">コレクション</span>
-                <select id="collectionSelect"></select>
+                <select id="collectionSelect" class="min-h-11 rounded-md border border-line bg-white px-3 text-ink outline-none focus:border-brand focus:ring-2 focus:ring-teal-100"></select>
               </label>
-              <label>
+              <label class="grid gap-1.5 text-sm font-semibold text-slate-700">
                 <span data-i18n="collections.language">言語</span>
-                <select id="collectionLanguageSelect"></select>
+                <select id="collectionLanguageSelect" class="min-h-11 rounded-md border border-line bg-white px-3 text-ink outline-none focus:border-brand focus:ring-2 focus:ring-teal-100"></select>
               </label>
-              <label>
+              <label class="grid gap-1.5 text-sm font-semibold text-slate-700">
                 <span data-i18n="collections.search">検索</span>
-                <input id="searchInput" type="search" data-i18n-placeholder="collections.searchPlaceholder" placeholder="単語または翻訳で検索" />
+                <input id="searchInput" class="min-h-11 rounded-md border border-line bg-white px-3 text-ink outline-none focus:border-brand focus:ring-2 focus:ring-teal-100" type="search" data-i18n-placeholder="collections.searchPlaceholder" placeholder="単語または翻訳で検索" />
               </label>
             </div>
-            <div id="selectedCollectionStats" class="selected-stats"></div>
-            <div class="table-wrap">
-              <table>
+            <div id="selectedCollectionStats" class="selected-stats my-3 flex min-h-8 flex-wrap items-baseline gap-2.5 text-sm text-slate-500"></div>
+            <div class="table-wrap overflow-x-auto rounded-lg border border-line">
+              <table class="min-w-[620px] w-full border-collapse">
                 <thead>
                   <tr>
-                    <th data-i18n="table.word">単語</th>
-                    <th data-i18n="table.translation">翻訳</th>
-                    <th data-i18n="table.status">状態</th>
+                    <th class="sticky top-0 z-[1] border-b border-line bg-slate-50 px-3 py-3 text-left text-xs font-bold uppercase text-slate-600" data-i18n="table.word">単語</th>
+                    <th class="sticky top-0 z-[1] border-b border-line bg-slate-50 px-3 py-3 text-left text-xs font-bold uppercase text-slate-600" data-i18n="table.translation">翻訳</th>
+                    <th class="sticky top-0 z-[1] border-b border-line bg-slate-50 px-3 py-3 text-left text-xs font-bold uppercase text-slate-600" data-i18n="table.status">状態</th>
                   </tr>
                 </thead>
                 <tbody id="wordRows"></tbody>
               </table>
             </div>
-            <p id="wordListStatus" class="list-status" role="status"></p>
-            <p id="emptyState" class="empty" data-i18n="collections.empty">CSVをアップロードして最初のコレクションを作成してください。</p>
+            <p id="wordListStatus" class="list-status mt-3 min-h-5 text-sm text-slate-500" role="status"></p>
+            <p id="emptyState" class="empty mt-4 text-sm text-slate-500" data-i18n="collections.empty">CSVをアップロードして最初のコレクションを作成してください。</p>
           </section>
         </section>
       </section>
+
       <section id="readerView" class="tab-view" hidden>
-        <!-- Reader layout is resizable and persists its dimensions in local storage. -->
-        <button id="readerSidebarOpen" class="reader-sidebar-open secondary-button" type="button" hidden>
-          <svg aria-hidden="true" viewBox="0 0 24 24">
+        <button id="readerSidebarOpen" class="reader-sidebar-open secondary-button fixed left-0 top-[86px] z-[9] grid min-h-[52px] w-[42px] place-items-center rounded-r-lg border border-l-0 border-line bg-white text-brand shadow-panel max-md:top-3" type="button" hidden>
+          <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[1.8]">
             <path d="M4 5h16M4 12h16M4 19h16" />
           </svg>
           <span class="visually-hidden" data-i18n="reader.openSidebar">Open sidebar</span>
         </button>
-        <section class="reader-layout">
-          <aside class="reader-sidebar">
-            <div class="reader-sidebar-head">
-              <button id="readerSidebarToggle" class="secondary-button icon-button" type="button" aria-expanded="true">
-                <svg aria-hidden="true" viewBox="0 0 24 24">
+        <section class="reader-layout relative grid items-start">
+          <aside class="reader-sidebar sticky top-[88px] z-[8] h-[calc(100vh-104px)] overflow-auto rounded-l-lg border border-r-0 border-line bg-white p-3.5 shadow-panel">
+            <div class="reader-sidebar-head mb-3 flex justify-end">
+              <button id="readerSidebarToggle" class="secondary-button icon-button grid h-[42px] w-[42px] place-items-center rounded-md border border-line bg-white text-brand hover:bg-teal-50" type="button" aria-expanded="true">
+                <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[1.8]">
                   <path d="M15 6l-6 6 6 6" />
                 </svg>
                 <span class="visually-hidden" data-i18n="reader.toggleSidebar">Toggle sidebar</span>
               </button>
             </div>
-            <form id="materialImportForm" class="reader-import">
-              <label>
+            <form id="materialImportForm" class="reader-import sticky top-0 z-[1] bg-white pb-3">
+              <label class="grid gap-1.5 text-sm font-semibold text-slate-700">
                 <span data-i18n="reader.import">インポート</span>
-                <input id="materialFile" type="file" accept=".pdf,.epub,.txt,application/pdf,application/epub+zip,text/plain" />
+                <input id="materialFile" class="min-h-11 rounded-md border border-line bg-white px-3 py-2 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700" type="file" accept=".pdf,.epub,.txt,application/pdf,application/epub+zip,text/plain" />
               </label>
-              <button type="submit" data-i18n="reader.importButton">インポート</button>
-              <p id="materialImportStatus" class="status" role="status"></p>
+              <button class="mt-2 min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-teal-800" type="submit" data-i18n="reader.importButton">インポート</button>
+              <p id="materialImportStatus" class="status mt-3 min-h-5 text-sm text-slate-500" role="status"></p>
             </form>
-            <div id="materialList" class="material-list"></div>
+            <div id="materialList" class="material-list grid max-h-[calc(100vh-360px)] gap-2 overflow-auto"></div>
             <div id="readerSidebarResize" class="reader-resize-handle" role="separator" aria-orientation="vertical"></div>
           </aside>
-          <section class="reader-panel">
-            <div class="reader-toolbar">
+          <section class="reader-panel relative grid overflow-auto rounded-r-lg border border-line bg-white p-5 shadow-panel">
+            <div class="reader-toolbar mb-4 flex items-end justify-between gap-4 max-md:grid">
               <div>
-                <h2 id="readerTitle" data-i18n="reader.title">Reader</h2>
-                <p id="readerMeta" class="hint"></p>
+                <h2 id="readerTitle" class="text-xl font-bold" data-i18n="reader.title">Reader</h2>
+                <p id="readerMeta" class="hint mt-1 min-h-5 text-sm text-slate-500"></p>
               </div>
-              <div class="reader-controls">
-                <label>
+              <div class="reader-controls grid grid-cols-[minmax(180px,220px)_minmax(130px,160px)] items-end gap-3 max-md:grid-cols-1">
+                <label class="grid gap-1.5 text-sm font-semibold text-slate-700">
                   <span data-i18n="reader.fontSize">文字サイズ</span>
-                  <input id="readerFontSize" type="range" min="16" max="34" value="22" />
+                  <input id="readerFontSize" class="accent-brand" type="range" min="16" max="34" value="22" />
                 </label>
-                <label>
+                <label class="grid gap-1.5 text-sm font-semibold text-slate-700">
                   <span data-i18n="reader.wordsPerPage">ページ語数</span>
-                  <select id="readerWordsPerPage">
+                  <select id="readerWordsPerPage" class="min-h-11 rounded-md border border-line bg-white px-3 text-ink outline-none focus:border-brand focus:ring-2 focus:ring-teal-100">
                     <option value="100">100</option>
                     <option value="250" selected>250</option>
                     <option value="500">500</option>
@@ -227,30 +224,31 @@
                 </label>
               </div>
             </div>
-            <div id="readerText" class="reader-text"></div>
-            <div class="reader-page-actions">
-              <button id="readerPrevPage" class="secondary-button" type="button" data-i18n="reader.previous">前へ</button>
-              <span id="readerPageStatus" class="hint"></span>
-              <button id="readerNextPage" class="secondary-button" type="button" data-i18n="reader.next">次へ</button>
+            <div id="readerText" class="reader-text h-full min-h-0 overflow-auto rounded-lg border border-line bg-[#fffefb] p-6 leading-[1.9]"></div>
+            <div class="reader-page-actions mt-4 flex items-center justify-center gap-3.5 max-md:grid">
+              <button id="readerPrevPage" class="secondary-button min-h-10 rounded-md border border-line bg-white px-4 text-sm font-bold text-brand hover:bg-teal-50" type="button" data-i18n="reader.previous">前へ</button>
+              <span id="readerPageStatus" class="hint text-sm text-slate-500"></span>
+              <button id="readerNextPage" class="secondary-button min-h-10 rounded-md border border-line bg-white px-4 text-sm font-bold text-brand hover:bg-teal-50" type="button" data-i18n="reader.next">次へ</button>
             </div>
-            <aside id="readerWordInfo" class="reader-word-info" hidden></aside>
+            <aside id="readerWordInfo" class="reader-word-info fixed z-10 max-h-[min(420px,calc(100vh-24px))] min-w-60 max-w-[min(340px,calc(100vw-24px))] overflow-auto rounded-lg border border-line bg-white p-3.5 shadow-panel" hidden></aside>
             <div id="readerPanelResize" class="reader-panel-resize" role="separator" aria-orientation="vertical"></div>
           </section>
         </section>
       </section>
+
       <section id="settingsView" class="tab-view" hidden>
-        <section class="settings-panel">
-          <div class="section-head">
-            <h2 data-i18n="settings.title">設定</h2>
+        <section class="settings-panel max-w-xl rounded-lg border border-line bg-white p-5 shadow-panel">
+          <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
+            <h2 class="text-base font-bold" data-i18n="settings.title">設定</h2>
           </div>
           <form id="settingsForm">
-            <label>
+            <label class="grid gap-1.5 text-sm font-semibold text-slate-700">
               <span data-i18n="settings.nativeLanguage">母語</span>
-              <select id="nativeLanguageSelect"></select>
+              <select id="nativeLanguageSelect" class="min-h-11 rounded-md border border-line bg-white px-3 text-ink outline-none focus:border-brand focus:ring-2 focus:ring-teal-100"></select>
             </label>
-            <p class="hint" data-i18n="settings.nativeLanguageHint">翻訳や説明に使う言語です。</p>
-            <button type="submit" data-i18n="settings.save">保存</button>
-            <p id="settingsStatus" class="status" role="status"></p>
+            <p class="hint mt-3 min-h-5 text-sm text-slate-500" data-i18n="settings.nativeLanguageHint">翻訳や説明に使う言語です。</p>
+            <button class="mt-2 min-h-11 rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-teal-800" type="submit" data-i18n="settings.save">保存</button>
+            <p id="settingsStatus" class="status mt-3 min-h-5 text-sm text-slate-500" role="status"></p>
           </form>
         </section>
       </section>

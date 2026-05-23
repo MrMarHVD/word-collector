@@ -15,8 +15,8 @@ export function renderWords(words) {
     .map(
       (entry) => `
       <tr>
-        <td>${escapeHtml(entry.word)}</td>
-        <td>${escapeHtml(entry.translation)}</td>
+        <td class="px-3 py-3 align-top">${escapeHtml(entry.word)}</td>
+        <td class="px-3 py-3 align-top text-slate-700">${escapeHtml(entry.translation)}</td>
         <td class="known-cell">
           <button class="known-toggle" data-word-id="${entry.id}" data-known="${Boolean(entry.known)}">
             ${entry.known ? escapeHtml(t("word.known")) : escapeHtml(t("word.unknown"))}
