@@ -517,10 +517,15 @@ function bindEvents() {
     elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
     button.classList.add("is-selected");
     const token = state.readerTokens.find((entry) => entry.id === Number(button.dataset.tokenId));
-    renderReaderWordInfo(token);
+    renderReaderWordInfo(token, button);
   });
 
   elements.readerWordInfo.addEventListener("click", async (event) => {
+    if (event.target.closest("[data-reader-word-info-close]")) {
+      renderReaderWordInfo(null);
+      elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
+      return;
+    }
     const button = event.target.closest("[data-reader-word-id]");
     if (!button) {
       return;
@@ -533,6 +538,7 @@ function bindEvents() {
         body: JSON.stringify({ known })
       });
       await loadMaterialReader(state.readerStart);
+      renderReaderWordInfo(null);
       await loadDashboard();
     } finally {
       button.disabled = false;

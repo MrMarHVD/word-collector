@@ -67,16 +67,39 @@ export function renderReaderTokens() {
   elements.readerNextPage.disabled = !material || end >= material.wordCount;
 }
 
+function positionReaderWordInfo(anchor) {
+  if (!anchor) {
+    return;
+  }
+  const gap = 10;
+  const margin = 12;
+  const anchorRect = anchor.getBoundingClientRect();
+  const infoRect = elements.readerWordInfo.getBoundingClientRect();
+  const rightLeft = anchorRect.right + gap;
+  const leftLeft = anchorRect.left - infoRect.width - gap;
+  const left = rightLeft + infoRect.width <= window.innerWidth - margin ? rightLeft : Math.max(margin, leftLeft);
+  const top = Math.min(Math.max(margin, anchorRect.top + anchorRect.height / 2 - infoRect.height / 2), window.innerHeight - infoRect.height - margin);
+
+  elements.readerWordInfo.style.setProperty("--readerInfoLeft", `${left}px`);
+  elements.readerWordInfo.style.setProperty("--readerInfoTop", `${top}px`);
+  elements.readerWordInfo.style.visibility = "";
+}
+
 // Render details and known-toggle action for a selected reader token.
-export function renderReaderWordInfo(token) {
+export function renderReaderWordInfo(token, anchor = null) {
   if (!token) {
     elements.readerWordInfo.hidden = true;
+    elements.readerWordInfo.style.visibility = "";
     return;
   }
   const known = Boolean(token.known);
   elements.readerWordInfo.hidden = false;
+  elements.readerWordInfo.style.visibility = "hidden";
   elements.readerWordInfo.innerHTML = `
-    <strong>${escapeHtml(token.surface)}</strong>
+    <div class="reader-word-info-head">
+      <strong>${escapeHtml(token.surface)}</strong>
+      <button class="reader-word-info-close" type="button" data-reader-word-info-close aria-label="${escapeHtml(t("reader.closeTranslation"))}">&times;</button>
+    </div>
     <dl>
       <dt>${escapeHtml(t("reader.dictionaryForm"))}</dt>
       <dd>${escapeHtml(token.dictionaryForm || token.lemma)}</dd>
@@ -86,6 +109,6 @@ export function renderReaderWordInfo(token) {
       <dd>${escapeHtml(known ? t("word.known") : t("word.unknown"))}</dd>
     </dl>
     <button class="known-toggle" data-reader-word-id="${token.wordId}" data-known="${known}">${escapeHtml(known ? t("word.known") : t("word.unknown"))}</button>
-    <div class="reader-word-info-resize" role="separator" aria-orientation="vertical"></div>
   `;
+  positionReaderWordInfo(anchor);
 }
