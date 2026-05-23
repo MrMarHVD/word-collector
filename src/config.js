@@ -11,6 +11,6 @@ export const AUTH_COOKIE = "word_collector_token";
 export const JWT_TTL_SECONDS = 7 * 24 * 60 * 60;
 export const SEED_EMAIL = "havardjvd@gmail.com";
 export const SEED_PASSWORD = "MelkeMannen22";
-export const NATIVE_LANGUAGE_OPTIONS = ["English", "Japanese"];
+export const NATIVE_LANGUAGE_OPTIONS = ["English", "Japanese", "Chinese"];
 export const STUDY_LANGUAGE_OPTIONS = ["English", "Japanese", "Chinese"];
 export const READER_WORK_PAGE_SIZE = 50;
