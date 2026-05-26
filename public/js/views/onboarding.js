@@ -9,7 +9,7 @@ export function renderOnboarding(predefinedLanguages) {
     ? predefinedLanguages
         .map(
           (language) =>
-            `<button class="language-pick min-h-11 rounded-md border border-line bg-white px-4 text-sm font-bold text-ink hover:border-teal-200 hover:bg-teal-50" type="button" data-language-name="${escapeHtml(language.name)}">${escapeHtml(language.name)}</button>`
+            `<button class="language-pick min-h-11 rounded-md border border-line bg-panel px-4 text-sm font-bold text-main hover:border-brand hover:bg-hover" type="button" data-language-name="${escapeHtml(language.name)}">${escapeHtml(language.name)}</button>`
         )
         .join("")
     : `<p class="empty">${escapeHtml(t("onboarding.noLanguages"))}</p>`;

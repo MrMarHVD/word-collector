@@ -26,6 +26,7 @@ export const elements = {
   logoutButton: document.querySelector("#logoutButton"),
   settingsForm: document.querySelector("#settingsForm"),
   nativeLanguageSelect: document.querySelector("#nativeLanguageSelect"),
+  themeButtons: document.querySelectorAll(".theme-button"),
   settingsStatus: document.querySelector("#settingsStatus"),
   knownTotal: document.querySelector("#knownTotal"),
   totalWords: document.querySelector("#totalWords"),

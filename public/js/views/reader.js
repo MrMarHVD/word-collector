@@ -71,11 +71,11 @@ export function renderMaterialList() {
           const translating = material.translationStatus && !material.translationStatus.ready;
           return `
             <div class="material-row ${active}">
-              <button class="material-button rounded-lg border border-line bg-white p-2.5 text-left hover:bg-teal-50" type="button" data-material-id="${material.id}" ${translating ? "disabled" : ""}>
+              <button class="material-button rounded-lg border border-line bg-panel p-2.5 text-left hover:bg-hover" type="button" data-material-id="${material.id}" ${translating ? "disabled" : ""}>
                 <span>${escapeHtml(material.title)}</span>
                 <small>${escapeHtml(translating ? t("reader.translatingWait") : t("reader.materialMeta", { words: formatCount(material.wordCount), type: material.fileType.toUpperCase() }))}</small>
               </button>
-              <button class="material-delete-button rounded-lg border border-red-200 bg-white px-2.5 text-sm font-bold text-red-700 hover:bg-red-50" type="button" data-delete-material-id="${material.id}" aria-label="${escapeHtml(t("reader.deleteMaterial"))}">
+              <button class="material-delete-button rounded-lg border px-2.5 text-sm font-bold" type="button" data-delete-material-id="${material.id}" aria-label="${escapeHtml(t("reader.deleteMaterial"))}">
                 ${escapeHtml(t("reader.deleteMaterial"))}
               </button>
             </div>

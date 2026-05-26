@@ -69,7 +69,7 @@ export function renderSelectedCollectionStats() {
 function renderChartCard(collection) {
   const percent = collection.totalWords ? Math.round((collection.knownWords / collection.totalWords) * 100) : 0;
   return `
-    <article class="chart-card rounded-lg border border-line bg-white p-3.5">
+    <article class="chart-card rounded-lg border border-line bg-panel p-3.5">
       <div class="pie" style="--knownPercent: ${percent}%"></div>
       <div>
         <strong>${escapeHtml(collection.name)}</strong>

@@ -32,6 +32,7 @@ export const state = {
   wordDisplayMode: localStorage.getItem("wordMarkerDisplayMode") || "infinite",
   search: "",
   activeTab: localStorage.getItem("wordMarkerActiveTab") || "dashboard",
+  theme: localStorage.getItem("wordMarkerTheme") || "system",
   locale: localStorage.getItem("wordMarkerLocale") || "ja",
   messages: {}
 };

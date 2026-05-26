@@ -4,6 +4,7 @@ import { elements } from "./dom.js";
 import { formatCount, loadMessages, t } from "./i18n.js";
 import { escapeHtml } from "./shared/html.js";
 import { state } from "./state.js";
+import { applyTheme, bindSystemThemeListener, renderThemeButtons, setTheme } from "./theme.js";
 import { renderAuthMode } from "./views/auth.js";
 import { renderDashboard, renderSelectedCollectionStats } from "./views/dashboard.js";
 import { renderOnboarding } from "./views/onboarding.js";
@@ -24,6 +25,7 @@ function applyLocale() {
   elements.title.textContent = `${t("brand")} - ${t("app.title")}`;
   renderLocaleButtons();
   renderDisplayModeButtons();
+  renderThemeButtons();
 
   document.querySelectorAll("[data-i18n]").forEach((node) => {
     node.textContent = t(node.dataset.i18n);
@@ -392,6 +394,10 @@ function bindEvents() {
       localStorage.setItem("wordMarkerLocale", state.locale);
       applyLocale();
     });
+  });
+
+  elements.themeButtons.forEach((button) => {
+    button.addEventListener("click", () => setTheme(button.dataset.themeOption));
   });
 
   elements.authForm.addEventListener("submit", async (event) => {
@@ -763,7 +769,9 @@ function bindEvents() {
 }
 
 setUnauthorizedHandler(() => showView("auth"));
+applyTheme();
 bindEvents();
+bindSystemThemeListener();
 await loadMessages();
 applyLocale();
 renderReaderSidebarTabs();

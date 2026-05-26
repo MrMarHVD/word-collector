@@ -13,6 +13,9 @@ export async function loadMessages() {
   if (!["dashboard", "collections", "reader", "settings"].includes(state.activeTab)) {
     state.activeTab = "dashboard";
   }
+  if (!["system", "light", "dark"].includes(state.theme)) {
+    state.theme = "system";
+  }
 }
 
 // Translate a message key and interpolate simple placeholder values.
