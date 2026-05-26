@@ -268,6 +268,11 @@ export function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_cedict_traditional ON cedict_english_index(traditional);
   `);
 
+  const materialColumns = db.prepare("PRAGMA table_info(materials)").all();
+  if (!materialColumns.some((column) => column.name === "reader_start")) {
+    db.exec("ALTER TABLE materials ADD COLUMN reader_start INTEGER NOT NULL DEFAULT 0");
+  }
+
   db.prepare(`
     INSERT OR IGNORE INTO word_translations (word_id, native_language, translation)
     SELECT id, 'English', translation FROM words

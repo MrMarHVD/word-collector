@@ -8,7 +8,7 @@ import { getDashboard } from "../services/dashboard.js";
 import { ensureStudyLanguagesForUser, getLanguage, getLanguages } from "../services/languages.js";
 import { getWords } from "../services/words.js";
 import { importWords } from "../services/importWords.js";
-import { getMaterialReader, getMaterials, importMaterial } from "../services/materials.js";
+import { getMaterialReader, getMaterials, importMaterial, updateMaterialReaderStart } from "../services/materials.js";
 
 // Create the HTTP API router with database dependencies supplied by server.js.
 export function createApiHandler({ db, statements }) {
@@ -110,11 +110,20 @@ export function createApiHandler({ db, statements }) {
 
     const materialMatch = url.pathname.match(/^\/api\/materials\/(\d+)$/);
     if (req.method === "GET" && materialMatch) {
-      const reader = getMaterialReader(db, statements, user.userId, Number(materialMatch[1]), url.searchParams.get("start"), url.searchParams.get("limit"));
+      const reader = getMaterialReader(db, statements, user.userId, Number(materialMatch[1]), url.searchParams.has("start") ? url.searchParams.get("start") : null, url.searchParams.get("limit"));
       if (!reader) {
         return jsonResponse(res, 404, { error: "Material not found." });
       }
       return jsonResponse(res, 200, reader);
+    }
+
+    if (req.method === "PATCH" && materialMatch) {
+      const body = await readJson(req);
+      const material = updateMaterialReaderStart(statements, user.userId, Number(materialMatch[1]), body.readerStart);
+      if (!material) {
+        return jsonResponse(res, 404, { error: "Material not found." });
+      }
+      return jsonResponse(res, 200, { material });
     }
 
     if (req.method === "DELETE" && materialMatch) {

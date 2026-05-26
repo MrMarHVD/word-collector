@@ -118,7 +118,7 @@ export async function importMaterial(db, statements, userId, languageId, file) {
 export function getMaterials(db, statements, userId, languageId, offset = 0) {
   const nativeLanguage = statements.userById.get(userId)?.nativeLanguage || "English";
   return db.prepare(`
-    SELECT id, title, file_name AS fileName, file_type AS fileType, word_count AS wordCount, created_at AS createdAt
+    SELECT id, title, file_name AS fileName, file_type AS fileType, word_count AS wordCount, reader_start AS readerStart, created_at AS createdAt
     FROM materials
     WHERE user_id = ? AND language_id = ?
     ORDER BY datetime(created_at) DESC, id DESC
@@ -150,7 +150,8 @@ export function getMaterialReader(db, statements, userId, materialId, start = 0,
     return { material, tokens: [], start: 0, limit: 0, nativeLanguage, translationStatus };
   }
   const safeLimit = Math.min(Math.max(Number(limit) || 250, 50), 1000);
-  const safeStart = Math.max(Number(start) || 0, 0);
+  const requestedStart = start === null || start === undefined ? material.readerStart : start;
+  const safeStart = Math.min(Math.max(Number(requestedStart) || 0, 0), Math.max(Number(material.wordCount || 0) - 1, 0));
   const tokens = db.prepare(`
     SELECT mt.id, mt.position, mt.surface, mt.lemma, mt.pos, mt.word_id AS wordId,
            w.word AS dictionaryForm,
@@ -170,4 +171,14 @@ export function getMaterialReader(db, statements, userId, materialId, start = 0,
     LIMIT ? OFFSET ?
   `).all(nativeLanguage, material.languageName, nativeLanguage, material.languageName, nativeLanguage, userId, material.id, safeLimit, safeStart);
   return { material, tokens, start: safeStart, limit: safeLimit, nativeLanguage, translationStatus };
+}
+
+export function updateMaterialReaderStart(statements, userId, materialId, start = 0) {
+  const material = statements.materialById.get(Number(materialId), userId);
+  if (!material) {
+    return null;
+  }
+  const safeStart = Math.min(Math.max(Number(start) || 0, 0), Math.max(Number(material.wordCount || 0) - 1, 0));
+  statements.updateMaterialReaderStart.run(safeStart, material.id, userId);
+  return statements.materialById.get(material.id, userId);
 }

@@ -218,19 +218,35 @@ async function loadMaterials(reset = false) {
   renderReaderTokens();
 }
 
+async function saveMaterialReaderStart(materialId, start) {
+  await requestJson(`/api/materials/${materialId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ readerStart: start })
+  });
+  state.materials = state.materials.map((material) => (material.id === materialId ? { ...material, readerStart: start } : material));
+}
+
 // Load a bounded reader token page for the selected material.
-async function loadMaterialReader(start = 0) {
+async function loadMaterialReader(start = null, { persist = true } = {}) {
   if (!state.selectedMaterialId) {
     state.currentMaterial = null;
     state.readerTokens = [];
     renderReaderTokens();
     return;
   }
-  state.readerStart = Math.max(start, 0);
-  const result = await requestJson(`/api/materials/${state.selectedMaterialId}?start=${state.readerStart}&limit=${state.readerWordsPerPage}`);
+  const params = new URLSearchParams({ limit: String(state.readerWordsPerPage) });
+  if (start !== null && start !== undefined) {
+    params.set("start", String(Math.max(start, 0)));
+  }
+  const result = await requestJson(`/api/materials/${state.selectedMaterialId}?${params}`);
   state.currentMaterial = result.material;
   state.currentMaterial.translationStatus = result.translationStatus;
+  state.readerStart = result.start;
   state.readerTokens = result.tokens;
+  state.materials = state.materials.map((material) => (material.id === state.selectedMaterialId ? { ...material, readerStart: result.start } : material));
+  if (persist && result.translationStatus?.ready) {
+    await saveMaterialReaderStart(state.selectedMaterialId, result.start);
+  }
   renderReaderTokens();
 }
 
@@ -541,7 +557,7 @@ function bindEvents() {
       elements.materialImportStatus.textContent = t("reader.imported", { words: formatCount(payload.tokenCount) });
       state.selectedMaterialId = payload.material.id;
       await loadMaterials(true);
-      await loadMaterialReader(0);
+      await loadMaterialReader(0, { persist: true });
       await loadDashboard();
     } catch (error) {
       elements.materialImportStatus.textContent = error.message;
@@ -596,9 +612,9 @@ function bindEvents() {
       return;
     }
     state.selectedMaterialId = Number(button.dataset.materialId);
-    state.readerStart = 0;
+    state.readerStart = Number(material.readerStart) || 0;
     renderMaterialList();
-    await loadMaterialReader(0);
+    await loadMaterialReader();
   });
 
   elements.readerFontSize.addEventListener("input", (event) => {
@@ -610,7 +626,7 @@ function bindEvents() {
   elements.readerWordsPerPage.addEventListener("change", async (event) => {
     state.readerWordsPerPage = Number(event.target.value);
     localStorage.setItem("wordMarkerReaderWordsPerPage", String(state.readerWordsPerPage));
-    await loadMaterialReader(0);
+    await loadMaterialReader(state.readerStart);
   });
 
   elements.readerPrevPage.addEventListener("click", async () => {

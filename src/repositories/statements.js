@@ -63,11 +63,12 @@ export function createStatements(db) {
     `),
     materialById: db.prepare(`
       SELECT m.id, m.user_id AS userId, m.language_id AS languageId, l.name AS languageName, m.title, m.file_name AS fileName,
-             m.file_type AS fileType, m.word_count AS wordCount, m.created_at AS createdAt
+             m.file_type AS fileType, m.word_count AS wordCount, m.reader_start AS readerStart, m.created_at AS createdAt
       FROM materials m
       JOIN languages l ON l.id = m.language_id
       WHERE m.id = ? AND m.user_id = ?
     `),
+    updateMaterialReaderStart: db.prepare("UPDATE materials SET reader_start = ? WHERE id = ? AND user_id = ?"),
     deleteMaterial: db.prepare("DELETE FROM materials WHERE id = ? AND user_id = ?"),
     upsertKnown: db.prepare(`
       INSERT INTO user_word_status (user_id, word_id, known, updated_at)
