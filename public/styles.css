@@ -875,12 +875,12 @@ button:disabled {
   cursor: not-allowed;
   opacity: 0.62;
 }
-.auth-mode-button.is-active, .tab-button.is-active, .locale-button.is-active, .display-mode-button.is-active {
+.auth-mode-button.is-active, .tab-button.is-active, .locale-button.is-active, .display-mode-button.is-active, .reader-sidebar-tab-button.is-active {
   background: #ffffff;
   color: #172026;
   box-shadow: 0 1px 2px rgba(23, 32, 38, 0.08), inset 0 0 0 1px rgba(15, 118, 110, 0.18);
 }
-.tab-button:hover, .locale-button:hover, .display-mode-button:hover {
+.tab-button:hover, .locale-button:hover, .display-mode-button:hover, .reader-sidebar-tab-button:hover {
   background: #ffffff;
   color: #172026;
 }
@@ -997,6 +997,53 @@ tbody tr:last-child td {
   transform: translateX(0);
   opacity: 1;
   transition: transform 220ms ease, opacity 180ms ease, box-shadow 220ms ease;
+}
+.reader-setting-row {
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.reader-setting-row:hover {
+  border-color: rgba(15, 118, 110, 0.24);
+  background: var(--color-slate-50);
+}
+.reader-checkbox {
+  appearance: none;
+  display: grid;
+  flex: 0 0 24px;
+  place-content: center;
+  width: 24px;
+  height: 24px;
+  margin-top: 1px;
+  border: 2px solid var(--color-line);
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.reader-checkbox::before {
+  content: "";
+  width: 7px;
+  height: 12px;
+  margin-top: -2px;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  transform: rotate(45deg) scale(0);
+  transition: transform 120ms ease;
+}
+.reader-checkbox:checked {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+}
+.reader-checkbox:checked::before {
+  transform: rotate(45deg) scale(1);
+}
+.reader-checkbox:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--color-teal-100);
+}
+.reader-setting-text {
+  min-width: 0;
+  line-height: 1.35;
 }
 .reader-layout.is-sidebar-collapsed .reader-sidebar {
   width: 0;

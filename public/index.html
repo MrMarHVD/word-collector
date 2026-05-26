@@ -191,15 +191,27 @@
                 <span class="visually-hidden" data-i18n="reader.toggleSidebar">Toggle sidebar</span>
               </button>
             </div>
-            <form id="materialImportForm" class="reader-import sticky top-0 z-[1] bg-white pb-3">
-              <label class="grid gap-1.5 text-sm font-semibold text-slate-700">
-                <span data-i18n="reader.import">インポート</span>
-                <input id="materialFile" class="min-h-11 rounded-md border border-line bg-white px-3 py-2 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700" type="file" accept=".pdf,.epub,.txt,application/pdf,application/epub+zip,text/plain" />
+            <div id="readerSidebarTabs" class="reader-sidebar-tabs mb-3 grid grid-cols-2 gap-1 rounded-lg border border-line bg-slate-100 p-1">
+              <button class="reader-sidebar-tab-button rounded-md px-3 py-2 text-sm font-semibold text-slate-600" type="button" data-reader-sidebar-tab="import" data-i18n="reader.importTab">Import</button>
+              <button class="reader-sidebar-tab-button rounded-md px-3 py-2 text-sm font-semibold text-slate-600" type="button" data-reader-sidebar-tab="settings" data-i18n="reader.settingsTab">Settings</button>
+            </div>
+            <div id="readerImportTabPanel" class="reader-sidebar-tab-panel" data-reader-sidebar-panel="import">
+              <form id="materialImportForm" class="reader-import sticky top-0 z-[1] bg-white pb-3">
+                <label class="grid gap-1.5 text-sm font-semibold text-slate-700">
+                  <span data-i18n="reader.import">インポート</span>
+                  <input id="materialFile" class="min-h-11 rounded-md border border-line bg-white px-3 py-2 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700" type="file" accept=".pdf,.epub,.txt,application/pdf,application/epub+zip,text/plain" />
+                </label>
+                <button class="mt-2 min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-teal-800" type="submit" data-i18n="reader.importButton">インポート</button>
+                <p id="materialImportStatus" class="status mt-3 min-h-5 text-sm text-slate-500" role="status"></p>
+              </form>
+              <div id="materialList" class="material-list grid max-h-[calc(100vh-410px)] gap-2 overflow-auto"></div>
+            </div>
+            <div id="readerSettingsTabPanel" class="reader-sidebar-tab-panel" data-reader-sidebar-panel="settings" hidden>
+              <label class="reader-setting-row flex items-start gap-3 rounded-lg border border-line bg-white p-3 text-sm font-semibold text-slate-700">
+                <input id="readerAutoMarkKnown" class="reader-checkbox" type="checkbox" />
+                <span class="reader-setting-text" data-i18n="reader.autoMarkKnownOnPageTurn">Automatically mark new words as known on page turn</span>
               </label>
-              <button class="mt-2 min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-teal-800" type="submit" data-i18n="reader.importButton">インポート</button>
-              <p id="materialImportStatus" class="status mt-3 min-h-5 text-sm text-slate-500" role="status"></p>
-            </form>
-            <div id="materialList" class="material-list grid max-h-[calc(100vh-360px)] gap-2 overflow-auto"></div>
+            </div>
             <div id="readerSidebarResize" class="reader-resize-handle" role="separator" aria-orientation="vertical"></div>
           </aside>
           <section class="reader-panel relative grid overflow-auto rounded-r-lg border border-line bg-white p-5 shadow-panel">

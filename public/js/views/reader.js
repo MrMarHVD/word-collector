@@ -50,6 +50,18 @@ export function renderReaderSidebar() {
   elements.readerSidebarOpen.hidden = !state.readerSidebarCollapsed;
 }
 
+export function renderReaderSidebarTabs() {
+  elements.readerSidebarTabButtons.forEach((button) => {
+    const active = button.dataset.readerSidebarTab === state.readerSidebarTab;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  elements.readerSidebarTabPanels.forEach((panel) => {
+    panel.hidden = panel.dataset.readerSidebarPanel !== state.readerSidebarTab;
+  });
+  elements.readerAutoMarkKnown.checked = state.readerAutoMarkKnownOnPageTurn;
+}
+
 // Render the imported material list and active material state.
 export function renderMaterialList() {
   elements.materialList.innerHTML = state.materials.length

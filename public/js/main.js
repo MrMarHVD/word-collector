@@ -7,7 +7,7 @@ import { state } from "./state.js";
 import { renderAuthMode } from "./views/auth.js";
 import { renderDashboard, renderSelectedCollectionStats } from "./views/dashboard.js";
 import { renderOnboarding } from "./views/onboarding.js";
-import { renderMaterialList, renderReaderSidebar, renderReaderTokens, renderReaderWordInfo } from "./views/reader.js";
+import { renderMaterialList, renderReaderSidebar, renderReaderSidebarTabs, renderReaderTokens, renderReaderWordInfo } from "./views/reader.js";
 import { renderDisplayModeButtons, renderLocaleButtons, resetWordWindow, setActiveTab, showView } from "./views/shell.js";
 import { loadMoreWordsIfNeeded, renderWords } from "./views/words.js";
 
@@ -39,6 +39,7 @@ function applyLocale() {
   if (state.dashboard) {
     renderDashboard();
     renderReaderSidebar();
+    renderReaderSidebarTabs();
     renderMaterialList();
     renderReaderTokens();
     renderWords(state.words);
@@ -182,6 +183,7 @@ async function loadDashboard() {
   renderDashboard();
   renderStudyLanguageSelect();
   renderReaderSidebar();
+  renderReaderSidebarTabs();
   await loadMaterials(true);
   await loadWords();
 }
@@ -291,6 +293,26 @@ function startReaderResize(event, target) {
 function closeReaderWordInfo() {
   renderReaderWordInfo(null);
   elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
+}
+
+async function markCurrentReaderPageKnown() {
+  if (!state.readerAutoMarkKnownOnPageTurn) {
+    return false;
+  }
+  const wordIds = [...new Set(state.readerTokens.filter((token) => token.wordId && !token.known).map((token) => token.wordId))];
+  if (!wordIds.length) {
+    return false;
+  }
+  await Promise.all(
+    wordIds.map((wordId) =>
+      requestJson(`/api/words/${wordId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ known: true })
+      })
+    )
+  );
+  state.readerTokens = state.readerTokens.map((token) => (wordIds.includes(token.wordId) ? { ...token, known: true } : token));
+  return true;
 }
 
 // Load words for the selected collection and active search term.
@@ -475,6 +497,21 @@ function bindEvents() {
   elements.readerSidebarResize.addEventListener("pointerdown", (event) => startReaderResize(event, "sidebar"));
   elements.readerPanelResize.addEventListener("pointerdown", (event) => startReaderResize(event, "panel"));
 
+  elements.readerSidebarTabs.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-reader-sidebar-tab]");
+    if (!button) {
+      return;
+    }
+    state.readerSidebarTab = button.dataset.readerSidebarTab;
+    renderReaderSidebarTabs();
+  });
+
+  elements.readerAutoMarkKnown.addEventListener("change", (event) => {
+    state.readerAutoMarkKnownOnPageTurn = event.target.checked;
+    localStorage.setItem("wordMarkerReaderAutoMarkKnownOnPageTurn", String(state.readerAutoMarkKnownOnPageTurn));
+    renderReaderSidebarTabs();
+  });
+
   elements.materialImportForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const file = elements.materialFile.files[0];
@@ -571,11 +608,19 @@ function bindEvents() {
   });
 
   elements.readerPrevPage.addEventListener("click", async () => {
+    const markedKnown = await markCurrentReaderPageKnown();
     await loadMaterialReader(Math.max(state.readerStart - state.readerWordsPerPage, 0));
+    if (markedKnown) {
+      await loadDashboard();
+    }
   });
 
   elements.readerNextPage.addEventListener("click", async () => {
+    const markedKnown = await markCurrentReaderPageKnown();
     await loadMaterialReader(state.readerStart + state.readerWordsPerPage);
+    if (markedKnown) {
+      await loadDashboard();
+    }
   });
 
   elements.readerText.addEventListener("click", (event) => {
@@ -721,5 +766,6 @@ setUnauthorizedHandler(() => showView("auth"));
 bindEvents();
 await loadMessages();
 applyLocale();
+renderReaderSidebarTabs();
 renderAuthMode();
 await loadSession();
