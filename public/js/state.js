@@ -27,6 +27,7 @@ export const state = {
   readerPanelHeight: Number(localStorage.getItem("wordMarkerReaderPanelHeight")) || 0,
   readerSidebarTab: "import",
   readerAutoMarkKnownOnPageTurn: localStorage.getItem("wordMarkerReaderAutoMarkKnownOnPageTurn") === "true",
+  readerShowWordSpaces: localStorage.getItem("wordMarkerReaderShowWordSpaces") === "true",
   words: [],
   visibleWordCount: WORD_PAGE_SIZE,
   wordDisplayMode: localStorage.getItem("wordMarkerDisplayMode") || "infinite",

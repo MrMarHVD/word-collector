@@ -117,6 +117,7 @@ async function setStudyLanguage(languageName, { persist = true, reload = true } 
     localStorage.setItem("wordMarkerStudyLanguageName", language.name);
   }
   renderStudyLanguageSelect();
+  renderReaderSidebarTabs();
   if (reload) {
     // Language changes invalidate reader, collection, and pagination state.
     state.selectedCollectionId = null;
@@ -248,6 +249,7 @@ async function loadMaterialReader(start = null, { persist = true } = {}) {
     await saveMaterialReaderStart(state.selectedMaterialId, result.start);
   }
   renderReaderTokens();
+  renderReaderSidebarTabs();
 }
 
 // Clamp a numeric value between inclusive minimum and maximum values.
@@ -532,6 +534,12 @@ function bindEvents() {
     state.readerAutoMarkKnownOnPageTurn = event.target.checked;
     localStorage.setItem("wordMarkerReaderAutoMarkKnownOnPageTurn", String(state.readerAutoMarkKnownOnPageTurn));
     renderReaderSidebarTabs();
+  });
+
+  elements.readerShowWordSpaces.addEventListener("change", (event) => {
+    state.readerShowWordSpaces = event.target.checked;
+    localStorage.setItem("wordMarkerReaderShowWordSpaces", String(state.readerShowWordSpaces));
+    renderReaderTokens();
   });
 
   elements.materialImportForm.addEventListener("submit", async (event) => {

@@ -50,6 +50,12 @@ export function renderReaderSidebar() {
   elements.readerSidebarOpen.hidden = !state.readerSidebarCollapsed;
 }
 
+function isWordSpacingLanguage(name) {
+  if (!name) return false;
+  const lower = name.toLowerCase();
+  return lower === "japanese" || lower === "chinese" || name === "日本語" || name === "中文";
+}
+
 export function renderReaderSidebarTabs() {
   elements.readerSidebarTabButtons.forEach((button) => {
     const active = button.dataset.readerSidebarTab === state.readerSidebarTab;
@@ -60,6 +66,10 @@ export function renderReaderSidebarTabs() {
     panel.hidden = panel.dataset.readerSidebarPanel !== state.readerSidebarTab;
   });
   elements.readerAutoMarkKnown.checked = state.readerAutoMarkKnownOnPageTurn;
+  const showSpacingToggle = isWordSpacingLanguage(state.currentMaterial?.languageName)
+    || isWordSpacingLanguage(state.selectedStudyLanguageName);
+  elements.readerShowWordSpacesRow.hidden = !showSpacingToggle;
+  elements.readerShowWordSpaces.checked = state.readerShowWordSpaces;
 }
 
 // Render the imported material list and active material state.
@@ -107,10 +117,12 @@ function wrapperFor(blockType) {
 
 // Render the page either as a flat sequence (legacy materials, PDF, TXT) or as
 // block-wrapped groups when structured EPUB tokens are present.
-function renderReaderTokenMarkup(tokens) {
+function renderReaderTokenMarkup(tokens, languageName) {
   if (!tokens.length) return "";
+  const cjk = isWordSpacingLanguage(languageName);
+  const separator = cjk && !state.readerShowWordSpaces ? "" : " ";
   if (tokens[0].blockIndex === null || tokens[0].blockIndex === undefined) {
-    return tokens.map(tokenButtonMarkup).join("");
+    return tokens.map(tokenButtonMarkup).join(cjk ? separator : "");
   }
 
   const groups = [];
@@ -135,7 +147,7 @@ function renderReaderTokenMarkup(tokens) {
       inList = false;
     }
     const wrapper = wrapperFor(group.blockType);
-    const inner = group.tokens.map(tokenButtonMarkup).join(" ");
+    const inner = group.tokens.map(tokenButtonMarkup).join(separator);
     parts.push(`<${wrapper.tag} class="${wrapper.className}">${inner}</${wrapper.tag}>`);
   }
   if (inList) parts.push(`</ul>`);
@@ -174,7 +186,7 @@ export function renderReaderTokens() {
   const material = state.currentMaterial;
   elements.readerTitle.textContent = material?.title || t("reader.title");
   elements.readerMeta.textContent = material ? t("reader.readerMeta", { words: formatCount(material.wordCount), language: material.languageName }) : "";
-  elements.readerText.innerHTML = renderReaderTokenMarkup(state.readerTokens);
+  elements.readerText.innerHTML = renderReaderTokenMarkup(state.readerTokens, material?.languageName);
 
   const end = Math.min(state.readerStart + state.readerTokens.length, material?.wordCount || 0);
   elements.readerPageStatus.textContent = material
