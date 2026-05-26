@@ -185,6 +185,21 @@ export function runMigrations(db) {
     db.exec("ALTER TABLE words ADD COLUMN lemma TEXT");
     db.exec("UPDATE words SET lemma = word WHERE lemma IS NULL OR trim(lemma) = ''");
   }
+  if (!wordColumns.some((column) => column.name === "pos")) {
+    db.exec("ALTER TABLE words ADD COLUMN pos TEXT");
+  }
+  if (!wordColumns.some((column) => column.name === "pos_subcategory")) {
+    db.exec("ALTER TABLE words ADD COLUMN pos_subcategory TEXT");
+  }
+  if (!wordColumns.some((column) => column.name === "reading")) {
+    db.exec("ALTER TABLE words ADD COLUMN reading TEXT");
+  }
+  if (!wordColumns.some((column) => column.name === "pinyin")) {
+    db.exec("ALTER TABLE words ADD COLUMN pinyin TEXT");
+  }
+  if (!wordColumns.some((column) => column.name === "traditional")) {
+    db.exec("ALTER TABLE words ADD COLUMN traditional TEXT");
+  }
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS word_translations (
@@ -271,6 +286,11 @@ export function runMigrations(db) {
   const materialColumns = db.prepare("PRAGMA table_info(materials)").all();
   if (!materialColumns.some((column) => column.name === "reader_start")) {
     db.exec("ALTER TABLE materials ADD COLUMN reader_start INTEGER NOT NULL DEFAULT 0");
+  }
+
+  const materialTokenColumns = db.prepare("PRAGMA table_info(material_tokens)").all();
+  if (!materialTokenColumns.some((column) => column.name === "conjugation_form")) {
+    db.exec("ALTER TABLE material_tokens ADD COLUMN conjugation_form TEXT");
   }
 
   db.prepare(`

@@ -1,7 +1,9 @@
 import { READER_WORK_PAGE_SIZE } from "../config.js";
 import { normalizeName } from "../shared/normalize.js";
 import { extractTextFromUpload } from "./textExtraction.js";
+import { lookupChineseDetails } from "./jmdict.js";
 import { tokenizeForLanguage } from "./lemmatizer.js";
+import { languageKey } from "./translations.js";
 import { getTranslationCandidates, hasTranslationAttempt, hasUsableStoredTranslation, materialTranslationStatus, scheduleMaterialTranslationBackfill, supportedTargetNativeLanguage, translationForToken } from "./translations.js";
 
 const UNCOLLECTED_COLLECTION_NAME = "Uncollected";
@@ -18,8 +20,25 @@ function getUncollectedCollection(db, statements, userId, languageId) {
   return collection;
 }
 
+// Resolve per-lemma metadata fields for the source language word row.
+function wordMetadataForToken(db, sourceLanguage, token) {
+  const source = languageKey(sourceLanguage);
+  if (source === "Japanese") {
+    return { pos: token.pos || "", posSubcategory: token.posSubcategory || "", reading: token.reading || "", pinyin: "", traditional: "" };
+  }
+  if (source === "English") {
+    return { pos: token.pos || "", posSubcategory: "", reading: "", pinyin: "", traditional: "" };
+  }
+  if (source === "Chinese") {
+    const details = lookupChineseDetails(db, token.lemma) || {};
+    return { pos: "", posSubcategory: "", reading: "", pinyin: details.pinyin || "", traditional: details.traditional || "" };
+  }
+  return { pos: token.pos || "", posSubcategory: "", reading: "", pinyin: "", traditional: "" };
+}
+
 // Return a dictionary word row, creating and translating one when necessary.
 function getOrCreateDictionaryWord(db, statements, userId, language, token, targetNativeLanguage, fallbackTranslation) {
+  const metadata = wordMetadataForToken(db, language, token);
   // Reuse a matching user-owned word before creating an uncollected entry.
   const existing = statements.wordInLanguageBySurfaceOrLemma.get(userId, language.id, token.surface, token.lemma, token.surface);
   if (existing) {
@@ -27,14 +46,27 @@ function getOrCreateDictionaryWord(db, statements, userId, language, token, targ
     if (targetNativeLanguage && !hasUsableStoredTranslation(statements, existing.id, targetNativeLanguage, token) && (fallbackTranslation || !attempted)) {
       statements.upsertWordTranslation.run(existing.id, targetNativeLanguage, fallbackTranslation);
     }
+    statements.updateWordMetadata.run(metadata.pos, metadata.posSubcategory, metadata.reading, metadata.pinyin, metadata.traditional, existing.id);
     return existing;
   }
 
   const collection = getUncollectedCollection(db, statements, userId, language.id);
   let word = statements.wordByCollectionAndLemma.get(collection.id, token.lemma);
   if (!word) {
-    statements.insertWord.run(collection.id, token.lemma, fallbackTranslation, token.lemma);
+    statements.insertWord.run(
+      collection.id,
+      token.lemma,
+      fallbackTranslation,
+      token.lemma,
+      metadata.pos || null,
+      metadata.posSubcategory || null,
+      metadata.reading || null,
+      metadata.pinyin || null,
+      metadata.traditional || null
+    );
     word = statements.wordByCollectionAndLemma.get(collection.id, token.lemma);
+  } else {
+    statements.updateWordMetadata.run(metadata.pos, metadata.posSubcategory, metadata.reading, metadata.pinyin, metadata.traditional, word.id);
   }
 
   if (targetNativeLanguage) {
@@ -97,7 +129,8 @@ export async function importMaterial(db, statements, userId, languageId, file) {
         token.pos,
         word.id,
         token.paragraphIndex,
-        token.sentenceIndex
+        token.sentenceIndex,
+        token.conjugationForm || null
       );
     }
     db.exec("COMMIT");
@@ -153,8 +186,9 @@ export function getMaterialReader(db, statements, userId, materialId, start = 0,
   const requestedStart = start === null || start === undefined ? material.readerStart : start;
   const safeStart = Math.min(Math.max(Number(requestedStart) || 0, 0), Math.max(Number(material.wordCount || 0) - 1, 0));
   const tokens = db.prepare(`
-    SELECT mt.id, mt.position, mt.surface, mt.lemma, mt.pos, mt.word_id AS wordId,
+    SELECT mt.id, mt.position, mt.surface, mt.lemma, mt.pos, mt.conjugation_form AS conjugationForm, mt.word_id AS wordId,
            w.word AS dictionaryForm,
+           w.pos AS wordPos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional,
            CASE
              WHEN wt.translation IS NOT NULL AND trim(wt.translation) <> '' THEN wt.translation
              WHEN lower(?) = lower(?) THEN w.word

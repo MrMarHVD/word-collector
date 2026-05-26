@@ -157,6 +157,26 @@ export function renderReaderWordInfo(token, anchor = null) {
     return;
   }
   const known = Boolean(token.known);
+  const rows = [];
+  const dictionaryForm = token.dictionaryForm || token.lemma;
+  const subcategory = token.posSubcategory ? ` (${token.posSubcategory})` : "";
+  rows.push({ label: t("reader.dictionaryForm"), value: `${dictionaryForm}${subcategory}` });
+  if (token.reading && token.reading !== dictionaryForm) {
+    rows.push({ label: t("reader.reading"), value: token.reading });
+  }
+  if (token.pinyin) {
+    rows.push({ label: t("reader.pinyin"), value: token.pinyin });
+  }
+  if (token.traditional && token.traditional !== dictionaryForm) {
+    rows.push({ label: t("reader.traditional"), value: token.traditional });
+  }
+  const posLabelParts = [token.wordPos, token.conjugationForm].filter(Boolean);
+  if (posLabelParts.length) {
+    rows.push({ label: t("reader.partOfSpeech"), value: posLabelParts.join(" · ") });
+  }
+  rows.push({ label: t("table.translation"), value: token.translation || t("reader.noTranslation") });
+  rows.push({ label: t("table.status"), value: known ? t("word.known") : t("word.unknown") });
+
   elements.readerWordInfo.hidden = false;
   elements.readerWordInfo.style.visibility = "hidden";
   elements.readerWordInfo.innerHTML = `
@@ -165,12 +185,7 @@ export function renderReaderWordInfo(token, anchor = null) {
       <button class="reader-word-info-close" type="button" data-reader-word-info-close aria-label="${escapeHtml(t("reader.closeTranslation"))}">&times;</button>
     </div>
     <dl>
-      <dt>${escapeHtml(t("reader.dictionaryForm"))}</dt>
-      <dd>${escapeHtml(token.dictionaryForm || token.lemma)}</dd>
-      <dt>${escapeHtml(t("table.translation"))}</dt>
-      <dd>${escapeHtml(token.translation || t("reader.noTranslation"))}</dd>
-      <dt>${escapeHtml(t("table.status"))}</dt>
-      <dd>${escapeHtml(known ? t("word.known") : t("word.unknown"))}</dd>
+      ${rows.map((row) => `<dt>${escapeHtml(row.label)}</dt><dd>${escapeHtml(row.value)}</dd>`).join("")}
     </dl>
     <button class="known-toggle" data-reader-word-id="${token.wordId}" data-known="${known}">${escapeHtml(known ? t("word.known") : t("word.unknown"))}</button>
   `;

@@ -13,9 +13,23 @@ export function renderWords(words) {
 
   elements.wordRows.innerHTML = visibleWords
     .map(
-      (entry) => `
+      (entry) => {
+        const badges = [];
+        if (entry.pos) badges.push(entry.pos);
+        if (entry.posSubcategory && entry.posSubcategory !== entry.pos) badges.push(entry.posSubcategory);
+        const phonetics = [];
+        if (entry.reading) phonetics.push(entry.reading);
+        if (entry.pinyin) phonetics.push(entry.pinyin);
+        if (entry.traditional && entry.traditional !== entry.word) phonetics.push(entry.traditional);
+        return `
       <tr>
-        <td class="px-3 py-3 align-top">${escapeHtml(entry.word)}</td>
+        <td class="px-3 py-3 align-top">
+          <div class="word-cell">
+            <span class="word-cell-main">${escapeHtml(entry.word)}</span>
+            ${phonetics.length ? `<span class="word-cell-phonetic">${escapeHtml(phonetics.join(" · "))}</span>` : ""}
+            ${badges.length ? `<span class="word-cell-badges">${badges.map((badge) => `<span class="word-badge">${escapeHtml(badge)}</span>`).join("")}</span>` : ""}
+          </div>
+        </td>
         <td class="px-3 py-3 align-top text-label">${escapeHtml(entry.translation)}</td>
         <td class="known-cell">
           <button class="known-toggle" data-word-id="${entry.id}" data-known="${Boolean(entry.known)}">
@@ -23,7 +37,8 @@ export function renderWords(words) {
           </button>
         </td>
       </tr>
-    `
+    `;
+      }
     )
     .join("");
 

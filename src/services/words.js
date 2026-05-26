@@ -15,9 +15,12 @@ function displayedTranslationExpression() {
 export function getWords(db, userId, collectionId, search, nativeLanguage = "English") {
   const term = normalizeName(search);
   const translationExpression = displayedTranslationExpression();
+  const selectColumns = `w.id, w.collection_id AS collectionId, w.word, ${translationExpression} AS translation,
+    w.pos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional,
+    COALESCE(uws.known, 0) AS known`;
   if (term) {
     return db.prepare(`
-      SELECT w.id, w.collection_id AS collectionId, w.word, ${translationExpression} AS translation, COALESCE(uws.known, 0) AS known
+      SELECT ${selectColumns}
       FROM words w
       JOIN collections c ON c.id = w.collection_id
       JOIN languages l ON l.id = c.language_id
@@ -30,7 +33,7 @@ export function getWords(db, userId, collectionId, search, nativeLanguage = "Eng
   }
 
   return db.prepare(`
-    SELECT w.id, w.collection_id AS collectionId, w.word, ${translationExpression} AS translation, COALESCE(uws.known, 0) AS known
+    SELECT ${selectColumns}
     FROM words w
     JOIN collections c ON c.id = w.collection_id
     JOIN languages l ON l.id = c.language_id

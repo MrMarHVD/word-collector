@@ -258,6 +258,41 @@ tbody tr:last-child td {
   color: var(--text-muted);
 }
 
+.word-cell {
+  display: grid;
+  gap: 4px;
+}
+
+.word-cell-main {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.word-cell-phonetic {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.word-cell-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.word-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-main);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  padding: 1px 8px;
+  color: var(--text-label);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
 .reader-layout {
   grid-template-columns: minmax(240px, min(var(--readerSidebarWidth), 340px)) minmax(0, 1fr);
   width: var(--readerViewportWidth, 100vw);

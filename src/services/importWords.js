@@ -38,7 +38,7 @@ export function importWords(db, statements, userId, collectionName, languageId, 
   try {
     // Keep each upload atomic so partial imports do not leave mixed results.
     for (const row of cleanWords) {
-      const result = statements.insertWord.run(collection.id, row.word, row.translation, row.word);
+      const result = statements.insertWord.run(collection.id, row.word, row.translation, row.word, null, null, null, null, null);
       if (result.changes) {
         const word = statements.wordByCollectionAndLemma.get(collection.id, row.word);
         if (word) {
