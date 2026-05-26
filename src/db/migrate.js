@@ -292,6 +292,12 @@ export function runMigrations(db) {
   if (!materialTokenColumns.some((column) => column.name === "conjugation_form")) {
     db.exec("ALTER TABLE material_tokens ADD COLUMN conjugation_form TEXT");
   }
+  if (!materialTokenColumns.some((column) => column.name === "leading_text")) {
+    db.exec("ALTER TABLE material_tokens ADD COLUMN leading_text TEXT");
+  }
+  if (!materialTokenColumns.some((column) => column.name === "trailing_text")) {
+    db.exec("ALTER TABLE material_tokens ADD COLUMN trailing_text TEXT");
+  }
   if (!materialTokenColumns.some((column) => column.name === "block_index")) {
     db.exec("ALTER TABLE material_tokens ADD COLUMN block_index INTEGER");
   }

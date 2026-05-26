@@ -117,12 +117,40 @@ function chineseLemma(surface) {
   return surface;
 }
 
+// Scan the source text alongside tokens and capture the literal characters
+// (whitespace, punctuation) between each surface so the reader can render them
+// verbatim. leadingText is set only on the first token; trailingText on every
+// token (empty when adjacent surfaces have no gap).
+function attachGaps(tokens, sourceText) {
+  let cursor = 0;
+  for (let i = 0; i < tokens.length; i += 1) {
+    const token = tokens[i];
+    const offset = sourceText.indexOf(token.surface, cursor);
+    if (offset === -1) {
+      token.leadingText = i === 0 ? "" : token.leadingText || "";
+      token.trailingText = "";
+      continue;
+    }
+    if (i === 0) {
+      token.leadingText = sourceText.slice(0, offset);
+    } else {
+      tokens[i - 1].trailingText = sourceText.slice(cursor, offset);
+    }
+    cursor = offset + token.surface.length;
+  }
+  if (tokens.length) {
+    tokens[tokens.length - 1].trailingText = sourceText.slice(cursor);
+  }
+  return tokens;
+}
+
 // Tokenize text into surface forms and lemmas for the selected study language.
 export async function tokenizeForLanguage(text, languageName) {
   const normalizedLanguageName = languageName.toLowerCase();
+  let tokens;
   if (languageName.toLowerCase() === "japanese" || languageName === "日本語") {
     const tokenizer = await getJapaneseTokenizer();
-    return tokenizer
+    tokens = tokenizer
       .tokenize(text)
       .filter(isUsableJapaneseToken)
       .map((token, index) => {
@@ -138,37 +166,35 @@ export async function tokenizeForLanguage(text, languageName) {
           reading,
           conjugationForm: japaneseConjugationForm(token.conjugated_form),
           paragraphIndex: 0,
-          sentenceIndex: 0
+          sentenceIndex: 0,
+          leadingText: "",
+          trailingText: ""
         };
       });
-  }
-
-  if (normalizedLanguageName === "english") {
-    return (
-      text.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g)?.map((surface, index) => {
-        const lower = surface.toLowerCase();
-        const { lemma, pos } = englishLemma(lower);
-        return {
-          position: index,
-          surface,
-          normalized: lower,
-          lemma,
-          pos,
-          posSubcategory: "",
-          reading: "",
-          conjugationForm: "",
-          paragraphIndex: 0,
-          sentenceIndex: 0
-        };
-      }) || []
-    );
-  }
-
-  if (normalizedLanguageName === "chinese") {
+  } else if (normalizedLanguageName === "english") {
+    tokens = text.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g)?.map((surface, index) => {
+      const lower = surface.toLowerCase();
+      const { lemma, pos } = englishLemma(lower);
+      return {
+        position: index,
+        surface,
+        normalized: lower,
+        lemma,
+        pos,
+        posSubcategory: "",
+        reading: "",
+        conjugationForm: "",
+        paragraphIndex: 0,
+        sentenceIndex: 0,
+        leadingText: "",
+        trailingText: ""
+      };
+    }) || [];
+  } else if (normalizedLanguageName === "chinese") {
     // Intl.Segmenter gives better word boundaries than character splitting when
     // the runtime provides Chinese segmentation support.
     const segmenter = new Intl.Segmenter("zh", { granularity: "word" });
-    return [...segmenter.segment(text)]
+    tokens = [...segmenter.segment(text)]
       .filter((segment) => segment.isWordLike && /[\p{Script=Han}A-Za-z0-9]/u.test(segment.segment))
       .map((segment, index) => {
         const lemma = chineseLemma(segment.segment);
@@ -182,25 +208,30 @@ export async function tokenizeForLanguage(text, languageName) {
           reading: "",
           conjugationForm: "",
           paragraphIndex: 0,
-          sentenceIndex: 0
+          sentenceIndex: 0,
+          leadingText: "",
+          trailingText: ""
         };
       });
+  } else {
+    tokens = text
+      .match(/[\p{Letter}\p{Number}'-]+/gu)
+      ?.map((surface, index) => ({
+        position: index,
+        surface,
+        normalized: surface.toLowerCase(),
+        lemma: surface.toLowerCase(),
+        pos: null,
+        posSubcategory: "",
+        reading: "",
+        conjugationForm: "",
+        paragraphIndex: 0,
+        sentenceIndex: 0,
+        leadingText: "",
+        trailingText: ""
+      })) || [];
   }
-
-  return text
-    .match(/[\p{Letter}\p{Number}'-]+/gu)
-    ?.map((surface, index) => ({
-      position: index,
-      surface,
-      normalized: surface.toLowerCase(),
-      lemma: surface.toLowerCase(),
-      pos: null,
-      posSubcategory: "",
-      reading: "",
-      conjugationForm: "",
-      paragraphIndex: 0,
-      sentenceIndex: 0
-    })) || [];
+  return attachGaps(tokens, text);
 }
 
 // Tokenize a structured block array, tagging every token with its block context

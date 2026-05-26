@@ -146,7 +146,9 @@ export async function importMaterial(db, statements, userId, languageId, file) {
         token.sentenceIndex,
         token.conjugationForm || null,
         token.blockIndex ?? null,
-        token.blockType ?? null
+        token.blockType ?? null,
+        token.leadingText ?? null,
+        token.trailingText ?? null
       );
     }
     db.exec("COMMIT");
@@ -204,6 +206,7 @@ export function getMaterialReader(db, statements, userId, materialId, start = 0,
   const tokens = db.prepare(`
     SELECT mt.id, mt.position, mt.surface, mt.lemma, mt.pos, mt.conjugation_form AS conjugationForm, mt.word_id AS wordId,
            mt.block_index AS blockIndex, mt.block_type AS blockType,
+           mt.leading_text AS leadingText, mt.trailing_text AS trailingText,
            w.word AS dictionaryForm,
            w.pos AS wordPos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional,
            CASE

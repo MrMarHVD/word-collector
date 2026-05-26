@@ -99,6 +99,22 @@ function tokenButtonMarkup(token) {
   return `<button class="reader-token" type="button" data-word-id="${token.wordId}" data-token-id="${token.id}" data-known="${Boolean(token.known)}">${escapeHtml(token.surface)}</button>`;
 }
 
+// Render one token with its literal surrounding text. Falls back to the
+// supplied separator when leading/trailing fields are absent (legacy tokens).
+function tokenWithGaps(token, fallbackSeparator, isFirstInGroup, showSpacesForCjk) {
+  const hasGaps = token.leadingText !== null && token.leadingText !== undefined
+    && token.trailingText !== null && token.trailingText !== undefined;
+  if (!hasGaps) {
+    return (isFirstInGroup ? "" : fallbackSeparator) + tokenButtonMarkup(token);
+  }
+  const lead = isFirstInGroup ? escapeHtml(token.leadingText) : "";
+  let trail = escapeHtml(token.trailingText);
+  // When the CJK "show word spaces" toggle is on, inject a single space
+  // wherever there is no other literal text between adjacent tokens.
+  if (showSpacesForCjk && !token.trailingText) trail = " ";
+  return lead + tokenButtonMarkup(token) + trail;
+}
+
 const BLOCK_WRAPPERS = {
   "heading-1": { tag: "h1", className: "reader-block reader-heading reader-heading-1" },
   "heading-2": { tag: "h2", className: "reader-block reader-heading reader-heading-2" },
@@ -120,9 +136,12 @@ function wrapperFor(blockType) {
 function renderReaderTokenMarkup(tokens, languageName) {
   if (!tokens.length) return "";
   const cjk = isWordSpacingLanguage(languageName);
-  const separator = cjk && !state.readerShowWordSpaces ? "" : " ";
+  const fallbackSeparator = cjk && !state.readerShowWordSpaces ? "" : " ";
+  const showSpacesForCjk = cjk && state.readerShowWordSpaces;
   if (tokens[0].blockIndex === null || tokens[0].blockIndex === undefined) {
-    return tokens.map(tokenButtonMarkup).join(cjk ? separator : "");
+    return tokens
+      .map((token, index) => tokenWithGaps(token, cjk ? fallbackSeparator : "", index === 0, showSpacesForCjk))
+      .join("");
   }
 
   const groups = [];
@@ -147,7 +166,9 @@ function renderReaderTokenMarkup(tokens, languageName) {
       inList = false;
     }
     const wrapper = wrapperFor(group.blockType);
-    const inner = group.tokens.map(tokenButtonMarkup).join(separator);
+    const inner = group.tokens
+      .map((token, index) => tokenWithGaps(token, fallbackSeparator, index === 0, showSpacesForCjk))
+      .join("");
     parts.push(`<${wrapper.tag} class="${wrapper.className}">${inner}</${wrapper.tag}>`);
   }
   if (inList) parts.push(`</ul>`);
