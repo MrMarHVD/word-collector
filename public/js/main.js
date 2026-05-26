@@ -63,6 +63,17 @@ function studyLanguageLabel(language) {
   return t(`studyLanguage.${language}`);
 }
 
+function renderReaderSidebarAfterLayout() {
+  requestAnimationFrame(() => requestAnimationFrame(renderReaderSidebar));
+}
+
+function activateTab(tabName) {
+  setActiveTab(tabName);
+  if (tabName === "reader") {
+    renderReaderSidebarAfterLayout();
+  }
+}
+
 // Return configured study languages that exist for the signed-in user.
 function availableStudyLanguages() {
   return state.studyLanguageOptions
@@ -139,7 +150,7 @@ async function loadSession() {
   const fallbackLanguageName = availableLanguages[0]?.name || "";
   state.selectedStudyLanguageName = availableLanguages.some((language) => language.name === savedLanguageName) ? savedLanguageName : fallbackLanguageName;
   showView("app");
-  setActiveTab(state.activeTab);
+  activateTab(state.activeTab);
   renderSettings();
   await setStudyLanguage(state.selectedStudyLanguageName, { persist: true, reload: false });
   await loadDashboard();
@@ -326,7 +337,7 @@ function bindEvents() {
 
       state.selectedCollectionId = result.collection.id;
       state.search = "";
-      setActiveTab("collections");
+      activateTab("collections");
       elements.searchInput.value = "";
       elements.uploadStatus.textContent = t("upload.result", {
         inserted: formatCount(result.inserted),
@@ -342,7 +353,7 @@ function bindEvents() {
   });
 
   elements.tabButtons.forEach((button) => {
-    button.addEventListener("click", () => setActiveTab(button.dataset.tab));
+    button.addEventListener("click", () => activateTab(button.dataset.tab));
   });
 
   elements.authModeButtons.forEach((button) => {
