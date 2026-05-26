@@ -14,3 +14,9 @@ export const SEED_PASSWORD = "MelkeMannen22";
 export const NATIVE_LANGUAGE_OPTIONS = ["English", "Japanese", "Chinese"];
 export const STUDY_LANGUAGE_OPTIONS = ["English", "Japanese", "Chinese"];
 export const READER_WORK_PAGE_SIZE = 50;
+
+// EPUB import diagnostics. Set via the EPUB_IMPORT_LOG env var.
+//   "off"      — disabled (default)
+//   "stdout"   — write to the server's stdout
+//   <path>     — append to the given file (relative paths resolve to project root)
+export const EPUB_IMPORT_LOG = process.env.EPUB_IMPORT_LOG || "off";

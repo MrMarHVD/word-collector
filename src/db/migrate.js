@@ -292,6 +292,12 @@ export function runMigrations(db) {
   if (!materialTokenColumns.some((column) => column.name === "conjugation_form")) {
     db.exec("ALTER TABLE material_tokens ADD COLUMN conjugation_form TEXT");
   }
+  if (!materialTokenColumns.some((column) => column.name === "block_index")) {
+    db.exec("ALTER TABLE material_tokens ADD COLUMN block_index INTEGER");
+  }
+  if (!materialTokenColumns.some((column) => column.name === "block_type")) {
+    db.exec("ALTER TABLE material_tokens ADD COLUMN block_type TEXT");
+  }
 
   // Rewrite pre-i18n human strings to stable kebab-case keys so the UI can localize them.
   db.prepare("UPDATE words SET pos_subcategory = 'ichidan-verb' WHERE pos_subcategory = 'ichidan verb'").run();

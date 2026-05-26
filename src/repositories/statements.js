@@ -67,8 +67,8 @@ export function createStatements(db) {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `),
     insertMaterialToken: db.prepare(`
-      INSERT INTO material_tokens (material_id, position, surface, normalized, lemma, pos, word_id, paragraph_index, sentence_index, conjugation_form)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO material_tokens (material_id, position, surface, normalized, lemma, pos, word_id, paragraph_index, sentence_index, conjugation_form, block_index, block_type)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     materialById: db.prepare(`
       SELECT m.id, m.user_id AS userId, m.language_id AS languageId, l.name AS languageName, m.title, m.file_name AS fileName,

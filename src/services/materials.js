@@ -2,7 +2,7 @@ import { READER_WORK_PAGE_SIZE } from "../config.js";
 import { normalizeName } from "../shared/normalize.js";
 import { extractTextFromUpload } from "./textExtraction.js";
 import { lookupChineseDetails } from "./jmdict.js";
-import { tokenizeForLanguage } from "./lemmatizer.js";
+import { tokenizeBlocksForLanguage, tokenizeForLanguage } from "./lemmatizer.js";
 import { languageKey } from "./translations.js";
 import { getTranslationCandidates, hasTranslationAttempt, hasUsableStoredTranslation, materialTranslationStatus, scheduleMaterialTranslationBackfill, supportedTargetNativeLanguage, translationForToken } from "./translations.js";
 
@@ -91,12 +91,26 @@ export async function importMaterial(db, statements, userId, languageId, file) {
   }
 
   const extracted = await extractTextFromUpload(file);
-  const text = normalizeName(extracted.text);
-  if (!text) {
-    return { error: "No readable text was found in this file." };
+  let text;
+  let tokens;
+  if (Array.isArray(extracted.blocks)) {
+    if (!extracted.blocks.length) {
+      return { error: "No readable text was found in this file." };
+    }
+    // Joining with blank lines keeps the NOT NULL raw_text column populated
+    // without collapsing the block boundaries that drive reader typography.
+    text = extracted.blocks.map((block) => block.text).join("\n\n").trim();
+    if (!text) {
+      return { error: "No readable text was found in this file." };
+    }
+    tokens = await tokenizeBlocksForLanguage(extracted.blocks, language.name);
+  } else {
+    text = normalizeName(extracted.text);
+    if (!text) {
+      return { error: "No readable text was found in this file." };
+    }
+    tokens = await tokenizeForLanguage(text, language.name);
   }
-
-  const tokens = await tokenizeForLanguage(text, language.name);
   if (!tokens.length) {
     return { error: "No readable words were found in this file." };
   }
@@ -130,7 +144,9 @@ export async function importMaterial(db, statements, userId, languageId, file) {
         word.id,
         token.paragraphIndex,
         token.sentenceIndex,
-        token.conjugationForm || null
+        token.conjugationForm || null,
+        token.blockIndex ?? null,
+        token.blockType ?? null
       );
     }
     db.exec("COMMIT");
@@ -187,6 +203,7 @@ export function getMaterialReader(db, statements, userId, materialId, start = 0,
   const safeStart = Math.min(Math.max(Number(requestedStart) || 0, 0), Math.max(Number(material.wordCount || 0) - 1, 0));
   const tokens = db.prepare(`
     SELECT mt.id, mt.position, mt.surface, mt.lemma, mt.pos, mt.conjugation_form AS conjugationForm, mt.word_id AS wordId,
+           mt.block_index AS blockIndex, mt.block_type AS blockType,
            w.word AS dictionaryForm,
            w.pos AS wordPos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional,
            CASE

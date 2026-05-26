@@ -85,6 +85,63 @@ export function renderMaterialList() {
     : `<p class="empty">${escapeHtml(t("reader.noMaterials"))}</p>`;
 }
 
+function tokenButtonMarkup(token) {
+  return `<button class="reader-token" type="button" data-word-id="${token.wordId}" data-token-id="${token.id}" data-known="${Boolean(token.known)}">${escapeHtml(token.surface)}</button>`;
+}
+
+const BLOCK_WRAPPERS = {
+  "heading-1": { tag: "h1", className: "reader-block reader-heading reader-heading-1" },
+  "heading-2": { tag: "h2", className: "reader-block reader-heading reader-heading-2" },
+  "heading-3": { tag: "h3", className: "reader-block reader-heading reader-heading-3" },
+  "heading-4": { tag: "h4", className: "reader-block reader-heading reader-heading-4" },
+  "heading-5": { tag: "h5", className: "reader-block reader-heading reader-heading-5" },
+  "heading-6": { tag: "h6", className: "reader-block reader-heading reader-heading-6" },
+  paragraph: { tag: "p", className: "reader-block reader-paragraph" },
+  blockquote: { tag: "blockquote", className: "reader-block reader-blockquote" },
+  "list-item": { tag: "li", className: "reader-block reader-list-item" }
+};
+
+function wrapperFor(blockType) {
+  return BLOCK_WRAPPERS[blockType] || BLOCK_WRAPPERS.paragraph;
+}
+
+// Render the page either as a flat sequence (legacy materials, PDF, TXT) or as
+// block-wrapped groups when structured EPUB tokens are present.
+function renderReaderTokenMarkup(tokens) {
+  if (!tokens.length) return "";
+  if (tokens[0].blockIndex === null || tokens[0].blockIndex === undefined) {
+    return tokens.map(tokenButtonMarkup).join("");
+  }
+
+  const groups = [];
+  let current = null;
+  for (const token of tokens) {
+    if (!current || token.blockIndex !== current.blockIndex) {
+      current = { blockIndex: token.blockIndex, blockType: token.blockType, tokens: [] };
+      groups.push(current);
+    }
+    current.tokens.push(token);
+  }
+
+  const parts = [];
+  let inList = false;
+  for (const group of groups) {
+    const isListItem = group.blockType === "list-item";
+    if (isListItem && !inList) {
+      parts.push(`<ul class="reader-list">`);
+      inList = true;
+    } else if (!isListItem && inList) {
+      parts.push(`</ul>`);
+      inList = false;
+    }
+    const wrapper = wrapperFor(group.blockType);
+    const inner = group.tokens.map(tokenButtonMarkup).join(" ");
+    parts.push(`<${wrapper.tag} class="${wrapper.className}">${inner}</${wrapper.tag}>`);
+  }
+  if (inList) parts.push(`</ul>`);
+  return parts.join("");
+}
+
 // Render the current reader token page and pagination controls.
 export function renderReaderTokens() {
   // Reader pages are rendered as token buttons so each word can expose details.
@@ -117,11 +174,7 @@ export function renderReaderTokens() {
   const material = state.currentMaterial;
   elements.readerTitle.textContent = material?.title || t("reader.title");
   elements.readerMeta.textContent = material ? t("reader.readerMeta", { words: formatCount(material.wordCount), language: material.languageName }) : "";
-  elements.readerText.innerHTML = state.readerTokens
-    .map(
-      (token) => `<button class="reader-token" type="button" data-word-id="${token.wordId}" data-token-id="${token.id}" data-known="${Boolean(token.known)}">${escapeHtml(token.surface)}</button>`
-    )
-    .join("");
+  elements.readerText.innerHTML = renderReaderTokenMarkup(state.readerTokens);
 
   const end = Math.min(state.readerStart + state.readerTokens.length, material?.wordCount || 0);
   elements.readerPageStatus.textContent = material

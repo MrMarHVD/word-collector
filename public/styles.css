@@ -1140,6 +1140,62 @@ tbody tr:last-child td {
   color: inherit;
   padding: 1px 2px;
   font-weight: 500;
+  font-size: inherit;
+  line-height: inherit;
+}
+.reader-block {
+  margin: 0;
+}
+.reader-paragraph {
+  margin: 0.6em 0;
+}
+.reader-heading {
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-main);
+}
+.reader-heading-1 {
+  margin: 1.4em 0 0.6em;
+  font-size: 1.9em;
+  font-weight: 800;
+}
+.reader-heading-2 {
+  margin: 1.2em 0 0.5em;
+  font-size: 1.55em;
+}
+.reader-heading-3 {
+  margin: 1em 0 0.45em;
+  font-size: 1.3em;
+}
+.reader-heading-4 {
+  margin: 0.9em 0 0.4em;
+  font-size: 1.15em;
+}
+.reader-heading-5 {
+  margin: 0.85em 0 0.35em;
+  font-size: 1.05em;
+}
+.reader-heading-6 {
+  margin: 0.8em 0 0.35em;
+  font-size: 1em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.reader-blockquote {
+  margin: 0.8em 0;
+  padding: 0.1em 0 0.1em 1em;
+  border-left: 3px solid var(--border-main);
+  color: var(--text-label);
+  font-style: italic;
+}
+.reader-list {
+  margin: 0.6em 0;
+  padding-left: 1.5em;
+  list-style: disc;
+}
+.reader-list-item {
+  margin: 0.25em 0;
+  display: list-item;
 }
 .reader-token[data-known="false"] {
   background: var(--reader-token-unknown);

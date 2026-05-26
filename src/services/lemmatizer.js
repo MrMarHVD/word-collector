@@ -202,3 +202,24 @@ export async function tokenizeForLanguage(text, languageName) {
       sentenceIndex: 0
     })) || [];
 }
+
+// Tokenize a structured block array, tagging every token with its block context
+// while keeping `position` as a global flat index for downstream consumers.
+export async function tokenizeBlocksForLanguage(blocks, languageName) {
+  const all = [];
+  let position = 0;
+  for (let blockIndex = 0; blockIndex < blocks.length; blockIndex += 1) {
+    const block = blocks[blockIndex];
+    const tokens = await tokenizeForLanguage(block.text, languageName);
+    for (const token of tokens) {
+      all.push({
+        ...token,
+        position,
+        blockIndex,
+        blockType: block.type
+      });
+      position += 1;
+    }
+  }
+  return all;
+}
