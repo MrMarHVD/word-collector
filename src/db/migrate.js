@@ -293,6 +293,15 @@ export function runMigrations(db) {
     db.exec("ALTER TABLE material_tokens ADD COLUMN conjugation_form TEXT");
   }
 
+  // Rewrite pre-i18n human strings to stable kebab-case keys so the UI can localize them.
+  db.prepare("UPDATE words SET pos_subcategory = 'ichidan-verb' WHERE pos_subcategory = 'ichidan verb'").run();
+  db.prepare("UPDATE words SET pos_subcategory = 'suru-verb' WHERE pos_subcategory = 'suru verb'").run();
+  db.prepare("UPDATE words SET pos_subcategory = 'kuru-verb' WHERE pos_subcategory = 'kuru verb'").run();
+  db.prepare("UPDATE words SET pos_subcategory = 'godan-verb' WHERE pos_subcategory LIKE 'godan verb%'").run();
+  db.prepare("UPDATE material_tokens SET conjugation_form = 'past-stem' WHERE conjugation_form = 'past stem'").run();
+  db.prepare("UPDATE material_tokens SET conjugation_form = 'negative-stem' WHERE conjugation_form = 'negative stem'").run();
+  db.prepare("UPDATE material_tokens SET conjugation_form = 'volitional-stem' WHERE conjugation_form = 'volitional stem'").run();
+
   db.prepare(`
     INSERT OR IGNORE INTO word_translations (word_id, native_language, translation)
     SELECT id, 'English', translation FROM words

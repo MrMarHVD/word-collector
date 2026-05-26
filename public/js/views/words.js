@@ -15,8 +15,8 @@ export function renderWords(words) {
     .map(
       (entry) => {
         const badges = [];
-        if (entry.pos) badges.push(entry.pos);
-        if (entry.posSubcategory && entry.posSubcategory !== entry.pos) badges.push(entry.posSubcategory);
+        const posKey = entry.posSubcategory || entry.pos;
+        if (posKey) badges.push(t(`pos.${posKey}`, {}, posKey));
         const phonetics = [];
         if (entry.reading) phonetics.push(entry.reading);
         if (entry.pinyin) phonetics.push(entry.pinyin);

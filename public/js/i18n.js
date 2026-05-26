@@ -19,9 +19,9 @@ export async function loadMessages() {
 }
 
 // Translate a message key and interpolate simple placeholder values.
-export function t(key, values = {}) {
-  // Missing keys fall back to Japanese, then the key name for visibility.
-  const message = state.messages[state.locale]?.[key] || state.messages.ja?.[key] || key;
+export function t(key, values = {}, fallback) {
+  // Missing keys fall back to Japanese, then the supplied fallback, then the key name.
+  const message = state.messages[state.locale]?.[key] || state.messages.ja?.[key] || fallback || key;
   return Object.entries(values).reduce((text, [name, value]) => {
     return text.replaceAll(`{${name}}`, value);
   }, message);

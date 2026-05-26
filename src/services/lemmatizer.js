@@ -57,29 +57,26 @@ const JAPANESE_POS_LABELS = {
   接頭詞: "prefix"
 };
 
-// Map a Kuromoji (pos, pos_detail_1, conjugated_type) triple to a human label.
+// Map a Kuromoji (pos, pos_detail_1, conjugated_type) triple to a stable i18n key.
 function japanesePosSubcategory(pos, posDetail, conjugatedType) {
   if (pos === "動詞") {
-    if (conjugatedType && conjugatedType.startsWith("一段")) return "ichidan verb";
-    if (conjugatedType && conjugatedType.startsWith("五段")) {
-      const row = conjugatedType.match(/五段・([カガサザタダナバマラワ])/u);
-      return row ? `godan verb (${row[1]}-row)` : "godan verb";
-    }
-    if (conjugatedType && conjugatedType.startsWith("サ変")) return "suru verb";
-    if (conjugatedType && conjugatedType.startsWith("カ変")) return "kuru verb";
+    if (conjugatedType && conjugatedType.startsWith("一段")) return "ichidan-verb";
+    if (conjugatedType && conjugatedType.startsWith("五段")) return "godan-verb";
+    if (conjugatedType && conjugatedType.startsWith("サ変")) return "suru-verb";
+    if (conjugatedType && conjugatedType.startsWith("カ変")) return "kuru-verb";
     return "verb";
   }
   if (pos === "名詞" && posDetail === "形容動詞語幹") return "na-adjective";
   if (pos === "形容詞") return "i-adjective";
-  return JAPANESE_POS_LABELS[pos] || pos || "";
+  return JAPANESE_POS_LABELS[pos] || "";
 }
 
 const JAPANESE_CONJUGATION_LABELS = {
   基本形: "dictionary",
-  未然形: "negative stem",
-  "未然ウ接続": "volitional stem",
+  未然形: "negative-stem",
+  "未然ウ接続": "volitional-stem",
   連用形: "stem",
-  "連用タ接続": "past stem",
+  "連用タ接続": "past-stem",
   "連用テ接続": "te-form",
   仮定形: "conditional",
   命令e: "imperative",
@@ -89,10 +86,10 @@ const JAPANESE_CONJUGATION_LABELS = {
   "体言接続特殊": "attributive"
 };
 
-// Map a Kuromoji conjugated_form to a human label, defaulting to the raw form.
+// Map a Kuromoji conjugated_form to a stable i18n key, or empty when unmapped.
 function japaneseConjugationForm(form) {
   if (!form || form === "*") return "";
-  return JAPANESE_CONJUGATION_LABELS[form] || form;
+  return JAPANESE_CONJUGATION_LABELS[form] || "";
 }
 
 // Prefer lemmas that behave like dictionary headwords for study lists.

@@ -159,8 +159,11 @@ export function renderReaderWordInfo(token, anchor = null) {
   const known = Boolean(token.known);
   const rows = [];
   const dictionaryForm = token.dictionaryForm || token.lemma;
-  const subcategory = token.posSubcategory ? ` (${token.posSubcategory})` : "";
-  rows.push({ label: t("reader.dictionaryForm"), value: `${dictionaryForm}${subcategory}` });
+  const subcategoryKey = token.posSubcategory;
+  const subcategoryLabel = subcategoryKey ? t(`pos.${subcategoryKey}`, {}, subcategoryKey) : "";
+  const subcategorySuffix = subcategoryLabel ? ` (${subcategoryLabel})` : "";
+  rows.push({ label: t("reader.dictionaryForm"), value: `${dictionaryForm}${subcategorySuffix}` });
+  rows.push({ label: t("table.translation"), value: token.translation || t("reader.noTranslation") });
   if (token.reading && token.reading !== dictionaryForm) {
     rows.push({ label: t("reader.reading"), value: token.reading });
   }
@@ -170,11 +173,14 @@ export function renderReaderWordInfo(token, anchor = null) {
   if (token.traditional && token.traditional !== dictionaryForm) {
     rows.push({ label: t("reader.traditional"), value: token.traditional });
   }
-  const posLabelParts = [token.wordPos, token.conjugationForm].filter(Boolean);
+  const posKey = token.posSubcategory || token.wordPos;
+  const posLabel = posKey ? t(`pos.${posKey}`, {}, posKey) : "";
+  const conjKey = token.conjugationForm;
+  const conjLabel = conjKey ? t(`conjugation.${conjKey}`, {}, conjKey) : "";
+  const posLabelParts = [posLabel, conjLabel].filter(Boolean);
   if (posLabelParts.length) {
     rows.push({ label: t("reader.partOfSpeech"), value: posLabelParts.join(" · ") });
   }
-  rows.push({ label: t("table.translation"), value: token.translation || t("reader.noTranslation") });
   rows.push({ label: t("table.status"), value: known ? t("word.known") : t("word.unknown") });
 
   elements.readerWordInfo.hidden = false;
