@@ -129,7 +129,7 @@ async function markCurrentReaderPageKnown() {
 
 async function markReaderWordLearning(wordId) {
   const tokenStatus = normalizeStatus(state.readerTokens.find((token) => token.wordId === wordId)?.status || "unknown");
-  if (!wordId || tokenStatus === "learning") {
+  if (!wordId || tokenStatus !== "unknown") {
     return false;
   }
   await requestJson(`/api/words/${wordId}`, {
@@ -233,6 +233,12 @@ export function bindReaderEvents() {
     renderReaderSidebarTabs();
   });
 
+  elements.readerAutoMarkLearning.addEventListener("change", (event) => {
+    state.readerAutoMarkLearningOnClick = event.target.checked;
+    localStorage.setItem("wordMarkerReaderAutoMarkLearningOnClick", String(state.readerAutoMarkLearningOnClick));
+    renderReaderSidebarTabs();
+  });
+
   elements.readerShowWordSpaces.addEventListener("change", (event) => {
     state.readerShowWordSpaces = event.target.checked;
     localStorage.setItem("wordMarkerReaderShowWordSpaces", String(state.readerShowWordSpaces));
@@ -268,7 +274,7 @@ export function bindReaderEvents() {
     button.classList.add("is-selected");
     const token = state.readerTokens.find((entry) => entry.id === Number(button.dataset.tokenId));
     renderReaderWordInfo(token, button);
-    const changed = await markReaderWordLearning(Number(button.dataset.wordId));
+    const changed = state.readerAutoMarkLearningOnClick ? await markReaderWordLearning(Number(button.dataset.wordId)) : false;
     if (changed) {
       updateReaderWordInfoStatus("learning");
       await loadDashboard();

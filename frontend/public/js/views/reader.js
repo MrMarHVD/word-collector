@@ -71,6 +71,7 @@ export function renderReaderSidebarTabs() {
     panel.hidden = panel.dataset.readerSidebarPanel !== state.readerSidebarTab;
   });
   elements.readerAutoMarkKnown.checked = state.readerAutoMarkKnownOnPageTurn;
+  elements.readerAutoMarkLearning.checked = state.readerAutoMarkLearningOnClick;
   const showSpacingToggle = isWordSpacingLanguage(state.currentMaterial?.languageName)
     || isWordSpacingLanguage(state.selectedStudyLanguageName);
   elements.readerShowWordSpacesRow.hidden = !showSpacingToggle;

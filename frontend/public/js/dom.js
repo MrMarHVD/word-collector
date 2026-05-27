@@ -72,6 +72,7 @@ export const elements = {
   readerSidebarOpen: document.querySelector("#readerSidebarOpen"),
   readerSidebarResize: document.querySelector("#readerSidebarResize"),
   readerAutoMarkKnown: document.querySelector("#readerAutoMarkKnown"),
+  readerAutoMarkLearning: document.querySelector("#readerAutoMarkLearning"),
   readerShowWordSpaces: document.querySelector("#readerShowWordSpaces"),
   readerShowWordSpacesRow: document.querySelector("#readerShowWordSpacesRow"),
   readerPanel: document.querySelector(".reader-panel"),
