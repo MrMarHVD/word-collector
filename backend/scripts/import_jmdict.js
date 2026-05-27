@@ -55,16 +55,14 @@ const insertEnglish = db.prepare(`
 
 // Produce reverse-lookup English keys from gloss text.
 function englishKeys(glosses) {
-  // Index compact English keys so reader imports can translate common lemmas.
+  // English reader tokens are single words, so only index single-word glosses.
   const keys = new Set();
   for (const gloss of glosses) {
-    const first = gloss.split(";")[0].split(",")[0].trim().toLowerCase();
-    if (/^[a-z][a-z '-]{1,60}$/.test(first)) {
-      keys.add(first);
-      first
-        .split(/\s+/)
-        .filter((part) => /^[a-z][a-z'-]{2,}$/.test(part))
-        .forEach((part) => keys.add(part));
+    const parts = gloss.split(/[;,]/).map((part) => part.trim().toLowerCase());
+    for (const part of parts) {
+      if (/^[a-z][a-z'-]{1,60}$/.test(part)) {
+        keys.add(part);
+      }
     }
   }
   return [...keys];
@@ -76,6 +74,7 @@ db.exec("BEGIN");
 try {
   // Rebuild the derived index from source data.
   db.exec("DELETE FROM jmdict_entries");
+  db.exec("DELETE FROM jmdict_english_index");
   for (const match of xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)) {
     entries += 1;
     const entry = match[1];

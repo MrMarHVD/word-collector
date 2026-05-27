@@ -46,29 +46,25 @@ function readGzip(path) {
 
 // Produce English index keys with priorities from CEDICT definitions.
 function englishKeys(definitions) {
-  // Store both full glosses and useful individual words for reverse lookup.
+  // English reader tokens are single words, so only index single-word glosses.
   const keys = new Map();
   const addKey = (key, priority) => {
+    if (!/^[a-z][a-z'-]{1,80}$/.test(key)) return;
     if (STOP_WORDS.has(key)) return;
     keys.set(key, Math.max(keys.get(key) ?? 0, priority));
   };
 
   for (const definition of definitions) {
-    for (const segment of [definition, ...definition.split(";")]) {
+    for (const segment of definition.split(/[;,]/)) {
       const clean = segment
         .replace(/\([^)]*\)/g, "")
         .replace(/\b(CL|abbr|variant|see also|old variant|archaic)\b.*$/i, "")
         .trim()
         .toLowerCase();
-      if (/^[a-z][a-z '-]{1,80}$/.test(clean)) {
-        addKey(clean, clean.includes(" ") ? 20 : 40);
-        if (clean.startsWith("to ")) {
-          addKey(clean.slice(3).trim(), 35);
-        }
-        clean
-          .split(/\s+/)
-          .filter((part) => /^[a-z][a-z'-]{2,}$/.test(part))
-          .forEach((part) => addKey(part, 5));
+      if (clean.startsWith("to ")) {
+        addKey(clean.slice(3).trim(), 35);
+      } else {
+        addKey(clean, 40);
       }
     }
   }

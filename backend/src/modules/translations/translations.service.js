@@ -128,10 +128,15 @@ function backfillMaterialTranslationTargets(repositories, material, sourceLangua
   repositories.database.transaction(() => {
     for (const target of targets) {
       for (const token of tokensByWord.values()) {
-        if (getStoredTranslation(repositories, token.wordId, target)) {
+        const stored = getStoredTranslation(repositories, token.wordId, target);
+        const attempted = hasTranslationAttempt(repositories, token.wordId, target);
+        const translation = lookupTranslation(repositories, sourceLanguage, target, token.lemma) || lookupTranslation(repositories, sourceLanguage, target, token.surface);
+        if (stored && (!translation || stored === translation)) {
           continue;
         }
-        const translation = lookupTranslation(repositories, sourceLanguage, target, token.lemma) || lookupTranslation(repositories, sourceLanguage, target, token.surface);
+        if (!translation && attempted) {
+          continue;
+        }
         repositories.translations.upsertWordTranslation(token.wordId, target, translation);
         updated += 1;
       }

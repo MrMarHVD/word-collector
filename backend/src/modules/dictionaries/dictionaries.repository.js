@@ -17,7 +17,15 @@ export function createDictionariesRepository(db) {
     SELECT expression
     FROM jmdict_english_index
     WHERE english = ?
-    ORDER BY priority DESC, length(gloss)
+    ORDER BY
+      priority DESC,
+      CASE
+        WHEN lower(gloss) = ? THEN 0
+        WHEN lower(gloss) LIKE ? THEN 1
+        ELSE 2
+      END,
+      length(gloss),
+      length(expression)
     LIMIT 1
   `);
   const englishChinese = db.prepare(`
@@ -74,7 +82,7 @@ export function createDictionariesRepository(db) {
       return japaneseEnglishByReading.get(term);
     },
     findEnglishJapanese(term) {
-      return englishJapanese.get(term);
+      return englishJapanese.get(term, term, `${term};%`);
     },
     findEnglishChinese(term) {
       return englishChinese.get(term, `${term};%cl:%`, `${term} (%cl:%`, `${term};%`, term);
