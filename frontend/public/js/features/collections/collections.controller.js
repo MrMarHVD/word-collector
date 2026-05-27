@@ -169,19 +169,23 @@ export function bindCollectionsEvents() {
   });
 
   elements.wordRows.addEventListener("click", async (event) => {
-    const toggle = event.target.closest(".known-toggle");
-    if (toggle) {
-      const id = Number(toggle.dataset.wordId);
-      const known = toggle.dataset.known !== "true";
-      toggle.disabled = true;
+    const segment = event.target.closest(".status-segment");
+    if (segment) {
+      const toggle = segment.closest(".status-toggle");
+      const id = Number(toggle?.dataset.wordId);
+      const status = segment.dataset.status;
+      if (!id || segment.dataset.active === "true") {
+        return;
+      }
+      segment.disabled = true;
       try {
         await requestJson(`/api/words/${id}`, {
           method: "PATCH",
-          body: JSON.stringify({ known })
+          body: JSON.stringify({ status })
         });
         await loadDashboard();
       } finally {
-        toggle.disabled = false;
+        segment.disabled = false;
       }
       return;
     }

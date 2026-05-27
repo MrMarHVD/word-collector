@@ -1,4 +1,6 @@
 import { elements } from "../dom.js";
+import { normalizeStatus } from "../shared/status.js";
+import { renderStatusToggle } from "./words.js";
 import { formatCount, t } from "../i18n.js";
 import { state } from "../state.js";
 import { escapeHtml } from "../shared/html.js";
@@ -96,7 +98,8 @@ export function renderMaterialList() {
 }
 
 function tokenButtonMarkup(token) {
-  return `<button class="reader-token" type="button" data-word-id="${token.wordId}" data-token-id="${token.id}" data-known="${Boolean(token.known)}">${escapeHtml(token.surface)}</button>`;
+  const status = token.status || (token.known ? "known" : "unknown");
+  return `<button class="reader-token" type="button" data-word-id="${token.wordId}" data-token-id="${token.id}" data-status="${status}">${escapeHtml(token.surface)}</button>`;
 }
 
 // Render one token with its literal surrounding text. Falls back to the
@@ -235,14 +238,14 @@ function positionReaderWordInfo(anchor) {
   elements.readerWordInfo.style.visibility = "";
 }
 
-// Render details and known-toggle action for a selected reader token.
+// Render details and status actions for a selected reader token.
 export function renderReaderWordInfo(token, anchor = null) {
   if (!token) {
     elements.readerWordInfo.hidden = true;
     elements.readerWordInfo.style.visibility = "";
     return;
   }
-  const known = Boolean(token.known);
+  const status = normalizeStatus(token.status || (token.known ? "known" : "unknown"));
   const rows = [];
   const dictionaryForm = token.dictionaryForm || token.lemma;
   const subcategoryKey = token.posSubcategory;
@@ -267,7 +270,7 @@ export function renderReaderWordInfo(token, anchor = null) {
   if (posLabelParts.length) {
     rows.push({ label: t("reader.partOfSpeech"), value: posLabelParts.join(" · ") });
   }
-  rows.push({ label: t("table.status"), value: known ? t("word.known") : t("word.unknown") });
+  rows.push({ label: t("table.status"), value: t(`word.${status}`) });
 
   elements.readerWordInfo.hidden = false;
   elements.readerWordInfo.style.visibility = "hidden";
@@ -279,7 +282,7 @@ export function renderReaderWordInfo(token, anchor = null) {
     <dl>
       ${rows.map((row) => `<dt>${escapeHtml(row.label)}</dt><dd>${escapeHtml(row.value)}</dd>`).join("")}
     </dl>
-    <button class="known-toggle" data-reader-word-id="${token.wordId}" data-known="${known}">${escapeHtml(known ? t("word.known") : t("word.unknown"))}</button>
+    ${renderStatusToggle(token.wordId, status, { dataAttr: "data-reader-word-id" })}
   `;
   positionReaderWordInfo(anchor);
 }

@@ -6,11 +6,11 @@ import { escapeHtml } from "../shared/html.js";
 // Render summary metrics, collection charts, and collection management controls.
 // Render dashboard totals and collection selectors from state.dashboard.
 export function renderDashboard() {
-  const { totalWords, knownWords, collections } = state.dashboard;
-  const allCollections = collections;
+  const { totalWords, knownWords, learningWords, unknownWords, collections } = state.dashboard;
   elements.knownTotal.textContent = formatCount(knownWords);
   elements.totalWords.textContent = formatCount(totalWords);
-  elements.unknownTotal.textContent = formatCount(totalWords - knownWords);
+  elements.learningTotal.textContent = formatCount(learningWords);
+  elements.unknownTotal.textContent = formatCount(unknownWords);
   elements.collectionCount.textContent = formatCount(collections.length);
 
   elements.collectionCharts.innerHTML = collections.length
@@ -62,11 +62,14 @@ export function renderSelectedCollectionStats() {
   if (state.selectedCollectionId === "all") {
     const totalWords = Number(state.dashboard?.totalWords || 0);
     const knownWords = Number(state.dashboard?.knownWords || 0);
+    const learningWords = Number(state.dashboard?.learningWords || 0);
+    const unknownWords = Number(state.dashboard?.unknownWords || 0);
     const percent = totalWords ? Math.round((knownWords / totalWords) * 100) : 0;
     elements.selectedCollectionStats.innerHTML = `
       <span>${escapeHtml(t("collections.all"))}</span>
       <small>${escapeHtml(state.selectedStudyLanguageName || "")}</small>
       <strong>${formatCount(knownWords)} / ${formatCount(totalWords)}</strong>
+      <small>${escapeHtml(t("progress.statusBreakdown", { known: formatCount(knownWords), learning: formatCount(learningWords), unknown: formatCount(unknownWords) }))}</small>
       <small>${escapeHtml(t("progress.knownPercent", { percent }))}</small>
     `;
     return;
@@ -83,21 +86,24 @@ export function renderSelectedCollectionStats() {
     <span>${escapeHtml(collection.name)}</span>
     <small>${escapeHtml(collection.languageName)}</small>
     <strong>${formatCount(collection.knownWords)} / ${formatCount(collection.totalWords)}</strong>
+    <small>${escapeHtml(t("progress.statusBreakdown", { known: formatCount(collection.knownWords), learning: formatCount(collection.learningWords), unknown: formatCount(collection.unknownWords) }))}</small>
     <small>${escapeHtml(t("progress.knownPercent", { percent }))}</small>
   `;
 }
 
 // Render one collection progress chart card.
 function renderChartCard(collection) {
-  const percent = collection.totalWords ? Math.round((collection.knownWords / collection.totalWords) * 100) : 0;
+  const knownPercent = collection.totalWords ? Math.round((collection.knownWords / collection.totalWords) * 100) : 0;
+  const learningPercent = collection.totalWords ? Math.round(((collection.knownWords + collection.learningWords) / collection.totalWords) * 100) : 0;
   return `
     <article class="chart-card rounded-lg border border-line bg-panel p-3.5">
-      <div class="pie" style="--knownPercent: ${percent}%"></div>
+      <div class="pie" style="--knownPercent: ${knownPercent}%; --learningPercent: ${learningPercent}%"></div>
       <div>
         <strong>${escapeHtml(collection.name)}</strong>
         <span>${escapeHtml(collection.languageName)}</span>
         <span>${escapeHtml(t("progress.knownOfTotal", { total: formatCount(collection.totalWords), known: formatCount(collection.knownWords) }))}</span>
-        <span>${escapeHtml(t("progress.complete", { percent }))}</span>
+        <span>${escapeHtml(t("progress.statusBreakdown", { known: formatCount(collection.knownWords), learning: formatCount(collection.learningWords), unknown: formatCount(collection.unknownWords) }))}</span>
+        <span>${escapeHtml(t("progress.complete", { percent: knownPercent }))}</span>
       </div>
     </article>
   `;

@@ -283,6 +283,12 @@ export function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_cedict_traditional ON cedict_english_index(traditional);
   `);
 
+  const wordStatusColumns = db.prepare("PRAGMA table_info(user_word_status)").all();
+  if (!wordStatusColumns.some((column) => column.name === "status")) {
+    db.exec("ALTER TABLE user_word_status ADD COLUMN status TEXT NOT NULL DEFAULT 'unknown'");
+    db.exec("UPDATE user_word_status SET status = 'known' WHERE known = 1");
+  }
+
   const materialColumns = db.prepare("PRAGMA table_info(materials)").all();
   if (!materialColumns.some((column) => column.name === "reader_start")) {
     db.exec("ALTER TABLE materials ADD COLUMN reader_start INTEGER NOT NULL DEFAULT 0");
@@ -320,7 +326,9 @@ export function runMigrations(db) {
   `).run();
 
   db.prepare(`
-    INSERT OR IGNORE INTO user_word_status (user_id, word_id, known)
-    SELECT ?, id, known FROM words WHERE known = 1
+    INSERT OR IGNORE INTO user_word_status (user_id, word_id, known, status)
+    SELECT ?, id, known, CASE WHEN known = 1 THEN 'known' ELSE 'unknown' END FROM words WHERE known = 1
   `).run(seedUser.id);
+
+  db.prepare("UPDATE user_word_status SET status = 'known' WHERE known = 1 AND status = 'unknown'").run();
 }

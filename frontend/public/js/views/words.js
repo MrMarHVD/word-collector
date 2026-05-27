@@ -2,7 +2,20 @@ import { elements } from "../dom.js";
 import { state, WORD_PAGE_SIZE, WORDS_PER_PAGE } from "../state.js";
 import { formatCount, t } from "../i18n.js";
 import { escapeHtml } from "../shared/html.js";
+import { normalizeStatus, WORD_STATUSES } from "../shared/status.js";
 import { renderDisplayModeButtons } from "./shell.js";
+
+// Render the three-segment unknown/learning/known toggle for one word row.
+export function renderStatusToggle(wordId, currentStatus, { dataAttr = "data-word-id" } = {}) {
+  const active = normalizeStatus(currentStatus);
+  const segments = WORD_STATUSES
+    .map((status) => {
+      const isActive = status === active;
+      return `<button class="status-segment" type="button" data-status="${status}" data-active="${isActive}" aria-pressed="${isActive}">${escapeHtml(t(`word.${status}`))}</button>`;
+    })
+    .join("");
+  return `<div class="status-toggle" role="group" ${dataAttr}="${wordId}">${segments}</div>`;
+}
 
 // Render either the paged view or a windowed list for infinite scrolling.
 // Render collection word rows, empty states, and pagination controls.
@@ -51,10 +64,8 @@ export function renderWords(words) {
           </div>
         </td>
         <td class="px-3 py-3 align-top text-label">${escapeHtml(entry.translation)}</td>
-        <td class="known-cell">
-          <button class="known-toggle" data-word-id="${entry.id}" data-known="${Boolean(entry.known)}">
-            ${entry.known ? escapeHtml(t("word.known")) : escapeHtml(t("word.unknown"))}
-          </button>
+        <td class="status-cell">
+          ${renderStatusToggle(entry.id, entry.status)}
         </td>
       </tr>
     `;

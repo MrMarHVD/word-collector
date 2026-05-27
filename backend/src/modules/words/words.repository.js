@@ -67,17 +67,18 @@ export function createWordsRepository(db) {
   const wordById = db.prepare(`
     SELECT w.id, w.collection_id AS collectionId, w.word, w.translation, COALESCE(w.lemma, w.word) AS lemma,
            w.pos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional,
-           COALESCE(uws.known, 0) AS known
+           COALESCE(uws.status, 'unknown') AS status
     FROM words w
     JOIN collections c ON c.id = w.collection_id
     JOIN languages l ON l.id = c.language_id
     LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
     WHERE w.id = ? AND l.user_id = ?
   `);
-  const upsertKnown = db.prepare(`
-    INSERT INTO user_word_status (user_id, word_id, known, updated_at)
-    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(user_id, word_id) DO UPDATE SET known = excluded.known, updated_at = CURRENT_TIMESTAMP
+  // Writes both status (canonical) and known (legacy) so older readers stay correct.
+  const upsertStatus = db.prepare(`
+    INSERT INTO user_word_status (user_id, word_id, known, status, updated_at)
+    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(user_id, word_id) DO UPDATE SET known = excluded.known, status = excluded.status, updated_at = CURRENT_TIMESTAMP
   `);
 
   return {
@@ -111,8 +112,9 @@ export function createWordsRepository(db) {
     findWordById(userId, wordId) {
       return wordById.get(userId, wordId, userId);
     },
-    upsertKnown(userId, wordId, known) {
-      return upsertKnown.run(userId, wordId, known);
+    upsertStatus(userId, wordId, status) {
+      const known = status === "known" ? 1 : 0;
+      return upsertStatus.run(userId, wordId, known, status);
     },
     deleteWord(wordId) {
       return db.prepare("DELETE FROM words WHERE id = ?").run(wordId);
@@ -130,7 +132,7 @@ export function createWordsRepository(db) {
       const translationExpression = displayedTranslationExpression();
       const selectColumns = `w.id, w.collection_id AS collectionId, c.name AS collectionName, w.word, ${translationExpression} AS translation,
         w.pos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional,
-        COALESCE(uws.known, 0) AS known`;
+        COALESCE(uws.status, 'unknown') AS status`;
       if (searchTerm) {
         return db.prepare(`
           SELECT ${selectColumns}
@@ -160,7 +162,7 @@ export function createWordsRepository(db) {
       const translationExpression = displayedTranslationExpression();
       const selectColumns = `w.id, w.collection_id AS collectionId, w.word, ${translationExpression} AS translation,
         w.pos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional,
-        COALESCE(uws.known, 0) AS known`;
+        COALESCE(uws.status, 'unknown') AS status`;
       if (searchTerm) {
         return db.prepare(`
           SELECT ${selectColumns}

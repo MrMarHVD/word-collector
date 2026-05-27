@@ -59,17 +59,23 @@ export function createWordsRoutes({ repositories }) {
       return true;
     }
 
-    const knownMatch = url.pathname.match(/^\/api\/words\/(\d+)$/);
-    if (req.method === "PATCH" && knownMatch) {
-      const id = Number(knownMatch[1]);
+    const wordPatchMatch = url.pathname.match(/^\/api\/words\/(\d+)$/);
+    if (req.method === "PATCH" && wordPatchMatch) {
+      const id = Number(wordPatchMatch[1]);
       const body = await readJson(req);
-      const known = body.known ? 1 : 0;
+      const allowed = ["unknown", "learning", "known"];
+      // Accept either an explicit status or the legacy boolean `known` payload.
+      const requested = typeof body.status === "string" ? body.status : (body.known ? "known" : "unknown");
+      if (!allowed.includes(requested)) {
+        jsonResponse(res, 400, { error: "Invalid status." });
+        return true;
+      }
       const existingWord = repositories.words.findWordById(user.userId, id);
       if (!existingWord) {
         jsonResponse(res, 404, { error: "Word not found." });
         return true;
       }
-      repositories.words.upsertKnown(user.userId, id, known);
+      repositories.words.upsertStatus(user.userId, id, requested);
       jsonResponse(res, 200, repositories.words.findWordById(user.userId, id));
       return true;
     }

@@ -32,6 +32,7 @@ export const elements = {
   settingsStatus: document.querySelector("#settingsStatus"),
   knownTotal: document.querySelector("#knownTotal"),
   totalWords: document.querySelector("#totalWords"),
+  learningTotal: document.querySelector("#learningTotal"),
   unknownTotal: document.querySelector("#unknownTotal"),
   collectionCount: document.querySelector("#collectionCount"),
   collectionCharts: document.querySelector("#collectionCharts"),

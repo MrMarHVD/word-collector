@@ -4,11 +4,15 @@ import { getLanguages } from "../languages/languages.service.js";
 // Dashboard rows are shaped for direct use by the browser views.
 // Add numeric progress fields that SQL returns as nullable aggregates.
 function normalizeCollection(collection) {
+  const totalWords = Number(collection.totalWords || 0);
+  const knownWords = Number(collection.knownWords || 0);
+  const learningWords = Number(collection.learningWords || 0);
   return {
     ...collection,
-    totalWords: Number(collection.totalWords || 0),
-    knownWords: Number(collection.knownWords || 0),
-    unknownWords: Number(collection.totalWords || 0) - Number(collection.knownWords || 0)
+    totalWords,
+    knownWords,
+    learningWords,
+    unknownWords: Math.max(0, totalWords - knownWords - learningWords)
   };
 }
 
@@ -26,6 +30,8 @@ export function getDashboard(repositories, userId, languageId) {
     selectedLanguageId,
     totalWords: Number(totals.totalWords || 0),
     knownWords: Number(totals.knownWords || 0),
+    learningWords: Number(totals.learningWords || 0),
+    unknownWords: Math.max(0, Number(totals.totalWords || 0) - Number(totals.knownWords || 0) - Number(totals.learningWords || 0)),
     collections: collections.map(normalizeCollection),
     allCollections: allCollections.map(normalizeCollection)
   };

@@ -1,6 +1,7 @@
 import { requestJson } from "../../api.js";
 import { elements } from "../../dom.js";
 import { state } from "../../state.js";
+import { normalizeStatus } from "../../shared/status.js";
 import { renderReaderSidebar, renderReaderSidebarTabs, renderReaderTokens, renderReaderWordInfo } from "../../views/reader.js";
 
 const MIN_READER_PANEL_WIDTH = 360;
@@ -109,7 +110,7 @@ async function markCurrentReaderPageKnown() {
   if (!state.readerAutoMarkKnownOnPageTurn) {
     return false;
   }
-  const wordIds = [...new Set(state.readerTokens.filter((token) => token.wordId && !token.known).map((token) => token.wordId))];
+  const wordIds = [...new Set(state.readerTokens.filter((token) => token.wordId && normalizeStatus(token.status || (token.known ? "known" : "unknown")) !== "known").map((token) => token.wordId))];
   if (!wordIds.length) {
     return false;
   }
@@ -117,11 +118,11 @@ async function markCurrentReaderPageKnown() {
     wordIds.map((wordId) =>
       requestJson(`/api/words/${wordId}`, {
         method: "PATCH",
-        body: JSON.stringify({ known: true })
+        body: JSON.stringify({ status: "known" })
       })
     )
   );
-  state.readerTokens = state.readerTokens.map((token) => (wordIds.includes(token.wordId) ? { ...token, known: true } : token));
+  state.readerTokens = state.readerTokens.map((token) => (wordIds.includes(token.wordId) ? { ...token, known: true, status: "known" } : token));
   return true;
 }
 
@@ -206,22 +207,27 @@ export function bindReaderEvents() {
       closeReaderWordInfo();
       return;
     }
-    const button = event.target.closest("[data-reader-word-id]");
-    if (!button) {
+    const segment = event.target.closest(".status-segment");
+    if (!segment) {
       return;
     }
-    const known = button.dataset.known !== "true";
-    button.disabled = true;
+    const toggle = segment.closest(".status-toggle");
+    const wordId = Number(toggle?.dataset.readerWordId);
+    const status = segment.dataset.status;
+    if (!wordId || segment.dataset.active === "true") {
+      return;
+    }
+    segment.disabled = true;
     try {
-      await requestJson(`/api/words/${button.dataset.readerWordId}`, {
+      await requestJson(`/api/words/${wordId}`, {
         method: "PATCH",
-        body: JSON.stringify({ known })
+        body: JSON.stringify({ status })
       });
       await loadMaterialReader(state.readerStart);
       closeReaderWordInfo();
       await loadDashboard();
     } finally {
-      button.disabled = false;
+      segment.disabled = false;
     }
   });
 

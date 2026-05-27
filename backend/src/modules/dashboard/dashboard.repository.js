@@ -10,7 +10,8 @@ export function createDashboardRepository(db) {
       return db.prepare(`
         SELECT
           COUNT(w.id) AS totalWords,
-          COALESCE(SUM(CASE WHEN uws.known = 1 THEN 1 ELSE 0 END), 0) AS knownWords
+          COALESCE(SUM(CASE WHEN uws.status = 'known' THEN 1 ELSE 0 END), 0) AS knownWords,
+          COALESCE(SUM(CASE WHEN uws.status = 'learning' THEN 1 ELSE 0 END), 0) AS learningWords
         FROM collections c
         JOIN languages l ON l.id = c.language_id
         LEFT JOIN words w ON w.collection_id = c.id
@@ -28,7 +29,8 @@ export function createDashboardRepository(db) {
           c.language_id AS languageId,
           l.name AS languageName,
           COUNT(w.id) AS totalWords,
-          COALESCE(SUM(CASE WHEN uws.known = 1 THEN 1 ELSE 0 END), 0) AS knownWords
+          COALESCE(SUM(CASE WHEN uws.status = 'known' THEN 1 ELSE 0 END), 0) AS knownWords,
+          COALESCE(SUM(CASE WHEN uws.status = 'learning' THEN 1 ELSE 0 END), 0) AS learningWords
         FROM collections c
         JOIN languages l ON l.id = c.language_id
         LEFT JOIN words w ON w.collection_id = c.id
@@ -46,7 +48,8 @@ export function createDashboardRepository(db) {
           c.language_id AS languageId,
           l.name AS languageName,
           COUNT(w.id) AS totalWords,
-          COALESCE(SUM(CASE WHEN uws.known = 1 THEN 1 ELSE 0 END), 0) AS knownWords
+          COALESCE(SUM(CASE WHEN uws.status = 'known' THEN 1 ELSE 0 END), 0) AS knownWords,
+          COALESCE(SUM(CASE WHEN uws.status = 'learning' THEN 1 ELSE 0 END), 0) AS learningWords
         FROM collections c
         JOIN languages l ON l.id = c.language_id
         LEFT JOIN words w ON w.collection_id = c.id

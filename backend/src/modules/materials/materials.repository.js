@@ -35,7 +35,7 @@ export function createMaterialsRepository(db) {
              WHEN ? = 'English' OR lower(?) = 'chinese' THEN w.translation
              ELSE ''
            END AS translation,
-           COALESCE(uws.known, 0) AS known
+           COALESCE(uws.status, 'unknown') AS status
     FROM material_tokens mt
     JOIN words w ON w.id = mt.word_id
     LEFT JOIN word_translations wt ON wt.word_id = w.id AND wt.native_language = ?
