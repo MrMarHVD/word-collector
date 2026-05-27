@@ -11,6 +11,7 @@ const MAX_READER_SIDEBAR_WIDTH_SMALL = 240;
 const READER_PANEL_BOTTOM_MARGIN = 16;
 
 let loadDashboard = async () => {};
+let readerPageTurnInProgress = false;
 
 export function configureReaderController(options) {
   loadDashboard = options.loadDashboard;
@@ -126,6 +127,48 @@ async function markCurrentReaderPageKnown() {
   return true;
 }
 
+function isTextInputTarget(target) {
+  return target instanceof HTMLElement && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+}
+
+function animateReaderPageTurn(direction) {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+  const className = direction === "next" ? "is-page-flip-next" : "is-page-flip-prev";
+  elements.readerText.classList.remove("is-page-flip-next", "is-page-flip-prev");
+  void elements.readerText.offsetWidth;
+  elements.readerText.classList.add(className);
+}
+
+async function turnReaderPage(direction) {
+  if (readerPageTurnInProgress || !state.currentMaterial?.translationStatus?.ready) {
+    return;
+  }
+  const nextStart = direction === "next"
+    ? state.readerStart + state.readerWordsPerPage
+    : Math.max(state.readerStart - state.readerWordsPerPage, 0);
+  const currentEnd = state.readerStart + state.readerTokens.length;
+  const canTurn = direction === "next"
+    ? currentEnd < state.currentMaterial.wordCount
+    : state.readerStart > 0;
+  if (!canTurn) {
+    return;
+  }
+
+  readerPageTurnInProgress = true;
+  try {
+    const markedKnown = await markCurrentReaderPageKnown();
+    await loadMaterialReader(nextStart);
+    animateReaderPageTurn(direction);
+    if (markedKnown) {
+      await loadDashboard();
+    }
+  } finally {
+    readerPageTurnInProgress = false;
+  }
+}
+
 export function bindReaderEvents() {
   elements.readerSidebarToggle.addEventListener("click", () => {
     state.readerSidebarCollapsed = !state.readerSidebarCollapsed;
@@ -176,19 +219,11 @@ export function bindReaderEvents() {
   });
 
   elements.readerPrevPage.addEventListener("click", async () => {
-    const markedKnown = await markCurrentReaderPageKnown();
-    await loadMaterialReader(Math.max(state.readerStart - state.readerWordsPerPage, 0));
-    if (markedKnown) {
-      await loadDashboard();
-    }
+    await turnReaderPage("prev");
   });
 
   elements.readerNextPage.addEventListener("click", async () => {
-    const markedKnown = await markCurrentReaderPageKnown();
-    await loadMaterialReader(state.readerStart + state.readerWordsPerPage);
-    if (markedKnown) {
-      await loadDashboard();
-    }
+    await turnReaderPage("next");
   });
 
   elements.readerText.addEventListener("click", (event) => {
@@ -236,6 +271,19 @@ export function bindReaderEvents() {
       return;
     }
     closeReaderWordInfo();
+  });
+
+  document.addEventListener("keydown", async (event) => {
+    if (state.activeTab !== "reader" || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || isTextInputTarget(event.target)) {
+      return;
+    }
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      await turnReaderPage("prev");
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      await turnReaderPage("next");
+    }
   });
 
   elements.readerWordInfo.addEventListener("pointerdown", (event) => {

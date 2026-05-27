@@ -621,6 +621,45 @@ tbody tr:last-child td {
 
 .reader-text {
   font-size: var(--readerFontSize, 22px);
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.reader-text.is-page-flip-next {
+  animation: reader-page-flip-next 220ms ease-out;
+}
+
+.reader-text.is-page-flip-prev {
+  animation: reader-page-flip-prev 220ms ease-out;
+}
+
+@keyframes reader-page-flip-next {
+  0% {
+    opacity: 0.45;
+    transform: translateX(26px) rotateY(-5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) rotateY(0);
+  }
+}
+
+@keyframes reader-page-flip-prev {
+  0% {
+    opacity: 0.45;
+    transform: translateX(-26px) rotateY(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) rotateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-text.is-page-flip-next,
+  .reader-text.is-page-flip-prev {
+    animation: none;
+  }
 }
 
 .reader-token {
