@@ -46,5 +46,6 @@ export function renderDisplayModeButtons() {
 // Reset the visible word window and table scroll position.
 export function resetWordWindow() {
   state.visibleWordCount = WORD_PAGE_SIZE;
+  state.wordsPage = 0;
   elements.tableWrap.scrollTop = 0;
 }

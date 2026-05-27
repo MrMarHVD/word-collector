@@ -1,4 +1,9 @@
 export const WORD_PAGE_SIZE = 50;
+export const WORDS_PER_PAGE = 10;
+
+function normalizeDisplayMode(stored) {
+  return stored === "infinite" ? "infinite" : "page";
+}
 
 // Mutable browser state. Persisted preferences are read once during startup.
 export const state = {
@@ -30,7 +35,8 @@ export const state = {
   readerShowWordSpaces: localStorage.getItem("wordMarkerReaderShowWordSpaces") === "true",
   words: [],
   visibleWordCount: WORD_PAGE_SIZE,
-  wordDisplayMode: localStorage.getItem("wordMarkerDisplayMode") || "infinite",
+  wordsPage: 0,
+  wordDisplayMode: normalizeDisplayMode(localStorage.getItem("wordMarkerDisplayMode")),
   search: "",
   activeTab: localStorage.getItem("wordMarkerActiveTab") || "dashboard",
   theme: localStorage.getItem("wordMarkerTheme") || "system",

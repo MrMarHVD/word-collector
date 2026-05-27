@@ -1,15 +1,25 @@
 import { elements } from "../dom.js";
-import { state, WORD_PAGE_SIZE } from "../state.js";
+import { state, WORD_PAGE_SIZE, WORDS_PER_PAGE } from "../state.js";
 import { formatCount, t } from "../i18n.js";
 import { escapeHtml } from "../shared/html.js";
 import { renderDisplayModeButtons } from "./shell.js";
 
-// Render either the full collection or a windowed list for infinite scrolling.
-// Render collection word rows, empty states, and result counts.
+// Render either the paged view or a windowed list for infinite scrolling.
+// Render collection word rows, empty states, and pagination controls.
 export function renderWords(words) {
   renderDisplayModeButtons();
-  const visibleWords = state.wordDisplayMode === "infinite" ? words.slice(0, state.visibleWordCount) : words;
-  elements.tableWrap.classList.toggle("is-scrollable", state.wordDisplayMode === "infinite" && words.length > WORD_PAGE_SIZE);
+  const pageMode = state.wordDisplayMode === "page";
+  const totalPages = pageMode ? Math.max(1, Math.ceil(words.length / WORDS_PER_PAGE)) : 1;
+  if (pageMode && state.wordsPage >= totalPages) {
+    state.wordsPage = totalPages - 1;
+  }
+  if (state.wordsPage < 0) {
+    state.wordsPage = 0;
+  }
+  const visibleWords = pageMode
+    ? words.slice(state.wordsPage * WORDS_PER_PAGE, (state.wordsPage + 1) * WORDS_PER_PAGE)
+    : words.slice(0, state.visibleWordCount);
+  elements.tableWrap.classList.toggle("is-scrollable", !pageMode && words.length > WORD_PAGE_SIZE);
 
   elements.wordRows.innerHTML = visibleWords
     .map(
@@ -44,14 +54,18 @@ export function renderWords(words) {
 
   const hasCollections = (state.dashboard.allCollections || state.dashboard.collections).length > 0;
   elements.emptyState.hidden = words.length > 0 || hasCollections;
-  elements.wordListStatus.hidden = !words.length;
-  elements.wordListStatus.textContent =
-    state.wordDisplayMode === "infinite"
-      ? t("collections.showingWords", {
-          shown: formatCount(visibleWords.length),
-          total: formatCount(words.length)
-        })
-      : t("collections.totalWords", { total: formatCount(words.length) });
+
+  if (pageMode && words.length) {
+    elements.wordPagination.hidden = false;
+    elements.wordPageStatus.textContent = t("collections.pageStatus", {
+      current: formatCount(state.wordsPage + 1),
+      total: formatCount(totalPages)
+    });
+    elements.wordPrevPage.disabled = state.wordsPage <= 0;
+    elements.wordNextPage.disabled = state.wordsPage >= totalPages - 1;
+  } else {
+    elements.wordPagination.hidden = true;
+  }
 
   if (!words.length && hasCollections) {
     elements.emptyState.hidden = false;

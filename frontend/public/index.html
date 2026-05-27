@@ -150,21 +150,15 @@
               <h2 class="text-base font-bold" data-i18n="collections.wordsTitle">単語一覧</h2>
               <div class="collection-actions flex flex-wrap items-center justify-end gap-2.5 max-md:grid">
                 <div class="display-mode-buttons grid grid-cols-2 gap-1 rounded-lg border border-line bg-muted p-1 max-md:grid-cols-1">
-                  <button class="display-mode-button is-active rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-display-mode="all" data-i18n="collections.displayAll">すべて</button>
+                  <button class="display-mode-button is-active rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-display-mode="page" data-i18n="collections.displayPage">ページ</button>
                   <button class="display-mode-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-display-mode="infinite" data-i18n="collections.displayInfinite">Infinite Scroll</button>
                 </div>
-                <button id="saveCollectionLanguageButton" class="secondary-button min-h-10 rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="collections.save">保存</button>
-                <button id="deleteCollectionButton" class="danger-button min-h-10 rounded-md border px-4 text-sm font-bold" type="button" data-i18n="collections.delete">削除</button>
               </div>
             </div>
-            <div class="browser-tools grid grid-cols-[minmax(190px,260px)_minmax(150px,220px)_1fr] items-end gap-3 max-md:grid-cols-1">
+            <div class="browser-tools grid grid-cols-[minmax(190px,260px)_1fr] items-end gap-3 max-md:grid-cols-1">
               <label class="grid gap-1.5 text-sm font-semibold text-label">
                 <span data-i18n="collections.collection">コレクション</span>
                 <select id="collectionSelect" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus"></select>
-              </label>
-              <label class="grid gap-1.5 text-sm font-semibold text-label">
-                <span data-i18n="collections.language">言語</span>
-                <select id="collectionLanguageSelect" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus"></select>
               </label>
               <label class="grid gap-1.5 text-sm font-semibold text-label">
                 <span data-i18n="collections.search">検索</span>
@@ -184,7 +178,11 @@
                 <tbody id="wordRows"></tbody>
               </table>
             </div>
-            <p id="wordListStatus" class="list-status mt-3 min-h-5 text-sm text-secondary" role="status"></p>
+            <div id="wordPagination" class="word-pagination mt-3 flex items-center justify-center gap-3 text-sm" hidden>
+              <button id="wordPrevPage" class="secondary-button min-h-10 rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="collections.prevPage">前へ</button>
+              <span id="wordPageStatus" class="text-secondary" role="status"></span>
+              <button id="wordNextPage" class="secondary-button min-h-10 rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="collections.nextPage">次へ</button>
+            </div>
             <p id="emptyState" class="empty mt-4 text-sm text-secondary" data-i18n="collections.empty">CSVをアップロードして最初のコレクションを作成してください。</p>
           </section>
         </section>
