@@ -1,18 +1,17 @@
 import { clearAuthCookie, createSessionHelpers } from "../../auth/session.js";
 import { NATIVE_LANGUAGE_OPTIONS, STUDY_LANGUAGE_OPTIONS } from "../../config.js";
-import { hashPassword, verifyPassword } from "../../auth/password.js";
 import { jsonResponse } from "../response.js";
 import { readJson, readMultipart } from "../request.js";
-import { normalizeName } from "../../shared/normalize.js";
-import { getDashboard } from "../../services/dashboard.js";
-import { ensureStudyLanguagesForUser, getLanguage, getLanguages } from "../../services/languages.js";
-import { getWords } from "../../services/words.js";
-import { importWords } from "../../services/importWords.js";
-import { getMaterialReader, getMaterials, importMaterial, updateMaterialReaderStart } from "../../services/materials.js";
+import { getAuthContext, loginUser, registerUser } from "../../modules/auth/auth.service.js";
+import { getDashboard } from "../../modules/dashboard/dashboard.service.js";
+import { getLanguage, getLanguages } from "../../modules/languages/languages.service.js";
+import { getWords } from "../../modules/words/words.service.js";
+import { importWords } from "../../modules/imports/imports.service.js";
+import { getMaterialReader, getMaterials, importMaterial, updateMaterialReaderStart } from "../../modules/materials/materials.service.js";
 
 // Create the HTTP API router with database dependencies supplied by server.js.
-export function createApiHandler({ db, statements }) {
-  const { getAuthenticatedUser, requireUser, setJwtForUser } = createSessionHelpers(statements);
+export function createApiHandler({ repositories }) {
+  const { getAuthenticatedUser, requireUser, setJwtForUser } = createSessionHelpers(repositories.auth);
 
   // Dependency injection keeps startup wiring separate from route behavior.
   return async function handleApi(req, res, url) {
@@ -22,51 +21,37 @@ export function createApiHandler({ db, statements }) {
         return jsonResponse(res, 200, {
           user: null,
           languages: [],
-          predefinedLanguages: statements.predefinedLanguages.all(),
+          predefinedLanguages: repositories.languages.listPredefined(),
           studyLanguageOptions: STUDY_LANGUAGE_OPTIONS,
           nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS
         });
       }
-      const languages = getLanguages(db, user.userId);
-      const profile = statements.userById.get(user.userId);
+      const context = getAuthContext(repositories, user.userId);
       return jsonResponse(res, 200, {
-        user: { id: user.userId, email: user.email, nativeLanguage: profile.nativeLanguage },
-        languages,
-        predefinedLanguages: statements.predefinedLanguages.all(),
+        ...context,
         studyLanguageOptions: STUDY_LANGUAGE_OPTIONS,
-        nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS,
-        needsOnboarding: languages.length === 0
+        nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS
       });
     }
 
     if (req.method === "POST" && url.pathname === "/api/auth/login") {
       const body = await readJson(req);
-      const email = normalizeName(body.email).toLowerCase();
-      const user = statements.userByEmail.get(email);
-      if (!user || !verifyPassword(String(body.password || ""), user.passwordSalt, user.passwordHash)) {
-        return jsonResponse(res, 401, { error: "Invalid email or password." });
+      const result = loginUser(repositories, body.email, body.password);
+      if (result.error) {
+        return jsonResponse(res, result.status, { error: result.error });
       }
-      setJwtForUser(res, user);
-      return jsonResponse(res, 200, { user: { id: user.id, email: user.email, nativeLanguage: user.nativeLanguage } });
+      setJwtForUser(res, result.user);
+      return jsonResponse(res, 200, { user: { id: result.user.id, email: result.user.email, nativeLanguage: result.user.nativeLanguage } });
     }
 
     if (req.method === "POST" && url.pathname === "/api/auth/register") {
       const body = await readJson(req);
-      const email = normalizeName(body.email).toLowerCase();
-      const password = String(body.password || "");
-      const confirmPassword = String(body.confirmPassword || "");
-      if (!email || !password || password !== confirmPassword) {
-        return jsonResponse(res, 400, { error: "Email, password, and matching confirmation are required." });
+      const result = registerUser(repositories, body.email, body.password, body.confirmPassword);
+      if (result.error) {
+        return jsonResponse(res, result.status, { error: result.error });
       }
-      if (statements.userByEmail.get(email)) {
-        return jsonResponse(res, 409, { error: "User already exists." });
-      }
-      const passwordHash = hashPassword(password);
-      statements.createUser.run(email, passwordHash.hash, passwordHash.salt);
-      const user = statements.userByEmail.get(email);
-      ensureStudyLanguagesForUser(statements, user.id);
-      setJwtForUser(res, user);
-      return jsonResponse(res, 201, { user: { id: user.id, email: user.email, nativeLanguage: user.nativeLanguage } });
+      setJwtForUser(res, result.user);
+      return jsonResponse(res, 201, { user: { id: result.user.id, email: result.user.email, nativeLanguage: result.user.nativeLanguage } });
     }
 
     if (req.method === "POST" && url.pathname === "/api/auth/logout") {
@@ -81,27 +66,27 @@ export function createApiHandler({ db, statements }) {
 
     // Everything below requires a valid session and filters data by user.
     if (req.method === "GET" && url.pathname === "/api/dashboard") {
-      return jsonResponse(res, 200, getDashboard(db, statements, user.userId, url.searchParams.get("languageId")));
+      return jsonResponse(res, 200, getDashboard(repositories, user.userId, url.searchParams.get("languageId")));
     }
 
     if (req.method === "GET" && url.pathname === "/api/languages") {
-      return jsonResponse(res, 200, { languages: getLanguages(db, user.userId), predefinedLanguages: statements.predefinedLanguages.all(), studyLanguageOptions: STUDY_LANGUAGE_OPTIONS });
+      return jsonResponse(res, 200, { languages: getLanguages(repositories, user.userId), predefinedLanguages: repositories.languages.listPredefined(), studyLanguageOptions: STUDY_LANGUAGE_OPTIONS });
     }
 
     if (req.method === "GET" && url.pathname === "/api/materials") {
       const languageId = Number(url.searchParams.get("languageId"));
-      if (!statements.languageById.get(languageId, user.userId)) {
+      if (!repositories.languages.findById(languageId, user.userId)) {
         return jsonResponse(res, 404, { error: "Language not found." });
       }
       return jsonResponse(res, 200, {
-        materials: getMaterials(db, statements, user.userId, languageId, url.searchParams.get("offset")),
+        materials: getMaterials(repositories, user.userId, languageId, url.searchParams.get("offset")),
         pageSize: 50
       });
     }
 
     if (req.method === "POST" && url.pathname === "/api/materials") {
       const { fields, files } = await readMultipart(req);
-      const result = await importMaterial(db, statements, user.userId, fields.languageId, files.file);
+      const result = await importMaterial(repositories, user.userId, fields.languageId, files.file);
       if (result.error) {
         return jsonResponse(res, 400, result);
       }
@@ -110,7 +95,7 @@ export function createApiHandler({ db, statements }) {
 
     const materialMatch = url.pathname.match(/^\/api\/materials\/(\d+)$/);
     if (req.method === "GET" && materialMatch) {
-      const reader = getMaterialReader(db, statements, user.userId, Number(materialMatch[1]), url.searchParams.has("start") ? url.searchParams.get("start") : null, url.searchParams.get("limit"));
+      const reader = getMaterialReader(repositories, user.userId, Number(materialMatch[1]), url.searchParams.has("start") ? url.searchParams.get("start") : null, url.searchParams.get("limit"));
       if (!reader) {
         return jsonResponse(res, 404, { error: "Material not found." });
       }
@@ -119,7 +104,7 @@ export function createApiHandler({ db, statements }) {
 
     if (req.method === "PATCH" && materialMatch) {
       const body = await readJson(req);
-      const material = updateMaterialReaderStart(statements, user.userId, Number(materialMatch[1]), body.readerStart);
+      const material = updateMaterialReaderStart(repositories, user.userId, Number(materialMatch[1]), body.readerStart);
       if (!material) {
         return jsonResponse(res, 404, { error: "Material not found." });
       }
@@ -128,10 +113,10 @@ export function createApiHandler({ db, statements }) {
 
     if (req.method === "DELETE" && materialMatch) {
       const materialId = Number(materialMatch[1]);
-      if (!statements.materialById.get(materialId, user.userId)) {
+      if (!repositories.materials.findById(materialId, user.userId)) {
         return jsonResponse(res, 404, { error: "Material not found." });
       }
-      const result = statements.deleteMaterial.run(materialId, user.userId);
+      const result = repositories.materials.deleteById(materialId, user.userId);
       if (!result.changes) {
         return jsonResponse(res, 404, { error: "Material not found." });
       }
@@ -144,7 +129,7 @@ export function createApiHandler({ db, statements }) {
       if (!NATIVE_LANGUAGE_OPTIONS.includes(nativeLanguage)) {
         return jsonResponse(res, 400, { error: "Unsupported native language." });
       }
-      statements.updateNativeLanguage.run(nativeLanguage, user.userId);
+      repositories.auth.updateNativeLanguage(nativeLanguage, user.userId);
       return jsonResponse(res, 200, {
         user: {
           id: user.userId,
@@ -158,14 +143,14 @@ export function createApiHandler({ db, statements }) {
     const wordsMatch = url.pathname.match(/^\/api\/collections\/(\d+)\/words$/);
     if (req.method === "GET" && wordsMatch) {
       const collectionId = Number(wordsMatch[1]);
-      const collection = statements.collectionById.get(collectionId, user.userId);
+      const collection = repositories.words.findCollectionById(collectionId, user.userId);
       if (!collection) {
         return jsonResponse(res, 404, { error: "Collection not found." });
       }
-      const nativeLanguage = statements.userById.get(user.userId)?.nativeLanguage || "English";
+      const nativeLanguage = repositories.auth.findUserById(user.userId)?.nativeLanguage || "English";
       return jsonResponse(res, 200, {
         collection,
-        words: getWords(db, user.userId, collectionId, url.searchParams.get("search") || "", nativeLanguage)
+        words: getWords(repositories, user.userId, collectionId, url.searchParams.get("search") || "", nativeLanguage)
       });
     }
 
@@ -173,28 +158,28 @@ export function createApiHandler({ db, statements }) {
     if (req.method === "PATCH" && collectionMatch) {
       const collectionId = Number(collectionMatch[1]);
       const body = await readJson(req);
-      const language = getLanguage(statements, user.userId, body.languageId);
+      const language = getLanguage(repositories, user.userId, body.languageId);
       if (!language) {
         return jsonResponse(res, 400, { error: "Language is required." });
       }
-      const collection = statements.collectionById.get(collectionId, user.userId);
+      const collection = repositories.words.findCollectionById(collectionId, user.userId);
       if (!collection) {
         return jsonResponse(res, 404, { error: "Collection not found." });
       }
       try {
-        statements.updateCollectionLanguage.run(language.id, collectionId);
+        repositories.words.updateCollectionLanguage(language.id, collectionId);
       } catch (error) {
         return jsonResponse(res, 409, { error: "A collection with this name already exists in that language." });
       }
-      return jsonResponse(res, 200, statements.collectionById.get(collectionId, user.userId));
+      return jsonResponse(res, 200, repositories.words.findCollectionById(collectionId, user.userId));
     }
 
     if (req.method === "DELETE" && collectionMatch) {
       const collectionId = Number(collectionMatch[1]);
-      if (!statements.collectionById.get(collectionId, user.userId)) {
+      if (!repositories.words.findCollectionById(collectionId, user.userId)) {
         return jsonResponse(res, 404, { error: "Collection not found." });
       }
-      const result = statements.deleteCollection.run(collectionId);
+      const result = repositories.words.deleteCollection(collectionId);
       if (!result.changes) {
         return jsonResponse(res, 404, { error: "Collection not found." });
       }
@@ -203,7 +188,7 @@ export function createApiHandler({ db, statements }) {
 
     if (req.method === "POST" && url.pathname === "/api/import") {
       const body = await readJson(req);
-      const result = importWords(db, statements, user.userId, body.collectionName, body.languageId, body.words);
+      const result = importWords(repositories, user.userId, body.collectionName, body.languageId, body.words);
       if (result.error) {
         return jsonResponse(res, 400, result);
       }
@@ -215,12 +200,12 @@ export function createApiHandler({ db, statements }) {
       const id = Number(knownMatch[1]);
       const body = await readJson(req);
       const known = body.known ? 1 : 0;
-      const existingWord = statements.wordById.get(user.userId, id, user.userId);
+      const existingWord = repositories.words.findWordById(user.userId, id);
       if (!existingWord) {
         return jsonResponse(res, 404, { error: "Word not found." });
       }
-      statements.upsertKnown.run(user.userId, id, known);
-      return jsonResponse(res, 200, statements.wordById.get(user.userId, id, user.userId));
+      repositories.words.upsertKnown(user.userId, id, known);
+      return jsonResponse(res, 200, repositories.words.findWordById(user.userId, id));
     }
 
     return jsonResponse(res, 404, { error: "Not found." });

@@ -1,7 +1,7 @@
 import { appendFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import JSZip from "jszip";
-import { EPUB_IMPORT_LOG, ROOT } from "../config.js";
+import { EPUB_IMPORT_LOG, ROOT } from "../../config.js";
 
 // Resolve the configured log sink once so each call is a fast string check.
 const LOG_SINK = (() => {
@@ -358,4 +358,3 @@ async function extractEpubBlocks(buffer) {
   epubLog("import.done", { documents: paths.length, missingDocs, totalBlocks: blocks.length, totalChars, typeCounts, ms: Date.now() - startMs });
   return blocks;
 }
-

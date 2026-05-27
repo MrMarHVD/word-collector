@@ -1,15 +1,15 @@
-import { normalizeName } from "../shared/normalize.js";
-import { getLanguage } from "./languages.js";
+import { normalizeName } from "../../shared/normalize.js";
+import { getLanguage } from "../languages/languages.service.js";
 
 // CSV import creates the target collection if needed and skips duplicate rows.
 // Validate imported rows and write them to a user-owned collection atomically.
-export function importWords(db, statements, userId, collectionName, languageId, words) {
+export function importWords(repositories, userId, collectionName, languageId, words) {
   const name = normalizeName(collectionName);
   if (!name) {
     return { error: "Collection name is required." };
   }
 
-  const language = getLanguage(statements, userId, languageId);
+  const language = getLanguage(repositories, userId, languageId);
   if (!language) {
     return { error: "Language is required." };
   }
@@ -27,31 +27,26 @@ export function importWords(db, statements, userId, collectionName, languageId, 
     return { error: "Upload at least one row with a word and translation." };
   }
 
-  let collection = statements.collectionByName.get(userId, language.id, name);
+  let collection = repositories.imports.findCollectionByName(userId, language.id, name);
   if (!collection) {
-    statements.createCollection.run(language.id, name);
-    collection = statements.collectionByName.get(userId, language.id, name);
+    repositories.imports.createCollection(language.id, name);
+    collection = repositories.imports.findCollectionByName(userId, language.id, name);
   }
 
   let inserted = 0;
-  db.exec("BEGIN");
-  try {
+  repositories.database.transaction(() => {
     // Keep each upload atomic so partial imports do not leave mixed results.
     for (const row of cleanWords) {
-      const result = statements.insertWord.run(collection.id, row.word, row.translation, row.word, null, null, null, null, null);
+      const result = repositories.imports.insertWord(collection.id, row.word, row.translation);
       if (result.changes) {
-        const word = statements.wordByCollectionAndLemma.get(collection.id, row.word);
+        const word = repositories.imports.findWordByCollectionAndLemma(collection.id, row.word);
         if (word) {
-          statements.upsertWordTranslation.run(word.id, "English", row.translation);
+          repositories.imports.upsertEnglishTranslation(word.id, row.translation);
         }
       }
       inserted += result.changes;
     }
-    db.exec("COMMIT");
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
-  }
+  });
 
   return {
     collection,

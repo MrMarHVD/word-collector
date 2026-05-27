@@ -1,16 +1,16 @@
-import { normalizeName } from "../shared/normalize.js";
-import { lookupChineseEnglish, lookupChineseJapanese, lookupEnglishChinese, lookupEnglishJapanese, lookupJapaneseChinese, lookupJapaneseEnglish } from "./jmdict.js";
+import { normalizeName } from "../../shared/normalize.js";
+import { lookupChineseEnglish, lookupChineseJapanese, lookupEnglishChinese, lookupEnglishJapanese, lookupJapaneseChinese, lookupJapaneseEnglish } from "../dictionaries/dictionaries.service.js";
 
 export const TRANSLATION_ROUTES = [
-  { source: "English", target: "English", lookup: (_db, term) => term },
+  { source: "English", target: "English", lookup: (_dictionariesRepository, term) => term },
   { source: "English", target: "Japanese", lookup: lookupEnglishJapanese },
   { source: "English", target: "Chinese", lookup: lookupEnglishChinese },
   { source: "Japanese", target: "English", lookup: lookupJapaneseEnglish },
-  { source: "Japanese", target: "Japanese", lookup: (_db, term) => term },
+  { source: "Japanese", target: "Japanese", lookup: (_dictionariesRepository, term) => term },
   { source: "Japanese", target: "Chinese", lookup: lookupJapaneseChinese },
   { source: "Chinese", target: "English", lookup: lookupChineseEnglish },
   { source: "Chinese", target: "Japanese", lookup: lookupChineseJapanese },
-  { source: "Chinese", target: "Chinese", lookup: (_db, term) => term }
+  { source: "Chinese", target: "Chinese", lookup: (_dictionariesRepository, term) => term }
 ];
 
 export function languageKey(language) {
@@ -34,9 +34,9 @@ export function translationTargetsForLanguage(sourceLanguage) {
   return [...new Set(TRANSLATION_ROUTES.filter((route) => route.source === source && route.target !== source).map((route) => route.target))];
 }
 
-export function lookupTranslation(db, sourceLanguage, targetLanguage, term) {
+export function lookupTranslation(repositories, sourceLanguage, targetLanguage, term) {
   const route = translationRoute(sourceLanguage, targetLanguage);
-  return route ? normalizeName(route.lookup(db, term)) : "";
+  return route ? normalizeName(route.lookup(repositories.dictionaries, term)) : "";
 }
 
 export function supportedTargetNativeLanguage(sourceLanguage, nativeLanguage) {
@@ -45,27 +45,27 @@ export function supportedTargetNativeLanguage(sourceLanguage, nativeLanguage) {
   return "";
 }
 
-export function getStoredTranslation(statements, wordId, nativeLanguage) {
-  return normalizeName(statements.wordTranslation.get(wordId, nativeLanguage)?.translation || "");
+export function getStoredTranslation(repositories, wordId, nativeLanguage) {
+  return normalizeName(repositories.translations.findWordTranslation(wordId, nativeLanguage)?.translation || "");
 }
 
-export function hasTranslationAttempt(statements, wordId, nativeLanguage) {
-  return Boolean(statements.wordTranslation.get(wordId, nativeLanguage));
+export function hasTranslationAttempt(repositories, wordId, nativeLanguage) {
+  return Boolean(repositories.translations.findWordTranslation(wordId, nativeLanguage));
 }
 
-export function hasUsableStoredTranslation(statements, wordId, nativeLanguage, token) {
-  const stored = getStoredTranslation(statements, wordId, nativeLanguage);
+export function hasUsableStoredTranslation(repositories, wordId, nativeLanguage, token) {
+  const stored = getStoredTranslation(repositories, wordId, nativeLanguage);
   if (!stored) return false;
   return stored.toLowerCase() !== token.lemma.toLowerCase() && stored.toLowerCase() !== token.surface.toLowerCase();
 }
 
-export function translationForToken(db, sourceLanguage, targetLanguage, token, translations = new Map()) {
+export function translationForToken(repositories, sourceLanguage, targetLanguage, token, translations = new Map()) {
   const stored = translations.get(token.lemma.toLowerCase()) || "";
   if (stored) return stored;
-  return lookupTranslation(db, sourceLanguage, targetLanguage, token.surface);
+  return lookupTranslation(repositories, sourceLanguage, targetLanguage, token.surface);
 }
 
-export function getTranslationCandidates(db, statements, userId, sourceLanguage, targetLanguage, tokens) {
+export function getTranslationCandidates(repositories, userId, sourceLanguage, targetLanguage, tokens) {
   if (!translationRoute(sourceLanguage, targetLanguage)) {
     return new Map();
   }
@@ -76,8 +76,8 @@ export function getTranslationCandidates(db, statements, userId, sourceLanguage,
     if (candidates.has(key)) {
       continue;
     }
-    const existing = statements.wordInLanguageBySurfaceOrLemma.get(userId, sourceLanguage.id, token.surface, token.lemma, token.surface);
-    if (existing && hasUsableStoredTranslation(statements, existing.id, targetLanguage, token)) {
+    const existing = repositories.words.findWordInLanguageBySurfaceOrLemma(userId, sourceLanguage.id, token.surface, token.lemma);
+    if (existing && hasUsableStoredTranslation(repositories, existing.id, targetLanguage, token)) {
       continue;
     }
     candidates.set(key, token.lemma);
@@ -85,33 +85,24 @@ export function getTranslationCandidates(db, statements, userId, sourceLanguage,
 
   return new Map(
     [...candidates.values()].map((lemma) => {
-      const translation = lookupTranslation(db, sourceLanguage, targetLanguage, lemma);
+      const translation = lookupTranslation(repositories, sourceLanguage, targetLanguage, lemma);
       return [lemma.toLowerCase(), translation];
     })
   );
 }
 
-export function scheduleMaterialTranslationBackfill(db, statements, userId, materialId, activeTargetLanguage) {
+export function scheduleMaterialTranslationBackfill(repositories, userId, materialId, activeTargetLanguage) {
   setTimeout(() => {
     try {
-      backfillMaterialTranslations(db, statements, userId, materialId, activeTargetLanguage);
+      backfillMaterialTranslations(repositories, userId, materialId, activeTargetLanguage);
     } catch (error) {
       console.error(`Translation backfill failed for material ${materialId}:`, error);
     }
   }, 0);
 }
 
-function materialTranslationTokens(db, materialId) {
-  return db.prepare(`
-    SELECT mt.word_id AS wordId, mt.surface, mt.lemma
-    FROM material_tokens mt
-    WHERE mt.material_id = ?
-    ORDER BY mt.position
-  `).all(materialId);
-}
-
-export function backfillMaterialTranslations(db, statements, userId, materialId, activeTargetLanguage = "") {
-  const material = statements.materialById.get(Number(materialId), userId);
+export function backfillMaterialTranslations(repositories, userId, materialId, activeTargetLanguage = "") {
+  const material = repositories.materials.findById(Number(materialId), userId);
   if (!material) {
     return { updated: 0 };
   }
@@ -123,35 +114,30 @@ export function backfillMaterialTranslations(db, statements, userId, materialId,
   }
 
   const tokensByWord = new Map();
-  for (const token of materialTranslationTokens(db, material.id)) {
+  for (const token of repositories.translations.listMaterialTranslationTokens(material.id)) {
     if (!tokensByWord.has(token.wordId)) {
       tokensByWord.set(token.wordId, token);
     }
   }
 
   let updated = 0;
-  db.exec("BEGIN");
-  try {
+  repositories.database.transaction(() => {
     for (const target of targets) {
       for (const token of tokensByWord.values()) {
-        if (hasTranslationAttempt(statements, token.wordId, target)) {
+        if (hasTranslationAttempt(repositories, token.wordId, target)) {
           continue;
         }
-        const translation = lookupTranslation(db, sourceLanguage, target, token.lemma) || lookupTranslation(db, sourceLanguage, target, token.surface);
-        statements.upsertWordTranslation.run(token.wordId, target, translation);
+        const translation = lookupTranslation(repositories, sourceLanguage, target, token.lemma) || lookupTranslation(repositories, sourceLanguage, target, token.surface);
+        repositories.translations.upsertWordTranslation(token.wordId, target, translation);
         updated += 1;
       }
     }
-    db.exec("COMMIT");
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
-  }
+  });
 
   return { updated };
 }
 
-export function materialTranslationStatus(db, material, targetLanguage) {
+export function materialTranslationStatus(repositories, material, targetLanguage) {
   const target = languageKey(targetLanguage);
   if (!material || !target) {
     return { targetLanguage: target, ready: false, totalWords: 0, completedWords: 0, missingWords: 0 };
@@ -160,13 +146,7 @@ export function materialTranslationStatus(db, material, targetLanguage) {
     return { targetLanguage: target, ready: true, totalWords: 0, completedWords: 0, missingWords: 0 };
   }
 
-  const status = db.prepare(`
-    SELECT COUNT(DISTINCT mt.word_id) AS totalWords,
-           COUNT(DISTINCT wt.word_id) AS completedWords
-    FROM material_tokens mt
-    LEFT JOIN word_translations wt ON wt.word_id = mt.word_id AND wt.native_language = ?
-    WHERE mt.material_id = ?
-  `).get(target, material.id);
+  const status = repositories.translations.getMaterialTranslationStatus(target, material.id);
   const totalWords = Number(status?.totalWords || 0);
   const completedWords = Number(status?.completedWords || 0);
   return {

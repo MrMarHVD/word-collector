@@ -2,16 +2,16 @@ import { createServer } from "node:http";
 import { CORS_ORIGIN, PORT } from "./src/config.js";
 import { db } from "./src/db/index.js";
 import { runMigrations } from "./src/db/migrate.js";
-import { createStatements } from "./src/repositories/statements.js";
 import { jsonResponse } from "./src/http/response.js";
 import { serveStatic } from "./src/http/static.js";
 import { createApiHandler } from "./src/http/routes/api.js";
+import { createRepositories } from "./src/modules/index.js";
 
-// Bootstrap the schema before creating statements that depend on it.
+// Bootstrap the schema before creating repositories that depend on it.
 runMigrations(db);
 
-const statements = createStatements(db);
-const handleApi = createApiHandler({ db, statements });
+const repositories = createRepositories(db);
+const handleApi = createApiHandler({ repositories });
 
 function applyCors(req, res) {
   const origin = req.headers.origin;

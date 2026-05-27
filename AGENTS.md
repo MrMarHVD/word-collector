@@ -8,15 +8,17 @@
 - When adding or changing UI text, labels, placeholders, messages, confirmations, or status text, update `frontend/public/locales.json` for every supported locale and use localization keys in the UI.
 - Do not hard-code user-facing UI strings outside the localization layer unless the text is data from the database or user input.
 - Choose natural, concise UI names and labels. Prefer simple product language over literal translations or overly formal phrasing.
+- Do not update `README.md` unless the user explicitly asks for README changes.
 
 ## Code Structure
 
 - `backend/server.js` is the server bootstrap and dependency wiring.
-- `src/auth/` contains password, JWT, cookie, and session helpers.
-- `src/db/` contains SQLite setup and schema migration code.
-- `src/http/` contains request, response, and static file helpers.
-- `src/repositories/` contains prepared SQL statements.
+- `backend/src/auth/` contains low-level password, JWT, cookie, and session helpers.
+- `backend/src/db/` contains SQLite setup and schema migration code.
+- `backend/src/http/` contains request, response, and static file helpers.
 - `backend/src/http/routes/` contains API route handlers.
-- `src/services/` contains business logic for dashboard, languages, imports, and words.
-- `src/shared/` contains small cross-cutting utilities.
+- `backend/src/modules/` contains domain modules. Each module owns its service and repository files.
+- `backend/src/modules/*/*.service.js` contains business logic.
+- `backend/src/modules/*/*.repository.js` contains SQL queries and prepared statements.
+- `backend/src/shared/` contains small cross-cutting utilities.
 - `frontend/public/js/` contains browser modules split by state, DOM, API, i18n, CSV parsing, shared helpers, and views.

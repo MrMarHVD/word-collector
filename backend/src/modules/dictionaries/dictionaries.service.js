@@ -1,75 +1,41 @@
-import { normalizeName } from "../shared/normalize.js";
+import { normalizeName } from "../../shared/normalize.js";
 
 // Dictionary lookups use local JMdict and CEDICT indexes populated by scripts/.
 // Look up an English gloss for a Japanese expression or reading.
-export function lookupJapaneseEnglish(db, term) {
+export function lookupJapaneseEnglish(dictionariesRepository, term) {
   const clean = normalizeName(term);
   if (!clean) {
     return "";
   }
 
-  const exact = db.prepare(`
-    SELECT gloss
-    FROM jmdict_entries
-    WHERE expression = ?
-    ORDER BY priority DESC, length(gloss)
-    LIMIT 1
-  `).get(clean);
+  const exact = dictionariesRepository.findJapaneseEnglishByExpression(clean);
   if (exact?.gloss) {
     return exact.gloss;
   }
 
-  const reading = db.prepare(`
-    SELECT gloss
-    FROM jmdict_entries
-    WHERE reading = ?
-    ORDER BY priority DESC, length(gloss)
-    LIMIT 1
-  `).get(clean);
+  const reading = dictionariesRepository.findJapaneseEnglishByReading(clean);
   return reading?.gloss || "";
 }
 
 // Look up a Japanese expression from an English dictionary key.
-export function lookupEnglishJapanese(db, term) {
+export function lookupEnglishJapanese(dictionariesRepository, term) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
     return "";
   }
 
-  const exact = db.prepare(`
-    SELECT expression
-    FROM jmdict_english_index
-    WHERE english = ?
-    ORDER BY priority DESC, length(gloss)
-    LIMIT 1
-  `).get(clean);
+  const exact = dictionariesRepository.findEnglishJapanese(clean);
   return exact?.expression || "";
 }
 
 // Look up a simplified Chinese expression from an English dictionary key.
-export function lookupEnglishChinese(db, term) {
+export function lookupEnglishChinese(dictionariesRepository, term) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
     return "";
   }
 
-  const exact = db.prepare(`
-    SELECT simplified
-    FROM cedict_english_index
-    WHERE english = ?
-    ORDER BY
-      CASE
-        WHEN lower(definitions) LIKE ? THEN 0
-        WHEN lower(definitions) LIKE ? THEN 1
-        WHEN lower(definitions) LIKE ? THEN 2
-        WHEN lower(definitions) = ? THEN 3
-        ELSE 4
-      END,
-      priority DESC,
-      length(definitions),
-      length(simplified)
-    LIMIT 1
-  `).get(clean, `${clean};%cl:%`, `${clean} (%cl:%`, `${clean};%`, clean);
+  const exact = dictionariesRepository.findEnglishChinese(clean);
   return exact?.simplified || "";
 }
 
@@ -156,19 +122,13 @@ export function pinyinToToneMarks(pinyin) {
 }
 
 // Look up an English gloss for a Chinese simplified or traditional form.
-export function lookupChineseEnglish(db, term) {
+export function lookupChineseEnglish(dictionariesRepository, term) {
   const clean = normalizeName(term);
   if (!clean) {
     return "";
   }
 
-  const exact = db.prepare(`
-    SELECT definitions
-    FROM cedict_english_index
-    WHERE simplified = ? OR traditional = ?
-    ORDER BY priority DESC, length(definitions), length(simplified)
-    LIMIT 1
-  `).get(clean, clean);
+  const exact = dictionariesRepository.findChineseEnglish(clean);
   return cleanCedictDefinition(exact?.definitions);
 }
 
@@ -191,18 +151,12 @@ function translationKeys(value) {
 }
 
 // Look up Chinese metadata (translation, pinyin, traditional) for a term.
-export function lookupChineseDetails(db, term) {
+export function lookupChineseDetails(dictionariesRepository, term) {
   const clean = normalizeName(term);
   if (!clean) {
     return { translation: "", pinyin: "", traditional: "" };
   }
-  const row = db.prepare(`
-    SELECT definitions, pinyin, traditional, simplified
-    FROM cedict_english_index
-    WHERE simplified = ? OR traditional = ?
-    ORDER BY priority DESC, length(definitions), length(simplified)
-    LIMIT 1
-  `).get(clean, clean);
+  const row = dictionariesRepository.findChineseDetails(clean);
   if (!row) {
     return { translation: "", pinyin: "", traditional: "" };
   }
@@ -214,28 +168,16 @@ export function lookupChineseDetails(db, term) {
 }
 
 // Look up Japanese metadata (translation, reading) for an expression or reading.
-export function lookupJapaneseDetails(db, term) {
+export function lookupJapaneseDetails(dictionariesRepository, term) {
   const clean = normalizeName(term);
   if (!clean) {
     return { translation: "", reading: "" };
   }
-  const exact = db.prepare(`
-    SELECT gloss, reading, expression
-    FROM jmdict_entries
-    WHERE expression = ?
-    ORDER BY priority DESC, length(gloss)
-    LIMIT 1
-  `).get(clean);
+  const exact = dictionariesRepository.findJapaneseDetailsByExpression(clean);
   if (exact?.gloss) {
     return { translation: exact.gloss, reading: exact.reading || "" };
   }
-  const byReading = db.prepare(`
-    SELECT gloss, reading
-    FROM jmdict_entries
-    WHERE reading = ?
-    ORDER BY priority DESC, length(gloss)
-    LIMIT 1
-  `).get(clean);
+  const byReading = dictionariesRepository.findJapaneseDetailsByReading(clean);
   if (byReading?.gloss) {
     return { translation: byReading.gloss, reading: byReading.reading || clean };
   }
@@ -243,10 +185,10 @@ export function lookupJapaneseDetails(db, term) {
 }
 
 // Translate a Japanese term to Chinese through the English dictionary index.
-export function lookupJapaneseChinese(db, term) {
-  const english = lookupJapaneseEnglish(db, term);
+export function lookupJapaneseChinese(dictionariesRepository, term) {
+  const english = lookupJapaneseEnglish(dictionariesRepository, term);
   for (const key of translationKeys(english)) {
-    const chinese = lookupEnglishChinese(db, key);
+    const chinese = lookupEnglishChinese(dictionariesRepository, key);
     if (chinese) {
       return chinese;
     }
@@ -255,10 +197,10 @@ export function lookupJapaneseChinese(db, term) {
 }
 
 // Translate a Chinese term to Japanese through the English dictionary index.
-export function lookupChineseJapanese(db, term) {
-  const english = lookupChineseEnglish(db, term);
+export function lookupChineseJapanese(dictionariesRepository, term) {
+  const english = lookupChineseEnglish(dictionariesRepository, term);
   for (const key of translationKeys(english)) {
-    const japanese = lookupEnglishJapanese(db, key);
+    const japanese = lookupEnglishJapanese(dictionariesRepository, key);
     if (japanese) {
       return japanese;
     }

@@ -27,8 +27,8 @@ export function clearAuthCookie(res) {
   res.setHeader("set-cookie", `${AUTH_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`);
 }
 
-// Build request authentication helpers around the prepared user statements.
-export function createSessionHelpers(statements) {
+// Build request authentication helpers around the user repository.
+export function createSessionHelpers(authRepository) {
   // Verify the token and then require the referenced user row to still exist.
   function getAuthenticatedUser(req) {
     const token = parseCookies(req)[AUTH_COOKIE];
@@ -36,7 +36,7 @@ export function createSessionHelpers(statements) {
     if (!payload) {
       return null;
     }
-    const user = statements.userById.get(Number(payload.sub));
+    const user = authRepository.findUserById(Number(payload.sub));
     if (!user || user.email !== payload.email) {
       return null;
     }

@@ -5,10 +5,26 @@ A small local web application for uploading vocabulary collections, searching wo
 ## Structure
 
 ```txt
-backend/   HTTP API, SQLite access, auth, imports, tokenization, migrations
+backend/   HTTP API, domain modules, SQLite access, auth, imports, tokenization, migrations
 frontend/  Browser app, styles, localization, static web server
 data/      Local SQLite database and dictionary files
 ```
+
+Backend domain code is organized as service/repository modules:
+
+```txt
+backend/src/modules/
+  auth/
+  dashboard/
+  dictionaries/
+  imports/
+  languages/
+  materials/
+  translations/
+  words/
+```
+
+`*.service.js` files contain business rules and orchestration. `*.repository.js` files contain SQL and prepared statements.
 
 ## Run
 
