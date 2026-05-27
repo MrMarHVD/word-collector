@@ -35,6 +35,8 @@ export function renderReaderSidebar() {
   const panelWidth = state.readerPanelWidth ? clamp(state.readerPanelWidth, minPanelWidth, maxPanelWidth) : maxPanelWidth;
   const panelHeight = state.readerPanelHeight ? clamp(state.readerPanelHeight, minPanelHeight, maxPanelHeight) : maxPanelHeight;
   const sidebarWidth = readerSidebarColumnWidth();
+  const centeredPanelLeft = Math.max(sidebarWidth, (document.documentElement.clientWidth - panelWidth) / 2);
+  const panelOffset = centeredPanelLeft - sidebarWidth;
 
   state.readerPanelWidth = panelWidth;
   state.readerPanelHeight = panelHeight;
@@ -47,6 +49,7 @@ export function renderReaderSidebar() {
   elements.readerLayout.style.setProperty("--readerPanelMinHeight", `${minPanelHeight}px`);
   elements.readerLayout.style.setProperty("--readerPanelWidth", `${panelWidth}px`);
   elements.readerLayout.style.setProperty("--readerPanelHeight", `${panelHeight}px`);
+  elements.readerLayout.style.setProperty("--readerPanelOffset", `${panelOffset}px`);
   elements.readerLayout.classList.toggle("is-sidebar-collapsed", state.readerSidebarCollapsed);
   elements.readerSidebarToggle.setAttribute("aria-expanded", String(!state.readerSidebarCollapsed));
   elements.readerSidebarOpen.hidden = !state.readerSidebarCollapsed;

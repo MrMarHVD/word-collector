@@ -1414,6 +1414,7 @@ tbody tr:last-child td {
   height: clamp(var(--readerPanelMinHeight, 520px), var(--readerPanelHeight, 620px), var(--readerPanelMaxHeight, calc(100vh - 104px)));
   max-width: 100%;
   max-height: var(--readerPanelMaxHeight, calc(100vh - 104px));
+  margin-left: var(--readerPanelOffset, 0px);
   resize: both;
 }
 .reader-text {
