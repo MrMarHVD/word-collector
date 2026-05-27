@@ -12,11 +12,18 @@ export function getLanguage(repositories, userId, languageId) {
   return id ? repositories.languages.findById(id, userId) : null;
 }
 
-// Create the default study languages for a newly registered user.
-export function ensureStudyLanguagesForUser(repositories, userId) {
-  for (const language of STUDY_LANGUAGE_OPTIONS) {
-    if (!repositories.languages.findByName(userId, language)) {
-      repositories.languages.createForUser(userId, language);
-    }
+// Add a single study language to the user's enrolled list. Names that aren't
+// part of the supported study options are rejected.
+export function addStudyLanguageForUser(repositories, userId, name) {
+  const candidate = String(name || "").trim();
+  const match = STUDY_LANGUAGE_OPTIONS.find((option) => option.toLowerCase() === candidate.toLowerCase());
+  if (!match) {
+    return { error: "Unsupported study language." };
   }
+  const existing = repositories.languages.findByName(userId, match);
+  if (existing) {
+    return { language: existing };
+  }
+  repositories.languages.createForUser(userId, match);
+  return { language: repositories.languages.findByName(userId, match) };
 }

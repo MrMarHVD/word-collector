@@ -1,9 +1,11 @@
+import { requestJson } from "../api.js";
 import { elements } from "../dom.js";
 import { t } from "../i18n.js";
-import { state } from "../state.js";
-import { resetWordWindow } from "../views/shell.js";
-import { renderReaderSidebarTabs } from "../views/reader.js";
 import { escapeHtml } from "../shared/html.js";
+import { state } from "../state.js";
+import { renderReaderSidebarTabs } from "../views/reader.js";
+import { resetWordWindow } from "../views/shell.js";
+import { flagSvg } from "./flags.js";
 
 let reloadDashboard = async () => {};
 
@@ -15,32 +17,96 @@ export function studyLanguageLabel(language) {
   return t(`studyLanguage.${language}`);
 }
 
+// User-enrolled languages in the canonical study-language order.
 export function availableStudyLanguages() {
   return state.studyLanguageOptions
     .map((name) => state.languages.find((language) => language.name.toLowerCase() === name.toLowerCase()))
     .filter(Boolean);
 }
 
-export function renderStudyLanguageSelect() {
-  if (!elements.studyLanguageSelect) {
-    return;
-  }
-  elements.studyLanguageSelect.innerHTML = availableStudyLanguages()
-    .map((language) => {
-      const selected = language.id === state.selectedStudyLanguageId ? "selected" : "";
-      return `<option value="${escapeHtml(language.name)}" ${selected}>${escapeHtml(studyLanguageLabel(language.name))}</option>`;
-    })
-    .join("");
+// Study languages the user has not yet enrolled in.
+function unenrolledStudyLanguages() {
+  return state.studyLanguageOptions.filter(
+    (name) => !state.languages.some((language) => language.name.toLowerCase() === name.toLowerCase())
+  );
 }
 
 export function languageByName(languages, name) {
   return languages.find((language) => language.name.toLowerCase() === name.toLowerCase());
 }
 
-export async function setStudyLanguage(languageName, { persist = true, reload = true } = {}) {
-  if (!state.studyLanguageOptions.includes(languageName)) {
+// Render the flag button row and keep the add-button dropdown in sync.
+export function renderStudyLanguageSelect() {
+  if (!elements.studyLanguageButtons) {
     return;
   }
+  const enrolled = availableStudyLanguages();
+  elements.studyLanguageButtons.innerHTML = enrolled
+    .map((language) => {
+      const active = language.id === state.selectedStudyLanguageId;
+      const label = studyLanguageLabel(language.name);
+      return `
+        <button
+          class="study-language-button${active ? " is-active" : ""}"
+          type="button"
+          data-language-name="${escapeHtml(language.name)}"
+          aria-pressed="${active}"
+          aria-label="${escapeHtml(label)}"
+          title="${escapeHtml(label)}"
+        >${flagSvg(language.name)}</button>
+      `;
+    })
+    .join("");
+  renderStudyLanguageDropdown();
+}
+
+function renderStudyLanguageDropdown() {
+  if (!elements.studyLanguageDropdown) {
+    return;
+  }
+  const options = unenrolledStudyLanguages();
+  elements.studyLanguageAddButton.disabled = options.length === 0;
+  elements.studyLanguageDropdown.innerHTML = options.length
+    ? options
+        .map(
+          (name) => `
+            <button
+              class="study-language-dropdown-item flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-semibold text-label hover:bg-hover"
+              type="button"
+              data-language-name="${escapeHtml(name)}"
+            >
+              <span class="study-language-dropdown-flag">${flagSvg(name)}</span>
+              <span>${escapeHtml(studyLanguageLabel(name))}</span>
+            </button>
+          `
+        )
+        .join("")
+    : `<p class="px-2 py-2 text-sm text-secondary">${escapeHtml(t("learning.allAdded"))}</p>`;
+}
+
+function closeDropdown() {
+  elements.studyLanguageDropdown.hidden = true;
+  elements.studyLanguageAddButton.setAttribute("aria-expanded", "false");
+}
+
+function toggleDropdown() {
+  const open = elements.studyLanguageDropdown.hidden;
+  elements.studyLanguageDropdown.hidden = !open;
+  elements.studyLanguageAddButton.setAttribute("aria-expanded", String(open));
+}
+
+export async function setStudyLanguage(languageName, { persist = true, reload = true } = {}) {
+  if (!languageName) {
+    state.selectedStudyLanguageName = "";
+    state.selectedStudyLanguageId = null;
+    renderStudyLanguageSelect();
+    renderReaderSidebarTabs();
+    if (reload) {
+      await reloadDashboard();
+    }
+    return;
+  }
+
   const language = languageByName(state.languages, languageName);
   if (!language) {
     return;
@@ -63,9 +129,59 @@ export async function setStudyLanguage(languageName, { persist = true, reload = 
   }
 }
 
+async function addStudyLanguage(name) {
+  const result = await requestJson("/api/languages", {
+    method: "POST",
+    body: JSON.stringify({ name })
+  });
+  state.languages = result.languages || state.languages;
+  state.studyLanguageOptions = result.studyLanguageOptions || state.studyLanguageOptions;
+  state.predefinedLanguages = result.predefinedLanguages || state.predefinedLanguages;
+  await setStudyLanguage(result.language?.name || name, { persist: true, reload: true });
+}
+
 export function bindStudyLanguageEvents() {
-  elements.studyLanguageSelect.addEventListener("change", async (event) => {
-    await setStudyLanguage(event.target.value);
+  elements.studyLanguageButtons.addEventListener("click", async (event) => {
+    const button = event.target.closest(".study-language-button");
+    if (!button) {
+      return;
+    }
+    await setStudyLanguage(button.dataset.languageName);
+  });
+
+  elements.studyLanguageAddButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleDropdown();
+  });
+
+  elements.studyLanguageDropdown.addEventListener("click", async (event) => {
+    const item = event.target.closest(".study-language-dropdown-item");
+    if (!item) {
+      return;
+    }
+    closeDropdown();
+    item.disabled = true;
+    try {
+      await addStudyLanguage(item.dataset.languageName);
+    } finally {
+      item.disabled = false;
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (elements.studyLanguageDropdown.hidden) {
+      return;
+    }
+    if (event.target.closest(".study-language-add-wrap")) {
+      return;
+    }
+    closeDropdown();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !elements.studyLanguageDropdown.hidden) {
+      closeDropdown();
+    }
   });
 
   window.addEventListener("storage", async (event) => {

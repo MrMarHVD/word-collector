@@ -1,6 +1,5 @@
 import { hashPassword, verifyPassword } from "../../auth/password.js";
 import { normalizeName } from "../../shared/normalize.js";
-import { ensureStudyLanguagesForUser } from "../languages/languages.service.js";
 
 export function getAuthContext(repositories, userId) {
   const languages = repositories.languages.listForUser(userId);
@@ -35,6 +34,5 @@ export function registerUser(repositories, emailInput, passwordInput, confirmPas
   const passwordHash = hashPassword(password);
   repositories.auth.createUser(email, passwordHash.hash, passwordHash.salt);
   const user = repositories.auth.findUserByEmail(email);
-  ensureStudyLanguagesForUser(repositories, user.id);
   return { user };
 }

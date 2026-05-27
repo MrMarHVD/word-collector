@@ -69,11 +69,19 @@
             <button class="tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-tab="reader" data-i18n="tabs.reader">Reader</button>
           </nav>
         </div>
-        <div class="menu-actions grid w-full grid-cols-[minmax(140px,160px)_minmax(140px,1fr)_52px_minmax(116px,132px)] items-center gap-2 justify-self-end max-md:grid-cols-1">
-          <label class="menu-select-label grid gap-1 text-xs font-bold text-secondary">
-            <span data-i18n="learning.studyLanguage">Study language</span>
-            <select id="studyLanguageSelect" class="min-h-11 rounded-md border border-line bg-panel px-3 text-sm text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus"></select>
-          </label>
+        <div class="menu-actions grid w-full grid-cols-[auto_minmax(140px,1fr)_52px_minmax(116px,132px)] items-center gap-2 justify-self-end max-md:grid-cols-1">
+          <div class="study-language-bar relative flex items-center gap-1.5 justify-self-end max-md:justify-self-start">
+            <div id="studyLanguageButtons" class="flex items-center gap-1.5" role="group" aria-label="Study languages"></div>
+            <div class="study-language-add-wrap relative">
+              <button id="studyLanguageAddButton" class="study-language-add-button grid h-[42px] w-[42px] place-items-center rounded-md border border-line bg-panel text-brand hover:bg-hover" type="button" aria-haspopup="true" aria-expanded="false">
+                <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[2]">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+                <span class="visually-hidden" data-i18n="learning.add">Add language</span>
+              </button>
+              <div id="studyLanguageDropdown" class="study-language-dropdown absolute right-0 top-[calc(100%+6px)] z-30 min-w-[160px] rounded-md border border-line bg-panel p-1 shadow-panel" role="menu" hidden></div>
+            </div>
+          </div>
           <div class="locale-buttons grid grid-cols-2 gap-1 rounded-lg border border-line bg-muted p-1 max-md:grid-cols-1" aria-label="UI language">
             <button class="locale-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-locale="ja" data-i18n="ui.japanese">日本語</button>
             <button class="locale-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-locale="en" data-i18n="ui.english">English</button>

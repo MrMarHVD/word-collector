@@ -4,7 +4,6 @@ import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
 import { state } from "../../state.js";
 import { renderAuthMode } from "../../views/auth.js";
-import { renderOnboarding } from "../../views/onboarding.js";
 import { showView } from "../../views/shell.js";
 
 let activateTab = () => {};
@@ -27,11 +26,6 @@ export async function loadSession() {
   if (!state.user) {
     showView("auth");
     renderAuthMode();
-    return;
-  }
-  if (result.needsOnboarding) {
-    showView("onboarding");
-    renderOnboarding(state.predefinedLanguages);
     return;
   }
   const savedLanguageName = localStorage.getItem("wordMarkerStudyLanguageName") || "";
@@ -74,23 +68,6 @@ export function bindAuthEvents() {
       elements.authStatus.textContent = error.message;
     } finally {
       elements.authSubmit.disabled = false;
-    }
-  });
-
-  elements.onboardingLanguages.addEventListener("click", async (event) => {
-    const button = event.target.closest("[data-language-name]");
-    if (!button) {
-      return;
-    }
-    button.disabled = true;
-    try {
-      await setStudyLanguage(button.dataset.languageName, { persist: true, reload: false });
-      showView("app");
-      await loadDashboard();
-    } catch (error) {
-      elements.onboardingStatus.textContent = error.message;
-    } finally {
-      button.disabled = false;
     }
   });
 
