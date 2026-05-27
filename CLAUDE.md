@@ -1,0 +1,1 @@
+- Always check whether there is an AGENTS.md file in the repository. If one exists, follow the instructions in it.
