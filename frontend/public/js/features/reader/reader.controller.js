@@ -111,7 +111,7 @@ async function markCurrentReaderPageKnown() {
   if (!state.readerAutoMarkKnownOnPageTurn) {
     return false;
   }
-  const wordIds = [...new Set(state.readerTokens.filter((token) => token.wordId && normalizeStatus(token.status || (token.known ? "known" : "unknown")) !== "known").map((token) => token.wordId))];
+  const wordIds = [...new Set(state.readerTokens.filter((token) => token.wordId && normalizeStatus(token.status || (token.known ? "known" : "unknown")) === "unknown").map((token) => token.wordId))];
   if (!wordIds.length) {
     return false;
   }
@@ -125,6 +125,39 @@ async function markCurrentReaderPageKnown() {
   );
   state.readerTokens = state.readerTokens.map((token) => (wordIds.includes(token.wordId) ? { ...token, known: true, status: "known" } : token));
   return true;
+}
+
+async function markReaderWordLearning(wordId) {
+  const tokenStatus = normalizeStatus(state.readerTokens.find((token) => token.wordId === wordId)?.status || "unknown");
+  if (!wordId || tokenStatus === "learning") {
+    return false;
+  }
+  await requestJson(`/api/words/${wordId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status: "learning" })
+  });
+  state.readerTokens = state.readerTokens.map((token) => (token.wordId === wordId ? { ...token, known: false, status: "learning" } : token));
+  elements.readerText.querySelectorAll(`[data-word-id="${wordId}"]`).forEach((entry) => {
+    entry.dataset.status = "learning";
+  });
+  return true;
+}
+
+function updateReaderWordInfoStatus(status) {
+  const toggle = elements.readerWordInfo.querySelector(".status-toggle");
+  if (!toggle) {
+    return;
+  }
+  toggle.querySelectorAll(".status-segment").forEach((segment) => {
+    const active = segment.dataset.status === status;
+    segment.dataset.active = String(active);
+    segment.setAttribute("aria-pressed", String(active));
+  });
+  const statusValue = elements.readerWordInfo.querySelector("dl dd:last-child");
+  const activeSegment = toggle.querySelector(`.status-segment[data-status="${status}"]`);
+  if (statusValue && activeSegment) {
+    statusValue.textContent = activeSegment.textContent;
+  }
 }
 
 function isTextInputTarget(target) {
@@ -226,7 +259,7 @@ export function bindReaderEvents() {
     await turnReaderPage("next");
   });
 
-  elements.readerText.addEventListener("click", (event) => {
+  elements.readerText.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-token-id]");
     if (!button) {
       return;
@@ -235,6 +268,11 @@ export function bindReaderEvents() {
     button.classList.add("is-selected");
     const token = state.readerTokens.find((entry) => entry.id === Number(button.dataset.tokenId));
     renderReaderWordInfo(token, button);
+    const changed = await markReaderWordLearning(Number(button.dataset.wordId));
+    if (changed) {
+      updateReaderWordInfoStatus("learning");
+      await loadDashboard();
+    }
   });
 
   elements.readerWordInfo.addEventListener("click", async (event) => {
