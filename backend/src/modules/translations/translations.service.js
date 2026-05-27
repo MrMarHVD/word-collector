@@ -31,7 +31,7 @@ export function translationRoute(sourceLanguage, targetLanguage) {
 
 export function translationTargetsForLanguage(sourceLanguage) {
   const source = languageKey(sourceLanguage);
-  return [...new Set(TRANSLATION_ROUTES.filter((route) => route.source === source && route.target !== source).map((route) => route.target))];
+  return [...new Set(TRANSLATION_ROUTES.filter((route) => route.source === source).map((route) => route.target))];
 }
 
 export function lookupTranslation(repositories, sourceLanguage, targetLanguage, term) {
@@ -109,6 +109,10 @@ export function backfillMaterialTranslations(repositories, userId, materialId, a
 
   const sourceLanguage = { id: material.languageId, name: material.languageName };
   const targets = translationTargetsForLanguage(sourceLanguage).filter((target) => target !== activeTargetLanguage);
+  return backfillMaterialTranslationTargets(repositories, material, sourceLanguage, targets);
+}
+
+function backfillMaterialTranslationTargets(repositories, material, sourceLanguage, targets) {
   if (!targets.length) {
     return { updated: 0 };
   }
@@ -124,7 +128,7 @@ export function backfillMaterialTranslations(repositories, userId, materialId, a
   repositories.database.transaction(() => {
     for (const target of targets) {
       for (const token of tokensByWord.values()) {
-        if (hasTranslationAttempt(repositories, token.wordId, target)) {
+        if (getStoredTranslation(repositories, token.wordId, target)) {
           continue;
         }
         const translation = lookupTranslation(repositories, sourceLanguage, target, token.lemma) || lookupTranslation(repositories, sourceLanguage, target, token.surface);
@@ -134,6 +138,23 @@ export function backfillMaterialTranslations(repositories, userId, materialId, a
     }
   });
 
+  return { updated };
+}
+
+export function backfillUserTranslations(repositories, userId, targetLanguage) {
+  const target = languageKey(targetLanguage);
+  if (!target) {
+    return { updated: 0 };
+  }
+
+  let updated = 0;
+  for (const material of repositories.materials.listByUser(userId)) {
+    const sourceLanguage = { id: material.languageId, name: material.languageName };
+    if (!translationRoute(sourceLanguage, target)) {
+      continue;
+    }
+    updated += backfillMaterialTranslationTargets(repositories, material, sourceLanguage, [target]).updated;
+  }
   return { updated };
 }
 

@@ -1,7 +1,7 @@
 import { READER_WORK_PAGE_SIZE } from "../../config.js";
 import { normalizeName } from "../../shared/normalize.js";
 import { lookupChineseDetails } from "../dictionaries/dictionaries.service.js";
-import { getTranslationCandidates, hasTranslationAttempt, hasUsableStoredTranslation, languageKey, materialTranslationStatus, scheduleMaterialTranslationBackfill, supportedTargetNativeLanguage, translationForToken } from "../translations/translations.service.js";
+import { getTranslationCandidates, hasTranslationAttempt, hasUsableStoredTranslation, languageKey, lookupTranslation, materialTranslationStatus, scheduleMaterialTranslationBackfill, supportedTargetNativeLanguage, translationForToken } from "../translations/translations.service.js";
 import { extractTextFromUpload } from "./text-extraction.service.js";
 import { tokenizeBlocksForLanguage, tokenizeForLanguage } from "./tokenizer.service.js";
 
@@ -38,6 +38,10 @@ function wordMetadataForToken(repositories, sourceLanguage, token) {
 // Return a dictionary word row, creating and translating one when necessary.
 function getOrCreateDictionaryWord(repositories, userId, language, token, targetNativeLanguage, fallbackTranslation) {
   const metadata = wordMetadataForToken(repositories, language, token);
+  const source = languageKey(language);
+  const baseTranslation = source === "English"
+    ? token.lemma
+    : lookupTranslation(repositories, language, "English", token.lemma) || lookupTranslation(repositories, language, "English", token.surface) || fallbackTranslation;
   // Reuse a matching user-owned word before creating an uncollected entry.
   const existing = repositories.words.findWordInLanguageBySurfaceOrLemma(userId, language.id, token.surface, token.lemma);
   if (existing) {
@@ -55,7 +59,7 @@ function getOrCreateDictionaryWord(repositories, userId, language, token, target
     repositories.words.insertWord(
       collection.id,
       token.lemma,
-      fallbackTranslation,
+      baseTranslation,
       token.lemma,
       metadata.pos || null,
       metadata.posSubcategory || null,

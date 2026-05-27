@@ -1,4 +1,5 @@
 import { NATIVE_LANGUAGE_OPTIONS } from "../../config.js";
+import { backfillUserTranslations } from "../../modules/translations/translations.service.js";
 import { readJson } from "../request.js";
 import { jsonResponse } from "../response.js";
 
@@ -15,6 +16,7 @@ export function createSettingsRoutes({ repositories }) {
       return true;
     }
     repositories.auth.updateNativeLanguage(nativeLanguage, user.userId);
+    backfillUserTranslations(repositories, user.userId, nativeLanguage);
     jsonResponse(res, 200, {
       user: {
         id: user.userId,

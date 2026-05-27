@@ -23,6 +23,14 @@ export function createMaterialsRepository(db) {
     ORDER BY datetime(created_at) DESC, id DESC
     LIMIT ? OFFSET ?
   `);
+  const materialsByUser = db.prepare(`
+    SELECT m.id, m.user_id AS userId, m.language_id AS languageId, l.name AS languageName, m.title, m.file_name AS fileName,
+           m.file_type AS fileType, m.word_count AS wordCount, m.reader_start AS readerStart, m.created_at AS createdAt
+    FROM materials m
+    JOIN languages l ON l.id = m.language_id
+    WHERE m.user_id = ?
+    ORDER BY datetime(m.created_at) DESC, m.id DESC
+  `);
   const readerTokens = db.prepare(`
     SELECT mt.id, mt.position, mt.surface, mt.lemma, mt.pos, mt.conjugation_form AS conjugationForm, mt.word_id AS wordId,
            mt.block_index AS blockIndex, mt.block_type AS blockType,
@@ -78,6 +86,9 @@ export function createMaterialsRepository(db) {
     },
     listByUserAndLanguage(userId, languageId, pageSize, offset) {
       return materialsByUserAndLanguage.all(userId, languageId, pageSize, offset);
+    },
+    listByUser(userId) {
+      return materialsByUser.all(userId);
     },
     listReaderTokens(material, nativeLanguage, safeLimit, safeStart, userId) {
       return readerTokens.all(nativeLanguage, material.languageName, nativeLanguage, material.languageName, nativeLanguage, userId, material.id, safeLimit, safeStart);

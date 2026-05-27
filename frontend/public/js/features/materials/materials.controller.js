@@ -6,14 +6,47 @@ import { renderMaterialList, renderReaderTokens } from "../../views/reader.js";
 
 let loadDashboard = async () => {};
 let loadMaterialReader = async () => {};
+let loadWords = async () => {};
+let translationPollId = null;
 
 export function configureMaterialsController(options) {
   loadDashboard = options.loadDashboard;
   loadMaterialReader = options.loadMaterialReader;
+  loadWords = options.loadWords;
+}
+
+function hasPendingTranslations() {
+  return state.materials.some((material) => material.translationStatus && !material.translationStatus.ready);
+}
+
+function scheduleTranslationRefresh() {
+  if (translationPollId || !hasPendingTranslations()) {
+    return;
+  }
+  translationPollId = window.setInterval(async () => {
+    try {
+      if (!hasPendingTranslations()) {
+        window.clearInterval(translationPollId);
+        translationPollId = null;
+        return;
+      }
+      await loadMaterials(true);
+      await loadWords();
+      if (state.selectedMaterialId && state.currentMaterial?.translationStatus && !state.currentMaterial.translationStatus.ready) {
+        await loadMaterialReader(state.readerStart, { persist: false });
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }, 1500);
 }
 
 export async function loadMaterials(reset = false) {
   if (!state.selectedStudyLanguageId) {
+    if (translationPollId) {
+      window.clearInterval(translationPollId);
+      translationPollId = null;
+    }
     state.materials = [];
     state.selectedMaterialId = null;
     renderMaterialList();
@@ -37,6 +70,7 @@ export async function loadMaterials(reset = false) {
   }
   renderMaterialList();
   renderReaderTokens();
+  scheduleTranslationRefresh();
 }
 
 export function bindMaterialsEvents() {

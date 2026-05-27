@@ -42,7 +42,7 @@ configureLocale({ renderSettings, renderStudyLanguageSelect });
 configureStudyLanguage({ reloadDashboard: loadDashboard });
 configureAuthController({ activateTab, loadDashboard, renderSettings });
 configureDashboardController({ loadMaterials, loadWords });
-configureMaterialsController({ loadDashboard, loadMaterialReader });
+configureMaterialsController({ loadDashboard, loadMaterialReader, loadWords });
 configureReaderController({ loadDashboard });
 configureCollectionsController({ loadDashboard });
 configureImportsController({ activateTab, loadDashboard });

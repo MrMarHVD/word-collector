@@ -2,6 +2,7 @@ function displayedTranslationExpression() {
   return `
     CASE
       WHEN wt.translation IS NOT NULL AND trim(wt.translation) <> '' THEN wt.translation
+      WHEN lower(?) = lower(l.name) THEN w.word
       WHEN ? = 'English' THEN w.translation
       ELSE ''
     END
@@ -144,7 +145,7 @@ export function createWordsRepository(db) {
           WHERE l.user_id = ? AND l.id = ?
             AND (lower(w.word) LIKE lower(?) OR lower(${translationExpression}) LIKE lower(?))
           ORDER BY lower(w.word), lower(${translationExpression})
-        `).all(nativeLanguage, nativeLanguage, userId, userId, languageId, `%${searchTerm}%`, nativeLanguage, `%${searchTerm}%`, nativeLanguage);
+        `).all(nativeLanguage, nativeLanguage, nativeLanguage, userId, userId, languageId, `%${searchTerm}%`, nativeLanguage, nativeLanguage, `%${searchTerm}%`, nativeLanguage, nativeLanguage);
       }
 
       return db.prepare(`
@@ -156,7 +157,7 @@ export function createWordsRepository(db) {
         LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
         WHERE l.user_id = ? AND l.id = ?
         ORDER BY lower(w.word), lower(${translationExpression})
-      `).all(nativeLanguage, nativeLanguage, userId, userId, languageId, nativeLanguage);
+      `).all(nativeLanguage, nativeLanguage, nativeLanguage, userId, userId, languageId, nativeLanguage, nativeLanguage);
     },
     listWords(userId, collectionId, searchTerm, nativeLanguage = "English") {
       const translationExpression = displayedTranslationExpression();
@@ -174,7 +175,7 @@ export function createWordsRepository(db) {
           WHERE l.user_id = ? AND w.collection_id = ?
             AND (lower(w.word) LIKE lower(?) OR lower(${translationExpression}) LIKE lower(?))
           ORDER BY lower(w.word), lower(${translationExpression})
-        `).all(nativeLanguage, nativeLanguage, userId, userId, collectionId, `%${searchTerm}%`, nativeLanguage, `%${searchTerm}%`, nativeLanguage);
+        `).all(nativeLanguage, nativeLanguage, nativeLanguage, userId, userId, collectionId, `%${searchTerm}%`, nativeLanguage, nativeLanguage, `%${searchTerm}%`, nativeLanguage, nativeLanguage);
       }
 
       return db.prepare(`
@@ -186,7 +187,7 @@ export function createWordsRepository(db) {
         LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
         WHERE l.user_id = ? AND w.collection_id = ?
         ORDER BY lower(w.word), lower(${translationExpression})
-      `).all(nativeLanguage, nativeLanguage, userId, userId, collectionId, nativeLanguage);
+      `).all(nativeLanguage, nativeLanguage, nativeLanguage, userId, userId, collectionId, nativeLanguage, nativeLanguage);
     }
   };
 }
