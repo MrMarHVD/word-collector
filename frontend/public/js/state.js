@@ -34,6 +34,8 @@ export const state = {
   readerAutoMarkKnownOnPageTurn: localStorage.getItem("wordMarkerReaderAutoMarkKnownOnPageTurn") === "true",
   readerShowWordSpaces: localStorage.getItem("wordMarkerReaderShowWordSpaces") === "true",
   words: [],
+  selectedWordIds: new Set(),
+  selectionAnchorId: null,
   visibleWordCount: WORD_PAGE_SIZE,
   wordsPage: 0,
   wordDisplayMode: normalizeDisplayMode(localStorage.getItem("wordMarkerDisplayMode")),

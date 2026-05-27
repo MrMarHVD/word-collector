@@ -132,10 +132,21 @@ button:disabled {
 .locale-button.is-active,
 .display-mode-button.is-active,
 .reader-sidebar-tab-button.is-active,
-.theme-button.is-active {
+.theme-button.is-active,
+.upload-target-button.is-active {
   background: var(--surface-panel);
   color: var(--text-main);
   box-shadow: 0 1px 2px var(--shadow-color), inset 0 0 0 1px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+
+.upload-target-button:hover {
+  background: var(--surface-panel);
+  color: var(--text-main);
+}
+
+.upload-target-button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .collection-button.is-active {
@@ -145,8 +156,54 @@ button:disabled {
   box-shadow: inset 0 0 0 1px var(--brand);
 }
 
+.collection-button.is-drop-target {
+  border-color: var(--brand);
+  background: var(--brand-hover-surface);
+  box-shadow: inset 0 0 0 2px var(--brand);
+}
+
 .upload-modal:not([hidden]) {
   display: flex;
+}
+
+.word-drag-cell {
+  width: 28px;
+  cursor: grab;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.word-drag-cell:active {
+  cursor: grabbing;
+}
+
+.word-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+.word-row {
+  cursor: default;
+}
+
+.word-row:hover .word-drag-handle {
+  color: var(--text-label);
+}
+
+.word-row.is-selected {
+  background: var(--brand-hover-surface);
+}
+
+.word-row.is-selected td {
+  background: inherit;
+}
+
+.word-row.is-dragging {
+  opacity: 0.5;
 }
 
 .tab-button:hover,

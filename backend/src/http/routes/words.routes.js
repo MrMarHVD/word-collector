@@ -1,5 +1,5 @@
 import { getLanguage } from "../../modules/languages/languages.service.js";
-import { getWords, getWordsInLanguage } from "../../modules/words/words.service.js";
+import { getWords, getWordsInLanguage, moveWords } from "../../modules/words/words.service.js";
 import { readJson } from "../request.js";
 import { jsonResponse } from "../response.js";
 
@@ -34,6 +34,17 @@ export function createWordsRoutes({ repositories }) {
         collection,
         words: getWords(repositories, user.userId, collectionId, url.searchParams.get("search") || "", nativeLanguage)
       });
+      return true;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/words/move") {
+      const body = await readJson(req);
+      const result = moveWords(repositories, user.userId, body.wordIds, Number(body.collectionId));
+      if (result.error) {
+        jsonResponse(res, 400, result);
+        return true;
+      }
+      jsonResponse(res, 200, result);
       return true;
     }
 

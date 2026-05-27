@@ -31,8 +31,18 @@ export function renderWords(words) {
         if (entry.reading) phonetics.push(entry.reading);
         if (entry.pinyin) phonetics.push(entry.pinyin);
         if (entry.traditional && entry.traditional !== entry.word) phonetics.push(entry.traditional);
+        const selected = state.selectedWordIds.has(entry.id);
         return `
-      <tr>
+      <tr class="word-row${selected ? " is-selected" : ""}" draggable="true" data-word-id="${entry.id}" data-collection-id="${entry.collectionId}" aria-selected="${selected}">
+        <td class="word-drag-cell px-2 py-3 align-middle">
+          <span class="word-drag-handle" aria-label="${escapeHtml(t("collections.dragHandle"))}" title="${escapeHtml(t("collections.dragHandle"))}">
+            <svg aria-hidden="true" viewBox="0 0 16 16" class="h-4 w-4 fill-current">
+              <circle cx="5" cy="3" r="1.4"/><circle cx="11" cy="3" r="1.4"/>
+              <circle cx="5" cy="8" r="1.4"/><circle cx="11" cy="8" r="1.4"/>
+              <circle cx="5" cy="13" r="1.4"/><circle cx="11" cy="13" r="1.4"/>
+            </svg>
+          </span>
+        </td>
         <td class="px-3 py-3 align-top">
           <div class="word-cell">
             <span class="word-cell-main">${escapeHtml(entry.word)}</span>

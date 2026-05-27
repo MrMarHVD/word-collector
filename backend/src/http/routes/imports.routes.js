@@ -9,7 +9,12 @@ export function createImportsRoutes({ repositories }) {
     }
 
     const body = await readJson(req);
-    const result = importWords(repositories, user.userId, body.collectionName, body.languageId, body.words);
+    const result = importWords(repositories, user.userId, {
+      collectionName: body.collectionName,
+      collectionId: body.collectionId,
+      languageId: body.languageId,
+      words: body.words
+    });
     if (result.error) {
       jsonResponse(res, 400, result);
       return true;

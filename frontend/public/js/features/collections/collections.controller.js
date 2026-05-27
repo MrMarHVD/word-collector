@@ -13,6 +13,9 @@ export function configureCollectionsController(options) {
 }
 
 export async function loadWords() {
+  state.selectedWordIds.clear();
+  state.selectionAnchorId = null;
+
   if (!state.selectedCollectionId) {
     state.words = [];
     elements.wordRows.innerHTML = "";
@@ -52,6 +55,59 @@ async function selectCollection(value) {
   await loadWords();
 }
 
+function handleRowSelection(event, wordId) {
+  const ids = state.words.map((entry) => entry.id);
+  if (event.shiftKey && state.selectionAnchorId != null) {
+    const anchorIndex = ids.indexOf(state.selectionAnchorId);
+    const currentIndex = ids.indexOf(wordId);
+    if (anchorIndex < 0 || currentIndex < 0) {
+      return;
+    }
+    const [from, to] = anchorIndex <= currentIndex ? [anchorIndex, currentIndex] : [currentIndex, anchorIndex];
+    state.selectedWordIds = new Set(ids.slice(from, to + 1));
+  } else if (event.metaKey || event.ctrlKey) {
+    if (state.selectedWordIds.has(wordId)) {
+      state.selectedWordIds.delete(wordId);
+    } else {
+      state.selectedWordIds.add(wordId);
+    }
+    state.selectionAnchorId = wordId;
+  } else {
+    state.selectedWordIds = new Set([wordId]);
+    state.selectionAnchorId = wordId;
+  }
+  renderWords(state.words);
+}
+
+function dragPayload(draggedId) {
+  if (state.selectedWordIds.has(draggedId)) {
+    return Array.from(state.selectedWordIds);
+  }
+  state.selectedWordIds = new Set([draggedId]);
+  state.selectionAnchorId = draggedId;
+  renderWords(state.words);
+  return [draggedId];
+}
+
+function clearCollectionDropHints() {
+  elements.collectionsList.querySelectorAll(".collection-button.is-drop-target")
+    .forEach((node) => node.classList.remove("is-drop-target"));
+}
+
+async function moveSelectedWords(wordIds, destinationId) {
+  try {
+    await requestJson("/api/words/move", {
+      method: "POST",
+      body: JSON.stringify({ wordIds, collectionId: destinationId })
+    });
+  } catch (error) {
+    elements.emptyState.hidden = false;
+    elements.emptyState.textContent = error.message;
+    return;
+  }
+  await loadDashboard();
+}
+
 export function bindCollectionsEvents() {
   elements.collectionsList.addEventListener("click", async (event) => {
     const button = event.target.closest(".collection-button");
@@ -81,23 +137,89 @@ export function bindCollectionsEvents() {
   });
 
   elements.wordRows.addEventListener("click", async (event) => {
-    const button = event.target.closest(".known-toggle");
-    if (!button) {
+    const toggle = event.target.closest(".known-toggle");
+    if (toggle) {
+      const id = Number(toggle.dataset.wordId);
+      const known = toggle.dataset.known !== "true";
+      toggle.disabled = true;
+      try {
+        await requestJson(`/api/words/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ known })
+        });
+        await loadDashboard();
+      } finally {
+        toggle.disabled = false;
+      }
       return;
     }
 
-    const id = Number(button.dataset.wordId);
-    const known = button.dataset.known !== "true";
-    button.disabled = true;
-
-    try {
-      await requestJson(`/api/words/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ known })
-      });
-      await loadDashboard();
-    } finally {
-      button.disabled = false;
+    const row = event.target.closest(".word-row");
+    if (!row) {
+      return;
     }
+    handleRowSelection(event, Number(row.dataset.wordId));
+  });
+
+  elements.wordRows.addEventListener("dragstart", (event) => {
+    const row = event.target.closest(".word-row");
+    if (!row) {
+      return;
+    }
+    const draggedId = Number(row.dataset.wordId);
+    const ids = dragPayload(draggedId);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("application/x-word-marker-words", JSON.stringify(ids));
+    event.dataTransfer.setData("text/plain", String(draggedId));
+    row.classList.add("is-dragging");
+  });
+
+  elements.wordRows.addEventListener("dragend", (event) => {
+    const row = event.target.closest(".word-row");
+    row?.classList.remove("is-dragging");
+    clearCollectionDropHints();
+  });
+
+  elements.collectionsList.addEventListener("dragover", (event) => {
+    const button = event.target.closest(".collection-button");
+    if (!button) {
+      return;
+    }
+    const collectionId = button.dataset.collectionId;
+    if (collectionId === "all" || Number(collectionId) === Number(state.selectedCollectionId)) {
+      return;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    button.classList.add("is-drop-target");
+  });
+
+  elements.collectionsList.addEventListener("dragleave", (event) => {
+    const button = event.target.closest(".collection-button");
+    button?.classList.remove("is-drop-target");
+  });
+
+  elements.collectionsList.addEventListener("drop", async (event) => {
+    const button = event.target.closest(".collection-button");
+    if (!button) {
+      return;
+    }
+    const collectionId = button.dataset.collectionId;
+    if (collectionId === "all") {
+      return;
+    }
+    event.preventDefault();
+    clearCollectionDropHints();
+    let payload;
+    try {
+      payload = JSON.parse(event.dataTransfer.getData("application/x-word-marker-words"));
+    } catch {
+      const fallback = Number(event.dataTransfer.getData("text/plain"));
+      payload = Number.isFinite(fallback) ? [fallback] : [];
+    }
+    if (!Array.isArray(payload) || !payload.length) {
+      return;
+    }
+    await moveSelectedWords(payload, Number(collectionId));
   });
 }

@@ -24,6 +24,15 @@ export function createWordsRepository(db) {
   const createCollection = db.prepare("INSERT INTO collections (language_id, name) VALUES (?, ?)");
   const deleteCollection = db.prepare("DELETE FROM collections WHERE id = ?");
   const updateCollectionLanguage = db.prepare("UPDATE collections SET language_id = ? WHERE id = ?");
+  const updateWordCollection = db.prepare("UPDATE words SET collection_id = ? WHERE id = ?");
+  const updateWordCollectionAndTranslation = db.prepare("UPDATE words SET collection_id = ?, translation = ? WHERE id = ?");
+  const wordOwnedByUser = db.prepare(`
+    SELECT w.id
+    FROM words w
+    JOIN collections c ON c.id = w.collection_id
+    JOIN languages l ON l.id = c.language_id
+    WHERE w.id = ? AND l.user_id = ?
+  `);
   const insertWord = db.prepare(`
     INSERT INTO words (collection_id, word, translation, lemma, pos, pos_subcategory, reading, pinyin, traditional)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -104,6 +113,15 @@ export function createWordsRepository(db) {
     },
     upsertKnown(userId, wordId, known) {
       return upsertKnown.run(userId, wordId, known);
+    },
+    updateWordCollection(wordId, collectionId) {
+      return updateWordCollection.run(collectionId, wordId);
+    },
+    updateWordCollectionAndTranslation(wordId, collectionId, translation) {
+      return updateWordCollectionAndTranslation.run(collectionId, translation, wordId);
+    },
+    wordOwnedByUser(userId, wordId) {
+      return Boolean(wordOwnedByUser.get(wordId, userId));
     },
     listWordsInLanguage(userId, languageId, searchTerm, nativeLanguage = "English") {
       const translationExpression = displayedTranslationExpression();
