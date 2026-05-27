@@ -17,26 +17,61 @@ export function renderDashboard() {
     ? collections.map(renderChartCard).join("")
     : `<p class="empty">${escapeHtml(t("dashboard.noCollections"))}</p>`;
 
-  elements.collectionSelect.innerHTML = allCollections.length
-    ? allCollections
-        .map((collection) => {
-          const selected = collection.id === state.selectedCollectionId ? "selected" : "";
-          return `<option value="${collection.id}" ${selected}>${escapeHtml(collection.languageName)} / ${escapeHtml(collection.name)}</option>`;
-        })
-        .join("")
-    : `<option value="">${escapeHtml(t("collections.noCollections"))}</option>`;
-
+  renderCollectionsList();
   renderSelectedCollectionStats();
+}
+
+// Render the sidebar list of collections, including the "All" entry.
+export function renderCollectionsList() {
+  if (!elements.collectionsList) {
+    return;
+  }
+  const collections = state.dashboard?.collections || [];
+  const allActive = state.selectedCollectionId === "all";
+  const allButton = `
+    <button class="collection-button${allActive ? " is-active" : ""} min-h-11 rounded-md border border-line bg-panel px-3 text-left text-sm font-semibold text-label hover:bg-hover"
+      type="button" data-collection-id="all" aria-pressed="${allActive}">
+      ${escapeHtml(t("collections.all"))}
+    </button>
+  `;
+  const buttons = collections
+    .map((collection) => {
+      const active = collection.id === state.selectedCollectionId;
+      return `
+        <button class="collection-button${active ? " is-active" : ""} min-h-11 rounded-md border border-line bg-panel px-3 text-left text-sm font-semibold text-label hover:bg-hover"
+          type="button" data-collection-id="${collection.id}" aria-pressed="${active}">
+          ${escapeHtml(collection.name)}
+        </button>
+      `;
+    })
+    .join("");
+  elements.collectionsList.innerHTML = allButton + buttons;
 }
 
 // Return the currently selected collection from dashboard state.
 export function getSelectedCollection() {
+  if (state.selectedCollectionId === "all") {
+    return null;
+  }
   const allCollections = state.dashboard?.allCollections || state.dashboard?.collections || [];
   return allCollections.find((entry) => entry.id === state.selectedCollectionId);
 }
 
-// Render progress metadata for the selected collection.
+// Render progress metadata for the selected collection or the "all" view.
 export function renderSelectedCollectionStats() {
+  if (state.selectedCollectionId === "all") {
+    const totalWords = Number(state.dashboard?.totalWords || 0);
+    const knownWords = Number(state.dashboard?.knownWords || 0);
+    const percent = totalWords ? Math.round((knownWords / totalWords) * 100) : 0;
+    elements.selectedCollectionStats.innerHTML = `
+      <span>${escapeHtml(t("collections.all"))}</span>
+      <small>${escapeHtml(state.selectedStudyLanguageName || "")}</small>
+      <strong>${formatCount(knownWords)} / ${formatCount(totalWords)}</strong>
+      <small>${escapeHtml(t("progress.knownPercent", { percent }))}</small>
+    `;
+    return;
+  }
+
   const collection = getSelectedCollection();
   if (!collection) {
     elements.selectedCollectionStats.innerHTML = "";

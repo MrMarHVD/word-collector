@@ -16,7 +16,7 @@ export const state = {
   dashboard: null,
   selectedStudyLanguageId: null,
   selectedStudyLanguageName: localStorage.getItem("wordMarkerStudyLanguageName") || "",
-  selectedCollectionId: null,
+  selectedCollectionId: "all",
   selectedMaterialId: null,
   materials: [],
   materialOffset: 0,

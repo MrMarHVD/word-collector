@@ -5,3 +5,9 @@ export function getWords(repositories, userId, collectionId, search, nativeLangu
   const term = normalizeName(search);
   return repositories.words.listWords(userId, collectionId, term, nativeLanguage);
 }
+
+// Return every word across all of the user's collections in a language.
+export function getWordsInLanguage(repositories, userId, languageId, search, nativeLanguage = "English") {
+  const term = normalizeName(search);
+  return repositories.words.listWordsInLanguage(userId, languageId, term, nativeLanguage);
+}

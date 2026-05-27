@@ -12,7 +12,34 @@ export function configureImportsController(options) {
   activateTab = options.activateTab;
 }
 
+function openUploadModal() {
+  elements.uploadModal.hidden = false;
+  elements.uploadModal.classList.remove("hidden");
+  elements.uploadModal.classList.add("flex");
+  elements.collectionName?.focus();
+}
+
+function closeUploadModal() {
+  elements.uploadModal.hidden = true;
+  elements.uploadModal.classList.add("hidden");
+  elements.uploadModal.classList.remove("flex");
+  elements.uploadStatus.textContent = "";
+}
+
 export function bindImportEvents() {
+  elements.uploadOpenButton.addEventListener("click", openUploadModal);
+  elements.uploadModalClose.addEventListener("click", closeUploadModal);
+  elements.uploadModal.addEventListener("click", (event) => {
+    if (event.target === elements.uploadModal) {
+      closeUploadModal();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !elements.uploadModal.hidden) {
+      closeUploadModal();
+    }
+  });
+
   elements.uploadForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const submitButton = elements.uploadForm.querySelector("button");
@@ -41,6 +68,7 @@ export function bindImportEvents() {
       });
       elements.uploadForm.reset();
       await loadDashboard();
+      closeUploadModal();
     } catch (error) {
       elements.uploadStatus.textContent = error.message;
     } finally {

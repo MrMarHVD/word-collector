@@ -105,6 +105,36 @@ export function createWordsRepository(db) {
     upsertKnown(userId, wordId, known) {
       return upsertKnown.run(userId, wordId, known);
     },
+    listWordsInLanguage(userId, languageId, searchTerm, nativeLanguage = "English") {
+      const translationExpression = displayedTranslationExpression();
+      const selectColumns = `w.id, w.collection_id AS collectionId, c.name AS collectionName, w.word, ${translationExpression} AS translation,
+        w.pos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional,
+        COALESCE(uws.known, 0) AS known`;
+      if (searchTerm) {
+        return db.prepare(`
+          SELECT ${selectColumns}
+          FROM words w
+          JOIN collections c ON c.id = w.collection_id
+          JOIN languages l ON l.id = c.language_id
+          LEFT JOIN word_translations wt ON wt.word_id = w.id AND wt.native_language = ?
+          LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
+          WHERE l.user_id = ? AND l.id = ?
+            AND (lower(w.word) LIKE lower(?) OR lower(${translationExpression}) LIKE lower(?))
+          ORDER BY lower(w.word), lower(${translationExpression})
+        `).all(nativeLanguage, nativeLanguage, userId, userId, languageId, `%${searchTerm}%`, nativeLanguage, `%${searchTerm}%`, nativeLanguage);
+      }
+
+      return db.prepare(`
+        SELECT ${selectColumns}
+        FROM words w
+        JOIN collections c ON c.id = w.collection_id
+        JOIN languages l ON l.id = c.language_id
+        LEFT JOIN word_translations wt ON wt.word_id = w.id AND wt.native_language = ?
+        LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
+        WHERE l.user_id = ? AND l.id = ?
+        ORDER BY lower(w.word), lower(${translationExpression})
+      `).all(nativeLanguage, nativeLanguage, userId, userId, languageId, nativeLanguage);
+    },
     listWords(userId, collectionId, searchTerm, nativeLanguage = "English") {
       const translationExpression = displayedTranslationExpression();
       const selectColumns = `w.id, w.collection_id AS collectionId, w.word, ${translationExpression} AS translation,

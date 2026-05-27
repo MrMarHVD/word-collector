@@ -28,11 +28,11 @@ export async function loadDashboard() {
     state.selectedStudyLanguageId = selectedLanguage.id;
   }
   const allCollections = state.dashboard.collections;
-  if (!state.selectedCollectionId && allCollections.length) {
-    state.selectedCollectionId = allCollections[0].id;
+  if (!state.selectedCollectionId) {
+    state.selectedCollectionId = "all";
   }
-  if (state.selectedCollectionId && !allCollections.some((collection) => collection.id === state.selectedCollectionId)) {
-    state.selectedCollectionId = allCollections[0]?.id || null;
+  if (state.selectedCollectionId !== "all" && !allCollections.some((collection) => collection.id === state.selectedCollectionId)) {
+    state.selectedCollectionId = "all";
   }
   renderDashboard();
   renderStudyLanguageSelect();

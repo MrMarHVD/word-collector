@@ -127,23 +127,11 @@
       </section>
 
       <section id="collectionsView" class="tab-view" hidden>
-        <section class="workspace grid grid-cols-[minmax(280px,340px)_1fr] items-start gap-3.5 max-md:grid-cols-1">
-          <form id="uploadForm" class="upload-panel rounded-lg border border-line bg-panel p-5 shadow-panel">
-            <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
-              <h2 class="text-base font-bold" data-i18n="upload.title">CSVアップロード</h2>
-            </div>
-            <label class="grid gap-1.5 text-sm font-semibold text-label">
-              <span data-i18n="upload.collection">コレクション名</span>
-              <input id="collectionName" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" name="collectionName" type="text" data-i18n-placeholder="upload.collectionPlaceholder" placeholder="日本語 基本単語" required />
-            </label>
-            <label class="mt-3 grid gap-1.5 text-sm font-semibold text-label">
-              <span data-i18n="upload.file">CSVファイル</span>
-              <input id="csvFile" class="min-h-11 rounded-md border border-line bg-panel px-3 py-2 text-sm text-main file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-label" name="csvFile" type="file" accept=".csv,text/csv,text/plain" required />
-            </label>
-            <p class="hint mt-3 min-h-5 text-sm text-secondary" data-i18n="upload.format">形式: word translation</p>
-            <button class="mt-2 min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="submit" data-i18n="upload.button">アップロード</button>
-            <p id="uploadStatus" class="status mt-3 min-h-5 text-sm text-secondary" role="status"></p>
-          </form>
+        <section class="workspace grid grid-cols-[minmax(220px,260px)_1fr] items-start gap-3.5 max-md:grid-cols-1">
+          <aside class="collections-sidebar rounded-lg border border-line bg-panel p-3.5 shadow-panel">
+            <button id="uploadOpenButton" class="collections-sidebar-upload mb-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="button" data-i18n="collections.upload">アップロード</button>
+            <nav id="collectionsList" class="collections-list grid max-h-[calc(100vh-220px)] gap-1 overflow-auto" aria-label="Collections"></nav>
+          </aside>
 
           <section class="browser-panel rounded-lg border border-line bg-panel p-5 shadow-panel">
             <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3 max-md:grid">
@@ -155,11 +143,7 @@
                 </div>
               </div>
             </div>
-            <div class="browser-tools grid grid-cols-[minmax(190px,260px)_1fr] items-end gap-3 max-md:grid-cols-1">
-              <label class="grid gap-1.5 text-sm font-semibold text-label">
-                <span data-i18n="collections.collection">コレクション</span>
-                <select id="collectionSelect" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus"></select>
-              </label>
+            <div class="browser-tools grid items-end gap-3">
               <label class="grid gap-1.5 text-sm font-semibold text-label">
                 <span data-i18n="collections.search">検索</span>
                 <input id="searchInput" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="search" data-i18n-placeholder="collections.searchPlaceholder" placeholder="単語または翻訳で検索" />
@@ -291,6 +275,31 @@
         </section>
       </section>
     </main>
+
+    <div id="uploadModal" class="upload-modal fixed inset-0 z-20 hidden items-center justify-center bg-black/40 px-4" role="dialog" aria-modal="true" aria-labelledby="uploadModalTitle" hidden>
+      <form id="uploadForm" class="upload-panel relative w-full max-w-md rounded-lg border border-line bg-panel p-5 shadow-panel">
+        <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
+          <h2 id="uploadModalTitle" class="text-base font-bold" data-i18n="upload.title">CSVアップロード</h2>
+          <button id="uploadModalClose" class="secondary-button icon-button grid h-9 w-9 place-items-center rounded-md border border-line bg-panel text-brand hover:bg-hover" type="button">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4 fill-none stroke-current stroke-[2]">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+            <span class="visually-hidden" data-i18n="upload.close">閉じる</span>
+          </button>
+        </div>
+        <label class="grid gap-1.5 text-sm font-semibold text-label">
+          <span data-i18n="upload.collection">コレクション名</span>
+          <input id="collectionName" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" name="collectionName" type="text" data-i18n-placeholder="upload.collectionPlaceholder" placeholder="日本語 基本単語" required />
+        </label>
+        <label class="mt-3 grid gap-1.5 text-sm font-semibold text-label">
+          <span data-i18n="upload.file">CSVファイル</span>
+          <input id="csvFile" class="min-h-11 rounded-md border border-line bg-panel px-3 py-2 text-sm text-main file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-label" name="csvFile" type="file" accept=".csv,text/csv,text/plain" required />
+        </label>
+        <p class="hint mt-3 min-h-5 text-sm text-secondary" data-i18n="upload.format">形式: word translation</p>
+        <button class="mt-2 min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="submit" data-i18n="upload.button">アップロード</button>
+        <p id="uploadStatus" class="status mt-3 min-h-5 text-sm text-secondary" role="status"></p>
+      </form>
+    </div>
 
     <script src="/env.js"></script>
     <script src="/js/main.js" type="module"></script>

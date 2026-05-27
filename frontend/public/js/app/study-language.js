@@ -53,7 +53,7 @@ export async function setStudyLanguage(languageName, { persist = true, reload = 
   renderStudyLanguageSelect();
   renderReaderSidebarTabs();
   if (reload) {
-    state.selectedCollectionId = null;
+    state.selectedCollectionId = "all";
     state.selectedMaterialId = null;
     state.currentMaterial = null;
     state.readerTokens = [];

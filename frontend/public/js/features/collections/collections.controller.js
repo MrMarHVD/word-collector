@@ -2,7 +2,7 @@ import { requestJson } from "../../api.js";
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
 import { state } from "../../state.js";
-import { renderSelectedCollectionStats } from "../../views/dashboard.js";
+import { renderCollectionsList, renderSelectedCollectionStats } from "../../views/dashboard.js";
 import { resetWordWindow } from "../../views/shell.js";
 import { loadMoreWordsIfNeeded, renderWords } from "../../views/words.js";
 
@@ -27,19 +27,38 @@ export async function loadWords() {
     params.set("search", state.search);
   }
 
-  const result = await requestJson(`/api/collections/${state.selectedCollectionId}/words?${params}`);
+  const endpoint = state.selectedCollectionId === "all"
+    ? `/api/languages/${state.selectedStudyLanguageId}/words?${params}`
+    : `/api/collections/${state.selectedCollectionId}/words?${params}`;
+
+  if (state.selectedCollectionId === "all" && !state.selectedStudyLanguageId) {
+    state.words = [];
+    renderWords(state.words);
+    return;
+  }
+
+  const result = await requestJson(endpoint);
   state.words = result.words;
   renderWords(result.words);
 }
 
+async function selectCollection(value) {
+  state.selectedCollectionId = value === "all" ? "all" : Number(value);
+  state.search = "";
+  elements.searchInput.value = "";
+  resetWordWindow();
+  renderCollectionsList();
+  renderSelectedCollectionStats();
+  await loadWords();
+}
+
 export function bindCollectionsEvents() {
-  elements.collectionSelect.addEventListener("change", async (event) => {
-    state.selectedCollectionId = Number(event.target.value) || null;
-    state.search = "";
-    elements.searchInput.value = "";
-    resetWordWindow();
-    renderSelectedCollectionStats();
-    await loadWords();
+  elements.collectionsList.addEventListener("click", async (event) => {
+    const button = event.target.closest(".collection-button");
+    if (!button) {
+      return;
+    }
+    await selectCollection(button.dataset.collectionId);
   });
 
   elements.searchInput.addEventListener("input", async (event) => {

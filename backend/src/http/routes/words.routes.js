@@ -1,9 +1,26 @@
-import { getWords } from "../../modules/words/words.service.js";
+import { getLanguage } from "../../modules/languages/languages.service.js";
+import { getWords, getWordsInLanguage } from "../../modules/words/words.service.js";
 import { readJson } from "../request.js";
 import { jsonResponse } from "../response.js";
 
 export function createWordsRoutes({ repositories }) {
   return async function handleWordsRoutes(req, res, url, user) {
+    const languageWordsMatch = url.pathname.match(/^\/api\/languages\/(\d+)\/words$/);
+    if (req.method === "GET" && languageWordsMatch) {
+      const languageId = Number(languageWordsMatch[1]);
+      const language = getLanguage(repositories, user.userId, languageId);
+      if (!language) {
+        jsonResponse(res, 404, { error: "Language not found." });
+        return true;
+      }
+      const nativeLanguage = repositories.auth.findUserById(user.userId)?.nativeLanguage || "English";
+      jsonResponse(res, 200, {
+        language,
+        words: getWordsInLanguage(repositories, user.userId, languageId, url.searchParams.get("search") || "", nativeLanguage)
+      });
+      return true;
+    }
+
     const wordsMatch = url.pathname.match(/^\/api\/collections\/(\d+)\/words$/);
     if (req.method === "GET" && wordsMatch) {
       const collectionId = Number(wordsMatch[1]);
