@@ -1,0 +1,1 @@
+window.WORD_MARKER_API_BASE_URL = window.WORD_MARKER_API_BASE_URL || "";

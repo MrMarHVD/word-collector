@@ -1,14 +1,14 @@
-import { clearAuthCookie, createSessionHelpers } from "../auth/session.js";
-import { NATIVE_LANGUAGE_OPTIONS, STUDY_LANGUAGE_OPTIONS } from "../config.js";
-import { hashPassword, verifyPassword } from "../auth/password.js";
-import { jsonResponse } from "../http/response.js";
-import { readJson, readMultipart } from "../http/request.js";
-import { normalizeName } from "../shared/normalize.js";
-import { getDashboard } from "../services/dashboard.js";
-import { ensureStudyLanguagesForUser, getLanguage, getLanguages } from "../services/languages.js";
-import { getWords } from "../services/words.js";
-import { importWords } from "../services/importWords.js";
-import { getMaterialReader, getMaterials, importMaterial, updateMaterialReaderStart } from "../services/materials.js";
+import { clearAuthCookie, createSessionHelpers } from "../../auth/session.js";
+import { NATIVE_LANGUAGE_OPTIONS, STUDY_LANGUAGE_OPTIONS } from "../../config.js";
+import { hashPassword, verifyPassword } from "../../auth/password.js";
+import { jsonResponse } from "../response.js";
+import { readJson, readMultipart } from "../request.js";
+import { normalizeName } from "../../shared/normalize.js";
+import { getDashboard } from "../../services/dashboard.js";
+import { ensureStudyLanguagesForUser, getLanguage, getLanguages } from "../../services/languages.js";
+import { getWords } from "../../services/words.js";
+import { importWords } from "../../services/importWords.js";
+import { getMaterialReader, getMaterials, importMaterial, updateMaterialReaderStart } from "../../services/materials.js";
 
 // Create the HTTP API router with database dependencies supplied by server.js.
 export function createApiHandler({ db, statements }) {

@@ -1,4 +1,4 @@
-import { requestJson, setUnauthorizedHandler } from "./api.js";
+import { apiUrl, requestJson, setUnauthorizedHandler } from "./api.js";
 import { parseCsv } from "./csv.js";
 import { elements } from "./dom.js";
 import { formatCount, loadMessages, t } from "./i18n.js";
@@ -556,7 +556,7 @@ function bindEvents() {
       const form = new FormData();
       form.append("languageId", String(state.selectedStudyLanguageId));
       form.append("file", file);
-      const response = await fetch("/api/materials", { method: "POST", body: form });
+      const response = await fetch(apiUrl("/api/materials"), { method: "POST", body: form, credentials: "include" });
       const payload = await response.json();
       if (!response.ok) {
         throw new Error(payload.error || t("errors.requestFailed"));

@@ -197,9 +197,6 @@
   }
 }
 @layer utilities {
-  .collapse {
-    visibility: collapse;
-  }
   .visible {
     visibility: visible;
   }
@@ -229,9 +226,6 @@
   }
   .left-0 {
     left: calc(var(--spacing) * 0);
-  }
-  .isolate {
-    isolation: isolate;
   }
   .z-10 {
     z-index: 10;
@@ -284,9 +278,6 @@
   .block {
     display: block;
   }
-  .contents {
-    display: contents;
-  }
   .flex {
     display: flex;
   }
@@ -295,6 +286,9 @@
   }
   .hidden {
     display: none;
+  }
+  .list-item {
+    display: list-item;
   }
   .table {
     display: table;
@@ -382,9 +376,6 @@
   }
   .min-w-\[620px\] {
     min-width: 620px;
-  }
-  .grow {
-    flex-grow: 1;
   }
   .border-collapse {
     border-collapse: collapse;
@@ -675,16 +666,9 @@
   .accent-brand {
     accent-color: var(--color-brand);
   }
-  .shadow {
-    --tw-shadow: 0 1px 3px 0 var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 1px 2px -1px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
-    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
-  }
   .shadow-panel {
     --tw-shadow: 0 18px 45px var(--tw-shadow-color, var(--shadow-color));
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
-  }
-  .filter {
-    filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
   }
   .backdrop-blur {
     --tw-backdrop-blur: blur(8px);
@@ -1037,6 +1021,36 @@ tbody tr:last-child td {
 }
 .empty {
   color: var(--text-muted);
+}
+.word-cell {
+  display: grid;
+  gap: 4px;
+}
+.word-cell-main {
+  font-weight: 600;
+  color: var(--text-main);
+}
+.word-cell-phonetic {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.word-cell-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.word-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-main);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  padding: 1px 8px;
+  color: var(--text-label);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 .reader-layout {
   grid-template-columns: minmax(240px, min(var(--readerSidebarWidth), 340px)) minmax(0, 1fr);
@@ -1459,59 +1473,6 @@ tbody tr:last-child td {
   inherits: false;
   initial-value: 0 0 #0000;
 }
-@property --tw-blur {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-brightness {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-contrast {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-grayscale {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-hue-rotate {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-invert {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-opacity {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-saturate {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-sepia {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-drop-shadow {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-drop-shadow-color {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-drop-shadow-alpha {
-  syntax: "<percentage>";
-  inherits: false;
-  initial-value: 100%;
-}
-@property --tw-drop-shadow-size {
-  syntax: "*";
-  inherits: false;
-}
 @property --tw-backdrop-blur {
   syntax: "*";
   inherits: false;
@@ -1569,19 +1530,6 @@ tbody tr:last-child td {
       --tw-ring-offset-width: 0px;
       --tw-ring-offset-color: #fff;
       --tw-ring-offset-shadow: 0 0 #0000;
-      --tw-blur: initial;
-      --tw-brightness: initial;
-      --tw-contrast: initial;
-      --tw-grayscale: initial;
-      --tw-hue-rotate: initial;
-      --tw-invert: initial;
-      --tw-opacity: initial;
-      --tw-saturate: initial;
-      --tw-sepia: initial;
-      --tw-drop-shadow: initial;
-      --tw-drop-shadow-color: initial;
-      --tw-drop-shadow-alpha: 100%;
-      --tw-drop-shadow-size: initial;
       --tw-backdrop-blur: initial;
       --tw-backdrop-brightness: initial;
       --tw-backdrop-contrast: initial;
@@ -1593,39 +1541,4 @@ tbody tr:last-child td {
       --tw-backdrop-sepia: initial;
     }
   }
-}
-
-.word-cell {
-  display: grid;
-  gap: 4px;
-}
-
-.word-cell-main {
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.word-cell-phonetic {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-}
-
-.word-cell-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.word-badge {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--border-main);
-  border-radius: 999px;
-  background: var(--surface-muted);
-  padding: 1px 8px;
-  color: var(--text-label);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
 }

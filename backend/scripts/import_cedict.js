@@ -1,11 +1,12 @@
 import { createGunzip } from "node:zlib";
 import { createReadStream } from "node:fs";
+import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { DB_PATH } from "../src/config.js";
+import { DB_PATH, ROOT } from "../src/config.js";
 import { runMigrations } from "../src/db/migrate.js";
 
 // Build the local English-to-Chinese lookup index from a gzipped CEDICT file.
-const sourcePath = process.argv[2] || "data/dictionaries/cedict_ts.u8.gz";
+const sourcePath = process.argv[2] || join(ROOT, "data", "dictionaries", "cedict_ts.u8.gz");
 const STOP_WORDS = new Set([
   "a",
   "an",

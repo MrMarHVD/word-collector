@@ -1,11 +1,12 @@
 import { createGunzip } from "node:zlib";
 import { createReadStream } from "node:fs";
+import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { DB_PATH } from "../src/config.js";
+import { DB_PATH, ROOT } from "../src/config.js";
 import { runMigrations } from "../src/db/migrate.js";
 
 // Build local Japanese-English and English-Japanese lookup indexes from JMdict.
-const sourcePath = process.argv[2] || "data/dictionaries/JMdict_e.gz";
+const sourcePath = process.argv[2] || join(ROOT, "data", "dictionaries", "JMdict_e.gz");
 
 // Read and decompress a gzipped JMdict XML file.
 function readGzip(path) {

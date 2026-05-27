@@ -1,0 +1,19 @@
+{
+  "name": "word-marker-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "build:css": "tailwindcss -i ./public/tailwind.css -o ./public/styles.css",
+    "watch:css": "tailwindcss -i ./public/tailwind.css -o ./public/styles.css --watch"
+  },
+  "engines": {
+    "node": ">=25"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.0",
+    "tailwindcss": "^4.3.0"
+  }
+}
