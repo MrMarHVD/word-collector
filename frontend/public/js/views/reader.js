@@ -31,7 +31,7 @@ export function renderReaderSidebar() {
   const minPanelWidth = Math.min(MIN_READER_PANEL_WIDTH, maxPanelWidth);
   const minPanelHeight = Math.min(MIN_READER_PANEL_HEIGHT, maxPanelHeight);
   const panelWidth = state.readerPanelWidth ? clamp(state.readerPanelWidth, minPanelWidth, maxPanelWidth) : maxPanelWidth;
-  const panelHeight = state.readerPanelHeight ? clamp(state.readerPanelHeight, minPanelHeight, maxPanelHeight) : clamp(620, minPanelHeight, maxPanelHeight);
+  const panelHeight = state.readerPanelHeight ? clamp(state.readerPanelHeight, minPanelHeight, maxPanelHeight) : maxPanelHeight;
   const sidebarWidth = readerSidebarColumnWidth();
 
   state.readerPanelWidth = panelWidth;
