@@ -12,6 +12,33 @@ export function getWordsInLanguage(repositories, userId, languageId, search, nat
   return repositories.words.listWordsInLanguage(userId, languageId, term, nativeLanguage);
 }
 
+// Delete user-owned words. Ignores ids that don't belong to the user.
+export function deleteWords(repositories, userId, wordIds) {
+  const ids = Array.from(new Set((wordIds || []).map((id) => Number(id)).filter(Number.isFinite)));
+  if (!ids.length) {
+    return { error: "No words selected." };
+  }
+
+  let deleted = 0;
+  let skipped = 0;
+  repositories.database.transaction(() => {
+    for (const id of ids) {
+      if (!repositories.words.wordOwnedByUser(userId, id)) {
+        skipped += 1;
+        continue;
+      }
+      const result = repositories.words.deleteWord(id);
+      if (result.changes) {
+        deleted += 1;
+      } else {
+        skipped += 1;
+      }
+    }
+  });
+
+  return { deleted, skipped };
+}
+
 // Move user-owned words into a destination collection. Words that would collide
 // with an existing (word, translation) row in the destination are skipped.
 export function moveWords(repositories, userId, wordIds, collectionId) {

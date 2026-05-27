@@ -12,9 +12,17 @@ export function configureCollectionsController(options) {
   loadDashboard = options.loadDashboard;
 }
 
+function renderDeleteButtonState() {
+  if (!elements.deleteSelectedButton) {
+    return;
+  }
+  elements.deleteSelectedButton.disabled = state.selectedWordIds.size === 0;
+}
+
 export async function loadWords() {
   state.selectedWordIds.clear();
   state.selectionAnchorId = null;
+  renderDeleteButtonState();
 
   if (!state.selectedCollectionId) {
     state.words = [];
@@ -77,6 +85,7 @@ function handleRowSelection(event, wordId) {
     state.selectionAnchorId = wordId;
   }
   renderWords(state.words);
+  renderDeleteButtonState();
 }
 
 function dragPayload(draggedId) {
@@ -86,6 +95,7 @@ function dragPayload(draggedId) {
   state.selectedWordIds = new Set([draggedId]);
   state.selectionAnchorId = draggedId;
   renderWords(state.words);
+  renderDeleteButtonState();
   return [draggedId];
 }
 
@@ -109,6 +119,28 @@ async function moveSelectedWords(wordIds, destinationId) {
 }
 
 export function bindCollectionsEvents() {
+  elements.deleteSelectedButton.addEventListener("click", async () => {
+    if (!state.selectedWordIds.size) {
+      return;
+    }
+    const ids = Array.from(state.selectedWordIds);
+    if (!confirm(t("collections.deleteConfirm", { count: ids.length }))) {
+      return;
+    }
+    elements.deleteSelectedButton.disabled = true;
+    try {
+      await requestJson("/api/words/delete", {
+        method: "POST",
+        body: JSON.stringify({ wordIds: ids })
+      });
+      await loadDashboard();
+    } catch (error) {
+      elements.deleteSelectedButton.disabled = false;
+      elements.emptyState.hidden = false;
+      elements.emptyState.textContent = error.message;
+    }
+  });
+
   elements.collectionsList.addEventListener("click", async (event) => {
     const button = event.target.closest(".collection-button");
     if (!button) {

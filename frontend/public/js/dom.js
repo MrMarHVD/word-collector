@@ -43,6 +43,7 @@ export const elements = {
   uploadCollectionSelect: document.querySelector("#uploadCollectionSelect"),
   searchInput: document.querySelector("#searchInput"),
   displayModeButtons: document.querySelectorAll(".display-mode-button"),
+  deleteSelectedButton: document.querySelector("#deleteSelectedButton"),
   selectedCollectionStats: document.querySelector("#selectedCollectionStats"),
   tableWrap: document.querySelector(".table-wrap"),
   wordRows: document.querySelector("#wordRows"),

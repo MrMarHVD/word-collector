@@ -114,6 +114,9 @@ export function createWordsRepository(db) {
     upsertKnown(userId, wordId, known) {
       return upsertKnown.run(userId, wordId, known);
     },
+    deleteWord(wordId) {
+      return db.prepare("DELETE FROM words WHERE id = ?").run(wordId);
+    },
     updateWordCollection(wordId, collectionId) {
       return updateWordCollection.run(collectionId, wordId);
     },

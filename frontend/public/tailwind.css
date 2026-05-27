@@ -292,8 +292,21 @@ tbody tr:last-child td {
   border-bottom: 0;
 }
 
-.known-cell {
+.known-cell, .delete-slot {
   width: 110px;
+}
+
+.delete-toggle {
+  display: inline-flex;
+  min-height: 34px;
+  min-width: 84px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-main);
+  border-radius: 999px;
+  background: var(--surface-panel);
+  font-size: 0.875rem;
+  font-weight: 700;
 }
 
 .known-toggle {
