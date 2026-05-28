@@ -1,5 +1,5 @@
 import { normalizeName } from "../../shared/normalize.js";
-import { lookupChineseEnglish, lookupChineseJapanese, lookupEnglishChinese, lookupEnglishJapanese, lookupEnglishJapaneseEntries, lookupJapaneseChinese, lookupJapaneseEnglish } from "../dictionaries/dictionaries.service.js";
+import { lookupChineseEnglish, lookupChineseJapanese, lookupChineseJapaneseEntries, lookupEnglishChinese, lookupEnglishChineseEntries, lookupEnglishJapanese, lookupEnglishJapaneseEntries, lookupJapaneseChinese, lookupJapaneseChineseEntries, lookupJapaneseEnglish } from "../dictionaries/dictionaries.service.js";
 import lemmatizer from "wink-lemmatizer";
 
 export const TRANSLATION_ROUTES = [
@@ -49,18 +49,45 @@ function tokenSourceTerms(token) {
   return [surface, lemma, ...lemmatized].filter((term, index, terms) => term && terms.indexOf(term) === index);
 }
 
+function lookupDictionaryEntriesForRoute(repositories, sourceLanguage, targetLanguage, term) {
+  const source = languageKey(sourceLanguage);
+  const target = languageKey(targetLanguage);
+  if (source === "English" && target === "Japanese") {
+    return lookupEnglishJapaneseEntries(repositories.dictionaries, term, 50);
+  }
+  if (source === "English" && target === "Chinese") {
+    return lookupEnglishChineseEntries(repositories.dictionaries, term, 50);
+  }
+  if (source === "Japanese" && target === "Chinese") {
+    return lookupJapaneseChineseEntries(repositories.dictionaries, term, 50);
+  }
+  if (source === "Chinese" && target === "Japanese") {
+    return lookupChineseJapaneseEntries(repositories.dictionaries, term, 50);
+  }
+  return [];
+}
+
+function candidateSourceTerms(sourceLanguage, token) {
+  if (languageKey(sourceLanguage) === "English") {
+    return tokenSourceTerms(token);
+  }
+  const surface = normalizeName(token.surface || token.word);
+  const lemma = normalizeName(token.lemma || token.word || token.surface);
+  return [surface, lemma].filter((term, index, terms) => term && terms.indexOf(term) === index);
+}
+
 export function translationDisambiguationCandidates(repositories, sourceLanguage, targetLanguage, token) {
-  if (languageKey(sourceLanguage) !== "English" || languageKey(targetLanguage) !== "Japanese") {
+  if (!translationRoute(sourceLanguage, targetLanguage)) {
     return [];
   }
   const candidates = [];
   const seen = new Set();
-  for (const source of tokenSourceTerms(token)) {
-    for (const entry of lookupEnglishJapaneseEntries(repositories.dictionaries, source, 50)) {
+  for (const source of candidateSourceTerms(sourceLanguage, token)) {
+    for (const entry of lookupDictionaryEntriesForRoute(repositories, sourceLanguage, targetLanguage, source)) {
       const key = `${source}\u0000${entry.translation.toLowerCase()}\u0000${entry.pos.toLowerCase()}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      candidates.push({ source, translation: entry.translation, pos: entry.pos || "" });
+      candidates.push({ source: entry.source || source, translation: entry.translation, pos: entry.pos || "" });
     }
   }
   return candidates;
@@ -96,7 +123,7 @@ export function hasUsableStoredTranslation(repositories, wordId, nativeLanguage,
 }
 
 export function translationForToken(repositories, sourceLanguage, targetLanguage, token, translations = new Map()) {
-  if (languageKey(sourceLanguage) === "English" && languageKey(targetLanguage) === "Japanese") {
+  if (translationDisambiguationCandidates(repositories, sourceLanguage, targetLanguage, token).length) {
     return displayTranslationForToken(repositories, sourceLanguage, targetLanguage, token);
   }
   const stored = translations.get(token.lemma.toLowerCase()) || "";

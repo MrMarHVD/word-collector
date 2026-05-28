@@ -64,13 +64,28 @@ function dedupeDictionaryEntries(entries) {
 
 // Look up a simplified Chinese expression from an English dictionary key.
 export function lookupEnglishChinese(dictionariesRepository, term) {
+  return lookupEnglishChineseEntries(dictionariesRepository, term, 1)[0]?.translation || "";
+}
+
+export function lookupEnglishChineseEntries(dictionariesRepository, term, limit = 50) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
-    return "";
+    return [];
   }
 
-  const exact = dictionariesRepository.findEnglishChinese(clean);
-  return exact?.simplified || "";
+  const wikdict = dictionariesRepository.listWikdictEnglishChinese(clean, limit);
+  if (wikdict.length) {
+    return dedupeDictionaryEntries(wikdict.map((entry) => ({
+      source: clean,
+      translation: entry.chinese,
+      pos: entry.pos || ""
+    })));
+  }
+  return dedupeDictionaryEntries(dictionariesRepository.listEnglishChinese(clean, limit).map((entry) => ({
+    source: clean,
+    translation: entry.simplified,
+    pos: entry.pos || ""
+  })));
 }
 
 export function lookupEnglishPos(dictionariesRepository, term) {
@@ -79,6 +94,7 @@ export function lookupEnglishPos(dictionariesRepository, term) {
     return "";
   }
   return dictionariesRepository.findWikdictEnglishJapanese(clean)?.pos
+    || dictionariesRepository.findWikdictEnglishChinese(clean)?.pos
     || dictionariesRepository.findEnglishJapanese(clean)?.pos
     || dictionariesRepository.findEnglishChinese(clean)?.pos
     || "";
@@ -179,20 +195,37 @@ export function lookupChineseEnglish(dictionariesRepository, term) {
 
 // Extract searchable normalized keys from a semicolon-delimited translation.
 function translationKeys(value) {
-  const clean = normalizeName(value)
-    .split(";")[0]
-    .split(",")[0]
+  return translationKeyCandidates(value).slice(0, 1);
+}
+
+function translationKeyCandidates(value) {
+  const candidates = normalizeName(value)
+    .split(/[;,]/)
+    .map((part) => part
     .replace(/\([^)]*\)/g, "")
     .trim()
-    .toLowerCase();
-  if (!clean) {
-    return [];
+    .toLowerCase())
+    .filter(Boolean);
+  const keys = [];
+  for (const candidate of candidates) {
+    keys.push(candidate);
+    if (candidate.startsWith("to ")) {
+      keys.push(candidate.slice(3).trim());
+    }
   }
-  const keys = [clean];
-  if (clean.startsWith("to ")) {
-    keys.push(clean.slice(3).trim());
+  return [...new Set(keys)].filter(Boolean);
+}
+
+function entriesForEnglishKey(lookupEntries, dictionariesRepository, key, limit) {
+  const clean = key.startsWith("to ") ? key.slice(3).trim() : key;
+  const entries = lookupEntries(dictionariesRepository, clean, limit);
+  if (!key.startsWith("to ")) {
+    return entries;
   }
-  return keys.filter(Boolean);
+  return [
+    ...entries.filter((entry) => entry.pos === "verb"),
+    ...entries.filter((entry) => entry.pos !== "verb")
+  ];
 }
 
 // Look up Chinese metadata (translation, pinyin, traditional) for a term.
@@ -231,24 +264,36 @@ export function lookupJapaneseDetails(dictionariesRepository, term) {
 
 // Translate a Japanese term to Chinese through the English dictionary index.
 export function lookupJapaneseChinese(dictionariesRepository, term) {
-  const english = lookupJapaneseEnglish(dictionariesRepository, term);
-  for (const key of translationKeys(english)) {
-    const chinese = lookupEnglishChinese(dictionariesRepository, key);
-    if (chinese) {
-      return chinese;
+  return lookupJapaneseChineseEntries(dictionariesRepository, term, 1)[0]?.translation || "";
+}
+
+export function lookupJapaneseChineseEntries(dictionariesRepository, term, limit = 50) {
+  const clean = normalizeName(term);
+  const english = lookupJapaneseEnglish(dictionariesRepository, clean);
+  const entries = [];
+  for (const key of translationKeyCandidates(english)) {
+    for (const entry of entriesForEnglishKey(lookupEnglishChineseEntries, dictionariesRepository, key, limit)) {
+      entries.push({ ...entry, source: clean || key });
+      if (entries.length >= limit) return dedupeDictionaryEntries(entries);
     }
   }
-  return "";
+  return dedupeDictionaryEntries(entries);
 }
 
 // Translate a Chinese term to Japanese through the English dictionary index.
 export function lookupChineseJapanese(dictionariesRepository, term) {
-  const english = lookupChineseEnglish(dictionariesRepository, term);
-  for (const key of translationKeys(english)) {
-    const japanese = lookupEnglishJapanese(dictionariesRepository, key);
-    if (japanese) {
-      return japanese;
+  return lookupChineseJapaneseEntries(dictionariesRepository, term, 1)[0]?.translation || "";
+}
+
+export function lookupChineseJapaneseEntries(dictionariesRepository, term, limit = 50) {
+  const clean = normalizeName(term);
+  const english = lookupChineseEnglish(dictionariesRepository, clean);
+  const entries = [];
+  for (const key of translationKeyCandidates(english)) {
+    for (const entry of entriesForEnglishKey(lookupEnglishJapaneseEntries, dictionariesRepository, key, limit)) {
+      entries.push({ ...entry, source: clean || key });
+      if (entries.length >= limit) return dedupeDictionaryEntries(entries);
     }
   }
-  return "";
+  return dedupeDictionaryEntries(entries);
 }

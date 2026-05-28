@@ -13,6 +13,20 @@ export function createDictionariesRepository(db) {
     ORDER BY rank, length(japanese)
     LIMIT ?
   `);
+  const wikdictEnglishChinese = db.prepare(`
+    SELECT chinese, pos
+    FROM wikdict_english_chinese
+    WHERE english = ?
+    ORDER BY rank, length(chinese)
+    LIMIT 1
+  `);
+  const wikdictEnglishChineseTranslations = db.prepare(`
+    SELECT chinese, pos
+    FROM wikdict_english_chinese
+    WHERE english = ?
+    ORDER BY rank, length(chinese)
+    LIMIT ?
+  `);
   const englishJapaneseTranslations = db.prepare(`
     SELECT expression, pos
     FROM jmdict_english_index
@@ -74,6 +88,23 @@ export function createDictionariesRepository(db) {
       length(simplified)
     LIMIT 1
   `);
+  const englishChineseTranslations = db.prepare(`
+    SELECT simplified, traditional, pos
+    FROM cedict_english_index
+    WHERE english = ?
+    ORDER BY
+      CASE
+        WHEN lower(definitions) LIKE ? THEN 0
+        WHEN lower(definitions) LIKE ? THEN 1
+        WHEN lower(definitions) LIKE ? THEN 2
+        WHEN lower(definitions) = ? THEN 3
+        ELSE 4
+      END,
+      priority DESC,
+      length(definitions),
+      length(simplified)
+    LIMIT ?
+  `);
   const chineseEnglish = db.prepare(`
     SELECT definitions
     FROM cedict_english_index
@@ -110,6 +141,12 @@ export function createDictionariesRepository(db) {
     listWikdictEnglishJapanese(term, limit = 5) {
       return wikdictEnglishJapaneseTranslations.all(term, Math.max(1, Math.min(Number(limit) || 5, 50)));
     },
+    findWikdictEnglishChinese(term) {
+      return wikdictEnglishChinese.get(term);
+    },
+    listWikdictEnglishChinese(term, limit = 5) {
+      return wikdictEnglishChineseTranslations.all(term, Math.max(1, Math.min(Number(limit) || 5, 50)));
+    },
     findJapaneseEnglishByExpression(term) {
       return japaneseEnglishByExpression.get(term);
     },
@@ -124,6 +161,9 @@ export function createDictionariesRepository(db) {
     },
     findEnglishChinese(term) {
       return englishChinese.get(term, `${term};%cl:%`, `${term} (%cl:%`, `${term};%`, term);
+    },
+    listEnglishChinese(term, limit = 50) {
+      return englishChineseTranslations.all(term, `${term};%cl:%`, `${term} (%cl:%`, `${term};%`, term, Math.max(1, Math.min(Number(limit) || 50, 50)));
     },
     findChineseEnglish(term) {
       return chineseEnglish.get(term, term);

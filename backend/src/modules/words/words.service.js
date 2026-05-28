@@ -1,5 +1,5 @@
 import { normalizeName } from "../../shared/normalize.js";
-import { displayTranslationForToken, languageKey, translationDisambiguationCandidates } from "../translations/translations.service.js";
+import { displayTranslationForToken, translationDisambiguationCandidates } from "../translations/translations.service.js";
 
 function withDisambiguation(repositories, nativeLanguage, words) {
   return words.map((word) => {
@@ -9,9 +9,7 @@ function withDisambiguation(repositories, nativeLanguage, words) {
     if (!disambiguationCandidates.length) {
       return word;
     }
-    const translation = languageKey(sourceLanguage) === "English" && languageKey(nativeLanguage) === "Japanese"
-      ? displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token) || word.translation
-      : word.translation;
+    const translation = displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token) || word.translation;
     return { ...word, translation, disambiguationCandidates };
   });
 }

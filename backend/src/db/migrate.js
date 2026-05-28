@@ -294,6 +294,17 @@ export function runMigrations(db) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_wikdict_english_japanese ON wikdict_english_japanese(english, rank);
+
+    CREATE TABLE IF NOT EXISTS wikdict_english_chinese (
+      english TEXT NOT NULL,
+      chinese TEXT NOT NULL,
+      pos TEXT,
+      rank INTEGER NOT NULL DEFAULT 0,
+      definition TEXT,
+      PRIMARY KEY (english, chinese)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_wikdict_english_chinese ON wikdict_english_chinese(english, rank);
   `);
 
   const jmdictEnglishColumns = db.prepare("PRAGMA table_info(jmdict_english_index)").all();
