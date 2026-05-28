@@ -24,10 +24,6 @@
     --text-xl--line-height: calc(1.75 / 1.25);
     --text-3xl: 1.875rem;
     --text-3xl--line-height: calc(2.25 / 1.875);
-    --text-4xl: 2.25rem;
-    --text-4xl--line-height: calc(2.5 / 2.25);
-    --text-5xl: 3rem;
-    --text-5xl--line-height: 1;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
     --font-weight-black: 900;
@@ -291,9 +287,6 @@
   .mr-1 {
     margin-right: calc(var(--spacing) * 1);
   }
-  .mb-1\.5 {
-    margin-bottom: calc(var(--spacing) * 1.5);
-  }
   .mb-2 {
     margin-bottom: calc(var(--spacing) * 2);
   }
@@ -423,6 +416,12 @@
   .min-w-\[760px\] {
     min-width: 760px;
   }
+  .flex-1 {
+    flex: 1;
+  }
+  .flex-none {
+    flex: none;
+  }
   .border-collapse {
     border-collapse: collapse;
   }
@@ -441,12 +440,6 @@
   .grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  .grid-cols-\[auto_minmax\(140px\,1fr\)_52px_minmax\(116px\,132px\)\] {
-    grid-template-columns: auto minmax(140px,1fr) 52px minmax(116px,132px);
-  }
-  .grid-cols-\[minmax\(0\,1fr\)_minmax\(500px\,560px\)\] {
-    grid-template-columns: minmax(0,1fr) minmax(500px,560px);
-  }
   .grid-cols-\[minmax\(180px\,220px\)_minmax\(130px\,160px\)\] {
     grid-template-columns: minmax(180px,220px) minmax(130px,160px);
   }
@@ -455,6 +448,9 @@
   }
   .grid-cols-\[repeat\(auto-fit\,minmax\(220px\,1fr\)\)\] {
     grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+  }
+  .flex-nowrap {
+    flex-wrap: nowrap;
   }
   .flex-wrap {
     flex-wrap: wrap;
@@ -503,9 +499,6 @@
   }
   .gap-4 {
     gap: calc(var(--spacing) * 4);
-  }
-  .gap-5 {
-    gap: calc(var(--spacing) * 5);
   }
   .justify-self-end {
     justify-self: flex-end;
@@ -666,10 +659,6 @@
   .text-3xl {
     font-size: var(--text-3xl);
     line-height: var(--tw-leading, var(--text-3xl--line-height));
-  }
-  .text-5xl {
-    font-size: var(--text-5xl);
-    line-height: var(--tw-leading, var(--text-5xl--line-height));
   }
   .text-base {
     font-size: var(--text-base);
@@ -897,6 +886,11 @@
       grid-template-columns: repeat(1, minmax(0, 1fr));
     }
   }
+  .max-md\:flex-col {
+    @media (width < 48rem) {
+      flex-direction: column;
+    }
+  }
   .max-md\:items-stretch {
     @media (width < 48rem) {
       align-items: stretch;
@@ -910,12 +904,6 @@
   .max-md\:pt-5 {
     @media (width < 48rem) {
       padding-top: calc(var(--spacing) * 5);
-    }
-  }
-  .max-md\:text-4xl {
-    @media (width < 48rem) {
-      font-size: var(--text-4xl);
-      line-height: var(--tw-leading, var(--text-4xl--line-height));
     }
   }
   .max-sm\:grid-cols-1 {

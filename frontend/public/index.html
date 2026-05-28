@@ -60,8 +60,8 @@
     </main>
 
     <main id="appShell" class="shell mx-auto w-[min(1180px,calc(100%-32px))] pb-8 pt-24 max-md:w-[calc(100%-20px)] max-md:pt-5" hidden>
-      <header class="menu-bar fixed inset-x-0 top-0 z-10 grid min-h-[72px] grid-cols-[minmax(0,1fr)_minmax(500px,560px)] items-center gap-3 border-b border-line bg-page/95 px-5 py-2.5 backdrop-blur max-md:static max-md:grid-cols-1 max-md:items-stretch">
-        <div class="menu-left flex min-w-0 items-center gap-4 max-md:grid max-md:grid-cols-1">
+      <header class="menu-bar fixed inset-x-0 top-0 z-10 flex min-h-[72px] items-center gap-3 border-b border-line bg-page/95 px-5 py-2.5 backdrop-blur max-md:static max-md:flex-col max-md:items-stretch">
+        <div class="menu-left flex min-w-0 flex-1 items-center gap-4 max-md:grid max-md:grid-cols-1">
           <div class="menu-brand whitespace-nowrap text-base font-black text-brand" data-i18n="brand">Word Collector</div>
           <nav class="tabs grid w-[min(440px,100%)] grid-cols-3 gap-1 rounded-lg border border-line bg-muted p-1 max-md:w-full max-md:grid-cols-1" aria-label="Main views">
             <button class="tab-button is-active rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-tab="dashboard" data-i18n="tabs.dashboard">ダッシュボード</button>
@@ -69,7 +69,7 @@
             <button class="tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-tab="reader" data-i18n="tabs.reader">Reader</button>
           </nav>
         </div>
-        <div class="menu-actions grid w-full grid-cols-[auto_minmax(140px,1fr)_52px_minmax(116px,132px)] items-center gap-2 justify-self-end max-md:grid-cols-1">
+        <div class="menu-actions flex flex-none flex-nowrap items-center justify-end gap-2 max-md:grid max-md:w-full max-md:grid-cols-1">
           <div class="study-language-bar relative flex items-center gap-1.5 justify-self-end max-md:justify-self-start">
             <div class="known-total-badge mr-1 flex items-center gap-1.5 whitespace-nowrap" data-i18n-title="stats.knownAll">
               <span id="knownTotal" class="text-lg font-black leading-none text-brand">0</span>
