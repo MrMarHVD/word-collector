@@ -71,6 +71,10 @@
         </div>
         <div class="menu-actions grid w-full grid-cols-[auto_minmax(140px,1fr)_52px_minmax(116px,132px)] items-center gap-2 justify-self-end max-md:grid-cols-1">
           <div class="study-language-bar relative flex items-center gap-1.5 justify-self-end max-md:justify-self-start">
+            <div class="known-total-badge mr-1 flex items-center gap-1.5 whitespace-nowrap" data-i18n-title="stats.knownAll">
+              <span id="knownTotal" class="text-lg font-black leading-none text-brand">0</span>
+              <small class="text-[11px] font-semibold uppercase tracking-wide text-secondary" data-i18n="stats.knownShort">known</small>
+            </div>
             <div id="studyLanguageButtons" class="flex items-center gap-1.5" role="group" aria-label="Study languages"></div>
             <div class="study-language-add-wrap relative">
               <button id="studyLanguageAddButton" class="study-language-add-button grid h-[42px] w-[42px] place-items-center rounded-md border border-line bg-panel text-brand hover:bg-hover" type="button" aria-haspopup="true" aria-expanded="false">
@@ -94,19 +98,6 @@
             <span class="visually-hidden" data-i18n="tabs.settings">Settings</span>
           </button>
           <button id="logoutButton" class="secondary-button logout-button min-h-[52px] rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="auth.logout">ログアウト</button>
-        </div>
-      </header>
-
-      <header id="pageHead" class="page-head mb-4 flex items-end justify-between gap-5 max-md:grid">
-        <div>
-          <p class="eyebrow mb-1.5 text-xs font-bold uppercase text-brand" data-i18n="brand">Word Collector</p>
-          <h1 class="text-5xl font-black tracking-tight max-md:text-4xl" data-i18n="app.title">Word Collector</h1>
-        </div>
-        <div class="page-head-actions grid min-w-[220px]">
-          <div class="total-panel rounded-lg border border-line bg-panel p-5 shadow-panel">
-            <span id="knownTotal" class="block text-3xl font-black leading-none">0</span>
-            <small class="mt-2 block text-sm text-secondary" data-i18n="stats.knownAll">全コレクションの既知単語</small>
-          </div>
         </div>
       </header>
 

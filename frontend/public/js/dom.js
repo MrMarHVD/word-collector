@@ -5,7 +5,6 @@ export const elements = {
   authView: document.querySelector("#authView"),
   onboardingView: document.querySelector("#onboardingView"),
   appShell: document.querySelector("#appShell"),
-  pageHead: document.querySelector("#pageHead"),
   authForm: document.querySelector("#authForm"),
   authModeButtons: document.querySelectorAll(".auth-mode-button"),
   authEmail: document.querySelector("#authEmail"),
