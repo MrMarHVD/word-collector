@@ -12,6 +12,7 @@ const READER_PANEL_BOTTOM_MARGIN = 16;
 
 let loadDashboard = async () => {};
 let readerPageTurnInProgress = false;
+let highlightOpacityFrame = 0;
 
 export function configureReaderController(options) {
   loadDashboard = options.loadDashboard;
@@ -174,6 +175,17 @@ function animateReaderPageTurn(direction) {
   elements.readerText.classList.add(className);
 }
 
+function applyReaderHighlightOpacity(value) {
+  state.readerHighlightOpacity = Number(value);
+  if (highlightOpacityFrame) {
+    cancelAnimationFrame(highlightOpacityFrame);
+  }
+  highlightOpacityFrame = requestAnimationFrame(() => {
+    elements.readerText.style.setProperty("--readerHighlightOpacity", String(state.readerHighlightOpacity));
+    highlightOpacityFrame = 0;
+  });
+}
+
 async function turnReaderPage(direction) {
   if (readerPageTurnInProgress || !state.currentMaterial?.translationStatus?.ready) {
     return;
@@ -243,6 +255,15 @@ export function bindReaderEvents() {
     state.readerShowWordSpaces = event.target.checked;
     localStorage.setItem("wordMarkerReaderShowWordSpaces", String(state.readerShowWordSpaces));
     renderReaderTokens();
+  });
+
+  elements.readerHighlightOpacity.addEventListener("input", (event) => {
+    applyReaderHighlightOpacity(event.target.value);
+  });
+
+  elements.readerHighlightOpacity.addEventListener("change", (event) => {
+    applyReaderHighlightOpacity(event.target.value);
+    localStorage.setItem("wordMarkerReaderHighlightOpacity", String(state.readerHighlightOpacity));
   });
 
   elements.readerFontSize.addEventListener("input", (event) => {

@@ -76,6 +76,7 @@ export function renderReaderSidebarTabs() {
     || isWordSpacingLanguage(state.selectedStudyLanguageName);
   elements.readerShowWordSpacesRow.hidden = !showSpacingToggle;
   elements.readerShowWordSpaces.checked = state.readerShowWordSpaces;
+  elements.readerHighlightOpacity.value = String(state.readerHighlightOpacity);
 }
 
 // Render the imported material list and active material state.
@@ -186,6 +187,7 @@ function renderReaderTokenMarkup(tokens, languageName) {
 export function renderReaderTokens() {
   // Reader pages are rendered as token buttons so each word can expose details.
   elements.readerText.style.setProperty("--readerFontSize", `${state.readerFontSize}px`);
+  elements.readerText.style.setProperty("--readerHighlightOpacity", String(state.readerHighlightOpacity));
   elements.readerFontSize.value = String(state.readerFontSize);
   elements.readerWordsPerPage.value = String(state.readerWordsPerPage);
 

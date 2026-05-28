@@ -75,6 +75,7 @@ export const elements = {
   readerAutoMarkLearning: document.querySelector("#readerAutoMarkLearning"),
   readerShowWordSpaces: document.querySelector("#readerShowWordSpaces"),
   readerShowWordSpacesRow: document.querySelector("#readerShowWordSpacesRow"),
+  readerHighlightOpacity: document.querySelector("#readerHighlightOpacity"),
   readerPanel: document.querySelector(".reader-panel"),
   readerTitle: document.querySelector("#readerTitle"),
   readerMeta: document.querySelector("#readerMeta"),

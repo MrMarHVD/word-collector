@@ -45,8 +45,8 @@
   --learning-strong: #1d4ed8;
   --unknown: #d9a441;
   --unknown-strong: #8a5a07;
-  --reader-token-unknown: rgba(217, 164, 65, 0.2);
-  --reader-token-learning: rgba(59, 130, 246, 0.17);
+  --reader-token-unknown-rgb: 217 164 65;
+  --reader-token-learning-rgb: 59 130 246;
   --reader-token-selected: rgba(15, 118, 110, 0.16);
   --danger: #b91c1c;
   --danger-border: rgba(185, 28, 28, 0.28);
@@ -75,8 +75,8 @@ html[data-theme="dark"] {
   --learning-strong: #93c5fd;
   --unknown: #f0b94b;
   --unknown-strong: #f8cf73;
-  --reader-token-unknown: rgba(240, 185, 75, 0.22);
-  --reader-token-learning: rgba(96, 165, 250, 0.2);
+  --reader-token-unknown-rgb: 240 185 75;
+  --reader-token-learning-rgb: 96 165 250;
   --reader-token-selected: rgba(45, 212, 191, 0.18);
   --danger: #f87171;
   --danger-border: rgba(248, 113, 113, 0.3);
@@ -741,13 +741,13 @@ tbody tr:last-child td {
 }
 
 .reader-token[data-status="unknown"] {
-  background: var(--reader-token-unknown);
-  box-shadow: 0 0 10px var(--reader-token-unknown);
+  background: rgb(var(--reader-token-unknown-rgb) / var(--readerHighlightOpacity, 0.2));
+  box-shadow: 0 0 10px rgb(var(--reader-token-unknown-rgb) / var(--readerHighlightOpacity, 0.2));
 }
 
 .reader-token[data-status="learning"] {
-  background: var(--reader-token-learning);
-  box-shadow: 0 0 10px var(--reader-token-learning);
+  background: rgb(var(--reader-token-learning-rgb) / var(--readerHighlightOpacity, 0.2));
+  box-shadow: 0 0 10px rgb(var(--reader-token-learning-rgb) / var(--readerHighlightOpacity, 0.2));
 }
 
 .reader-token:hover,

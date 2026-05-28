@@ -34,6 +34,7 @@ export const state = {
   readerAutoMarkKnownOnPageTurn: localStorage.getItem("wordMarkerReaderAutoMarkKnownOnPageTurn") === "true",
   readerAutoMarkLearningOnClick: localStorage.getItem("wordMarkerReaderAutoMarkLearningOnClick") !== "false",
   readerShowWordSpaces: localStorage.getItem("wordMarkerReaderShowWordSpaces") === "true",
+  readerHighlightOpacity: Number(localStorage.getItem("wordMarkerReaderHighlightOpacity")) || 0.2,
   words: [],
   selectedWordIds: new Set(),
   expandedDisambiguationWordId: null,
