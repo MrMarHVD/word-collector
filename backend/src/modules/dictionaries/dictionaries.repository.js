@@ -61,14 +61,30 @@ export function createDictionariesRepository(db) {
     SELECT english, pos
     FROM wikdict_french_english
     WHERE french = ?
-    ORDER BY rank, length(english)
+    ORDER BY CASE WHEN pos = 'verb' THEN 0 WHEN coalesce(pos, '') = '' THEN 2 ELSE 1 END, rank, length(english)
     LIMIT 1
   `);
   const wikdictFrenchEnglishTranslations = db.prepare(`
     SELECT english, pos
     FROM wikdict_french_english
     WHERE french = ?
-    ORDER BY rank, length(english)
+    ORDER BY CASE WHEN pos = 'verb' THEN 0 WHEN coalesce(pos, '') = '' THEN 2 ELSE 1 END, rank, length(english)
+    LIMIT ?
+  `);
+  const wikdictFrenchEnglishViaAlias = db.prepare(`
+    SELECT e.english, e.pos
+    FROM wikdict_french_english_aliases a
+    JOIN wikdict_french_english e ON e.french = a.headword
+    WHERE a.french = ?
+    ORDER BY CASE WHEN e.pos = 'verb' THEN 0 WHEN coalesce(e.pos, '') = '' THEN 2 ELSE 1 END, e.rank, length(e.english)
+    LIMIT 1
+  `);
+  const wikdictFrenchEnglishTranslationsViaAlias = db.prepare(`
+    SELECT e.english, e.pos, a.headword AS source
+    FROM wikdict_french_english_aliases a
+    JOIN wikdict_french_english e ON e.french = a.headword
+    WHERE a.french = ?
+    ORDER BY CASE WHEN e.pos = 'verb' THEN 0 WHEN coalesce(e.pos, '') = '' THEN 2 ELSE 1 END, e.rank, length(e.english)
     LIMIT ?
   `);
   const englishJapaneseTranslations = db.prepare(`
@@ -203,10 +219,15 @@ export function createDictionariesRepository(db) {
       return wikdictSpanishEnglishTranslationsViaAlias.all(term, safeLimit);
     },
     findWikdictFrenchEnglish(term) {
-      return wikdictFrenchEnglish.get(term);
+      return wikdictFrenchEnglish.get(term) || wikdictFrenchEnglishViaAlias.get(term);
     },
     listWikdictFrenchEnglish(term, limit = 5) {
-      return wikdictFrenchEnglishTranslations.all(term, Math.max(1, Math.min(Number(limit) || 5, 50)));
+      const safeLimit = Math.max(1, Math.min(Number(limit) || 5, 50));
+      const direct = wikdictFrenchEnglishTranslations.all(term, safeLimit);
+      if (direct.length) {
+        return direct;
+      }
+      return wikdictFrenchEnglishTranslationsViaAlias.all(term, safeLimit);
     },
     findJapaneseEnglishByExpression(term) {
       return japaneseEnglishByExpression.get(term);

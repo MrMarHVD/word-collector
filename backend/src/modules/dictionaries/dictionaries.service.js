@@ -114,7 +114,7 @@ export function lookupFrenchEnglishEntries(dictionariesRepository, term, limit =
     return [];
   }
   return dedupeDictionaryEntries(dictionariesRepository.listWikdictFrenchEnglish(clean, limit).map((entry) => ({
-    source: clean,
+    source: entry.source || clean,
     translation: entry.english,
     pos: entry.pos || ""
   })));

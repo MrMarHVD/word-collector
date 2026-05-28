@@ -338,6 +338,13 @@ export function runMigrations(db) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_wikdict_french_english ON wikdict_french_english(french, rank);
+
+    CREATE TABLE IF NOT EXISTS wikdict_french_english_aliases (
+      french TEXT PRIMARY KEY,
+      headword TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_wikdict_french_english_alias_headword ON wikdict_french_english_aliases(headword);
   `);
 
   const jmdictEnglishColumns = db.prepare("PRAGMA table_info(jmdict_english_index)").all();
