@@ -750,6 +750,102 @@ tbody tr:last-child td {
   box-shadow: 0 0 10px rgb(var(--reader-token-learning-rgb) / var(--readerHighlightOpacity, 0.2));
 }
 
+.practice-content {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.practice-card-wrap {
+  perspective: 1200px;
+}
+
+.practice-card {
+  position: relative;
+  min-height: min(420px, 56vh);
+  transform-style: preserve-3d;
+  transition: transform 220ms ease;
+  cursor: pointer;
+  outline: none;
+}
+
+.practice-card:focus-visible {
+  border-radius: 14px;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.practice-card.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.practice-card-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  gap: 16px;
+  align-content: center;
+  min-width: 0;
+  padding: clamp(24px, 7vw, 56px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-panel);
+  box-shadow: var(--shadow-panel);
+  backface-visibility: hidden;
+  text-align: center;
+}
+
+.practice-card-front {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--brand) 10%, transparent), transparent 46%),
+    var(--surface-panel);
+}
+
+.practice-card-back {
+  transform: rotateY(180deg);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--known) 12%, transparent), transparent 48%),
+    var(--surface-panel);
+}
+
+.practice-card-word,
+.practice-card-translation {
+  max-width: 100%;
+  max-height: 100%;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  color: var(--text-main);
+  font-size: var(--practice-card-text-size, clamp(2.25rem, 4.5rem, 4.5rem));
+  font-weight: 900;
+  line-height: 1.12;
+}
+
+.practice-card-translation {
+  overflow: hidden;
+}
+
+.practice-card-hint,
+.practice-card-phonetic {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.practice-answer-button.is-unknown {
+  border-color: color-mix(in srgb, var(--unknown) 36%, var(--line));
+  background: color-mix(in srgb, var(--unknown) 12%, var(--surface-panel));
+  color: var(--unknown-strong);
+}
+
+.practice-answer-button.is-known {
+  border-color: color-mix(in srgb, var(--known) 36%, var(--line));
+  background: color-mix(in srgb, var(--known) 12%, var(--surface-panel));
+  color: var(--known-strong);
+}
+
+.practice-answer-button:not(:disabled):hover {
+  filter: brightness(0.98);
+}
+
 .reader-token:hover,
 .reader-token.is-selected {
   background: var(--reader-token-selected);

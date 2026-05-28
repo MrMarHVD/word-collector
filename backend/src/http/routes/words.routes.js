@@ -70,6 +70,18 @@ export function createWordsRoutes({ repositories }) {
       return true;
     }
 
+    const wordClickMatch = url.pathname.match(/^\/api\/words\/(\d+)\/click$/);
+    if (req.method === "POST" && wordClickMatch) {
+      const id = Number(wordClickMatch[1]);
+      if (!repositories.words.wordOwnedByUser(user.userId, id)) {
+        jsonResponse(res, 404, { error: "Word not found." });
+        return true;
+      }
+      repositories.words.incrementClickCount(user.userId, id);
+      jsonResponse(res, 200, { ok: true });
+      return true;
+    }
+
     const wordPatchMatch = url.pathname.match(/^\/api\/words\/(\d+)$/);
     if (req.method === "PATCH" && wordPatchMatch) {
       const id = Number(wordPatchMatch[1]);

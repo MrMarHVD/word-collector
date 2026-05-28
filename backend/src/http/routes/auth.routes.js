@@ -35,7 +35,7 @@ export function createAuthRoutes({ repositories, getAuthenticatedUser, setJwtFor
         return true;
       }
       setJwtForUser(res, result.user);
-      jsonResponse(res, 200, { user: { id: result.user.id, email: result.user.email, nativeLanguage: result.user.nativeLanguage } });
+      jsonResponse(res, 200, { user: { id: result.user.id, email: result.user.email, nativeLanguage: result.user.nativeLanguage, practiceWordsPerSession: result.user.practiceWordsPerSession } });
       return true;
     }
 
@@ -47,7 +47,7 @@ export function createAuthRoutes({ repositories, getAuthenticatedUser, setJwtFor
         return true;
       }
       setJwtForUser(res, result.user);
-      jsonResponse(res, 201, { user: { id: result.user.id, email: result.user.email, nativeLanguage: result.user.nativeLanguage } });
+      jsonResponse(res, 201, { user: { id: result.user.id, email: result.user.email, nativeLanguage: result.user.nativeLanguage, practiceWordsPerSession: result.user.practiceWordsPerSession } });
       return true;
     }
 

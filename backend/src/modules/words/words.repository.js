@@ -81,6 +81,12 @@ export function createWordsRepository(db) {
     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(user_id, word_id) DO UPDATE SET known = excluded.known, status = excluded.status, updated_at = CURRENT_TIMESTAMP
   `);
+  // Records one info-pane open for a word without touching its learning status.
+  const incrementClickCount = db.prepare(`
+    INSERT INTO user_word_status (user_id, word_id, known, status, click_count, updated_at)
+    VALUES (?, ?, 0, 'unknown', 1, CURRENT_TIMESTAMP)
+    ON CONFLICT(user_id, word_id) DO UPDATE SET click_count = click_count + 1, updated_at = CURRENT_TIMESTAMP
+  `);
 
   return {
     findCollectionByName(userId, languageId, name) {
@@ -116,6 +122,9 @@ export function createWordsRepository(db) {
     upsertStatus(userId, wordId, status) {
       const known = status === "known" ? 1 : 0;
       return upsertStatus.run(userId, wordId, known, status);
+    },
+    incrementClickCount(userId, wordId) {
+      return incrementClickCount.run(userId, wordId);
     },
     deleteWord(wordId) {
       return db.prepare("DELETE FROM words WHERE id = ?").run(wordId);

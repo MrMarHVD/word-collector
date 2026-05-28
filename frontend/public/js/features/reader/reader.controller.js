@@ -295,6 +295,7 @@ export function bindReaderEvents() {
     button.classList.add("is-selected");
     const token = state.readerTokens.find((entry) => entry.id === Number(button.dataset.tokenId));
     renderReaderWordInfo(token, button);
+    requestJson(`/api/words/${button.dataset.wordId}/click`, { method: "POST" }).catch(() => {});
     const changed = state.readerAutoMarkLearningOnClick ? await markReaderWordLearning(Number(button.dataset.wordId)) : false;
     if (changed) {
       updateReaderWordInfoStatus("learning");

@@ -5,7 +5,7 @@ export function getAuthContext(repositories, userId) {
   const languages = repositories.languages.listForUser(userId);
   const profile = repositories.auth.findUserById(userId);
   return {
-    user: { id: userId, email: profile.email, nativeLanguage: profile.nativeLanguage },
+    user: { id: userId, email: profile.email, nativeLanguage: profile.nativeLanguage, practiceWordsPerSession: profile.practiceWordsPerSession },
     languages,
     predefinedLanguages: repositories.languages.listPredefined(),
     needsOnboarding: languages.length === 0

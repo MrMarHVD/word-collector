@@ -6,6 +6,7 @@ import { createDashboardRoutes } from "./dashboard.routes.js";
 import { createImportsRoutes } from "./imports.routes.js";
 import { createLanguagesRoutes } from "./languages.routes.js";
 import { createMaterialsRoutes } from "./materials.routes.js";
+import { createPracticeRoutes } from "./practice.routes.js";
 import { createSettingsRoutes } from "./settings.routes.js";
 import { createWordsRoutes } from "./words.routes.js";
 
@@ -16,6 +17,7 @@ export function createApiHandler({ repositories }) {
     createDashboardRoutes({ repositories }),
     createLanguagesRoutes({ repositories }),
     createMaterialsRoutes({ repositories }),
+    createPracticeRoutes({ repositories }),
     createSettingsRoutes({ repositories }),
     createWordsRoutes({ repositories }),
     createCollectionsRoutes({ repositories }),

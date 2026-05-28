@@ -48,6 +48,9 @@ export function runMigrations(db) {
   if (!userColumns.some((column) => column.name === "native_language")) {
     db.exec("ALTER TABLE users ADD COLUMN native_language TEXT NOT NULL DEFAULT 'English'");
   }
+  if (!userColumns.some((column) => column.name === "practice_words_per_session")) {
+    db.exec("ALTER TABLE users ADD COLUMN practice_words_per_session INTEGER NOT NULL DEFAULT 20");
+  }
 
   const seedUser = ensureSeedUser(db);
   const insertPredefinedLanguage = db.prepare("INSERT OR IGNORE INTO predefined_languages (name) VALUES (?)");
@@ -320,6 +323,11 @@ export function runMigrations(db) {
   if (!wordStatusColumns.some((column) => column.name === "status")) {
     db.exec("ALTER TABLE user_word_status ADD COLUMN status TEXT NOT NULL DEFAULT 'unknown'");
     db.exec("UPDATE user_word_status SET status = 'known' WHERE known = 1");
+  }
+  // Tracks how many times the user has opened a word's info pane, across all
+  // documents. Drives practice-session word selection.
+  if (!wordStatusColumns.some((column) => column.name === "click_count")) {
+    db.exec("ALTER TABLE user_word_status ADD COLUMN click_count INTEGER NOT NULL DEFAULT 0");
   }
 
   const materialColumns = db.prepare("PRAGMA table_info(materials)").all();

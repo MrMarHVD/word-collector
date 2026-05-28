@@ -8,6 +8,7 @@ import { bindCollectionsEvents, configureCollectionsController, loadWords } from
 import { configureDashboardController, loadDashboard } from "./features/dashboard/dashboard.controller.js";
 import { bindImportEvents, configureImportsController } from "./features/imports/imports.controller.js";
 import { bindMaterialsEvents, configureMaterialsController, loadMaterials } from "./features/materials/materials.controller.js";
+import { bindPracticeEvents, configurePracticeController } from "./features/practice/practice.controller.js";
 import { bindReaderEvents, configureReaderController, loadMaterialReader } from "./features/reader/reader.controller.js";
 import { bindSettingsEvents, configureSettingsController, renderSettings } from "./features/settings/settings.controller.js";
 import { loadMessages } from "./i18n.js";
@@ -46,6 +47,7 @@ configureMaterialsController({ loadDashboard, loadMaterialReader, loadWords });
 configureReaderController({ loadDashboard });
 configureCollectionsController({ loadDashboard });
 configureImportsController({ loadDashboard });
+configurePracticeController({ loadDashboard });
 configureSettingsController({ reloadDashboard: loadDashboard });
 
 setUnauthorizedHandler(() => showView("auth"));
@@ -60,6 +62,7 @@ bindMaterialsEvents();
 bindReaderEvents();
 bindCollectionsEvents();
 bindSettingsEvents();
+bindPracticeEvents();
 bindSystemThemeListener();
 await loadMessages();
 applyLocale();

@@ -20,6 +20,9 @@ export function renderSettings() {
       return `<option value="${escapeHtml(language)}" ${selected}>${escapeHtml(t(`settings.nativeLanguage.${language}`))}</option>`;
     })
     .join("");
+  if (elements.practiceWordsPerSession) {
+    elements.practiceWordsPerSession.value = String(Number(state.user?.practiceWordsPerSession) || 20);
+  }
 }
 
 export function bindSettingsEvents() {
@@ -31,7 +34,10 @@ export function bindSettingsEvents() {
     try {
       const result = await requestJson("/api/settings", {
         method: "PATCH",
-        body: JSON.stringify({ nativeLanguage: elements.nativeLanguageSelect.value })
+        body: JSON.stringify({
+          nativeLanguage: elements.nativeLanguageSelect.value,
+          practiceWordsPerSession: elements.practiceWordsPerSession.value
+        })
       });
       state.user = result.user;
       state.nativeLanguageOptions = result.nativeLanguageOptions || state.nativeLanguageOptions;

@@ -9,6 +9,7 @@ export function setActiveTab(tabName) {
   elements.dashboardView.hidden = tabName !== "dashboard";
   elements.collectionsView.hidden = tabName !== "collections";
   elements.readerView.hidden = tabName !== "reader";
+  elements.practiceView.hidden = tabName !== "practice";
   elements.settingsView.hidden = tabName !== "settings";
   elements.tabButtons.forEach((button) => {
     const active = button.dataset.tab === tabName;

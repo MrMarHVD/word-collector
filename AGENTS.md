@@ -22,7 +22,7 @@ If the user’s proposal or question appears to rely on an incorrect assumption 
 - `backend/server.js` is the server bootstrap and dependency wiring.
 - `backend/src/auth/` contains low-level password, JWT, cookie, and session helpers.
 - `backend/src/db/` contains SQLite setup and schema migration code.
-- `backend/src/http/` contains request, response, and static file helpers.
+- `backend/src/http/` contains request, response, and static file helpers.g
 - `backend/src/http/routes/` contains API route handlers.
 - `backend/src/modules/` contains domain modules. Each module owns its service and repository files.
 - `backend/src/modules/*/*.service.js` contains business logic.

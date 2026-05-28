@@ -1,3 +1,4 @@
+import { enterPracticeTab } from "../features/practice/practice.controller.js";
 import { renderReaderSidebar } from "../views/reader.js";
 import { setActiveTab, showView } from "../views/shell.js";
 import { state } from "../state.js";
@@ -7,6 +8,7 @@ const TAB_TO_PATH = {
   dashboard: "/dashboard",
   collections: "/vocab",
   reader: "/reader",
+  practice: "/practice",
   settings: "/settings"
 };
 const PATH_TO_TAB = Object.fromEntries(Object.entries(TAB_TO_PATH).map(([tab, path]) => [path, tab]));
@@ -31,6 +33,8 @@ export function activateTab(tabName) {
   setActiveTab(tabName);
   if (tabName === "reader") {
     renderReaderSidebarAfterLayout();
+  } else if (tabName === "practice") {
+    enterPracticeTab();
   }
 }
 

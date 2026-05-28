@@ -5,6 +5,7 @@ import { createDictionariesRepository } from "./dictionaries/dictionaries.reposi
 import { createImportsRepository } from "./imports/imports.repository.js";
 import { createLanguagesRepository } from "./languages/languages.repository.js";
 import { createMaterialsRepository } from "./materials/materials.repository.js";
+import { createPracticeRepository } from "./practice/practice.repository.js";
 import { createTranslationsRepository } from "./translations/translations.repository.js";
 import { createWordsRepository } from "./words/words.repository.js";
 
@@ -16,6 +17,7 @@ export function createRepositories(db) {
     dictionaries: createDictionariesRepository(db),
     languages: createLanguagesRepository(db),
     materials: createMaterialsRepository(db),
+    practice: createPracticeRepository(db),
     translations: createTranslationsRepository(db),
     words: createWordsRepository(db)
   };
