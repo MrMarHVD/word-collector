@@ -1,4 +1,4 @@
-import { SEED_EMAIL, SEED_PASSWORD, STUDY_LANGUAGE_OPTIONS } from "../config.js";
+import { ENGLISH_NATIVE_ONLY_STUDY_LANGUAGES, SEED_EMAIL, SEED_PASSWORD, STUDY_LANGUAGE_OPTIONS } from "../config.js";
 import { hashPassword } from "../auth/password.js";
 
 // Migrations are additive where possible and preserve legacy rows when a table
@@ -105,7 +105,8 @@ export function runMigrations(db) {
   const insertUserLanguage = db.prepare("INSERT OR IGNORE INTO languages (user_id, name) VALUES (?, ?)");
   const users = db.prepare("SELECT id FROM users").all();
   for (const user of users) {
-    for (const language of STUDY_LANGUAGE_OPTIONS) {
+    const profile = db.prepare("SELECT native_language AS nativeLanguage FROM users WHERE id = ?").get(user.id);
+    for (const language of STUDY_LANGUAGE_OPTIONS.filter((name) => profile?.nativeLanguage === "English" || !ENGLISH_NATIVE_ONLY_STUDY_LANGUAGES.includes(name))) {
       insertUserLanguage.run(user.id, language);
     }
   }
@@ -308,6 +309,28 @@ export function runMigrations(db) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_wikdict_english_chinese ON wikdict_english_chinese(english, rank);
+
+    CREATE TABLE IF NOT EXISTS wikdict_spanish_english (
+      spanish TEXT NOT NULL,
+      english TEXT NOT NULL,
+      pos TEXT,
+      rank INTEGER NOT NULL DEFAULT 0,
+      definition TEXT,
+      PRIMARY KEY (spanish, english)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_wikdict_spanish_english ON wikdict_spanish_english(spanish, rank);
+
+    CREATE TABLE IF NOT EXISTS wikdict_french_english (
+      french TEXT NOT NULL,
+      english TEXT NOT NULL,
+      pos TEXT,
+      rank INTEGER NOT NULL DEFAULT 0,
+      definition TEXT,
+      PRIMARY KEY (french, english)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_wikdict_french_english ON wikdict_french_english(french, rank);
   `);
 
   const jmdictEnglishColumns = db.prepare("PRAGMA table_info(jmdict_english_index)").all();

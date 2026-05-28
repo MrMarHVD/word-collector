@@ -1,5 +1,5 @@
 import { normalizeName } from "../../shared/normalize.js";
-import { lookupChineseEnglish, lookupChineseJapanese, lookupChineseJapaneseEntries, lookupEnglishChinese, lookupEnglishChineseEntries, lookupEnglishJapanese, lookupEnglishJapaneseEntries, lookupJapaneseChinese, lookupJapaneseChineseEntries, lookupJapaneseEnglish } from "../dictionaries/dictionaries.service.js";
+import { lookupChineseEnglish, lookupChineseJapanese, lookupChineseJapaneseEntries, lookupEnglishChinese, lookupEnglishChineseEntries, lookupEnglishJapanese, lookupEnglishJapaneseEntries, lookupFrenchEnglish, lookupFrenchEnglishEntries, lookupJapaneseChinese, lookupJapaneseChineseEntries, lookupJapaneseEnglish, lookupSpanishEnglish, lookupSpanishEnglishEntries } from "../dictionaries/dictionaries.service.js";
 import lemmatizer from "wink-lemmatizer";
 
 export const TRANSLATION_ROUTES = [
@@ -11,7 +11,9 @@ export const TRANSLATION_ROUTES = [
   { source: "Japanese", target: "Chinese", lookup: lookupJapaneseChinese },
   { source: "Chinese", target: "English", lookup: lookupChineseEnglish },
   { source: "Chinese", target: "Japanese", lookup: lookupChineseJapanese },
-  { source: "Chinese", target: "Chinese", lookup: (_dictionariesRepository, term) => term }
+  { source: "Chinese", target: "Chinese", lookup: (_dictionariesRepository, term) => term },
+  { source: "Spanish", target: "English", lookup: lookupSpanishEnglish },
+  { source: "French", target: "English", lookup: lookupFrenchEnglish }
 ];
 
 export function languageKey(language) {
@@ -21,6 +23,8 @@ export function languageKey(language) {
   if (normalized === "english") return "English";
   if (normalized === "japanese" || name === "日本語") return "Japanese";
   if (normalized === "chinese") return "Chinese";
+  if (normalized === "spanish") return "Spanish";
+  if (normalized === "french") return "French";
   return "";
 }
 
@@ -63,6 +67,12 @@ function lookupDictionaryEntriesForRoute(repositories, sourceLanguage, targetLan
   }
   if (source === "Chinese" && target === "Japanese") {
     return lookupChineseJapaneseEntries(repositories.dictionaries, term, 50);
+  }
+  if (source === "Spanish" && target === "English") {
+    return lookupSpanishEnglishEntries(repositories.dictionaries, term, 50);
+  }
+  if (source === "French" && target === "English") {
+    return lookupFrenchEnglishEntries(repositories.dictionaries, term, 50);
   }
   return [];
 }

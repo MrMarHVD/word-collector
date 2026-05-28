@@ -30,6 +30,19 @@ const FLAGS = {
         <circle cx="11.5" cy="9" r="0.65"/>
       </g>
     </svg>
+  `,
+  spanish: `
+    <svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="30" height="20" fill="#aa151b"/>
+      <rect y="5" width="30" height="10" fill="#f1bf00"/>
+    </svg>
+  `,
+  french: `
+    <svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="10" height="20" fill="#0055a4"/>
+      <rect x="10" width="10" height="20" fill="#ffffff"/>
+      <rect x="20" width="10" height="20" fill="#ef4135"/>
+    </svg>
   `
 };
 

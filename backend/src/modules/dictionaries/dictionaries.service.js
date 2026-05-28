@@ -88,6 +88,38 @@ export function lookupEnglishChineseEntries(dictionariesRepository, term, limit 
   })));
 }
 
+export function lookupSpanishEnglish(dictionariesRepository, term) {
+  return lookupSpanishEnglishEntries(dictionariesRepository, term, 1)[0]?.translation || "";
+}
+
+export function lookupSpanishEnglishEntries(dictionariesRepository, term, limit = 50) {
+  const clean = normalizeName(term).toLowerCase();
+  if (!clean) {
+    return [];
+  }
+  return dedupeDictionaryEntries(dictionariesRepository.listWikdictSpanishEnglish(clean, limit).map((entry) => ({
+    source: clean,
+    translation: entry.english,
+    pos: entry.pos || ""
+  })));
+}
+
+export function lookupFrenchEnglish(dictionariesRepository, term) {
+  return lookupFrenchEnglishEntries(dictionariesRepository, term, 1)[0]?.translation || "";
+}
+
+export function lookupFrenchEnglishEntries(dictionariesRepository, term, limit = 50) {
+  const clean = normalizeName(term).toLowerCase();
+  if (!clean) {
+    return [];
+  }
+  return dedupeDictionaryEntries(dictionariesRepository.listWikdictFrenchEnglish(clean, limit).map((entry) => ({
+    source: clean,
+    translation: entry.english,
+    pos: entry.pos || ""
+  })));
+}
+
 export function lookupEnglishPos(dictionariesRepository, term) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {

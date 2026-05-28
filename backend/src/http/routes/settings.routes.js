@@ -1,4 +1,5 @@
 import { NATIVE_LANGUAGE_OPTIONS } from "../../config.js";
+import { INVALID_NATIVE_STUDY_LANGUAGE_MESSAGE, studyLanguageConflictsWithNativeLanguage } from "../../modules/languages/languages.service.js";
 import { normalizeWordsPerSession } from "../../modules/practice/practice.service.js";
 import { backfillUserTranslations } from "../../modules/translations/translations.service.js";
 import { readJson } from "../request.js";
@@ -14,6 +15,11 @@ export function createSettingsRoutes({ repositories }) {
     const nativeLanguage = String(body.nativeLanguage || "");
     if (!NATIVE_LANGUAGE_OPTIONS.includes(nativeLanguage)) {
       jsonResponse(res, 400, { error: "Unsupported native language." });
+      return true;
+    }
+    const activeStudyLanguage = String(body.activeStudyLanguage || "");
+    if (activeStudyLanguage && studyLanguageConflictsWithNativeLanguage(activeStudyLanguage, nativeLanguage)) {
+      jsonResponse(res, 400, { error: INVALID_NATIVE_STUDY_LANGUAGE_MESSAGE, errorKey: "errors.invalidNativeStudyLanguage" });
       return true;
     }
     repositories.auth.updateNativeLanguage(nativeLanguage, user.userId);

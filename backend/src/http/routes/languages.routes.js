@@ -24,9 +24,10 @@ export function createLanguagesRoutes({ repositories }) {
 
     if (req.method === "POST") {
       const body = await readJson(req);
-      const result = addStudyLanguageForUser(repositories, user.userId, body.name);
+      const profile = repositories.auth.findUserById(user.userId);
+      const result = addStudyLanguageForUser(repositories, user.userId, body.name, profile?.nativeLanguage || "English");
       if (result.error) {
-        jsonResponse(res, 400, { error: result.error });
+        jsonResponse(res, 400, { error: result.error, errorKey: result.errorKey });
         return true;
       }
       jsonResponse(res, 201, {

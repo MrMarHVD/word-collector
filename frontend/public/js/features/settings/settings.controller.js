@@ -36,6 +36,7 @@ export function bindSettingsEvents() {
         method: "PATCH",
         body: JSON.stringify({
           nativeLanguage: elements.nativeLanguageSelect.value,
+          activeStudyLanguage: state.selectedStudyLanguageName,
           practiceWordsPerSession: elements.practiceWordsPerSession.value
         })
       });

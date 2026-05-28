@@ -27,7 +27,7 @@ export async function requestJson(url, options) {
     unauthorizedHandler();
   }
   if (!response.ok) {
-    throw new Error(payload.error || t("errors.requestFailed"));
+    throw new Error(payload.errorKey ? t(payload.errorKey) : payload.error || t("errors.requestFailed"));
   }
   return payload;
 }

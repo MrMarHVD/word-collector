@@ -27,6 +27,34 @@ export function createDictionariesRepository(db) {
     ORDER BY rank, length(chinese)
     LIMIT ?
   `);
+  const wikdictSpanishEnglish = db.prepare(`
+    SELECT english, pos
+    FROM wikdict_spanish_english
+    WHERE spanish = ?
+    ORDER BY rank, length(english)
+    LIMIT 1
+  `);
+  const wikdictSpanishEnglishTranslations = db.prepare(`
+    SELECT english, pos
+    FROM wikdict_spanish_english
+    WHERE spanish = ?
+    ORDER BY rank, length(english)
+    LIMIT ?
+  `);
+  const wikdictFrenchEnglish = db.prepare(`
+    SELECT english, pos
+    FROM wikdict_french_english
+    WHERE french = ?
+    ORDER BY rank, length(english)
+    LIMIT 1
+  `);
+  const wikdictFrenchEnglishTranslations = db.prepare(`
+    SELECT english, pos
+    FROM wikdict_french_english
+    WHERE french = ?
+    ORDER BY rank, length(english)
+    LIMIT ?
+  `);
   const englishJapaneseTranslations = db.prepare(`
     SELECT expression, pos
     FROM jmdict_english_index
@@ -146,6 +174,18 @@ export function createDictionariesRepository(db) {
     },
     listWikdictEnglishChinese(term, limit = 5) {
       return wikdictEnglishChineseTranslations.all(term, Math.max(1, Math.min(Number(limit) || 5, 50)));
+    },
+    findWikdictSpanishEnglish(term) {
+      return wikdictSpanishEnglish.get(term);
+    },
+    listWikdictSpanishEnglish(term, limit = 5) {
+      return wikdictSpanishEnglishTranslations.all(term, Math.max(1, Math.min(Number(limit) || 5, 50)));
+    },
+    findWikdictFrenchEnglish(term) {
+      return wikdictFrenchEnglish.get(term);
+    },
+    listWikdictFrenchEnglish(term, limit = 5) {
+      return wikdictFrenchEnglishTranslations.all(term, Math.max(1, Math.min(Number(limit) || 5, 50)));
     },
     findJapaneseEnglishByExpression(term) {
       return japaneseEnglishByExpression.get(term);

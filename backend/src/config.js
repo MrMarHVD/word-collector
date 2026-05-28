@@ -15,7 +15,8 @@ export const JWT_TTL_SECONDS = 7 * 24 * 60 * 60;
 export const SEED_EMAIL = "havardjvd@gmail.com";
 export const SEED_PASSWORD = "MelkeMannen22";
 export const NATIVE_LANGUAGE_OPTIONS = ["English", "Japanese", "Chinese"];
-export const STUDY_LANGUAGE_OPTIONS = ["English", "Japanese", "Chinese"];
+export const STUDY_LANGUAGE_OPTIONS = ["English", "Japanese", "Chinese", "Spanish", "French"];
+export const ENGLISH_NATIVE_ONLY_STUDY_LANGUAGES = ["Spanish", "French"];
 export const READER_WORK_PAGE_SIZE = 50;
 
 // EPUB import diagnostics. Set via the EPUB_IMPORT_LOG env var.

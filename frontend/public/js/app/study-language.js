@@ -21,13 +21,15 @@ export function studyLanguageLabel(language) {
 export function availableStudyLanguages() {
   return state.studyLanguageOptions
     .map((name) => state.languages.find((language) => language.name.toLowerCase() === name.toLowerCase()))
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((language) => state.user?.nativeLanguage === "English" || !["Spanish", "French"].includes(language.name));
 }
 
 // Study languages the user has not yet enrolled in.
 function unenrolledStudyLanguages() {
   return state.studyLanguageOptions.filter(
     (name) => !state.languages.some((language) => language.name.toLowerCase() === name.toLowerCase())
+      && (state.user?.nativeLanguage === "English" || !["Spanish", "French"].includes(name))
   );
 }
 
@@ -108,7 +110,7 @@ export async function setStudyLanguage(languageName, { persist = true, reload = 
   }
 
   const language = languageByName(state.languages, languageName);
-  if (!language) {
+  if (!language || !availableStudyLanguages().some((available) => available.id === language.id)) {
     return;
   }
   state.selectedStudyLanguageName = language.name;
