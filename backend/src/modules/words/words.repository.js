@@ -41,7 +41,7 @@ export function createWordsRepository(db) {
   `);
   const updateWordMetadata = db.prepare(`
     UPDATE words
-    SET pos = COALESCE(NULLIF(pos, ''), ?),
+    SET pos = CASE WHEN pos IS NULL OR trim(pos) = '' OR pos = 'unknown' THEN ? ELSE pos END,
         pos_subcategory = COALESCE(NULLIF(pos_subcategory, ''), ?),
         reading = COALESCE(NULLIF(reading, ''), ?),
         pinyin = COALESCE(NULLIF(pinyin, ''), ?),

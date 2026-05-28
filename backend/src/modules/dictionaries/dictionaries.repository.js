@@ -14,7 +14,7 @@ export function createDictionariesRepository(db) {
     LIMIT 1
   `);
   const englishJapanese = db.prepare(`
-    SELECT expression
+    SELECT expression, pos
     FROM jmdict_english_index
     WHERE english = ?
     ORDER BY
@@ -29,7 +29,7 @@ export function createDictionariesRepository(db) {
     LIMIT 1
   `);
   const englishChinese = db.prepare(`
-    SELECT simplified
+    SELECT simplified, pos
     FROM cedict_english_index
     WHERE english = ?
     ORDER BY

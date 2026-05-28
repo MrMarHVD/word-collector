@@ -45,30 +45,43 @@ function readGzip(path) {
 }
 
 // Produce English index keys with priorities from CEDICT definitions.
+function posForDefinition(value) {
+  const clean = value.toLowerCase();
+  if (clean.startsWith("to ")) return "verb";
+  if (/\b(adj|adjective)\b/.test(clean)) return "adjective";
+  if (/\b(adv|adverb)\b/.test(clean)) return "adverb";
+  if (/\b(noun|person|people|thing|place)\b/.test(clean)) return "noun";
+  return "";
+}
+
 function englishKeys(definitions) {
   // English reader tokens are single words, so only index single-word glosses.
   const keys = new Map();
-  const addKey = (key, priority) => {
+  const addKey = (key, priority, pos) => {
     if (!/^[a-z][a-z'-]{1,80}$/.test(key)) return;
     if (STOP_WORDS.has(key)) return;
-    keys.set(key, Math.max(keys.get(key) ?? 0, priority));
+    const existing = keys.get(key);
+    if (!existing || priority > existing.priority) {
+      keys.set(key, { priority, pos });
+    }
   };
 
   for (const definition of definitions) {
     for (const segment of definition.split(/[;,]/)) {
+      const pos = posForDefinition(segment);
       const clean = segment
         .replace(/\([^)]*\)/g, "")
         .replace(/\b(CL|abbr|variant|see also|old variant|archaic)\b.*$/i, "")
         .trim()
         .toLowerCase();
       if (clean.startsWith("to ")) {
-        addKey(clean.slice(3).trim(), 35);
+        addKey(clean.slice(3).trim(), 35, "verb");
       } else {
-        addKey(clean, 40);
+        addKey(clean, 40, pos);
       }
     }
   }
-  return [...keys.entries()].map(([key, priority]) => ({ key, priority }));
+  return [...keys.entries()].map(([key, value]) => ({ key, priority: value.priority, pos: value.pos }));
 }
 
 const text = await readGzip(sourcePath);
@@ -76,8 +89,8 @@ const db = new DatabaseSync(DB_PATH);
 runMigrations(db);
 
 const insert = db.prepare(`
-  INSERT OR REPLACE INTO cedict_english_index (english, simplified, traditional, pinyin, definitions, priority)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT OR REPLACE INTO cedict_english_index (english, simplified, traditional, pinyin, definitions, pos, priority)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
 `);
 
 let entries = 0;
@@ -95,8 +108,8 @@ try {
     const definitions = rawDefinitions.split("/").map((entry) => entry.trim()).filter(Boolean);
     const definitionText = definitions.slice(0, 6).join("; ");
     const entryPriority = definitions.length <= 3 ? 1 : 0;
-    for (const { key, priority } of englishKeys(definitions)) {
-      insert.run(key, simplified, traditional, pinyin, definitionText, priority + entryPriority);
+    for (const { key, priority, pos } of englishKeys(definitions)) {
+      insert.run(key, simplified, traditional, pinyin, definitionText, pos || null, priority + entryPriority);
       rows += 1;
     }
   }

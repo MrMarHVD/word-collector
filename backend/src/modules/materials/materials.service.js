@@ -1,6 +1,6 @@
 import { READER_WORK_PAGE_SIZE } from "../../config.js";
 import { normalizeName } from "../../shared/normalize.js";
-import { lookupChineseDetails } from "../dictionaries/dictionaries.service.js";
+import { lookupChineseDetails, lookupEnglishPos } from "../dictionaries/dictionaries.service.js";
 import { getTranslationCandidates, hasTranslationAttempt, hasUsableStoredTranslation, languageKey, lookupTranslation, materialTranslationStatus, scheduleMaterialTranslationBackfill, supportedTargetNativeLanguage, translationForToken } from "../translations/translations.service.js";
 import { extractTextFromUpload } from "./text-extraction.service.js";
 import { tokenizeBlocksForLanguage, tokenizeForLanguage } from "./tokenizer.service.js";
@@ -26,7 +26,8 @@ function wordMetadataForToken(repositories, sourceLanguage, token) {
     return { pos: token.pos || "", posSubcategory: token.posSubcategory || "", reading: token.reading || "", pinyin: "", traditional: "" };
   }
   if (source === "English") {
-    return { pos: token.pos || "", posSubcategory: "", reading: "", pinyin: "", traditional: "" };
+    const dictionaryPos = lookupEnglishPos(repositories.dictionaries, token.lemma) || lookupEnglishPos(repositories.dictionaries, token.surface);
+    return { pos: dictionaryPos || token.pos || "", posSubcategory: "", reading: "", pinyin: "", traditional: "" };
   }
   if (source === "Chinese") {
     const details = lookupChineseDetails(repositories.dictionaries, token.lemma) || {};

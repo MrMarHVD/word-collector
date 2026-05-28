@@ -49,9 +49,32 @@ const insert = db.prepare(`
   VALUES (?, ?, ?, ?)
 `);
 const insertEnglish = db.prepare(`
-  INSERT OR REPLACE INTO jmdict_english_index (english, expression, gloss, priority)
-  VALUES (?, ?, ?, ?)
+  INSERT OR REPLACE INTO jmdict_english_index (english, expression, gloss, pos, priority)
+  VALUES (?, ?, ?, ?, ?)
 `);
+
+function posForCode(code) {
+  const clean = String(code || "").replaceAll("&", "").replaceAll(";", "");
+  if (clean === "n" || clean.startsWith("n-")) return "noun";
+  if (clean.startsWith("v")) return "verb";
+  if (clean.startsWith("adj")) return "adjective";
+  if (clean.startsWith("adv")) return "adverb";
+  return "";
+}
+
+function posForSense(sense) {
+  const values = [...sense.matchAll(/<pos>([\s\S]*?)<\/pos>/g)]
+    .map((match) => posForCode(match[1].trim()))
+    .filter(Boolean);
+  return values[0] || "";
+}
+
+function senses(entry) {
+  return [...entry.matchAll(/<sense>([\s\S]*?)<\/sense>/g)].map((match) => ({
+    glosses: values(match[1], "gloss").filter(Boolean),
+    pos: posForSense(match[1])
+  }));
+}
 
 // Produce reverse-lookup English keys from gloss text.
 function englishKeys(glosses) {
@@ -80,16 +103,19 @@ try {
     const entry = match[1];
     const expressions = values(entry, "keb");
     const readings = values(entry, "reb");
-    const glosses = values(entry, "gloss").filter(Boolean);
     const forms = expressions.length ? expressions : readings;
     const reading = readings[0] || null;
     const priority = priorityFor(entry);
+    const entrySenses = senses(entry);
+    const glosses = entrySenses.flatMap((sense) => sense.glosses);
     for (const form of forms) {
       const gloss = [...new Set(glosses)].slice(0, 6).join("; ");
       if (form && gloss) {
         insert.run(form, reading, gloss, priority);
-        for (const english of englishKeys(glosses)) {
-          insertEnglish.run(english, form, gloss, priority);
+        for (const sense of entrySenses) {
+          for (const english of englishKeys(sense.glosses)) {
+            insertEnglish.run(english, form, gloss, sense.pos || null, priority);
+          }
         }
         rows += 1;
       }

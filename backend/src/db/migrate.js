@@ -262,6 +262,7 @@ export function runMigrations(db) {
       english TEXT NOT NULL,
       expression TEXT NOT NULL,
       gloss TEXT NOT NULL,
+      pos TEXT,
       priority INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY (english, expression)
     );
@@ -274,6 +275,7 @@ export function runMigrations(db) {
       traditional TEXT NOT NULL,
       pinyin TEXT NOT NULL,
       definitions TEXT NOT NULL,
+      pos TEXT,
       priority INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY (english, simplified)
     );
@@ -282,6 +284,15 @@ export function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_cedict_simplified ON cedict_english_index(simplified);
     CREATE INDEX IF NOT EXISTS idx_cedict_traditional ON cedict_english_index(traditional);
   `);
+
+  const jmdictEnglishColumns = db.prepare("PRAGMA table_info(jmdict_english_index)").all();
+  if (!jmdictEnglishColumns.some((column) => column.name === "pos")) {
+    db.exec("ALTER TABLE jmdict_english_index ADD COLUMN pos TEXT");
+  }
+  const cedictEnglishColumns = db.prepare("PRAGMA table_info(cedict_english_index)").all();
+  if (!cedictEnglishColumns.some((column) => column.name === "pos")) {
+    db.exec("ALTER TABLE cedict_english_index ADD COLUMN pos TEXT");
+  }
 
   const wordStatusColumns = db.prepare("PRAGMA table_info(user_word_status)").all();
   if (!wordStatusColumns.some((column) => column.name === "status")) {

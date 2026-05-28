@@ -39,6 +39,16 @@ export function lookupEnglishChinese(dictionariesRepository, term) {
   return exact?.simplified || "";
 }
 
+export function lookupEnglishPos(dictionariesRepository, term) {
+  const clean = normalizeName(term).toLowerCase();
+  if (!clean) {
+    return "";
+  }
+  return dictionariesRepository.findEnglishJapanese(clean)?.pos
+    || dictionariesRepository.findEnglishChinese(clean)?.pos
+    || "";
+}
+
 // Remove classifier and parenthetical metadata before showing CEDICT glosses.
 function cleanCedictDefinition(definitions) {
   const cleaned = String(definitions || "")
