@@ -242,6 +242,37 @@ function positionReaderWordInfo(anchor) {
   elements.readerWordInfo.style.visibility = "";
 }
 
+function renderDisambiguationTable(candidates) {
+  if (!Array.isArray(candidates) || candidates.length <= 1) {
+    return "";
+  }
+  return `
+    <div class="disambiguation-panel" data-disambiguation-panel hidden>
+      <table>
+        <thead>
+          <tr>
+            <th>${escapeHtml(t("table.word"))}</th>
+            <th>${escapeHtml(t("table.translation"))}</th>
+            <th>${escapeHtml(t("reader.partOfSpeech"))}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${candidates.map((candidate) => {
+            const pos = candidate.pos ? t(`pos.${candidate.pos}`, {}, candidate.pos) : "";
+            return `
+              <tr>
+                <td>${escapeHtml(candidate.source || "")}</td>
+                <td>${escapeHtml(candidate.translation || "")}</td>
+                <td>${escapeHtml(pos)}</td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 // Render details and status actions for a selected reader token.
 export function renderReaderWordInfo(token, anchor = null) {
   if (!token) {
@@ -286,6 +317,8 @@ export function renderReaderWordInfo(token, anchor = null) {
     <dl>
       ${rows.map((row) => `<dt>${escapeHtml(row.label)}</dt><dd>${escapeHtml(row.value)}</dd>`).join("")}
     </dl>
+    ${(token.disambiguationCandidates || []).length > 1 ? `<button class="disambiguation-button" type="button" data-disambiguate>${escapeHtml(t("reader.disambiguate"))}</button>` : ""}
+    ${renderDisambiguationTable(token.disambiguationCandidates)}
     ${renderStatusToggle(token.wordId, status, { dataAttr: "data-reader-word-id" })}
   `;
   positionReaderWordInfo(anchor);

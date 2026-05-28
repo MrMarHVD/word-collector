@@ -1,15 +1,31 @@
 import { normalizeName } from "../../shared/normalize.js";
+import { displayTranslationForToken, languageKey, translationDisambiguationCandidates } from "../translations/translations.service.js";
+
+function withDisambiguation(repositories, nativeLanguage, words) {
+  return words.map((word) => {
+    const sourceLanguage = { name: word.languageName };
+    const token = { surface: word.word, lemma: word.lemma || word.word, word: word.word };
+    const disambiguationCandidates = translationDisambiguationCandidates(repositories, sourceLanguage, nativeLanguage, token);
+    if (!disambiguationCandidates.length) {
+      return word;
+    }
+    const translation = languageKey(sourceLanguage) === "English" && languageKey(nativeLanguage) === "Japanese"
+      ? displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token) || word.translation
+      : word.translation;
+    return { ...word, translation, disambiguationCandidates };
+  });
+}
 
 // Return words for a collection with optional word or displayed-translation search.
 export function getWords(repositories, userId, collectionId, search, nativeLanguage = "English") {
   const term = normalizeName(search);
-  return repositories.words.listWords(userId, collectionId, term, nativeLanguage);
+  return withDisambiguation(repositories, nativeLanguage, repositories.words.listWords(userId, collectionId, term, nativeLanguage));
 }
 
 // Return every word across all of the user's collections in a language.
 export function getWordsInLanguage(repositories, userId, languageId, search, nativeLanguage = "English") {
   const term = normalizeName(search);
-  return repositories.words.listWordsInLanguage(userId, languageId, term, nativeLanguage);
+  return withDisambiguation(repositories, nativeLanguage, repositories.words.listWordsInLanguage(userId, languageId, term, nativeLanguage));
 }
 
 // Delete user-owned words. Ignores ids that don't belong to the user.

@@ -13,6 +13,21 @@ export function createDictionariesRepository(db) {
     ORDER BY rank, length(japanese)
     LIMIT ?
   `);
+  const englishJapaneseTranslations = db.prepare(`
+    SELECT expression, pos
+    FROM jmdict_english_index
+    WHERE english = ?
+    ORDER BY
+      priority DESC,
+      CASE
+        WHEN lower(gloss) = ? THEN 0
+        WHEN lower(gloss) LIKE ? THEN 1
+        ELSE 2
+      END,
+      length(gloss),
+      length(expression)
+    LIMIT ?
+  `);
   const japaneseEnglishByExpression = db.prepare(`
     SELECT gloss
     FROM jmdict_entries
@@ -93,7 +108,7 @@ export function createDictionariesRepository(db) {
       return wikdictEnglishJapanese.get(term);
     },
     listWikdictEnglishJapanese(term, limit = 5) {
-      return wikdictEnglishJapaneseTranslations.all(term, Math.max(1, Math.min(Number(limit) || 5, 10)));
+      return wikdictEnglishJapaneseTranslations.all(term, Math.max(1, Math.min(Number(limit) || 5, 50)));
     },
     findJapaneseEnglishByExpression(term) {
       return japaneseEnglishByExpression.get(term);
@@ -103,6 +118,9 @@ export function createDictionariesRepository(db) {
     },
     findEnglishJapanese(term) {
       return englishJapanese.get(term, term, `${term};%`);
+    },
+    listEnglishJapanese(term, limit = 50) {
+      return englishJapaneseTranslations.all(term, term, `${term};%`, Math.max(1, Math.min(Number(limit) || 50, 50)));
     },
     findEnglishChinese(term) {
       return englishChinese.get(term, `${term};%cl:%`, `${term} (%cl:%`, `${term};%`, term);

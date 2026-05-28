@@ -19,17 +19,47 @@ export function lookupJapaneseEnglish(dictionariesRepository, term) {
 
 // Look up a Japanese expression from an English dictionary key.
 export function lookupEnglishJapanese(dictionariesRepository, term) {
+  return lookupEnglishJapaneseEntries(dictionariesRepository, term, 1)[0]?.translation || "";
+}
+
+export function lookupEnglishJapaneseEntries(dictionariesRepository, term, limit = 50) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
-    return "";
+    return [];
   }
 
-  const wikdict = dictionariesRepository.listWikdictEnglishJapanese(clean, 5);
+  const wikdict = dictionariesRepository.listWikdictEnglishJapanese(clean, limit);
   if (wikdict.length) {
-    return [...new Set(wikdict.map((entry) => entry.japanese).filter(Boolean))].join("; ");
+    return dedupeDictionaryEntries(wikdict.map((entry) => ({
+      source: clean,
+      translation: entry.japanese,
+      pos: entry.pos || ""
+    })));
   }
-  const exact = dictionariesRepository.findEnglishJapanese(clean);
-  return exact?.expression || "";
+  return dedupeDictionaryEntries(dictionariesRepository.listEnglishJapanese(clean, limit).map((entry) => ({
+    source: clean,
+    translation: entry.expression,
+    pos: entry.pos || ""
+  })));
+}
+
+export function lookupEnglishJapaneseCategories(dictionariesRepository, term) {
+  return [...new Set(lookupEnglishJapaneseEntries(dictionariesRepository, term, 50).map((entry) => entry.pos).filter(Boolean))];
+}
+
+function dedupeDictionaryEntries(entries) {
+  const seen = new Set();
+  const result = [];
+  for (const entry of entries) {
+    const translation = normalizeName(entry.translation);
+    if (!translation) continue;
+    const pos = normalizeName(entry.pos);
+    const key = `${translation.toLowerCase()}\u0000${pos.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push({ ...entry, translation, pos });
+  }
+  return result;
 }
 
 // Look up a simplified Chinese expression from an English dictionary key.

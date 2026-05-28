@@ -169,6 +169,14 @@ export function bindCollectionsEvents() {
   });
 
   elements.wordRows.addEventListener("click", async (event) => {
+    const disambiguate = event.target.closest("[data-word-disambiguate]");
+    if (disambiguate) {
+      const id = Number(disambiguate.dataset.wordDisambiguate);
+      state.expandedDisambiguationWordId = state.expandedDisambiguationWordId === id ? null : id;
+      renderWords(state.words);
+      return;
+    }
+
     const segment = event.target.closest(".status-segment");
     if (segment) {
       const toggle = segment.closest(".status-toggle");

@@ -1,5 +1,6 @@
 import { normalizeName } from "../../shared/normalize.js";
-import { lookupChineseEnglish, lookupChineseJapanese, lookupEnglishChinese, lookupEnglishJapanese, lookupJapaneseChinese, lookupJapaneseEnglish } from "../dictionaries/dictionaries.service.js";
+import { lookupChineseEnglish, lookupChineseJapanese, lookupEnglishChinese, lookupEnglishJapanese, lookupEnglishJapaneseEntries, lookupJapaneseChinese, lookupJapaneseEnglish } from "../dictionaries/dictionaries.service.js";
+import lemmatizer from "wink-lemmatizer";
 
 export const TRANSLATION_ROUTES = [
   { source: "English", target: "English", lookup: (_dictionariesRepository, term) => term },
@@ -39,6 +40,41 @@ export function lookupTranslation(repositories, sourceLanguage, targetLanguage, 
   return route ? normalizeName(route.lookup(repositories.dictionaries, term)) : "";
 }
 
+function tokenSourceTerms(token) {
+  const surface = normalizeName(token.surface || token.word).toLowerCase();
+  const lemma = normalizeName(token.lemma || token.word || token.surface).toLowerCase();
+  const lemmatized = surface
+    ? [lemmatizer.verb(surface), lemmatizer.noun(surface), lemmatizer.adjective(surface)]
+    : [];
+  return [surface, lemma, ...lemmatized].filter((term, index, terms) => term && terms.indexOf(term) === index);
+}
+
+export function translationDisambiguationCandidates(repositories, sourceLanguage, targetLanguage, token) {
+  if (languageKey(sourceLanguage) !== "English" || languageKey(targetLanguage) !== "Japanese") {
+    return [];
+  }
+  const candidates = [];
+  const seen = new Set();
+  for (const source of tokenSourceTerms(token)) {
+    for (const entry of lookupEnglishJapaneseEntries(repositories.dictionaries, source, 50)) {
+      const key = `${source}\u0000${entry.translation.toLowerCase()}\u0000${entry.pos.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      candidates.push({ source, translation: entry.translation, pos: entry.pos || "" });
+    }
+  }
+  return candidates;
+}
+
+export function displayTranslationForToken(repositories, sourceLanguage, targetLanguage, token) {
+  const candidates = translationDisambiguationCandidates(repositories, sourceLanguage, targetLanguage, token);
+  if (candidates.length) {
+    return candidates[0].translation;
+  }
+  return lookupTranslation(repositories, sourceLanguage, targetLanguage, token.lemma || token.word)
+    || lookupTranslation(repositories, sourceLanguage, targetLanguage, token.surface || token.word);
+}
+
 export function supportedTargetNativeLanguage(sourceLanguage, nativeLanguage) {
   if (translationRoute(sourceLanguage, nativeLanguage)) return nativeLanguage;
   if (translationRoute(sourceLanguage, "English")) return "English";
@@ -60,6 +96,9 @@ export function hasUsableStoredTranslation(repositories, wordId, nativeLanguage,
 }
 
 export function translationForToken(repositories, sourceLanguage, targetLanguage, token, translations = new Map()) {
+  if (languageKey(sourceLanguage) === "English" && languageKey(targetLanguage) === "Japanese") {
+    return displayTranslationForToken(repositories, sourceLanguage, targetLanguage, token);
+  }
   const stored = translations.get(token.lemma.toLowerCase()) || "";
   if (stored) return stored;
   return lookupTranslation(repositories, sourceLanguage, targetLanguage, token.surface);
@@ -130,7 +169,7 @@ function backfillMaterialTranslationTargets(repositories, material, sourceLangua
       for (const token of tokensByWord.values()) {
         const stored = getStoredTranslation(repositories, token.wordId, target);
         const attempted = hasTranslationAttempt(repositories, token.wordId, target);
-        const translation = lookupTranslation(repositories, sourceLanguage, target, token.lemma) || lookupTranslation(repositories, sourceLanguage, target, token.surface);
+        const translation = displayTranslationForToken(repositories, sourceLanguage, target, token);
         if (stored && (!translation || stored === translation)) {
           continue;
         }

@@ -286,6 +286,14 @@ export function bindReaderEvents() {
       closeReaderWordInfo();
       return;
     }
+    const disambiguate = event.target.closest("[data-disambiguate]");
+    if (disambiguate) {
+      const panel = elements.readerWordInfo.querySelector("[data-disambiguation-panel]");
+      if (panel) {
+        panel.hidden = !panel.hidden;
+      }
+      return;
+    }
     const segment = event.target.closest(".status-segment");
     if (!segment) {
       return;

@@ -98,7 +98,7 @@ function englishLemma(lower) {
   const noun = lemmatizer.noun(lower);
   const verb = lemmatizer.verb(lower);
 
-  if (lower.endsWith("ing") && noun === lower) return { lemma: lower, pos: "noun" };
+  if (lower.endsWith("ing") && verb !== lower) return { lemma: verb, pos: "verb" };
   if (noun !== lower && verb === lower) return { lemma: noun, pos: "noun" };
   if (verb !== lower && noun === lower) return { lemma: verb, pos: "verb" };
   if (noun !== lower && verb !== lower) {

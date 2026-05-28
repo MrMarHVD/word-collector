@@ -131,7 +131,7 @@ export function createWordsRepository(db) {
     },
     listWordsInLanguage(userId, languageId, searchTerm, nativeLanguage = "English") {
       const translationExpression = displayedTranslationExpression();
-      const selectColumns = `w.id, w.collection_id AS collectionId, c.name AS collectionName, w.word, ${translationExpression} AS translation,
+      const selectColumns = `w.id, w.collection_id AS collectionId, c.name AS collectionName, l.name AS languageName, w.word, COALESCE(w.lemma, w.word) AS lemma, ${translationExpression} AS translation,
         w.pos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional,
         COALESCE(uws.status, 'unknown') AS status`;
       if (searchTerm) {
@@ -161,7 +161,7 @@ export function createWordsRepository(db) {
     },
     listWords(userId, collectionId, searchTerm, nativeLanguage = "English") {
       const translationExpression = displayedTranslationExpression();
-      const selectColumns = `w.id, w.collection_id AS collectionId, w.word, ${translationExpression} AS translation,
+      const selectColumns = `w.id, w.collection_id AS collectionId, l.name AS languageName, w.word, COALESCE(w.lemma, w.word) AS lemma, ${translationExpression} AS translation,
         w.pos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional,
         COALESCE(uws.status, 'unknown') AS status`;
       if (searchTerm) {

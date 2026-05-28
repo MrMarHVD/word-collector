@@ -17,6 +17,41 @@ export function renderStatusToggle(wordId, currentStatus, { dataAttr = "data-wor
   return `<div class="status-toggle" role="group" ${dataAttr}="${wordId}">${segments}</div>`;
 }
 
+function renderDisambiguationRows(entry) {
+  const candidates = Array.isArray(entry.disambiguationCandidates) ? entry.disambiguationCandidates : [];
+  if (candidates.length <= 1 || state.expandedDisambiguationWordId !== entry.id) {
+    return "";
+  }
+  return `
+    <tr class="disambiguation-row" data-disambiguation-for="${entry.id}">
+      <td></td>
+      <td colspan="4">
+        <table class="disambiguation-table">
+          <thead>
+            <tr>
+              <th>${escapeHtml(t("table.word"))}</th>
+              <th>${escapeHtml(t("table.translation"))}</th>
+              <th>${escapeHtml(t("reader.partOfSpeech"))}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${candidates.map((candidate) => {
+              const pos = candidate.pos ? t(`pos.${candidate.pos}`, {}, candidate.pos) : "";
+              return `
+                <tr>
+                  <td>${escapeHtml(candidate.source || "")}</td>
+                  <td>${escapeHtml(candidate.translation || "")}</td>
+                  <td>${escapeHtml(pos)}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </td>
+    </tr>
+  `;
+}
+
 // Render either the paged view or a windowed list for infinite scrolling.
 // Render collection word rows, empty states, and pagination controls.
 export function renderWords(words) {
@@ -45,6 +80,7 @@ export function renderWords(words) {
         if (entry.pinyin) phonetics.push(entry.pinyin);
         if (entry.traditional && entry.traditional !== entry.word) phonetics.push(entry.traditional);
         const selected = state.selectedWordIds.has(entry.id);
+        const candidates = Array.isArray(entry.disambiguationCandidates) ? entry.disambiguationCandidates : [];
         return `
       <tr class="word-row${selected ? " is-selected" : ""}" draggable="true" data-word-id="${entry.id}" data-collection-id="${entry.collectionId}" aria-selected="${selected}">
         <td class="word-drag-cell px-2 py-3 align-middle">
@@ -63,11 +99,17 @@ export function renderWords(words) {
             ${badges.length ? `<span class="word-cell-badges">${badges.map((badge) => `<span class="word-badge">${escapeHtml(badge)}</span>`).join("")}</span>` : ""}
           </div>
         </td>
-        <td class="px-3 py-3 align-top text-label">${escapeHtml(entry.translation)}</td>
+        <td class="px-3 py-3 align-top text-label">
+          ${escapeHtml(entry.translation)}
+        </td>
+        <td class="px-3 py-3 align-top">
+          ${candidates.length > 1 ? `<button class="disambiguation-button" type="button" data-word-disambiguate="${entry.id}">${escapeHtml(t("reader.disambiguate"))}</button>` : ""}
+        </td>
         <td class="status-cell">
           ${renderStatusToggle(entry.id, entry.status)}
         </td>
       </tr>
+      ${renderDisambiguationRows(entry)}
     `;
       }
     )

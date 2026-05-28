@@ -1,7 +1,7 @@
 import { READER_WORK_PAGE_SIZE } from "../../config.js";
 import { normalizeName } from "../../shared/normalize.js";
 import { lookupChineseDetails, lookupEnglishPos } from "../dictionaries/dictionaries.service.js";
-import { getTranslationCandidates, hasTranslationAttempt, hasUsableStoredTranslation, languageKey, lookupTranslation, materialTranslationStatus, scheduleMaterialTranslationBackfill, supportedTargetNativeLanguage, translationForToken } from "../translations/translations.service.js";
+import { displayTranslationForToken, getTranslationCandidates, hasTranslationAttempt, hasUsableStoredTranslation, languageKey, lookupTranslation, materialTranslationStatus, scheduleMaterialTranslationBackfill, supportedTargetNativeLanguage, translationDisambiguationCandidates, translationForToken } from "../translations/translations.service.js";
 import { extractTextFromUpload } from "./text-extraction.service.js";
 import { tokenizeBlocksForLanguage, tokenizeForLanguage } from "./tokenizer.service.js";
 
@@ -181,7 +181,18 @@ export function getMaterialReader(repositories, userId, materialId, start = 0, l
   const safeLimit = Math.min(Math.max(Number(limit) || 250, 50), 1000);
   const requestedStart = start === null || start === undefined ? material.readerStart : start;
   const safeStart = Math.min(Math.max(Number(requestedStart) || 0, 0), Math.max(Number(material.wordCount || 0) - 1, 0));
-  const tokens = repositories.materials.listReaderTokens(material, nativeLanguage, safeLimit, safeStart, userId);
+  const sourceLanguage = { id: material.languageId, name: material.languageName };
+  const tokens = repositories.materials.listReaderTokens(material, nativeLanguage, safeLimit, safeStart, userId).map((token) => {
+    const disambiguationCandidates = translationDisambiguationCandidates(repositories, sourceLanguage, nativeLanguage, token);
+    if (!disambiguationCandidates.length) {
+      return token;
+    }
+    return {
+      ...token,
+      translation: displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token) || token.translation,
+      disambiguationCandidates
+    };
+  });
   return { material, tokens, start: safeStart, limit: safeLimit, nativeLanguage, translationStatus };
 }
 

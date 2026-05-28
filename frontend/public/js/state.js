@@ -36,6 +36,7 @@ export const state = {
   readerShowWordSpaces: localStorage.getItem("wordMarkerReaderShowWordSpaces") === "true",
   words: [],
   selectedWordIds: new Set(),
+  expandedDisambiguationWordId: null,
   selectionAnchorId: null,
   visibleWordCount: WORD_PAGE_SIZE,
   wordsPage: 0,
