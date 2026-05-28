@@ -1,4 +1,5 @@
 import { requestJson } from "../../api.js";
+import { navigateToTab } from "../../app/router.js";
 import { parseCsv } from "../../csv.js";
 import { elements } from "../../dom.js";
 import { formatCount, t } from "../../i18n.js";
@@ -6,11 +7,9 @@ import { escapeHtml } from "../../shared/html.js";
 import { state } from "../../state.js";
 
 let loadDashboard = async () => {};
-let activateTab = () => {};
 
 export function configureImportsController(options) {
   loadDashboard = options.loadDashboard;
-  activateTab = options.activateTab;
 }
 
 let uploadTarget = "new";
@@ -106,7 +105,7 @@ export function bindImportEvents() {
 
       state.selectedCollectionId = result.collection.id;
       state.search = "";
-      activateTab("collections");
+      navigateToTab("collections");
       elements.searchInput.value = "";
       elements.uploadStatus.textContent = t("upload.result", {
         inserted: formatCount(result.inserted),

@@ -1,6 +1,6 @@
 import { setUnauthorizedHandler } from "./api.js";
 import { applyLocale, bindLocaleEvents, configureLocale } from "./app/locale.js";
-import { activateTab } from "./app/router.js";
+import { navigateToTab, resolveInitialTab, startRouter } from "./app/router.js";
 import { bindStudyLanguageEvents, configureStudyLanguage, renderStudyLanguageSelect } from "./app/study-language.js";
 import { elements } from "./dom.js";
 import { bindAuthEvents, configureAuthController, loadSession } from "./features/auth/auth.controller.js";
@@ -20,7 +20,7 @@ import { state } from "./state.js";
 
 function bindShellEvents() {
   elements.tabButtons.forEach((button) => {
-    button.addEventListener("click", () => activateTab(button.dataset.tab));
+    button.addEventListener("click", () => navigateToTab(button.dataset.tab));
   });
 
   elements.themeButtons.forEach((button) => {
@@ -40,15 +40,16 @@ function bindShellEvents() {
 
 configureLocale({ renderSettings, renderStudyLanguageSelect });
 configureStudyLanguage({ reloadDashboard: loadDashboard });
-configureAuthController({ activateTab, loadDashboard, renderSettings });
+configureAuthController({ loadDashboard, renderSettings });
 configureDashboardController({ loadMaterials, loadWords });
 configureMaterialsController({ loadDashboard, loadMaterialReader, loadWords });
 configureReaderController({ loadDashboard });
 configureCollectionsController({ loadDashboard });
-configureImportsController({ activateTab, loadDashboard });
+configureImportsController({ loadDashboard });
 configureSettingsController({ reloadDashboard: loadDashboard });
 
 setUnauthorizedHandler(() => showView("auth"));
+startRouter();
 applyTheme();
 bindShellEvents();
 bindLocaleEvents();

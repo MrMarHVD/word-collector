@@ -1,7 +1,7 @@
 {
   "ja": {
-    "app.title": "Word Collector",
-    "brand": "Word Collector",
+    "app.title": "Supergloss",
+    "brand": "Supergloss",
     "ui.language": "UI言語",
     "ui.japanese": "日本語",
     "ui.english": "English",
@@ -170,8 +170,8 @@
     "errors.requestFailed": "リクエストに失敗しました。"
   },
   "en": {
-    "app.title": "Word Collector",
-    "brand": "Word Collector",
+    "app.title": "Supergloss",
+    "brand": "Supergloss",
     "ui.language": "UI language",
     "ui.japanese": "日本語",
     "ui.english": "English",
@@ -340,8 +340,8 @@
     "errors.requestFailed": "Request failed."
   },
   "zh": {
-    "app.title": "Word Collector",
-    "brand": "Word Collector",
+    "app.title": "Supergloss",
+    "brand": "Supergloss",
     "ui.language": "界面语言",
     "ui.japanese": "日本語",
     "ui.english": "English",

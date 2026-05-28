@@ -3,15 +3,14 @@ import { availableStudyLanguages, setStudyLanguage } from "../../app/study-langu
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
 import { state } from "../../state.js";
+import { navigateToTab, resolveInitialTab } from "../../app/router.js";
 import { renderAuthMode } from "../../views/auth.js";
 import { showView } from "../../views/shell.js";
 
-let activateTab = () => {};
 let loadDashboard = async () => {};
 let renderSettings = () => {};
 
 export function configureAuthController(options) {
-  activateTab = options.activateTab;
   loadDashboard = options.loadDashboard;
   renderSettings = options.renderSettings;
 }
@@ -33,7 +32,7 @@ export async function loadSession() {
   const fallbackLanguageName = availableLanguages[0]?.name || "";
   state.selectedStudyLanguageName = availableLanguages.some((language) => language.name === savedLanguageName) ? savedLanguageName : fallbackLanguageName;
   showView("app");
-  activateTab(state.activeTab);
+  navigateToTab(resolveInitialTab(), { replace: true });
   renderSettings();
   await setStudyLanguage(state.selectedStudyLanguageName, { persist: true, reload: false });
   await loadDashboard();

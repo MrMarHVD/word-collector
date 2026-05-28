@@ -29,14 +29,26 @@ createServer(async (req, res) => {
 
   const requestedPath = url.pathname === "/" ? "/index.html" : url.pathname;
   const filePath = normalize(join(PUBLIC_DIR, requestedPath));
-  if (!filePath.startsWith(PUBLIC_DIR) || !existsSync(filePath)) {
+  if (!filePath.startsWith(PUBLIC_DIR)) {
     sendText(res, 404, "Not found");
     return;
   }
 
-  const content = await readFile(filePath);
+  // Serve the SPA shell for client-side routes (extension-less paths) so deep
+  // links and refreshes resolve to index.html instead of 404.
+  let resolvedPath = filePath;
+  if (!existsSync(resolvedPath)) {
+    if (extname(requestedPath) === "") {
+      resolvedPath = join(PUBLIC_DIR, "index.html");
+    } else {
+      sendText(res, 404, "Not found");
+      return;
+    }
+  }
+
+  const content = await readFile(resolvedPath);
   res.writeHead(200, {
-    "content-type": mimeTypes[extname(filePath)] || "application/octet-stream"
+    "content-type": mimeTypes[extname(resolvedPath)] || "application/octet-stream"
   });
   res.end(content);
 }).listen(PORT, () => {
