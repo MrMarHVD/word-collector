@@ -1,3 +1,4 @@
+import { Worker } from "node:worker_threads";
 import { READER_WORK_PAGE_SIZE } from "../../config.js";
 import { normalizeName } from "../../shared/normalize.js";
 import { lookupChineseDetails, lookupEnglishPos } from "../dictionaries/dictionaries.service.js";
@@ -84,8 +85,29 @@ function materialTitleFromFilename(filename) {
   return normalizeName(filename.replace(/\.[^.]+$/, "")) || "Untitled";
 }
 
-// Import a document, tokenize it, create missing words, and persist reader tokens.
-export async function importMaterial(repositories, userId, languageId, file) {
+// Best-effort file type from the name, refined later by the extractor.
+function fileTypeFromFilename(filename) {
+  const lower = (filename || "").toLowerCase();
+  if (lower.endsWith(".pdf")) return "pdf";
+  if (lower.endsWith(".epub")) return "epub";
+  return "txt";
+}
+
+const IMPORT_MIME_TYPES = {
+  pdf: "application/pdf",
+  epub: "application/epub+zip",
+  txt: "text/plain"
+};
+
+// Number of tokens persisted per transaction. Progress is committed between
+// batches so the polling endpoint can report it while the worker keeps running.
+const IMPORT_BATCH_SIZE = 200;
+
+// Create the material row and hand the heavy work (extraction, tokenization,
+// translation, token persistence) to a worker thread so the HTTP server stays
+// responsive and the client can poll import progress. Returns immediately with
+// the row in its 'processing' state.
+export function startMaterialImport(repositories, userId, languageId, file) {
   const language = repositories.languages.findById(Number(languageId), userId);
   if (!language) {
     return { error: "Language is required." };
@@ -94,59 +116,108 @@ export async function importMaterial(repositories, userId, languageId, file) {
     return { error: "Upload a PDF, EPUB, or text file." };
   }
 
+  const fileName = file.filename || "Untitled";
+  const fileType = fileTypeFromFilename(fileName);
+  const created = repositories.materials.createProcessingMaterial(
+    userId,
+    language.id,
+    materialTitleFromFilename(fileName),
+    fileName,
+    fileType
+  );
+  const materialId = Number(created.lastInsertRowid);
+
+  // Copy the upload into a standalone ArrayBuffer so it can be transferred to
+  // the worker without detaching Node's shared Buffer pool.
+  const bytes = Uint8Array.from(file.buffer);
+  const worker = new Worker(new URL("./materials.import.worker.js", import.meta.url), {
+    workerData: { materialId, userId, languageId: language.id, fileName, fileBytes: bytes.buffer },
+    transferList: [bytes.buffer]
+  });
+  let settled = false;
+  worker.once("message", (message) => {
+    settled = true;
+    if (message?.error) {
+      repositories.materials.markImportFailed(materialId, message.error);
+    }
+  });
+  worker.once("error", (error) => {
+    if (!settled) {
+      repositories.materials.markImportFailed(materialId, error.message || "Import failed.");
+    }
+  });
+  worker.once("exit", (code) => {
+    if (!settled && code !== 0) {
+      repositories.materials.markImportFailed(materialId, "Import worker stopped unexpectedly.");
+    }
+  });
+
+  return { material: repositories.materials.findById(materialId, userId) };
+}
+
+// Extract, tokenize, and persist an imported document for an existing material
+// row, updating progress as it goes. Runs inside the import worker thread.
+export async function runMaterialImport(repositories, { materialId, userId, languageId, fileName, fileBytes }) {
+  const language = repositories.languages.findById(Number(languageId), userId);
+  if (!language) {
+    throw new Error("Language is required.");
+  }
+
+  const file = {
+    filename: fileName,
+    type: IMPORT_MIME_TYPES[fileTypeFromFilename(fileName)],
+    buffer: Buffer.from(fileBytes)
+  };
   const extracted = await extractTextFromUpload(file);
   let text;
   let tokens;
   if (Array.isArray(extracted.blocks)) {
     if (!extracted.blocks.length) {
-      return { error: "No readable text was found in this file." };
+      throw new Error("No readable text was found in this file.");
     }
     // Joining with blank lines keeps the NOT NULL raw_text column populated
     // without collapsing the block boundaries that drive reader typography.
     text = extracted.blocks.map((block) => block.text).join("\n\n").trim();
     if (!text) {
-      return { error: "No readable text was found in this file." };
+      throw new Error("No readable text was found in this file.");
     }
     tokens = await tokenizeBlocksForLanguage(extracted.blocks, language.name);
   } else {
     text = normalizeName(extracted.text);
     if (!text) {
-      return { error: "No readable text was found in this file." };
+      throw new Error("No readable text was found in this file.");
     }
     tokens = await tokenizeForLanguage(text, language.name);
   }
   if (!tokens.length) {
-    return { error: "No readable words were found in this file." };
+    throw new Error("No readable words were found in this file.");
   }
+
+  repositories.materials.updateImportMeta(materialId, text, tokens.length, extracted.fileType, tokens.length);
+
   const targetNativeLanguage = supportedTargetNativeLanguage(language, repositories.auth.findUserById(userId)?.nativeLanguage || "English");
   const translations = getTranslationCandidates(repositories, userId, language, targetNativeLanguage, tokens);
 
-  let materialId;
-  repositories.database.transaction(() => {
-    // Persist the material and token-to-word links atomically.
-    const materialResult = repositories.materials.createMaterial(
-      userId,
-      language.id,
-      materialTitleFromFilename(file.filename || "Untitled"),
-      file.filename || "Untitled",
-      extracted.fileType,
-      text,
-      tokens.length
-    );
-    materialId = Number(materialResult.lastInsertRowid);
+  for (let offset = 0; offset < tokens.length; offset += IMPORT_BATCH_SIZE) {
+    const batch = tokens.slice(offset, offset + IMPORT_BATCH_SIZE);
+    repositories.database.transaction(() => {
+      for (const token of batch) {
+        const word = getOrCreateDictionaryWord(repositories, userId, language, token, targetNativeLanguage, translationForToken(repositories, language, targetNativeLanguage, token, translations));
+        repositories.materials.insertMaterialToken(materialId, token, word.id);
+      }
+    });
+    repositories.materials.setImportProcessed(materialId, Math.min(offset + batch.length, tokens.length));
+  }
 
-    for (const token of tokens) {
-      const word = getOrCreateDictionaryWord(repositories, userId, language, token, targetNativeLanguage, translationForToken(repositories, language, targetNativeLanguage, token, translations));
-      repositories.materials.insertMaterialToken(materialId, token, word.id);
-    }
-  });
+  repositories.materials.markImportReady(materialId);
 
-  scheduleMaterialTranslationBackfill(repositories, userId, materialId, targetNativeLanguage);
-
-  return {
-    material: repositories.materials.findById(materialId, userId),
-    tokenCount: tokens.length
-  };
+  // Backfill non-native languages after the work is openable so switching the
+  // native language later stays fast. Failure here must not fail the import.
+  try {
+    backfillMaterialTranslations(repositories, userId, materialId, targetNativeLanguage);
+  } catch (error) {
+    console.error(`Translation backfill failed for material ${materialId}:`, error);
+  }
 }
 
 // Return a page of imported materials for one language.
@@ -155,6 +226,11 @@ export function getMaterials(repositories, userId, languageId, offset = 0, searc
   return repositories.materials
     .listByUserAndLanguage(userId, Number(languageId), READER_WORK_PAGE_SIZE, Number(offset) || 0, search || "")
     .map((material) => {
+      // While an import is still running the token set is incomplete, so the
+      // translation status is meaningless; import progress drives the UI then.
+      if (material.importStatus && material.importStatus !== "ready") {
+        return { ...material, translationStatus: { targetLanguage: "", ready: false, totalWords: 0, completedWords: 0, missingWords: 0 } };
+      }
       const translationStatus = materialTranslationStatus(repositories, material, nativeLanguage);
       if (!translationStatus.ready) {
         scheduleMaterialTranslationBackfill(repositories, userId, material.id, "");
@@ -173,6 +249,11 @@ export function getMaterialReader(repositories, userId, materialId, start = 0, l
     return null;
   }
   const nativeLanguage = repositories.auth.findUserById(userId)?.nativeLanguage || "English";
+  if (material.importStatus && material.importStatus !== "ready") {
+    // The work is still importing (or failed); it cannot be read yet.
+    const placeholder = { targetLanguage: "", ready: false, totalWords: 0, completedWords: 0, missingWords: 0 };
+    return { material, tokens: [], start: 0, limit: 0, nativeLanguage, translationStatus: placeholder };
+  }
   const translationStatus = materialTranslationStatus(repositories, material, nativeLanguage);
   if (!translationStatus.ready) {
     scheduleMaterialTranslationBackfill(repositories, userId, material.id, "");

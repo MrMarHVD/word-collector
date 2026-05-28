@@ -326,6 +326,20 @@ export function runMigrations(db) {
   if (!materialColumns.some((column) => column.name === "reader_start")) {
     db.exec("ALTER TABLE materials ADD COLUMN reader_start INTEGER NOT NULL DEFAULT 0");
   }
+  // Imports run asynchronously in a worker; these columns track progress and
+  // gate opening. Existing rows are already fully imported, so default to ready.
+  if (!materialColumns.some((column) => column.name === "import_status")) {
+    db.exec("ALTER TABLE materials ADD COLUMN import_status TEXT NOT NULL DEFAULT 'ready'");
+  }
+  if (!materialColumns.some((column) => column.name === "import_total")) {
+    db.exec("ALTER TABLE materials ADD COLUMN import_total INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!materialColumns.some((column) => column.name === "import_processed")) {
+    db.exec("ALTER TABLE materials ADD COLUMN import_processed INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!materialColumns.some((column) => column.name === "import_error")) {
+    db.exec("ALTER TABLE materials ADD COLUMN import_error TEXT");
+  }
 
   const materialTokenColumns = db.prepare("PRAGMA table_info(material_tokens)").all();
   if (!materialTokenColumns.some((column) => column.name === "conjugation_form")) {

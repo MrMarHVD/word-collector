@@ -1,4 +1,4 @@
-import { getMaterialReader, getMaterials, importMaterial, updateMaterialReaderStart } from "../../modules/materials/materials.service.js";
+import { getMaterialReader, getMaterials, startMaterialImport, updateMaterialReaderStart } from "../../modules/materials/materials.service.js";
 import { readJson, readMultipart } from "../request.js";
 import { jsonResponse } from "../response.js";
 
@@ -19,7 +19,7 @@ export function createMaterialsRoutes({ repositories }) {
 
     if (req.method === "POST" && url.pathname === "/api/materials") {
       const { fields, files } = await readMultipart(req);
-      const result = await importMaterial(repositories, user.userId, fields.languageId, files.file);
+      const result = startMaterialImport(repositories, user.userId, fields.languageId, files.file);
       if (result.error) {
         jsonResponse(res, 400, result);
         return true;

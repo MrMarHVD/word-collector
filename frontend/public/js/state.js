@@ -20,6 +20,8 @@ export const state = {
   selectedMaterialId: null,
   materials: [],
   materialSearch: "",
+  importInProgress: false,
+  importingMaterialId: null,
   materialOffset: 0,
   materialHasMore: true,
   readerTokens: [],

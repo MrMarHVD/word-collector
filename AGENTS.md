@@ -10,6 +10,13 @@
 - Choose natural, concise UI names and labels. Prefer simple product language over literal translations or overly formal phrasing.
 - Do not update `README.md` unless the user explicitly asks for README changes.
 
+Before implementing any major, multi-step change, first explain to the user the expected scope of the work: which files, components, modules, tests, or behaviors are likely to be affected.
+
+If the requested change is ambiguous, do not guess silently. Explain what is ambiguous, describe the plausible implementation options, and ask the user how they want it handled before proceeding.
+
+If the user’s proposal or question appears to rely on an incorrect assumption about the codebase’s current logic, architecture, state, or behavior, point that out clearly before making changes. Explain the mismatch and suggest a corrected interpretation or implementation path.
+
+
 ## Code Structure
 
 - `backend/server.js` is the server bootstrap and dependency wiring.

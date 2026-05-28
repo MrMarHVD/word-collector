@@ -1,8 +1,8 @@
 import { apiUrl, requestJson } from "../../api.js";
 import { elements } from "../../dom.js";
-import { formatCount, t } from "../../i18n.js";
+import { t } from "../../i18n.js";
 import { state } from "../../state.js";
-import { renderMaterialList, renderReaderTokens } from "../../views/reader.js";
+import { renderImportProgress, renderMaterialList, renderReaderTokens } from "../../views/reader.js";
 
 let loadDashboard = async () => {};
 let loadMaterialReader = async () => {};
@@ -15,23 +15,42 @@ export function configureMaterialsController(options) {
   loadWords = options.loadWords;
 }
 
-function hasPendingTranslations() {
-  return state.materials.some((material) => material.translationStatus && !material.translationStatus.ready);
+function hasPendingWork() {
+  return state.materials.some((material) =>
+    material.importStatus === "processing"
+    || (material.translationStatus && !material.translationStatus.ready));
+}
+
+// When the work being imported becomes openable, select and open it so the
+// reader appears as soon as the progress bar completes.
+async function openImportedMaterialWhenReady() {
+  const tracked = state.importingMaterialId
+    ? state.materials.find((material) => material.id === state.importingMaterialId)
+    : null;
+  if (!tracked || tracked.importStatus !== "ready" || (tracked.translationStatus && !tracked.translationStatus.ready)) {
+    return;
+  }
+  state.importingMaterialId = null;
+  state.selectedMaterialId = tracked.id;
+  state.readerStart = Number(tracked.readerStart) || 0;
+  renderMaterialList();
+  await loadMaterialReader(state.readerStart, { persist: false });
 }
 
 function scheduleTranslationRefresh() {
-  if (translationPollId || !hasPendingTranslations()) {
+  if (translationPollId || !hasPendingWork()) {
     return;
   }
   translationPollId = window.setInterval(async () => {
     try {
-      if (!hasPendingTranslations()) {
+      if (!hasPendingWork()) {
         window.clearInterval(translationPollId);
         translationPollId = null;
         return;
       }
       await loadMaterials(true);
       await loadWords();
+      await openImportedMaterialWhenReady();
       if (state.selectedMaterialId && state.currentMaterial?.translationStatus && !state.currentMaterial.translationStatus.ready) {
         await loadMaterialReader(state.readerStart, { persist: false });
       }
@@ -50,6 +69,7 @@ export async function loadMaterials(reset = false) {
     state.materials = [];
     state.selectedMaterialId = null;
     renderMaterialList();
+    renderImportProgress();
     renderReaderTokens();
     return;
   }
@@ -70,6 +90,7 @@ export async function loadMaterials(reset = false) {
     state.selectedMaterialId = null;
   }
   renderMaterialList();
+  renderImportProgress();
   renderReaderTokens();
   scheduleTranslationRefresh();
 }
@@ -85,6 +106,9 @@ export function bindMaterialsEvents() {
     const submitButton = elements.materialImportForm.querySelector("button");
     submitButton.disabled = true;
     elements.materialImportStatus.textContent = t("reader.importing");
+    state.importInProgress = true;
+    state.importingMaterialId = null;
+    renderImportProgress();
     try {
       const form = new FormData();
       form.append("languageId", String(state.selectedStudyLanguageId));
@@ -95,14 +119,17 @@ export function bindMaterialsEvents() {
         throw new Error(payload.error || t("errors.requestFailed"));
       }
       elements.materialImportForm.reset();
-      elements.materialImportStatus.textContent = t("reader.imported", { words: formatCount(payload.tokenCount) });
-      state.selectedMaterialId = payload.material.id;
+      elements.materialImportStatus.textContent = t("reader.importStarted");
+      state.importingMaterialId = payload.material.id;
+      state.importInProgress = false;
       await loadMaterials(true);
-      await loadMaterialReader(0, { persist: true });
       await loadDashboard();
     } catch (error) {
       elements.materialImportStatus.textContent = error.message;
+      state.importingMaterialId = null;
     } finally {
+      state.importInProgress = false;
+      renderImportProgress();
       submitButton.disabled = false;
     }
   });

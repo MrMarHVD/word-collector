@@ -86,12 +86,25 @@ export function renderMaterialList() {
     ? state.materials
         .map((material) => {
           const active = material.id === state.selectedMaterialId ? "is-active" : "";
-          const translating = material.translationStatus && !material.translationStatus.ready;
+          const importing = material.importStatus === "processing";
+          const failed = material.importStatus === "failed";
+          const translating = !importing && !failed && material.translationStatus && !material.translationStatus.ready;
+          const disabled = importing || failed || translating;
+          let meta;
+          if (importing) {
+            meta = t("reader.importingMaterial");
+          } else if (failed) {
+            meta = material.importError || t("reader.importFailed");
+          } else if (translating) {
+            meta = t("reader.translatingWait");
+          } else {
+            meta = t("reader.materialMeta", { words: formatCount(material.wordCount), type: material.fileType.toUpperCase() });
+          }
           return `
             <div class="material-row ${active}">
-              <button class="material-button rounded-lg border border-line bg-panel p-2.5 text-left hover:bg-hover" type="button" data-material-id="${material.id}" ${translating ? "disabled" : ""}>
+              <button class="material-button rounded-lg border border-line bg-panel p-2.5 text-left hover:bg-hover" type="button" data-material-id="${material.id}" ${disabled ? "disabled" : ""}>
                 <span>${escapeHtml(material.title)}</span>
-                <small>${escapeHtml(translating ? t("reader.translatingWait") : t("reader.materialMeta", { words: formatCount(material.wordCount), type: material.fileType.toUpperCase() }))}</small>
+                <small>${escapeHtml(meta)}</small>
               </button>
               <button class="material-delete-button rounded-lg border px-2.5 text-sm font-bold" type="button" data-delete-material-id="${material.id}" aria-label="${escapeHtml(t("reader.deleteMaterial"))}">
                 ${escapeHtml(t("reader.deleteMaterial"))}
@@ -101,6 +114,54 @@ export function renderMaterialList() {
         })
         .join("")
     : `<p class="empty">${escapeHtml(t(searching ? "reader.noSearchMatches" : "reader.noMaterials"))}</p>`;
+}
+
+// Show import progress for the work currently being imported. The worker
+// translates each token into the user's native language as it persists it, so
+// processed/total tokens measures the time until the work can be opened.
+// Clears itself once the tracked work is ready.
+export function renderImportProgress() {
+  const tracked = state.importingMaterialId
+    ? state.materials.find((material) => material.id === state.importingMaterialId)
+    : null;
+  const importing = tracked?.importStatus === "processing";
+  const failed = tracked?.importStatus === "failed";
+
+  // The tracked work finished importing (or vanished from the list): stop
+  // tracking it so the bar hides once the reader opens.
+  if (state.importingMaterialId && tracked && !importing && !failed) {
+    state.importingMaterialId = null;
+  }
+
+  const active = state.importInProgress || importing || failed;
+  elements.materialImportProgress.hidden = !active;
+  if (!active) {
+    return;
+  }
+
+  if (failed) {
+    elements.materialImportProgressBar.classList.remove("animate-pulse");
+    elements.materialImportProgressBar.style.width = "100%";
+    elements.materialImportProgress.removeAttribute("aria-valuenow");
+    elements.materialImportProgressLabel.textContent = tracked.importError || t("reader.importFailed");
+    return;
+  }
+
+  const total = Number(tracked?.importTotal || 0);
+  const processed = Number(tracked?.importProcessed || 0);
+  if (importing && total > 0) {
+    const percent = Math.min(100, Math.round((processed / total) * 100));
+    elements.materialImportProgressBar.classList.remove("animate-pulse");
+    elements.materialImportProgressBar.style.width = `${percent}%`;
+    elements.materialImportProgress.setAttribute("aria-valuenow", String(percent));
+    elements.materialImportProgressLabel.textContent = t("reader.translationProgress", { percent: String(percent) });
+  } else {
+    // Extraction and tokenization happen before the token count is known.
+    elements.materialImportProgressBar.classList.add("animate-pulse");
+    elements.materialImportProgressBar.style.width = "100%";
+    elements.materialImportProgress.removeAttribute("aria-valuenow");
+    elements.materialImportProgressLabel.textContent = t("reader.preparing");
+  }
 }
 
 function tokenButtonMarkup(token) {
