@@ -17,24 +17,45 @@ export function studyLanguageLabel(language) {
   return t(`studyLanguage.${language}`);
 }
 
+function studyLanguageAvailableForNativeLanguage(name) {
+  return name !== state.user?.nativeLanguage && (state.user?.nativeLanguage === "English" || !["Spanish", "French"].includes(name));
+}
+
+function unavailableStudyLanguageReason(name) {
+  if (name === state.user?.nativeLanguage) {
+    return t("errors.matchingNativeStudyLanguage");
+  }
+  if (state.user?.nativeLanguage !== "English" && ["Spanish", "French"].includes(name)) {
+    return t("errors.invalidNativeStudyLanguage");
+  }
+  return "";
+}
+
 // User-enrolled languages in the canonical study-language order.
 export function availableStudyLanguages() {
   return state.studyLanguageOptions
     .map((name) => state.languages.find((language) => language.name.toLowerCase() === name.toLowerCase()))
     .filter(Boolean)
-    .filter((language) => state.user?.nativeLanguage === "English" || !["Spanish", "French"].includes(language.name));
+    .filter((language) => studyLanguageAvailableForNativeLanguage(language.name));
 }
 
 // Study languages the user has not yet enrolled in.
-function unenrolledStudyLanguages() {
-  return state.studyLanguageOptions.filter(
-    (name) => !state.languages.some((language) => language.name.toLowerCase() === name.toLowerCase())
-      && (state.user?.nativeLanguage === "English" || !["Spanish", "French"].includes(name))
-  );
+function studyLanguageDropdownOptions() {
+  return state.studyLanguageOptions
+    .map((name) => ({
+      name,
+      enrolled: state.languages.some((language) => language.name.toLowerCase() === name.toLowerCase()),
+      reason: unavailableStudyLanguageReason(name)
+    }))
+    .filter((option) => !option.enrolled || option.reason);
 }
 
 export function languageByName(languages, name) {
   return languages.find((language) => language.name.toLowerCase() === name.toLowerCase());
+}
+
+export function firstAvailableStudyLanguageAlphabetically() {
+  return [...availableStudyLanguages()].sort((left, right) => studyLanguageLabel(left.name).localeCompare(studyLanguageLabel(right.name)))[0] || null;
 }
 
 // Render the flag button row and keep the add-button dropdown in sync.
@@ -66,16 +87,19 @@ function renderStudyLanguageDropdown() {
   if (!elements.studyLanguageDropdown) {
     return;
   }
-  const options = unenrolledStudyLanguages();
+  const options = studyLanguageDropdownOptions();
+  const hasAvailableOption = options.some((option) => !option.enrolled && !option.reason);
   elements.studyLanguageAddButton.disabled = options.length === 0;
   elements.studyLanguageDropdown.innerHTML = options.length
     ? options
         .map(
-          (name) => `
+          ({ name, enrolled, reason }) => `
             <button
-              class="study-language-dropdown-item flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-semibold text-label hover:bg-hover"
+              class="study-language-dropdown-item flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-semibold ${reason ? "text-secondary" : "text-label hover:bg-hover"}"
               type="button"
               data-language-name="${escapeHtml(name)}"
+              ${reason || enrolled ? `data-disabled-reason="${escapeHtml(reason || t("learning.alreadyAdded"))}"` : ""}
+              ${reason || enrolled ? `aria-disabled="true" title="${escapeHtml(reason || t("learning.alreadyAdded"))}"` : ""}
             >
               <span class="study-language-dropdown-flag">${flagSvg(name)}</span>
               <span>${escapeHtml(studyLanguageLabel(name))}</span>
@@ -84,6 +108,9 @@ function renderStudyLanguageDropdown() {
         )
         .join("")
     : `<p class="px-2 py-2 text-sm text-secondary">${escapeHtml(t("learning.allAdded"))}</p>`;
+  if (options.length && !hasAvailableOption) {
+    elements.studyLanguageDropdown.insertAdjacentHTML("beforeend", `<p class="px-2 py-2 text-sm text-secondary" data-study-language-menu-status>${escapeHtml(t("learning.noAvailableForNative"))}</p>`);
+  }
 }
 
 function closeDropdown() {
@@ -110,7 +137,13 @@ export async function setStudyLanguage(languageName, { persist = true, reload = 
   }
 
   const language = languageByName(state.languages, languageName);
-  if (!language || !availableStudyLanguages().some((available) => available.id === language.id)) {
+  if (!language) {
+    return;
+  }
+  if (language.name === state.user?.nativeLanguage) {
+    return;
+  }
+  if (!availableStudyLanguages().some((available) => available.id === language.id)) {
     return;
   }
   state.selectedStudyLanguageName = language.name;
@@ -159,6 +192,15 @@ export function bindStudyLanguageEvents() {
   elements.studyLanguageDropdown.addEventListener("click", async (event) => {
     const item = event.target.closest(".study-language-dropdown-item");
     if (!item) {
+      return;
+    }
+    if (item.dataset.disabledReason) {
+      const status = elements.studyLanguageDropdown.querySelector("[data-study-language-menu-status]");
+      if (status) {
+        status.textContent = item.dataset.disabledReason;
+      } else {
+        elements.studyLanguageDropdown.insertAdjacentHTML("beforeend", `<p class="px-2 py-2 text-sm text-secondary" data-study-language-menu-status>${escapeHtml(item.dataset.disabledReason)}</p>`);
+      }
       return;
     }
     closeDropdown();

@@ -1,4 +1,5 @@
 import { requestJson } from "../../api.js";
+import { availableStudyLanguages, firstAvailableStudyLanguageAlphabetically, setStudyLanguage, studyLanguageLabel } from "../../app/study-language.js";
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
 import { escapeHtml } from "../../shared/html.js";
@@ -43,10 +44,18 @@ export function bindSettingsEvents() {
       state.user = result.user;
       state.nativeLanguageOptions = result.nativeLanguageOptions || state.nativeLanguageOptions;
       renderSettings();
-      elements.settingsStatus.textContent = t("settings.saved");
       state.selectedMaterialId = null;
       state.currentMaterial = null;
       state.readerTokens = [];
+      if (!availableStudyLanguages().some((language) => language.name === state.selectedStudyLanguageName)) {
+        const replacement = firstAvailableStudyLanguageAlphabetically();
+        await setStudyLanguage(replacement?.name || "", { persist: true, reload: false });
+        elements.settingsStatus.textContent = replacement
+          ? t("settings.savedStudyLanguageChanged", { language: studyLanguageLabel(replacement.name) })
+          : t("settings.savedNoStudyLanguage");
+      } else {
+        elements.settingsStatus.textContent = t("settings.saved");
+      }
       await reloadDashboard();
     } catch (error) {
       elements.settingsStatus.textContent = error.message;

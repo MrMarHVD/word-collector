@@ -1,13 +1,27 @@
 import { ENGLISH_NATIVE_ONLY_STUDY_LANGUAGES, STUDY_LANGUAGE_OPTIONS } from "../../config.js";
 
 export const INVALID_NATIVE_STUDY_LANGUAGE_MESSAGE = "The current study language is not available for the selected native language. Please switch to a valid study language first.";
+export const MATCHING_NATIVE_STUDY_LANGUAGE_MESSAGE = "The study language cannot be the same as the native language.";
 
 export function studyLanguageAvailableForNativeLanguage(studyLanguage, nativeLanguage) {
-  return nativeLanguage === "English" || !ENGLISH_NATIVE_ONLY_STUDY_LANGUAGES.includes(studyLanguage);
+  return studyLanguage !== nativeLanguage && (nativeLanguage === "English" || !ENGLISH_NATIVE_ONLY_STUDY_LANGUAGES.includes(studyLanguage));
 }
 
 export function studyLanguageConflictsWithNativeLanguage(studyLanguage, nativeLanguage) {
   return !studyLanguageAvailableForNativeLanguage(studyLanguage, nativeLanguage);
+}
+
+export function nativeStudyLanguageConflict(studyLanguage, nativeLanguage) {
+  if (!studyLanguage || !nativeLanguage) {
+    return null;
+  }
+  if (studyLanguage === nativeLanguage) {
+    return { error: MATCHING_NATIVE_STUDY_LANGUAGE_MESSAGE, errorKey: "errors.matchingNativeStudyLanguage" };
+  }
+  if (studyLanguageConflictsWithNativeLanguage(studyLanguage, nativeLanguage)) {
+    return { error: INVALID_NATIVE_STUDY_LANGUAGE_MESSAGE, errorKey: "errors.invalidNativeStudyLanguage" };
+  }
+  return null;
 }
 
 // Languages are user-owned, while the allowed study-language names are fixed.
@@ -30,8 +44,9 @@ export function addStudyLanguageForUser(repositories, userId, name, nativeLangua
   if (!match) {
     return { error: "Unsupported study language." };
   }
-  if (!studyLanguageAvailableForNativeLanguage(match, nativeLanguage)) {
-    return { error: INVALID_NATIVE_STUDY_LANGUAGE_MESSAGE, errorKey: "errors.invalidNativeStudyLanguage" };
+  const conflict = nativeStudyLanguageConflict(match, nativeLanguage);
+  if (conflict) {
+    return conflict;
   }
   const existing = repositories.languages.findByName(userId, match);
   if (existing) {
