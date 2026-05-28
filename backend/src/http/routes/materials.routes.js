@@ -11,7 +11,7 @@ export function createMaterialsRoutes({ repositories }) {
         return true;
       }
       jsonResponse(res, 200, {
-        materials: getMaterials(repositories, user.userId, languageId, url.searchParams.get("offset")),
+        materials: getMaterials(repositories, user.userId, languageId, url.searchParams.get("offset"), url.searchParams.get("search") || ""),
         pageSize: 50
       });
       return true;

@@ -19,6 +19,7 @@ export const state = {
   selectedCollectionId: "all",
   selectedMaterialId: null,
   materials: [],
+  materialSearch: "",
   materialOffset: 0,
   materialHasMore: true,
   readerTokens: [],

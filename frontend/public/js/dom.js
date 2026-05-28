@@ -62,6 +62,7 @@ export const elements = {
   materialImportForm: document.querySelector("#materialImportForm"),
   materialFile: document.querySelector("#materialFile"),
   materialImportStatus: document.querySelector("#materialImportStatus"),
+  materialSearch: document.querySelector("#materialSearch"),
   materialList: document.querySelector("#materialList"),
   readerLayout: document.querySelector(".reader-layout"),
   readerSidebar: document.querySelector(".reader-sidebar"),

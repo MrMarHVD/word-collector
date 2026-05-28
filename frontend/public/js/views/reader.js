@@ -81,6 +81,7 @@ export function renderReaderSidebarTabs() {
 
 // Render the imported material list and active material state.
 export function renderMaterialList() {
+  const searching = state.materialSearch.trim().length > 0;
   elements.materialList.innerHTML = state.materials.length
     ? state.materials
         .map((material) => {
@@ -99,7 +100,7 @@ export function renderMaterialList() {
           `;
         })
         .join("")
-    : `<p class="empty">${escapeHtml(t("reader.noMaterials"))}</p>`;
+    : `<p class="empty">${escapeHtml(t(searching ? "reader.noSearchMatches" : "reader.noMaterials"))}</p>`;
 }
 
 function tokenButtonMarkup(token) {

@@ -150,10 +150,10 @@ export async function importMaterial(repositories, userId, languageId, file) {
 }
 
 // Return a page of imported materials for one language.
-export function getMaterials(repositories, userId, languageId, offset = 0) {
+export function getMaterials(repositories, userId, languageId, offset = 0, search = "") {
   const nativeLanguage = repositories.auth.findUserById(userId)?.nativeLanguage || "English";
   return repositories.materials
-    .listByUserAndLanguage(userId, Number(languageId), READER_WORK_PAGE_SIZE, Number(offset) || 0)
+    .listByUserAndLanguage(userId, Number(languageId), READER_WORK_PAGE_SIZE, Number(offset) || 0, search || "")
     .map((material) => {
       const translationStatus = materialTranslationStatus(repositories, material, nativeLanguage);
       if (!translationStatus.ready) {

@@ -23,6 +23,13 @@ export function createMaterialsRepository(db) {
     ORDER BY datetime(created_at) DESC, id DESC
     LIMIT ? OFFSET ?
   `);
+  const materialsByUserLanguageSearch = db.prepare(`
+    SELECT id, title, file_name AS fileName, file_type AS fileType, word_count AS wordCount, reader_start AS readerStart, created_at AS createdAt
+    FROM materials
+    WHERE user_id = ? AND language_id = ? AND title LIKE ? ESCAPE '\\'
+    ORDER BY datetime(created_at) DESC, id DESC
+    LIMIT ? OFFSET ?
+  `);
   const materialsByUser = db.prepare(`
     SELECT m.id, m.user_id AS userId, m.language_id AS languageId, l.name AS languageName, m.title, m.file_name AS fileName,
            m.file_type AS fileType, m.word_count AS wordCount, m.reader_start AS readerStart, m.created_at AS createdAt
@@ -84,8 +91,13 @@ export function createMaterialsRepository(db) {
     deleteById(materialId, userId) {
       return deleteMaterial.run(materialId, userId);
     },
-    listByUserAndLanguage(userId, languageId, pageSize, offset) {
-      return materialsByUserAndLanguage.all(userId, languageId, pageSize, offset);
+    listByUserAndLanguage(userId, languageId, pageSize, offset, search = "") {
+      const term = search.trim();
+      if (!term) {
+        return materialsByUserAndLanguage.all(userId, languageId, pageSize, offset);
+      }
+      const pattern = `%${term.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+      return materialsByUserLanguageSearch.all(userId, languageId, pattern, pageSize, offset);
     },
     listByUser(userId) {
       return materialsByUser.all(userId);

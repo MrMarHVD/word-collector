@@ -61,7 +61,8 @@ export async function loadMaterials(reset = false) {
   if (!state.materialHasMore) {
     return;
   }
-  const result = await requestJson(`/api/materials?languageId=${state.selectedStudyLanguageId}&offset=${state.materialOffset}`);
+  const searchParam = state.materialSearch.trim() ? `&search=${encodeURIComponent(state.materialSearch.trim())}` : "";
+  const result = await requestJson(`/api/materials?languageId=${state.selectedStudyLanguageId}&offset=${state.materialOffset}${searchParam}`);
   state.materials = state.materials.concat(result.materials);
   state.materialOffset += result.materials.length;
   state.materialHasMore = result.materials.length === result.pageSize;
@@ -104,6 +105,17 @@ export function bindMaterialsEvents() {
     } finally {
       submitButton.disabled = false;
     }
+  });
+
+  let searchDebounceId = null;
+  elements.materialSearch.addEventListener("input", () => {
+    state.materialSearch = elements.materialSearch.value;
+    window.clearTimeout(searchDebounceId);
+    searchDebounceId = window.setTimeout(() => {
+      loadMaterials(true).catch((error) => {
+        elements.materialImportStatus.textContent = error.message;
+      });
+    }, 200);
   });
 
   elements.materialList.addEventListener("scroll", async () => {
