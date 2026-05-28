@@ -195,7 +195,7 @@
     "progress.complete": "{percent}% 完了",
     "progress.knownPercent": "{percent}% 既知",
     "errors.requestFailed": "リクエストに失敗しました。",
-    "errors.invalidNativeStudyLanguage": "current study language is not available for selected native language. Please switch to a valid study language first"
+    "errors.invalidNativeStudyLanguage": "現在の学習言語は選択した母語では利用できません。先に有効な学習言語に切り替えてください。"
   },
   "en": {
     "app.title": "Supergloss",
@@ -393,7 +393,7 @@
     "progress.complete": "{percent}% complete",
     "progress.knownPercent": "{percent}% known",
     "errors.requestFailed": "Request failed.",
-    "errors.invalidNativeStudyLanguage": "current study language is not available for selected native language. Please switch to a valid study language first"
+    "errors.invalidNativeStudyLanguage": "The current study language is not available for the selected native language. Please switch to a valid study language first."
   },
   "zh": {
     "app.title": "Supergloss",
@@ -565,7 +565,7 @@
     "progress.complete": "完成 {percent}%",
     "progress.knownPercent": "已掌握 {percent}%",
     "errors.requestFailed": "请求失败。",
-    "errors.invalidNativeStudyLanguage": "current study language is not available for selected native language. Please switch to a valid study language first",
+    "errors.invalidNativeStudyLanguage": "当前学习语言不适用于所选母语。请先切换到有效的学习语言。",
     "pos.noun": "名词",
     "pos.verb": "动词",
     "pos.adjective": "形容词",

@@ -321,6 +321,13 @@ export function runMigrations(db) {
 
     CREATE INDEX IF NOT EXISTS idx_wikdict_spanish_english ON wikdict_spanish_english(spanish, rank);
 
+    CREATE TABLE IF NOT EXISTS wikdict_spanish_english_aliases (
+      spanish TEXT PRIMARY KEY,
+      headword TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_wikdict_spanish_english_alias_headword ON wikdict_spanish_english_aliases(headword);
+
     CREATE TABLE IF NOT EXISTS wikdict_french_english (
       french TEXT NOT NULL,
       english TEXT NOT NULL,

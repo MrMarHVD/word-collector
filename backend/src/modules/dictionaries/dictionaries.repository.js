@@ -31,14 +31,30 @@ export function createDictionariesRepository(db) {
     SELECT english, pos
     FROM wikdict_spanish_english
     WHERE spanish = ?
-    ORDER BY rank, length(english)
+    ORDER BY CASE WHEN coalesce(pos, '') = '' THEN 1 ELSE 0 END, rank, length(english)
     LIMIT 1
   `);
   const wikdictSpanishEnglishTranslations = db.prepare(`
     SELECT english, pos
     FROM wikdict_spanish_english
     WHERE spanish = ?
-    ORDER BY rank, length(english)
+    ORDER BY CASE WHEN coalesce(pos, '') = '' THEN 1 ELSE 0 END, rank, length(english)
+    LIMIT ?
+  `);
+  const wikdictSpanishEnglishViaAlias = db.prepare(`
+    SELECT e.english, e.pos
+    FROM wikdict_spanish_english_aliases a
+    JOIN wikdict_spanish_english e ON e.spanish = a.headword
+    WHERE a.spanish = ?
+    ORDER BY CASE WHEN e.pos = 'verb' THEN 0 WHEN coalesce(e.pos, '') = '' THEN 2 ELSE 1 END, e.rank, length(e.english)
+    LIMIT 1
+  `);
+  const wikdictSpanishEnglishTranslationsViaAlias = db.prepare(`
+    SELECT e.english, e.pos, a.headword AS source
+    FROM wikdict_spanish_english_aliases a
+    JOIN wikdict_spanish_english e ON e.spanish = a.headword
+    WHERE a.spanish = ?
+    ORDER BY CASE WHEN e.pos = 'verb' THEN 0 WHEN coalesce(e.pos, '') = '' THEN 2 ELSE 1 END, e.rank, length(e.english)
     LIMIT ?
   `);
   const wikdictFrenchEnglish = db.prepare(`
@@ -176,10 +192,15 @@ export function createDictionariesRepository(db) {
       return wikdictEnglishChineseTranslations.all(term, Math.max(1, Math.min(Number(limit) || 5, 50)));
     },
     findWikdictSpanishEnglish(term) {
-      return wikdictSpanishEnglish.get(term);
+      return wikdictSpanishEnglish.get(term) || wikdictSpanishEnglishViaAlias.get(term);
     },
     listWikdictSpanishEnglish(term, limit = 5) {
-      return wikdictSpanishEnglishTranslations.all(term, Math.max(1, Math.min(Number(limit) || 5, 50)));
+      const safeLimit = Math.max(1, Math.min(Number(limit) || 5, 50));
+      const direct = wikdictSpanishEnglishTranslations.all(term, safeLimit);
+      if (direct.length) {
+        return direct;
+      }
+      return wikdictSpanishEnglishTranslationsViaAlias.all(term, safeLimit);
     },
     findWikdictFrenchEnglish(term) {
       return wikdictFrenchEnglish.get(term);

@@ -98,7 +98,7 @@ export function lookupSpanishEnglishEntries(dictionariesRepository, term, limit 
     return [];
   }
   return dedupeDictionaryEntries(dictionariesRepository.listWikdictSpanishEnglish(clean, limit).map((entry) => ({
-    source: clean,
+    source: entry.source || clean,
     translation: entry.english,
     pos: entry.pos || ""
   })));

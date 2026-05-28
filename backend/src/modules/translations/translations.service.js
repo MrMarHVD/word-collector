@@ -53,6 +53,183 @@ function tokenSourceTerms(token) {
   return [surface, lemma, ...lemmatized].filter((term, index, terms) => term && terms.indexOf(term) === index);
 }
 
+const FRENCH_IRREGULAR_LEMMAS = {
+  suis: ["être"],
+  es: ["être"],
+  est: ["être"],
+  sommes: ["être"],
+  êtes: ["être"],
+  sont: ["être"],
+  étais: ["être"],
+  était: ["être"],
+  étions: ["être"],
+  étiez: ["être"],
+  étaient: ["être"],
+  serai: ["être"],
+  seras: ["être"],
+  sera: ["être"],
+  serons: ["être"],
+  serez: ["être"],
+  seront: ["être"],
+  ai: ["avoir"],
+  as: ["avoir"],
+  a: ["avoir"],
+  avons: ["avoir"],
+  avez: ["avoir"],
+  ont: ["avoir"],
+  avais: ["avoir"],
+  avait: ["avoir"],
+  avions: ["avoir"],
+  aviez: ["avoir"],
+  avaient: ["avoir"],
+  vais: ["aller"],
+  vas: ["aller"],
+  va: ["aller"],
+  allons: ["aller"],
+  allez: ["aller"],
+  vont: ["aller"]
+};
+
+const SPANISH_IRREGULAR_LEMMAS = {
+  soy: ["ser"],
+  eres: ["ser"],
+  es: ["ser"],
+  somos: ["ser"],
+  sois: ["ser"],
+  son: ["ser"],
+  fui: ["ser", "ir"],
+  fuiste: ["ser", "ir"],
+  fue: ["ser", "ir"],
+  fuimos: ["ser", "ir"],
+  fuisteis: ["ser", "ir"],
+  fueron: ["ser", "ir"],
+  estoy: ["estar"],
+  estás: ["estar"],
+  esta: ["estar"],
+  está: ["estar"],
+  estamos: ["estar"],
+  estáis: ["estar"],
+  están: ["estar"],
+  voy: ["ir"],
+  vas: ["ir"],
+  va: ["ir"],
+  vamos: ["ir"],
+  vais: ["ir"],
+  van: ["ir"],
+  tengo: ["tener"],
+  tienes: ["tener"],
+  tiene: ["tener"],
+  tenemos: ["tener"],
+  tenéis: ["tener"],
+  tienen: ["tener"],
+  he: ["haber"],
+  has: ["haber"],
+  ha: ["haber"],
+  hemos: ["haber"],
+  habéis: ["haber"],
+  han: ["haber"],
+  había: ["haber"],
+  habías: ["haber"],
+  habíamos: ["haber"],
+  habíais: ["haber"],
+  habían: ["haber"],
+  hago: ["hacer"],
+  haces: ["hacer"],
+  hace: ["hacer"],
+  hacemos: ["hacer"],
+  hacéis: ["hacer"],
+  hacen: ["hacer"]
+};
+
+function uniqueTerms(terms) {
+  return terms.filter((term, index) => term && terms.indexOf(term) === index);
+}
+
+function preferGeneratedLemmas(terms, baseTerms) {
+  const unique = uniqueTerms(terms);
+  const base = new Set(baseTerms.filter(Boolean));
+  const generated = unique.filter((term) => !base.has(term));
+  return generated.length ? [...generated, ...unique.filter((term) => base.has(term))] : unique;
+}
+
+function frenchLemmaCandidates(term) {
+  const clean = normalizeName(term).toLowerCase();
+  const candidates = [clean, ...(FRENCH_IRREGULAR_LEMMAS[clean] || [])];
+  if (clean.length <= 2) {
+    return uniqueTerms(candidates);
+  }
+
+  if (clean.endsWith("aux")) candidates.push(`${clean.slice(0, -3)}al`);
+  if (clean.endsWith("eaux")) candidates.push(clean.slice(0, -1));
+  if (clean.endsWith("x")) candidates.push(clean.slice(0, -1));
+  if (clean.endsWith("s")) candidates.push(clean.slice(0, -1));
+
+  const verbEndings = [
+    ["eraient", "er"], ["iraient", "ir"], ["raient", "re"],
+    ["erions", "er"], ["irions", "ir"], ["rions", "re"],
+    ["eriez", "er"], ["iriez", "ir"], ["riez", "re"],
+    ["eront", "er"], ["iront", "ir"], ["ront", "re"],
+    ["erai", "er"], ["irai", "ir"], ["rai", "re"],
+    ["eras", "er"], ["iras", "ir"], ["ras", "re"],
+    ["erez", "er"], ["irez", "ir"], ["rez", "re"],
+    ["aient", "er"], ["issent", "ir"], ["ent", "er"],
+    ["ions", "er"], ["issons", "ir"], ["ons", "er"],
+    ["iez", "er"], ["issez", "ir"], ["ez", "er"],
+    ["ais", "er"], ["ait", "er"], ["ant", "er"],
+    ["is", "ir"], ["it", "ir"], ["i", "ir"],
+    ["us", "re"], ["ut", "re"], ["u", "re"],
+    ["e", "er"], ["es", "er"]
+  ];
+  for (const [ending, infinitiveEnding] of verbEndings) {
+    if (clean.length > ending.length + 1 && clean.endsWith(ending)) {
+      candidates.push(`${clean.slice(0, -ending.length)}${infinitiveEnding}`);
+    }
+  }
+  if (clean.endsWith("geons")) candidates.push(`${clean.slice(0, -4)}er`);
+  if (clean.endsWith("çons")) candidates.push(`${clean.slice(0, -4)}cer`);
+  return uniqueTerms(candidates);
+}
+
+function spanishLemmaCandidates(term) {
+  const clean = normalizeName(term).toLowerCase();
+  const candidates = [clean, ...(SPANISH_IRREGULAR_LEMMAS[clean] || [])];
+  if (clean.length <= 2) {
+    return uniqueTerms(candidates);
+  }
+
+  if (clean.endsWith("ces")) candidates.push(`${clean.slice(0, -3)}z`);
+  if (clean.endsWith("es")) candidates.push(clean.slice(0, -2));
+  if (clean.endsWith("s")) candidates.push(clean.slice(0, -1));
+
+  const verbEndings = [
+    ["aríamos", "ar"], ["eríamos", "er"], ["iríamos", "ir"],
+    ["aríais", "ar"], ["eríais", "er"], ["iríais", "ir"],
+    ["aremos", "ar"], ["eremos", "er"], ["iremos", "ir"],
+    ["asteis", "ar"], ["isteis", "ir"], ["abais", "ar"],
+    ["arían", "ar"], ["erían", "er"], ["irían", "ir"],
+    ["aría", "ar"], ["ería", "er"], ["iría", "ir"],
+    ["aron", "ar"], ["ieron", "er"], ["aban", "ar"], ["ían", "er"],
+    ["aste", "ar"], ["iste", "ir"], ["amos", "ar"], ["emos", "er"], ["imos", "ir"],
+    ["áis", "ar"], ["éis", "er"], ["ís", "ir"],
+    ["aba", "ar"], ["ará", "ar"], ["erá", "er"], ["irá", "ir"],
+    ["aré", "ar"], ["eré", "er"], ["iré", "ir"],
+    ["as", "ar"], ["es", "er"], ["an", "ar"], ["en", "er"],
+    ["ó", "ar"], ["ió", "er"], ["é", "ar"], ["í", "ir"],
+    ["a", "ar"], ["e", "er"], ["o", "ar"]
+  ];
+  for (const [ending, infinitiveEnding] of verbEndings) {
+    if (clean.length > ending.length + 1 && clean.endsWith(ending)) {
+      candidates.push(`${clean.slice(0, -ending.length)}${infinitiveEnding}`);
+    }
+  }
+  if (clean.endsWith("ando")) candidates.push(`${clean.slice(0, -4)}ar`);
+  if (clean.endsWith("iendo")) {
+    candidates.push(`${clean.slice(0, -5)}er`);
+    candidates.push(`${clean.slice(0, -5)}ir`);
+  }
+  return uniqueTerms(candidates);
+}
+
 function lookupDictionaryEntriesForRoute(repositories, sourceLanguage, targetLanguage, term) {
   const source = languageKey(sourceLanguage);
   const target = languageKey(targetLanguage);
@@ -83,7 +260,15 @@ function candidateSourceTerms(sourceLanguage, token) {
   }
   const surface = normalizeName(token.surface || token.word);
   const lemma = normalizeName(token.lemma || token.word || token.surface);
-  return [surface, lemma].filter((term, index, terms) => term && terms.indexOf(term) === index);
+  const source = languageKey(sourceLanguage);
+  const baseTerms = [surface, lemma];
+  if (source === "French") {
+    return preferGeneratedLemmas(baseTerms.flatMap(frenchLemmaCandidates), baseTerms);
+  }
+  if (source === "Spanish") {
+    return uniqueTerms([...baseTerms, ...baseTerms.flatMap(spanishLemmaCandidates)]);
+  }
+  return uniqueTerms(baseTerms);
 }
 
 export function translationDisambiguationCandidates(repositories, sourceLanguage, targetLanguage, token) {
@@ -94,7 +279,8 @@ export function translationDisambiguationCandidates(repositories, sourceLanguage
   const seen = new Set();
   for (const source of candidateSourceTerms(sourceLanguage, token)) {
     for (const entry of lookupDictionaryEntriesForRoute(repositories, sourceLanguage, targetLanguage, source)) {
-      const key = `${source}\u0000${entry.translation.toLowerCase()}\u0000${entry.pos.toLowerCase()}`;
+      if (entry.translation.toLowerCase() === String(entry.source || source).toLowerCase()) continue;
+      const key = `${entry.source || source}\u0000${entry.translation.toLowerCase()}\u0000${entry.pos.toLowerCase()}`;
       if (seen.has(key)) continue;
       seen.add(key);
       candidates.push({ source: entry.source || source, translation: entry.translation, pos: entry.pos || "" });

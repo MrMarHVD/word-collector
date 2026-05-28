@@ -9,6 +9,7 @@
     "import:wikdict-en-ja": "node scripts/import_wikdict_en_ja.js",
     "import:wikdict-en-zh": "node scripts/import_wikdict_en_zh.js",
     "import:wikdict-es-en": "node scripts/import_wikdict_romance_en.js spanish",
+    "import:doozan-es-en": "node scripts/import_doozan_es_en.js",
     "import:wikdict-fr-en": "node scripts/import_wikdict_romance_en.js french",
     "import:jmdict": "node scripts/import_jmdict.js",
     "import:cedict": "node scripts/import_cedict.js"

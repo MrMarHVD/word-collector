@@ -1,6 +1,6 @@
 import { ENGLISH_NATIVE_ONLY_STUDY_LANGUAGES, STUDY_LANGUAGE_OPTIONS } from "../../config.js";
 
-export const INVALID_NATIVE_STUDY_LANGUAGE_MESSAGE = "current study language is not available for selected native language. Please switch to a valid study language first";
+export const INVALID_NATIVE_STUDY_LANGUAGE_MESSAGE = "The current study language is not available for the selected native language. Please switch to a valid study language first.";
 
 export function studyLanguageAvailableForNativeLanguage(studyLanguage, nativeLanguage) {
   return nativeLanguage === "English" || !ENGLISH_NATIVE_ONLY_STUDY_LANGUAGES.includes(studyLanguage);
