@@ -1,5 +1,5 @@
 import { getLanguage } from "../../modules/languages/languages.service.js";
-import { deleteWords, getWords, getWordsInLanguage, moveWords } from "../../modules/words/words.service.js";
+import { deleteWords, getWords, getWordsInLanguage, moveWords, setWordsStatus } from "../../modules/words/words.service.js";
 import { readJson } from "../request.js";
 import { jsonResponse } from "../response.js";
 
@@ -40,6 +40,17 @@ export function createWordsRoutes({ repositories }) {
     if (req.method === "POST" && url.pathname === "/api/words/delete") {
       const body = await readJson(req);
       const result = deleteWords(repositories, user.userId, body.wordIds);
+      if (result.error) {
+        jsonResponse(res, 400, result);
+        return true;
+      }
+      jsonResponse(res, 200, result);
+      return true;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/words/status") {
+      const body = await readJson(req);
+      const result = setWordsStatus(repositories, user.userId, body.wordIds, body.status);
       if (result.error) {
         jsonResponse(res, 400, result);
         return true;

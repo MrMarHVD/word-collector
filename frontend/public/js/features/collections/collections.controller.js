@@ -185,12 +185,24 @@ export function bindCollectionsEvents() {
       if (!id || segment.dataset.active === "true") {
         return;
       }
+      // When the clicked word is part of a multi-selection, apply the chosen
+      // status to every selected word; otherwise update just this one.
+      const ids = state.selectedWordIds.has(id) && state.selectedWordIds.size > 1
+        ? Array.from(state.selectedWordIds)
+        : [id];
       segment.disabled = true;
       try {
-        await requestJson(`/api/words/${id}`, {
-          method: "PATCH",
-          body: JSON.stringify({ status })
-        });
+        if (ids.length > 1) {
+          await requestJson("/api/words/status", {
+            method: "POST",
+            body: JSON.stringify({ wordIds: ids, status })
+          });
+        } else {
+          await requestJson(`/api/words/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ status })
+          });
+        }
         await loadDashboard();
       } finally {
         segment.disabled = false;

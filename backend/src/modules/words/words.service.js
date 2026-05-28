@@ -53,6 +53,35 @@ export function deleteWords(repositories, userId, wordIds) {
   return { deleted, skipped };
 }
 
+const WORD_STATUSES = ["unknown", "learning", "known"];
+
+// Set the learning status of several user-owned words at once. Ignores ids that
+// don't belong to the user.
+export function setWordsStatus(repositories, userId, wordIds, status) {
+  if (!WORD_STATUSES.includes(status)) {
+    return { error: "Invalid status." };
+  }
+  const ids = Array.from(new Set((wordIds || []).map((id) => Number(id)).filter(Number.isFinite)));
+  if (!ids.length) {
+    return { error: "No words selected." };
+  }
+
+  let updated = 0;
+  let skipped = 0;
+  repositories.database.transaction(() => {
+    for (const id of ids) {
+      if (!repositories.words.wordOwnedByUser(userId, id)) {
+        skipped += 1;
+        continue;
+      }
+      repositories.words.upsertStatus(userId, id, status);
+      updated += 1;
+    }
+  });
+
+  return { updated, skipped, status };
+}
+
 // Move user-owned words into a destination collection. Words that would collide
 // with an existing (word, translation) row in the destination are skipped.
 export function moveWords(repositories, userId, wordIds, collectionId) {
