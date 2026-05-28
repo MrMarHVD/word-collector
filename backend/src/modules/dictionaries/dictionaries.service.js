@@ -24,6 +24,10 @@ export function lookupEnglishJapanese(dictionariesRepository, term) {
     return "";
   }
 
+  const wikdict = dictionariesRepository.listWikdictEnglishJapanese(clean, 5);
+  if (wikdict.length) {
+    return [...new Set(wikdict.map((entry) => entry.japanese).filter(Boolean))].join("; ");
+  }
   const exact = dictionariesRepository.findEnglishJapanese(clean);
   return exact?.expression || "";
 }
@@ -44,7 +48,8 @@ export function lookupEnglishPos(dictionariesRepository, term) {
   if (!clean) {
     return "";
   }
-  return dictionariesRepository.findEnglishJapanese(clean)?.pos
+  return dictionariesRepository.findWikdictEnglishJapanese(clean)?.pos
+    || dictionariesRepository.findEnglishJapanese(clean)?.pos
     || dictionariesRepository.findEnglishChinese(clean)?.pos
     || "";
 }

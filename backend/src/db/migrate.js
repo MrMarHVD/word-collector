@@ -283,6 +283,17 @@ export function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_cedict_english ON cedict_english_index(english);
     CREATE INDEX IF NOT EXISTS idx_cedict_simplified ON cedict_english_index(simplified);
     CREATE INDEX IF NOT EXISTS idx_cedict_traditional ON cedict_english_index(traditional);
+
+    CREATE TABLE IF NOT EXISTS wikdict_english_japanese (
+      english TEXT NOT NULL,
+      japanese TEXT NOT NULL,
+      pos TEXT,
+      rank INTEGER NOT NULL DEFAULT 0,
+      definition TEXT,
+      PRIMARY KEY (english, japanese)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_wikdict_english_japanese ON wikdict_english_japanese(english, rank);
   `);
 
   const jmdictEnglishColumns = db.prepare("PRAGMA table_info(jmdict_english_index)").all();

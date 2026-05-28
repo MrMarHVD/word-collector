@@ -1,4 +1,18 @@
 export function createDictionariesRepository(db) {
+  const wikdictEnglishJapanese = db.prepare(`
+    SELECT japanese, pos
+    FROM wikdict_english_japanese
+    WHERE english = ?
+    ORDER BY rank, length(japanese)
+    LIMIT 1
+  `);
+  const wikdictEnglishJapaneseTranslations = db.prepare(`
+    SELECT japanese, pos
+    FROM wikdict_english_japanese
+    WHERE english = ?
+    ORDER BY rank, length(japanese)
+    LIMIT ?
+  `);
   const japaneseEnglishByExpression = db.prepare(`
     SELECT gloss
     FROM jmdict_entries
@@ -75,6 +89,12 @@ export function createDictionariesRepository(db) {
   `);
 
   return {
+    findWikdictEnglishJapanese(term) {
+      return wikdictEnglishJapanese.get(term);
+    },
+    listWikdictEnglishJapanese(term, limit = 5) {
+      return wikdictEnglishJapaneseTranslations.all(term, Math.max(1, Math.min(Number(limit) || 5, 10)));
+    },
     findJapaneseEnglishByExpression(term) {
       return japaneseEnglishByExpression.get(term);
     },

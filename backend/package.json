@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
+    "import:wikdict-en-ja": "node scripts/import_wikdict_en_ja.js",
     "import:jmdict": "node scripts/import_jmdict.js",
     "import:cedict": "node scripts/import_cedict.js"
   },
