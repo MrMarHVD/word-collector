@@ -1154,6 +1154,15 @@ button:disabled {
   background: var(--surface-panel);
   color: var(--text-main);
 }
+.tabs {
+  min-width: 0;
+}
+.tabs .tab-button {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .visually-hidden {
   position: absolute;
   width: 1px;
