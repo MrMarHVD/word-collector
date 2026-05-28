@@ -1583,7 +1583,7 @@ tbody tr:last-child td {
 }
 .reader-word-info-head {
   display: grid;
-  grid-template-columns: 1fr 30px;
+  grid-template-columns: 1fr auto 30px;
   align-items: center;
   gap: 12px;
   margin-bottom: 8px;
@@ -1594,7 +1594,11 @@ tbody tr:last-child td {
   font-size: 1.08rem;
   line-height: 1.25;
 }
+.reader-word-info-head .disambiguation-button {
+  justify-self: end;
+}
 .reader-word-info-close {
+  grid-column: 3;
   display: inline-grid;
   width: 30px;
   min-height: 30px;
@@ -1629,27 +1633,21 @@ tbody tr:last-child td {
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.translation-cell {
-  display: grid;
-  gap: 8px;
-}
 .disambiguation-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   width: max-content;
   min-height: 32px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--surface);
-  padding: 0 10px;
-  color: var(--brand);
-  font-size: 0.82rem;
-  font-weight: 800;
+  line-height: 1;
 }
-.disambiguation-button:hover, .disambiguation-button:focus-visible {
-  background: var(--brand-hover-surface);
-  border-color: var(--brand);
-  @supports (color: color-mix(in lab, red, red)) {
-    border-color: color-mix(in srgb, var(--brand) 28%, var(--line));
-  }
+.disambiguation-button-icon {
+  display: inline-block;
+  line-height: 1;
+  transition: transform 140ms ease;
+}
+.disambiguation-button[aria-expanded="true"] .disambiguation-button-icon {
+  transform: rotate(180deg);
 }
 .disambiguation-panel {
   margin: 10px 0;

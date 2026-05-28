@@ -312,14 +312,17 @@ export function renderReaderWordInfo(token, anchor = null) {
   elements.readerWordInfo.innerHTML = `
     <div class="reader-word-info-head">
       <strong>${escapeHtml(token.surface)}</strong>
+      ${(token.disambiguationCandidates || []).length > 1 ? `<button class="disambiguation-button secondary-button rounded-md border border-line bg-panel px-3 text-sm font-bold text-brand hover:bg-hover" type="button" data-disambiguate aria-expanded="false">
+        <span class="disambiguation-button-icon" aria-hidden="true">▾</span>
+        <span>${escapeHtml(t("reader.disambiguate"))}</span>
+      </button>` : ""}
       <button class="reader-word-info-close" type="button" data-reader-word-info-close aria-label="${escapeHtml(t("reader.closeTranslation"))}">&times;</button>
     </div>
     <dl>
       ${rows.map((row) => `<dt>${escapeHtml(row.label)}</dt><dd>${escapeHtml(row.value)}</dd>`).join("")}
     </dl>
-    ${(token.disambiguationCandidates || []).length > 1 ? `<button class="disambiguation-button" type="button" data-disambiguate>${escapeHtml(t("reader.disambiguate"))}</button>` : ""}
-    ${renderDisambiguationTable(token.disambiguationCandidates)}
     ${renderStatusToggle(token.wordId, status, { dataAttr: "data-reader-word-id" })}
+    ${renderDisambiguationTable(token.disambiguationCandidates)}
   `;
   positionReaderWordInfo(anchor);
 }

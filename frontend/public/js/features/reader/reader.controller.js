@@ -291,6 +291,7 @@ export function bindReaderEvents() {
       const panel = elements.readerWordInfo.querySelector("[data-disambiguation-panel]");
       if (panel) {
         panel.hidden = !panel.hidden;
+        disambiguate.setAttribute("aria-expanded", String(!panel.hidden));
       }
       return;
     }

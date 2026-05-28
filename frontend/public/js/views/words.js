@@ -81,6 +81,7 @@ export function renderWords(words) {
         if (entry.traditional && entry.traditional !== entry.word) phonetics.push(entry.traditional);
         const selected = state.selectedWordIds.has(entry.id);
         const candidates = Array.isArray(entry.disambiguationCandidates) ? entry.disambiguationCandidates : [];
+        const expanded = state.expandedDisambiguationWordId === entry.id;
         return `
       <tr class="word-row${selected ? " is-selected" : ""}" draggable="true" data-word-id="${entry.id}" data-collection-id="${entry.collectionId}" aria-selected="${selected}">
         <td class="word-drag-cell px-2 py-3 align-middle">
@@ -102,8 +103,11 @@ export function renderWords(words) {
         <td class="px-3 py-3 align-top text-label">
           ${escapeHtml(entry.translation)}
         </td>
-        <td class="px-3 py-3 align-top">
-          ${candidates.length > 1 ? `<button class="disambiguation-button" type="button" data-word-disambiguate="${entry.id}">${escapeHtml(t("reader.disambiguate"))}</button>` : ""}
+        <td class="px-3 py-3 align-middle">
+          ${candidates.length > 1 ? `<button class="disambiguation-button secondary-button rounded-md border border-line bg-panel px-3 text-sm font-bold text-brand hover:bg-hover" type="button" data-word-disambiguate="${entry.id}" aria-expanded="${expanded}">
+            <span class="disambiguation-button-icon" aria-hidden="true">▾</span>
+            <span>${escapeHtml(t("reader.disambiguate"))}</span>
+          </button>` : ""}
         </td>
         <td class="status-cell">
           ${renderStatusToggle(entry.id, entry.status)}
