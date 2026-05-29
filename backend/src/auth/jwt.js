@@ -1,20 +1,5 @@
-import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import { JWT_SECRET_PATH, JWT_TTL_SECONDS } from "../config.js";
-
-// Persist the signing secret so JWT sessions survive server restarts.
-// Load an existing JWT secret or create one with restricted file permissions.
-async function getJwtSecret() {
-  if (existsSync(JWT_SECRET_PATH)) {
-    return (await readFile(JWT_SECRET_PATH, "utf8")).trim();
-  }
-  const secret = randomBytes(48).toString("base64url");
-  await writeFile(JWT_SECRET_PATH, `${secret}\n`, { mode: 0o600 });
-  return secret;
-}
-
-const JWT_SECRET = await getJwtSecret();
+import { JWT_SECRET, JWT_TTL_SECONDS } from "../config.js";
 
 // Encode a value as base64url JSON for JWT segments.
 function base64UrlJson(value) {

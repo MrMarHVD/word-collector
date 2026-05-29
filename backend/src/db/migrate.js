@@ -1,17 +1,12 @@
-import { ENGLISH_NATIVE_ONLY_STUDY_LANGUAGES, SEED_EMAIL, SEED_PASSWORD, STUDY_LANGUAGE_OPTIONS } from "../config.js";
-import { hashPassword } from "../auth/password.js";
+import { ENGLISH_NATIVE_ONLY_STUDY_LANGUAGES, STUDY_LANGUAGE_OPTIONS } from "../config.js";
 
 // Migrations are additive where possible and preserve legacy rows when a table
 // must be rebuilt to add ownership or constraints.
-// Ensure the configured seed user exists for legacy data ownership.
-function ensureSeedUser(db) {
-  let user = db.prepare("SELECT id, email FROM users WHERE lower(email) = lower(?)").get(SEED_EMAIL);
-  if (!user) {
-    const password = hashPassword(SEED_PASSWORD);
-    db.prepare("INSERT INTO users (email, password_hash, password_salt) VALUES (?, ?, ?)").run(SEED_EMAIL, password.hash, password.salt);
-    user = db.prepare("SELECT id, email FROM users WHERE lower(email) = lower(?)").get(SEED_EMAIL);
-  }
-  return user;
+// Return the legacy data owner (the earliest-registered user) so pre-ownership
+// rows can be attributed during table rebuilds. Returns null on a fresh
+// database, where no legacy data exists to attribute.
+function findLegacyOwner(db) {
+  return db.prepare("SELECT id, email FROM users ORDER BY id ASC LIMIT 1").get() || null;
 }
 
 // Create and migrate all application tables and derived indexes.
@@ -52,7 +47,7 @@ export function runMigrations(db) {
     db.exec("ALTER TABLE users ADD COLUMN practice_words_per_session INTEGER NOT NULL DEFAULT 20");
   }
 
-  const seedUser = ensureSeedUser(db);
+  const legacyOwner = findLegacyOwner(db);
   const insertPredefinedLanguage = db.prepare("INSERT OR IGNORE INTO predefined_languages (name) VALUES (?)");
   for (const language of STUDY_LANGUAGE_OPTIONS) {
     insertPredefinedLanguage.run(language);
@@ -72,8 +67,8 @@ export function runMigrations(db) {
   const hasLanguageUserId = languageColumns.some((column) => column.name === "user_id");
   const languageUserIdNotNull = languageColumns.find((column) => column.name === "user_id")?.notnull === 1;
   if (!hasLanguageUserId || !languageUserIdNotNull) {
-    // Older databases used global languages. Assign them to the seed user while
-    // rebuilding the table with required user ownership.
+    // Older databases used global languages. Assign them to the legacy owner
+    // while rebuilding the table with required user ownership.
     db.exec("PRAGMA foreign_keys = OFF");
     db.exec("BEGIN");
     try {
@@ -90,7 +85,7 @@ export function runMigrations(db) {
       db.prepare(`
         INSERT INTO languages_new (id, user_id, name, created_at)
         SELECT id, ?, name, created_at FROM languages
-      `).run(seedUser.id);
+      `).run(legacyOwner ? legacyOwner.id : null);
       db.exec("DROP TABLE languages");
       db.exec("ALTER TABLE languages_new RENAME TO languages");
       db.exec("COMMIT");
@@ -417,10 +412,14 @@ export function runMigrations(db) {
     SELECT id, 'English', translation FROM words
   `).run();
 
-  db.prepare(`
-    INSERT OR IGNORE INTO user_word_status (user_id, word_id, known, status)
-    SELECT ?, id, known, CASE WHEN known = 1 THEN 'known' ELSE 'unknown' END FROM words WHERE known = 1
-  `).run(seedUser.id);
+  // Attribute legacy "known" words to the legacy owner. Skipped on fresh
+  // databases, where there is no prior owner and no legacy status to migrate.
+  if (legacyOwner) {
+    db.prepare(`
+      INSERT OR IGNORE INTO user_word_status (user_id, word_id, known, status)
+      SELECT ?, id, known, CASE WHEN known = 1 THEN 'known' ELSE 'unknown' END FROM words WHERE known = 1
+    `).run(legacyOwner.id);
+  }
 
   db.prepare("UPDATE user_word_status SET status = 'known' WHERE known = 1 AND status = 'unknown'").run();
 }
