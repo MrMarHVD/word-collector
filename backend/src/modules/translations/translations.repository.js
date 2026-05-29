@@ -6,14 +6,14 @@ export function createTranslationsRepository(db) {
     ON CONFLICT(word_id, native_language) DO UPDATE SET translation = excluded.translation, updated_at = CURRENT_TIMESTAMP
   `);
   const materialTranslationTokens = db.prepare(`
-    SELECT mt.word_id AS wordId, mt.surface, mt.lemma
+    SELECT mt.word_id AS "wordId", mt.surface, mt.lemma
     FROM material_tokens mt
     WHERE mt.material_id = ?
     ORDER BY mt.position
   `);
   const materialTranslationStatus = db.prepare(`
-    SELECT COUNT(DISTINCT mt.word_id) AS totalWords,
-           COUNT(DISTINCT wt.word_id) AS completedWords
+    SELECT COUNT(DISTINCT mt.word_id) AS "totalWords",
+           COUNT(DISTINCT wt.word_id) AS "completedWords"
     FROM material_tokens mt
     LEFT JOIN word_translations wt ON wt.word_id = mt.word_id AND wt.native_language = ?
     WHERE mt.material_id = ?

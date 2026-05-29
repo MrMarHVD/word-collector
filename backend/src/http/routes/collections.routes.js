@@ -12,33 +12,33 @@ export function createCollectionsRoutes({ repositories }) {
     if (req.method === "PATCH") {
       const collectionId = Number(collectionMatch[1]);
       const body = await readJson(req);
-      const language = getLanguage(repositories, user.userId, body.languageId);
+      const language = await getLanguage(repositories, user.userId, body.languageId);
       if (!language) {
         jsonResponse(res, 400, { error: "Language is required." });
         return true;
       }
-      const collection = repositories.words.findCollectionById(collectionId, user.userId);
+      const collection = await repositories.words.findCollectionById(collectionId, user.userId);
       if (!collection) {
         jsonResponse(res, 404, { error: "Collection not found." });
         return true;
       }
       try {
-        repositories.words.updateCollectionLanguage(language.id, collectionId);
+        await repositories.words.updateCollectionLanguage(language.id, collectionId);
       } catch (error) {
         jsonResponse(res, 409, { error: "A collection with this name already exists in that language." });
         return true;
       }
-      jsonResponse(res, 200, repositories.words.findCollectionById(collectionId, user.userId));
+      jsonResponse(res, 200, await repositories.words.findCollectionById(collectionId, user.userId));
       return true;
     }
 
     if (req.method === "DELETE") {
       const collectionId = Number(collectionMatch[1]);
-      if (!repositories.words.findCollectionById(collectionId, user.userId)) {
+      if (!(await repositories.words.findCollectionById(collectionId, user.userId))) {
         jsonResponse(res, 404, { error: "Collection not found." });
         return true;
       }
-      const result = repositories.words.deleteCollection(collectionId);
+      const result = await repositories.words.deleteCollection(collectionId);
       if (!result.changes) {
         jsonResponse(res, 404, { error: "Collection not found." });
         return true;

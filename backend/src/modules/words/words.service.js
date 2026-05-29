@@ -1,33 +1,36 @@
 import { normalizeName } from "../../shared/normalize.js";
 import { displayTranslationForToken, translationDisambiguationCandidates } from "../translations/translations.service.js";
 
-function withDisambiguation(repositories, nativeLanguage, words) {
-  return words.map((word) => {
+async function withDisambiguation(repositories, nativeLanguage, words) {
+  const result = [];
+  for (const word of words) {
     const sourceLanguage = { name: word.languageName };
     const token = { surface: word.word, lemma: word.lemma || word.word, word: word.word };
-    const disambiguationCandidates = translationDisambiguationCandidates(repositories, sourceLanguage, nativeLanguage, token);
+    const disambiguationCandidates = await translationDisambiguationCandidates(repositories, sourceLanguage, nativeLanguage, token);
     if (!disambiguationCandidates.length) {
-      return word;
+      result.push(word);
+      continue;
     }
-    const translation = displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token) || word.translation;
-    return { ...word, translation, disambiguationCandidates };
-  });
+    const translation = (await displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token)) || word.translation;
+    result.push({ ...word, translation, disambiguationCandidates });
+  }
+  return result;
 }
 
 // Return words for a collection with optional word or displayed-translation search.
-export function getWords(repositories, userId, collectionId, search, nativeLanguage = "English") {
+export async function getWords(repositories, userId, collectionId, search, nativeLanguage = "English") {
   const term = normalizeName(search);
-  return withDisambiguation(repositories, nativeLanguage, repositories.words.listWords(userId, collectionId, term, nativeLanguage));
+  return withDisambiguation(repositories, nativeLanguage, await repositories.words.listWords(userId, collectionId, term, nativeLanguage));
 }
 
 // Return every word across all of the user's collections in a language.
-export function getWordsInLanguage(repositories, userId, languageId, search, nativeLanguage = "English") {
+export async function getWordsInLanguage(repositories, userId, languageId, search, nativeLanguage = "English") {
   const term = normalizeName(search);
-  return withDisambiguation(repositories, nativeLanguage, repositories.words.listWordsInLanguage(userId, languageId, term, nativeLanguage));
+  return withDisambiguation(repositories, nativeLanguage, await repositories.words.listWordsInLanguage(userId, languageId, term, nativeLanguage));
 }
 
 // Delete user-owned words. Ignores ids that don't belong to the user.
-export function deleteWords(repositories, userId, wordIds) {
+export async function deleteWords(repositories, userId, wordIds) {
   const ids = Array.from(new Set((wordIds || []).map((id) => Number(id)).filter(Number.isFinite)));
   if (!ids.length) {
     return { error: "No words selected." };
@@ -35,13 +38,13 @@ export function deleteWords(repositories, userId, wordIds) {
 
   let deleted = 0;
   let skipped = 0;
-  repositories.database.transaction(() => {
+  await repositories.database.transaction(async (tx) => {
     for (const id of ids) {
-      if (!repositories.words.wordOwnedByUser(userId, id)) {
+      if (!(await tx.words.wordOwnedByUser(userId, id))) {
         skipped += 1;
         continue;
       }
-      const result = repositories.words.deleteWord(id);
+      const result = await tx.words.deleteWord(id);
       if (result.changes) {
         deleted += 1;
       } else {
@@ -57,7 +60,7 @@ const WORD_STATUSES = ["unknown", "learning", "known"];
 
 // Set the learning status of several user-owned words at once. Ignores ids that
 // don't belong to the user.
-export function setWordsStatus(repositories, userId, wordIds, status) {
+export async function setWordsStatus(repositories, userId, wordIds, status) {
   if (!WORD_STATUSES.includes(status)) {
     return { error: "Invalid status." };
   }
@@ -68,13 +71,13 @@ export function setWordsStatus(repositories, userId, wordIds, status) {
 
   let updated = 0;
   let skipped = 0;
-  repositories.database.transaction(() => {
+  await repositories.database.transaction(async (tx) => {
     for (const id of ids) {
-      if (!repositories.words.wordOwnedByUser(userId, id)) {
+      if (!(await tx.words.wordOwnedByUser(userId, id))) {
         skipped += 1;
         continue;
       }
-      repositories.words.upsertStatus(userId, id, status);
+      await tx.words.upsertStatus(userId, id, status);
       updated += 1;
     }
   });
@@ -84,8 +87,8 @@ export function setWordsStatus(repositories, userId, wordIds, status) {
 
 // Move user-owned words into a destination collection. Words that would collide
 // with an existing (word, translation) row in the destination are skipped.
-export function moveWords(repositories, userId, wordIds, collectionId) {
-  const destination = repositories.words.findCollectionById(collectionId, userId);
+export async function moveWords(repositories, userId, wordIds, collectionId) {
+  const destination = await repositories.words.findCollectionById(collectionId, userId);
   if (!destination) {
     return { error: "Collection not found." };
   }
@@ -97,14 +100,14 @@ export function moveWords(repositories, userId, wordIds, collectionId) {
 
   let moved = 0;
   let skipped = 0;
-  repositories.database.transaction(() => {
+  await repositories.database.transaction(async (tx) => {
     for (const id of ids) {
-      if (!repositories.words.wordOwnedByUser(userId, id)) {
+      if (!(await tx.words.wordOwnedByUser(userId, id))) {
         skipped += 1;
         continue;
       }
       try {
-        const result = repositories.words.updateWordCollection(id, destination.id);
+        const result = await tx.words.updateWordCollection(id, destination.id);
         if (result.changes) {
           moved += 1;
         } else {

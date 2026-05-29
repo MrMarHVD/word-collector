@@ -2,33 +2,33 @@ import { normalizeName } from "../../shared/normalize.js";
 
 // Dictionary lookups use local JMdict and CEDICT indexes populated by scripts/.
 // Look up an English gloss for a Japanese expression or reading.
-export function lookupJapaneseEnglish(dictionariesRepository, term) {
+export async function lookupJapaneseEnglish(dictionariesRepository, term) {
   const clean = normalizeName(term);
   if (!clean) {
     return "";
   }
 
-  const exact = dictionariesRepository.findJapaneseEnglishByExpression(clean);
+  const exact = await dictionariesRepository.findJapaneseEnglishByExpression(clean);
   if (exact?.gloss) {
     return exact.gloss;
   }
 
-  const reading = dictionariesRepository.findJapaneseEnglishByReading(clean);
+  const reading = await dictionariesRepository.findJapaneseEnglishByReading(clean);
   return reading?.gloss || "";
 }
 
 // Look up a Japanese expression from an English dictionary key.
-export function lookupEnglishJapanese(dictionariesRepository, term) {
-  return lookupEnglishJapaneseEntries(dictionariesRepository, term, 1)[0]?.translation || "";
+export async function lookupEnglishJapanese(dictionariesRepository, term) {
+  return (await lookupEnglishJapaneseEntries(dictionariesRepository, term, 1))[0]?.translation || "";
 }
 
-export function lookupEnglishJapaneseEntries(dictionariesRepository, term, limit = 50) {
+export async function lookupEnglishJapaneseEntries(dictionariesRepository, term, limit = 50) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
     return [];
   }
 
-  const wikdict = dictionariesRepository.listWikdictEnglishJapanese(clean, limit);
+  const wikdict = await dictionariesRepository.listWikdictEnglishJapanese(clean, limit);
   if (wikdict.length) {
     return dedupeDictionaryEntries(wikdict.map((entry) => ({
       source: clean,
@@ -36,15 +36,15 @@ export function lookupEnglishJapaneseEntries(dictionariesRepository, term, limit
       pos: entry.pos || ""
     })));
   }
-  return dedupeDictionaryEntries(dictionariesRepository.listEnglishJapanese(clean, limit).map((entry) => ({
+  return dedupeDictionaryEntries((await dictionariesRepository.listEnglishJapanese(clean, limit)).map((entry) => ({
     source: clean,
     translation: entry.expression,
     pos: entry.pos || ""
   })));
 }
 
-export function lookupEnglishJapaneseCategories(dictionariesRepository, term) {
-  return [...new Set(lookupEnglishJapaneseEntries(dictionariesRepository, term, 50).map((entry) => entry.pos).filter(Boolean))];
+export async function lookupEnglishJapaneseCategories(dictionariesRepository, term) {
+  return [...new Set((await lookupEnglishJapaneseEntries(dictionariesRepository, term, 50)).map((entry) => entry.pos).filter(Boolean))];
 }
 
 function dedupeDictionaryEntries(entries) {
@@ -63,17 +63,17 @@ function dedupeDictionaryEntries(entries) {
 }
 
 // Look up a simplified Chinese expression from an English dictionary key.
-export function lookupEnglishChinese(dictionariesRepository, term) {
-  return lookupEnglishChineseEntries(dictionariesRepository, term, 1)[0]?.translation || "";
+export async function lookupEnglishChinese(dictionariesRepository, term) {
+  return (await lookupEnglishChineseEntries(dictionariesRepository, term, 1))[0]?.translation || "";
 }
 
-export function lookupEnglishChineseEntries(dictionariesRepository, term, limit = 50) {
+export async function lookupEnglishChineseEntries(dictionariesRepository, term, limit = 50) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
     return [];
   }
 
-  const wikdict = dictionariesRepository.listWikdictEnglishChinese(clean, limit);
+  const wikdict = await dictionariesRepository.listWikdictEnglishChinese(clean, limit);
   if (wikdict.length) {
     return dedupeDictionaryEntries(wikdict.map((entry) => ({
       source: clean,
@@ -81,54 +81,54 @@ export function lookupEnglishChineseEntries(dictionariesRepository, term, limit 
       pos: entry.pos || ""
     })));
   }
-  return dedupeDictionaryEntries(dictionariesRepository.listEnglishChinese(clean, limit).map((entry) => ({
+  return dedupeDictionaryEntries((await dictionariesRepository.listEnglishChinese(clean, limit)).map((entry) => ({
     source: clean,
     translation: entry.simplified,
     pos: entry.pos || ""
   })));
 }
 
-export function lookupSpanishEnglish(dictionariesRepository, term) {
-  return lookupSpanishEnglishEntries(dictionariesRepository, term, 1)[0]?.translation || "";
+export async function lookupSpanishEnglish(dictionariesRepository, term) {
+  return (await lookupSpanishEnglishEntries(dictionariesRepository, term, 1))[0]?.translation || "";
 }
 
-export function lookupSpanishEnglishEntries(dictionariesRepository, term, limit = 50) {
+export async function lookupSpanishEnglishEntries(dictionariesRepository, term, limit = 50) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
     return [];
   }
-  return dedupeDictionaryEntries(dictionariesRepository.listWikdictSpanishEnglish(clean, limit).map((entry) => ({
+  return dedupeDictionaryEntries((await dictionariesRepository.listWikdictSpanishEnglish(clean, limit)).map((entry) => ({
     source: entry.source || clean,
     translation: entry.english,
     pos: entry.pos || ""
   })));
 }
 
-export function lookupFrenchEnglish(dictionariesRepository, term) {
-  return lookupFrenchEnglishEntries(dictionariesRepository, term, 1)[0]?.translation || "";
+export async function lookupFrenchEnglish(dictionariesRepository, term) {
+  return (await lookupFrenchEnglishEntries(dictionariesRepository, term, 1))[0]?.translation || "";
 }
 
-export function lookupFrenchEnglishEntries(dictionariesRepository, term, limit = 50) {
+export async function lookupFrenchEnglishEntries(dictionariesRepository, term, limit = 50) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
     return [];
   }
-  return dedupeDictionaryEntries(dictionariesRepository.listWikdictFrenchEnglish(clean, limit).map((entry) => ({
+  return dedupeDictionaryEntries((await dictionariesRepository.listWikdictFrenchEnglish(clean, limit)).map((entry) => ({
     source: entry.source || clean,
     translation: entry.english,
     pos: entry.pos || ""
   })));
 }
 
-export function lookupEnglishPos(dictionariesRepository, term) {
+export async function lookupEnglishPos(dictionariesRepository, term) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
     return "";
   }
-  return dictionariesRepository.findWikdictEnglishJapanese(clean)?.pos
-    || dictionariesRepository.findWikdictEnglishChinese(clean)?.pos
-    || dictionariesRepository.findEnglishJapanese(clean)?.pos
-    || dictionariesRepository.findEnglishChinese(clean)?.pos
+  return (await dictionariesRepository.findWikdictEnglishJapanese(clean))?.pos
+    || (await dictionariesRepository.findWikdictEnglishChinese(clean))?.pos
+    || (await dictionariesRepository.findEnglishJapanese(clean))?.pos
+    || (await dictionariesRepository.findEnglishChinese(clean))?.pos
     || "";
 }
 
@@ -215,13 +215,13 @@ export function pinyinToToneMarks(pinyin) {
 }
 
 // Look up an English gloss for a Chinese simplified or traditional form.
-export function lookupChineseEnglish(dictionariesRepository, term) {
+export async function lookupChineseEnglish(dictionariesRepository, term) {
   const clean = normalizeName(term);
   if (!clean) {
     return "";
   }
 
-  const exact = dictionariesRepository.findChineseEnglish(clean);
+  const exact = await dictionariesRepository.findChineseEnglish(clean);
   return cleanCedictDefinition(exact?.definitions);
 }
 
@@ -248,9 +248,9 @@ function translationKeyCandidates(value) {
   return [...new Set(keys)].filter(Boolean);
 }
 
-function entriesForEnglishKey(lookupEntries, dictionariesRepository, key, limit) {
+async function entriesForEnglishKey(lookupEntries, dictionariesRepository, key, limit) {
   const clean = key.startsWith("to ") ? key.slice(3).trim() : key;
-  const entries = lookupEntries(dictionariesRepository, clean, limit);
+  const entries = await lookupEntries(dictionariesRepository, clean, limit);
   if (!key.startsWith("to ")) {
     return entries;
   }
@@ -261,12 +261,12 @@ function entriesForEnglishKey(lookupEntries, dictionariesRepository, key, limit)
 }
 
 // Look up Chinese metadata (translation, pinyin, traditional) for a term.
-export function lookupChineseDetails(dictionariesRepository, term) {
+export async function lookupChineseDetails(dictionariesRepository, term) {
   const clean = normalizeName(term);
   if (!clean) {
     return { translation: "", pinyin: "", traditional: "" };
   }
-  const row = dictionariesRepository.findChineseDetails(clean);
+  const row = await dictionariesRepository.findChineseDetails(clean);
   if (!row) {
     return { translation: "", pinyin: "", traditional: "" };
   }
@@ -278,16 +278,16 @@ export function lookupChineseDetails(dictionariesRepository, term) {
 }
 
 // Look up Japanese metadata (translation, reading) for an expression or reading.
-export function lookupJapaneseDetails(dictionariesRepository, term) {
+export async function lookupJapaneseDetails(dictionariesRepository, term) {
   const clean = normalizeName(term);
   if (!clean) {
     return { translation: "", reading: "" };
   }
-  const exact = dictionariesRepository.findJapaneseDetailsByExpression(clean);
+  const exact = await dictionariesRepository.findJapaneseDetailsByExpression(clean);
   if (exact?.gloss) {
     return { translation: exact.gloss, reading: exact.reading || "" };
   }
-  const byReading = dictionariesRepository.findJapaneseDetailsByReading(clean);
+  const byReading = await dictionariesRepository.findJapaneseDetailsByReading(clean);
   if (byReading?.gloss) {
     return { translation: byReading.gloss, reading: byReading.reading || clean };
   }
@@ -295,16 +295,16 @@ export function lookupJapaneseDetails(dictionariesRepository, term) {
 }
 
 // Translate a Japanese term to Chinese through the English dictionary index.
-export function lookupJapaneseChinese(dictionariesRepository, term) {
-  return lookupJapaneseChineseEntries(dictionariesRepository, term, 1)[0]?.translation || "";
+export async function lookupJapaneseChinese(dictionariesRepository, term) {
+  return (await lookupJapaneseChineseEntries(dictionariesRepository, term, 1))[0]?.translation || "";
 }
 
-export function lookupJapaneseChineseEntries(dictionariesRepository, term, limit = 50) {
+export async function lookupJapaneseChineseEntries(dictionariesRepository, term, limit = 50) {
   const clean = normalizeName(term);
-  const english = lookupJapaneseEnglish(dictionariesRepository, clean);
+  const english = await lookupJapaneseEnglish(dictionariesRepository, clean);
   const entries = [];
   for (const key of translationKeyCandidates(english)) {
-    for (const entry of entriesForEnglishKey(lookupEnglishChineseEntries, dictionariesRepository, key, limit)) {
+    for (const entry of await entriesForEnglishKey(lookupEnglishChineseEntries, dictionariesRepository, key, limit)) {
       entries.push({ ...entry, source: clean || key });
       if (entries.length >= limit) return dedupeDictionaryEntries(entries);
     }
@@ -313,16 +313,16 @@ export function lookupJapaneseChineseEntries(dictionariesRepository, term, limit
 }
 
 // Translate a Chinese term to Japanese through the English dictionary index.
-export function lookupChineseJapanese(dictionariesRepository, term) {
-  return lookupChineseJapaneseEntries(dictionariesRepository, term, 1)[0]?.translation || "";
+export async function lookupChineseJapanese(dictionariesRepository, term) {
+  return (await lookupChineseJapaneseEntries(dictionariesRepository, term, 1))[0]?.translation || "";
 }
 
-export function lookupChineseJapaneseEntries(dictionariesRepository, term, limit = 50) {
+export async function lookupChineseJapaneseEntries(dictionariesRepository, term, limit = 50) {
   const clean = normalizeName(term);
-  const english = lookupChineseEnglish(dictionariesRepository, clean);
+  const english = await lookupChineseEnglish(dictionariesRepository, clean);
   const entries = [];
   for (const key of translationKeyCandidates(english)) {
-    for (const entry of entriesForEnglishKey(lookupEnglishJapaneseEntries, dictionariesRepository, key, limit)) {
+    for (const entry of await entriesForEnglishKey(lookupEnglishJapaneseEntries, dictionariesRepository, key, limit)) {
       entries.push({ ...entry, source: clean || key });
       if (entries.length >= limit) return dedupeDictionaryEntries(entries);
     }

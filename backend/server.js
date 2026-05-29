@@ -1,15 +1,13 @@
 import { createServer } from "node:http";
 import { CORS_ORIGIN, PORT } from "./src/config.js";
 import { db } from "./src/db/index.js";
-import { runMigrations } from "./src/db/migrate.js";
 import { jsonResponse } from "./src/http/response.js";
 import { serveStatic } from "./src/http/static.js";
 import { createApiHandler } from "./src/http/routes/api.js";
 import { createRepositories } from "./src/modules/index.js";
 
-// Bootstrap the schema before creating repositories that depend on it.
-runMigrations(db);
-
+// The schema is managed by node-pg-migrate; run `npm run migrate:up` before
+// starting the server so the tables the repositories depend on exist.
 const repositories = createRepositories(db);
 const handleApi = createApiHandler({ repositories });
 

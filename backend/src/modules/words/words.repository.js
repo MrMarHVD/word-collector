@@ -11,13 +11,13 @@ function displayedTranslationExpression() {
 
 export function createWordsRepository(db) {
   const collectionByName = db.prepare(`
-    SELECT c.id, c.name, c.language_id AS languageId, l.name AS languageName
+    SELECT c.id, c.name, c.language_id AS "languageId", l.name AS "languageName"
     FROM collections c
     JOIN languages l ON l.id = c.language_id
     WHERE l.user_id = ? AND c.language_id = ? AND lower(c.name) = lower(?)
   `);
   const collectionById = db.prepare(`
-    SELECT c.id, c.name, c.language_id AS languageId, l.name AS languageName
+    SELECT c.id, c.name, c.language_id AS "languageId", l.name AS "languageName"
     FROM collections c
     JOIN languages l ON l.id = c.language_id
     WHERE c.id = ? AND l.user_id = ?
@@ -49,7 +49,7 @@ export function createWordsRepository(db) {
     WHERE id = ?
   `);
   const wordInLanguageBySurfaceOrLemma = db.prepare(`
-    SELECT w.id, w.word, w.translation, w.lemma, w.pos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional, c.id AS collectionId, c.name AS collectionName
+    SELECT w.id, w.word, w.translation, w.lemma, w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional, c.id AS "collectionId", c.name AS "collectionName"
     FROM words w
     JOIN collections c ON c.id = w.collection_id
     JOIN languages l ON l.id = c.language_id
@@ -60,14 +60,14 @@ export function createWordsRepository(db) {
     LIMIT 1
   `);
   const wordByCollectionAndLemma = db.prepare(`
-    SELECT w.id, w.word, w.translation, w.lemma, w.pos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional
+    SELECT w.id, w.word, w.translation, w.lemma, w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional
     FROM words w
     WHERE w.collection_id = ? AND lower(COALESCE(w.lemma, w.word)) = lower(?)
     LIMIT 1
   `);
   const wordById = db.prepare(`
-    SELECT w.id, w.collection_id AS collectionId, w.word, w.translation, COALESCE(w.lemma, w.word) AS lemma,
-           w.pos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional,
+    SELECT w.id, w.collection_id AS "collectionId", w.word, w.translation, COALESCE(w.lemma, w.word) AS lemma,
+           w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
            COALESCE(uws.status, 'unknown') AS status
     FROM words w
     JOIN collections c ON c.id = w.collection_id
@@ -85,7 +85,7 @@ export function createWordsRepository(db) {
   const incrementClickCount = db.prepare(`
     INSERT INTO user_word_status (user_id, word_id, known, status, click_count, updated_at)
     VALUES (?, ?, 0, 'unknown', 1, CURRENT_TIMESTAMP)
-    ON CONFLICT(user_id, word_id) DO UPDATE SET click_count = click_count + 1, updated_at = CURRENT_TIMESTAMP
+    ON CONFLICT(user_id, word_id) DO UPDATE SET click_count = user_word_status.click_count + 1, updated_at = CURRENT_TIMESTAMP
   `);
 
   return {
@@ -135,13 +135,13 @@ export function createWordsRepository(db) {
     updateWordCollectionAndTranslation(wordId, collectionId, translation) {
       return updateWordCollectionAndTranslation.run(collectionId, translation, wordId);
     },
-    wordOwnedByUser(userId, wordId) {
-      return Boolean(wordOwnedByUser.get(wordId, userId));
+    async wordOwnedByUser(userId, wordId) {
+      return Boolean(await wordOwnedByUser.get(wordId, userId));
     },
     listWordsInLanguage(userId, languageId, searchTerm, nativeLanguage = "English") {
       const translationExpression = displayedTranslationExpression();
-      const selectColumns = `w.id, w.collection_id AS collectionId, c.name AS collectionName, l.name AS languageName, w.word, COALESCE(w.lemma, w.word) AS lemma, ${translationExpression} AS translation,
-        w.pos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional,
+      const selectColumns = `w.id, w.collection_id AS "collectionId", c.name AS "collectionName", l.name AS "languageName", w.word, COALESCE(w.lemma, w.word) AS lemma, ${translationExpression} AS translation,
+        w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
         COALESCE(uws.status, 'unknown') AS status`;
       if (searchTerm) {
         return db.prepare(`
@@ -170,8 +170,8 @@ export function createWordsRepository(db) {
     },
     listWords(userId, collectionId, searchTerm, nativeLanguage = "English") {
       const translationExpression = displayedTranslationExpression();
-      const selectColumns = `w.id, w.collection_id AS collectionId, l.name AS languageName, w.word, COALESCE(w.lemma, w.word) AS lemma, ${translationExpression} AS translation,
-        w.pos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional,
+      const selectColumns = `w.id, w.collection_id AS "collectionId", l.name AS "languageName", w.word, COALESCE(w.lemma, w.word) AS lemma, ${translationExpression} AS translation,
+        w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
         COALESCE(uws.status, 'unknown') AS status`;
       if (searchTerm) {
         return db.prepare(`

@@ -3,10 +3,10 @@ import { addStudyLanguageForUser, getLanguages } from "../../modules/languages/l
 import { readJson } from "../request.js";
 import { jsonResponse } from "../response.js";
 
-function buildLanguagesPayload(repositories, userId) {
+async function buildLanguagesPayload(repositories, userId) {
   return {
-    languages: getLanguages(repositories, userId),
-    predefinedLanguages: repositories.languages.listPredefined(),
+    languages: await getLanguages(repositories, userId),
+    predefinedLanguages: await repositories.languages.listPredefined(),
     studyLanguageOptions: STUDY_LANGUAGE_OPTIONS
   };
 }
@@ -18,20 +18,20 @@ export function createLanguagesRoutes({ repositories }) {
     }
 
     if (req.method === "GET") {
-      jsonResponse(res, 200, buildLanguagesPayload(repositories, user.userId));
+      jsonResponse(res, 200, await buildLanguagesPayload(repositories, user.userId));
       return true;
     }
 
     if (req.method === "POST") {
       const body = await readJson(req);
-      const profile = repositories.auth.findUserById(user.userId);
-      const result = addStudyLanguageForUser(repositories, user.userId, body.name, profile?.nativeLanguage || "English");
+      const profile = await repositories.auth.findUserById(user.userId);
+      const result = await addStudyLanguageForUser(repositories, user.userId, body.name, profile?.nativeLanguage || "English");
       if (result.error) {
         jsonResponse(res, 400, { error: result.error, errorKey: result.errorKey });
         return true;
       }
       jsonResponse(res, 201, {
-        ...buildLanguagesPayload(repositories, user.userId),
+        ...(await buildLanguagesPayload(repositories, user.userId)),
         language: result.language
       });
       return true;

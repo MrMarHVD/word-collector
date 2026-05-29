@@ -20,13 +20,13 @@ export function createPracticeRepository(db) {
       const translationExpression = displayedTranslationExpression();
       return db.prepare(`
         SELECT
-          w.id AS wordId,
+          w.id AS "wordId",
           w.word,
           COALESCE(w.lemma, w.word) AS lemma,
           ${translationExpression} AS translation,
           w.reading,
           w.pinyin,
-          uws.click_count AS clickCount
+          uws.click_count AS "clickCount"
         FROM words w
         JOIN collections c ON c.id = w.collection_id
         JOIN languages l ON l.id = c.language_id

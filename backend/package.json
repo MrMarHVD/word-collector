@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
+    "migrate": "node-pg-migrate",
+    "migrate:up": "node-pg-migrate up",
+    "migrate:down": "node-pg-migrate down",
     "provision:admin": "node scripts/provision_admin.js",
     "import:wikdict-en-ja": "node scripts/import_wikdict_en_ja.js",
     "import:wikdict-en-zh": "node scripts/import_wikdict_en_zh.js",
@@ -21,7 +24,9 @@
   "dependencies": {
     "jszip": "^3.10.1",
     "kuromoji": "^0.1.2",
+    "node-pg-migrate": "^8.0.4",
     "pdfjs-dist": "^5.7.284",
+    "pg": "^8.21.0",
     "wink-lemmatizer": "^3.0.4"
   }
 }

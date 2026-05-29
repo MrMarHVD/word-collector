@@ -30,13 +30,13 @@ export function clearAuthCookie(res) {
 // Build request authentication helpers around the user repository.
 export function createSessionHelpers(authRepository) {
   // Verify the token and then require the referenced user row to still exist.
-  function getAuthenticatedUser(req) {
+  async function getAuthenticatedUser(req) {
     const token = parseCookies(req)[AUTH_COOKIE];
     const payload = verifyJwt(token);
     if (!payload) {
       return null;
     }
-    const user = authRepository.findUserById(Number(payload.sub));
+    const user = await authRepository.findUserById(Number(payload.sub));
     if (!user || user.email !== payload.email) {
       return null;
     }
@@ -44,8 +44,8 @@ export function createSessionHelpers(authRepository) {
   }
 
   // Require a valid user or write a 401 response.
-  function requireUser(req, res) {
-    const user = getAuthenticatedUser(req);
+  async function requireUser(req, res) {
+    const user = await getAuthenticatedUser(req);
     if (!user) {
       jsonResponse(res, 401, { error: "Authentication required." });
       return null;

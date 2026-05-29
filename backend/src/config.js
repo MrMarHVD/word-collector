@@ -30,8 +30,12 @@ function requireEnv(name) {
 export const PORT = Number(process.env.PORT || 3000);
 export const PUBLIC_DIR = process.env.PUBLIC_DIR || join(ROOT, "frontend", "public");
 export const DATA_DIR = process.env.WORD_MARKER_DATA_DIR || join(ROOT, "data");
-export const DB_PATH = join(DATA_DIR, "words.db");
 export const AUTH_COOKIE = "word_collector_token";
+
+// Postgres connection string. Required in production; defaults to the local
+// development cluster otherwise.
+export const DATABASE_URL = process.env.DATABASE_URL
+  || (IS_PRODUCTION ? requireEnv("DATABASE_URL") : "postgres://localhost:5432/word_marker");
 export const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
 export const JWT_TTL_SECONDS = 7 * 24 * 60 * 60;
 

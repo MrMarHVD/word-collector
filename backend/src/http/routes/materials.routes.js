@@ -6,12 +6,12 @@ export function createMaterialsRoutes({ repositories }) {
   return async function handleMaterialsRoutes(req, res, url, user) {
     if (req.method === "GET" && url.pathname === "/api/materials") {
       const languageId = Number(url.searchParams.get("languageId"));
-      if (!repositories.languages.findById(languageId, user.userId)) {
+      if (!(await repositories.languages.findById(languageId, user.userId))) {
         jsonResponse(res, 404, { error: "Language not found." });
         return true;
       }
       jsonResponse(res, 200, {
-        materials: getMaterials(repositories, user.userId, languageId, url.searchParams.get("offset"), url.searchParams.get("search") || ""),
+        materials: await getMaterials(repositories, user.userId, languageId, url.searchParams.get("offset"), url.searchParams.get("search") || ""),
         pageSize: 50
       });
       return true;
@@ -19,7 +19,7 @@ export function createMaterialsRoutes({ repositories }) {
 
     if (req.method === "POST" && url.pathname === "/api/materials") {
       const { fields, files } = await readMultipart(req);
-      const result = startMaterialImport(repositories, user.userId, fields.languageId, files.file);
+      const result = await startMaterialImport(repositories, user.userId, fields.languageId, files.file);
       if (result.error) {
         jsonResponse(res, 400, result);
         return true;
@@ -34,7 +34,7 @@ export function createMaterialsRoutes({ repositories }) {
     }
 
     if (req.method === "GET") {
-      const reader = getMaterialReader(repositories, user.userId, Number(materialMatch[1]), url.searchParams.has("start") ? url.searchParams.get("start") : null, url.searchParams.get("limit"));
+      const reader = await getMaterialReader(repositories, user.userId, Number(materialMatch[1]), url.searchParams.has("start") ? url.searchParams.get("start") : null, url.searchParams.get("limit"));
       if (!reader) {
         jsonResponse(res, 404, { error: "Material not found." });
         return true;
@@ -45,7 +45,7 @@ export function createMaterialsRoutes({ repositories }) {
 
     if (req.method === "PATCH") {
       const body = await readJson(req);
-      const material = updateMaterialReaderStart(repositories, user.userId, Number(materialMatch[1]), body.readerStart);
+      const material = await updateMaterialReaderStart(repositories, user.userId, Number(materialMatch[1]), body.readerStart);
       if (!material) {
         jsonResponse(res, 404, { error: "Material not found." });
         return true;
@@ -56,11 +56,11 @@ export function createMaterialsRoutes({ repositories }) {
 
     if (req.method === "DELETE") {
       const materialId = Number(materialMatch[1]);
-      if (!repositories.materials.findById(materialId, user.userId)) {
+      if (!(await repositories.materials.findById(materialId, user.userId))) {
         jsonResponse(res, 404, { error: "Material not found." });
         return true;
       }
-      const result = repositories.materials.deleteById(materialId, user.userId);
+      const result = await repositories.materials.deleteById(materialId, user.userId);
       if (!result.changes) {
         jsonResponse(res, 404, { error: "Material not found." });
         return true;

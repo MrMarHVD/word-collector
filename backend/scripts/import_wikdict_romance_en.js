@@ -1,9 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import JSZip from "jszip";
-import { DatabaseSync } from "node:sqlite";
-import { DB_PATH, ROOT } from "../src/config.js";
-import { runMigrations } from "../src/db/migrate.js";
+import { db, pool } from "../src/db/index.js";
+import { ROOT } from "../src/config.js";
 
 const IMPORTS = {
   spanish: {
@@ -146,68 +145,68 @@ const idxBuffer = Buffer.from(await idxFile.async("nodebuffer"));
 const idxEntries = readIdxEntries(idxBuffer);
 const synEntries = synFile ? readSynEntries(Buffer.from(await synFile.async("nodebuffer")), idxEntries) : [];
 const dictBuffer = Buffer.from(await dictFile.async("nodebuffer"));
-const db = new DatabaseSync(DB_PATH);
-runMigrations(db);
-
-const insert = db.prepare(`
-  INSERT OR REPLACE INTO ${config.table} (${config.sourceColumn}, english, pos, rank, definition)
-  VALUES (?, ?, ?, ?, ?)
-`);
-const insertAlias = config.aliasTable ? db.prepare(`
-  INSERT OR IGNORE INTO ${config.aliasTable} (${config.sourceColumn}, headword)
-  VALUES (?, ?)
-`) : null;
 
 let entries = 0;
 let rows = 0;
 let aliases = 0;
-db.exec("BEGIN");
 try {
-  if (config.aliasTable) {
-    db.exec(`DELETE FROM ${config.aliasTable}`);
-  }
-  db.exec(`DELETE FROM ${config.table}`);
-  for (const entry of idxEntries) {
-    if (!/^[\p{Letter}][\p{Letter}'’ -]{1,100}$/u.test(entry.word)) continue;
-    entries += 1;
-    const html = dictBuffer.slice(entry.dataOffset, entry.dataOffset + entry.size).toString("utf8");
-    const pos = extractPos(html) || null;
-    const definition = extractDefinition(html) || null;
-    const preferred = config.preferredTranslations?.[entry.word] || [];
-    const translations = extractTranslations(html).sort((left, right) => {
-      const leftIndex = preferred.indexOf(left.toLowerCase());
-      const rightIndex = preferred.indexOf(right.toLowerCase());
-      if (leftIndex === -1 && rightIndex === -1) return 0;
-      if (leftIndex === -1) return 1;
-      if (rightIndex === -1) return -1;
-      return leftIndex - rightIndex;
-    });
-    translations.forEach((translation, index) => {
-      if (BAD_TRANSLATIONS.get(entry.word)?.has(translation.toLowerCase())) {
-        return;
-      }
-      insert.run(entry.word, translation, pos, index, definition);
-      rows += 1;
-    });
-  }
-  if (insertAlias) {
-    for (const alias of synEntries) {
-      if (!/^[\p{Letter}][\p{Letter}'’ -]{1,100}$/u.test(alias.word)) continue;
-      if (!/^[\p{Letter}][\p{Letter}'’ -]{1,100}$/u.test(alias.headword)) continue;
-      insertAlias.run(alias.word, alias.headword);
-      aliases += 1;
+  await db.transaction(async (tx) => {
+    const insert = tx.prepare(`
+      INSERT INTO ${config.table} (${config.sourceColumn}, english, pos, rank, definition)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT (${config.sourceColumn}, english) DO UPDATE SET
+        pos = EXCLUDED.pos,
+        rank = EXCLUDED.rank,
+        definition = EXCLUDED.definition
+    `);
+    const insertAlias = config.aliasTable ? tx.prepare(`
+      INSERT INTO ${config.aliasTable} (${config.sourceColumn}, headword)
+      VALUES (?, ?)
+      ON CONFLICT (${config.sourceColumn}) DO NOTHING
+    `) : null;
+
+    if (config.aliasTable) {
+      await tx.prepare(`DELETE FROM ${config.aliasTable}`).run();
     }
-  }
-  for (const custom of config.customTranslations || []) {
-    insert.run(custom.source, custom.translation, custom.pos || null, 0, null);
-    rows += 1;
-  }
-  db.exec("COMMIT");
-} catch (error) {
-  db.exec("ROLLBACK");
-  throw error;
+    await tx.prepare(`DELETE FROM ${config.table}`).run();
+    for (const entry of idxEntries) {
+      if (!/^[\p{Letter}][\p{Letter}'’ -]{1,100}$/u.test(entry.word)) continue;
+      entries += 1;
+      const html = dictBuffer.slice(entry.dataOffset, entry.dataOffset + entry.size).toString("utf8");
+      const pos = extractPos(html) || null;
+      const definition = extractDefinition(html) || null;
+      const preferred = config.preferredTranslations?.[entry.word] || [];
+      const translations = extractTranslations(html).sort((left, right) => {
+        const leftIndex = preferred.indexOf(left.toLowerCase());
+        const rightIndex = preferred.indexOf(right.toLowerCase());
+        if (leftIndex === -1 && rightIndex === -1) return 0;
+        if (leftIndex === -1) return 1;
+        if (rightIndex === -1) return -1;
+        return leftIndex - rightIndex;
+      });
+      for (const [index, translation] of translations.entries()) {
+        if (BAD_TRANSLATIONS.get(entry.word)?.has(translation.toLowerCase())) {
+          continue;
+        }
+        await insert.run(entry.word, translation, pos, index, definition);
+        rows += 1;
+      }
+    }
+    if (insertAlias) {
+      for (const alias of synEntries) {
+        if (!/^[\p{Letter}][\p{Letter}'’ -]{1,100}$/u.test(alias.word)) continue;
+        if (!/^[\p{Letter}][\p{Letter}'’ -]{1,100}$/u.test(alias.headword)) continue;
+        await insertAlias.run(alias.word, alias.headword);
+        aliases += 1;
+      }
+    }
+    for (const custom of config.customTranslations || []) {
+      await insert.run(custom.source, custom.translation, custom.pos || null, 0, null);
+      rows += 1;
+    }
+  });
 } finally {
-  db.close();
+  await pool.end();
 }
 
 console.log(JSON.stringify({ language, entries, rows, aliases }, null, 2));

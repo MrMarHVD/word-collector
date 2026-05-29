@@ -7,7 +7,7 @@ export function createDashboardRoutes({ repositories }) {
       return false;
     }
 
-    jsonResponse(res, 200, getDashboard(repositories, user.userId, url.searchParams.get("languageId")));
+    jsonResponse(res, 200, await getDashboard(repositories, user.userId, url.searchParams.get("languageId")));
     return true;
   };
 }

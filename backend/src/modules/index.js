@@ -9,18 +9,19 @@ import { createPracticeRepository } from "./practice/practice.repository.js";
 import { createTranslationsRepository } from "./translations/translations.repository.js";
 import { createWordsRepository } from "./words/words.repository.js";
 
-export function createRepositories(db) {
+export function createRepositories(executor) {
   const repositories = {
-    auth: createAuthRepository(db),
-    dashboard: createDashboardRepository(db),
-    database: createDatabaseRepository(db),
-    dictionaries: createDictionariesRepository(db),
-    languages: createLanguagesRepository(db),
-    materials: createMaterialsRepository(db),
-    practice: createPracticeRepository(db),
-    translations: createTranslationsRepository(db),
-    words: createWordsRepository(db)
+    auth: createAuthRepository(executor),
+    dashboard: createDashboardRepository(executor),
+    dictionaries: createDictionariesRepository(executor),
+    languages: createLanguagesRepository(executor),
+    materials: createMaterialsRepository(executor),
+    practice: createPracticeRepository(executor),
+    translations: createTranslationsRepository(executor),
+    words: createWordsRepository(executor)
   };
   repositories.imports = createImportsRepository(repositories);
+  // Transactions rebuild a repository set bound to the transaction connection.
+  repositories.database = createDatabaseRepository(executor, (scoped) => createRepositories(scoped));
   return repositories;
 }

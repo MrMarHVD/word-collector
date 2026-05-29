@@ -207,23 +207,23 @@ export function createDictionariesRepository(db) {
     listWikdictEnglishChinese(term, limit = 5) {
       return wikdictEnglishChineseTranslations.all(term, Math.max(1, Math.min(Number(limit) || 5, 50)));
     },
-    findWikdictSpanishEnglish(term) {
-      return wikdictSpanishEnglish.get(term) || wikdictSpanishEnglishViaAlias.get(term);
+    async findWikdictSpanishEnglish(term) {
+      return (await wikdictSpanishEnglish.get(term)) || (await wikdictSpanishEnglishViaAlias.get(term));
     },
-    listWikdictSpanishEnglish(term, limit = 5) {
+    async listWikdictSpanishEnglish(term, limit = 5) {
       const safeLimit = Math.max(1, Math.min(Number(limit) || 5, 50));
-      const direct = wikdictSpanishEnglishTranslations.all(term, safeLimit);
+      const direct = await wikdictSpanishEnglishTranslations.all(term, safeLimit);
       if (direct.length) {
         return direct;
       }
       return wikdictSpanishEnglishTranslationsViaAlias.all(term, safeLimit);
     },
-    findWikdictFrenchEnglish(term) {
-      return wikdictFrenchEnglish.get(term) || wikdictFrenchEnglishViaAlias.get(term);
+    async findWikdictFrenchEnglish(term) {
+      return (await wikdictFrenchEnglish.get(term)) || (await wikdictFrenchEnglishViaAlias.get(term));
     },
-    listWikdictFrenchEnglish(term, limit = 5) {
+    async listWikdictFrenchEnglish(term, limit = 5) {
       const safeLimit = Math.max(1, Math.min(Number(limit) || 5, 50));
-      const direct = wikdictFrenchEnglishTranslations.all(term, safeLimit);
+      const direct = await wikdictFrenchEnglishTranslations.all(term, safeLimit);
       if (direct.length) {
         return direct;
       }

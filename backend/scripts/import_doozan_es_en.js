@@ -2,9 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import JSZip from "jszip";
-import { DatabaseSync } from "node:sqlite";
-import { DB_PATH, ROOT } from "../src/config.js";
-import { runMigrations } from "../src/db/migrate.js";
+import { db, pool } from "../src/db/index.js";
+import { ROOT } from "../src/config.js";
 
 const sourcePath = process.argv[2] || join(ROOT, "data", "dictionaries", "Spanish-English-Wiktionary.StarDict.zip");
 
@@ -115,57 +114,56 @@ const idxEntries = readIdxEntries(Buffer.from(await idxFile.async("nodebuffer"))
 const synEntries = readSynEntries(Buffer.from(await synFile.async("nodebuffer")), idxEntries);
 const dictBuffer = gunzipSync(Buffer.from(await dictFile.async("nodebuffer")));
 
-const db = new DatabaseSync(DB_PATH);
-runMigrations(db);
-
-const insertEntry = db.prepare(`
-  INSERT OR REPLACE INTO wikdict_spanish_english (spanish, english, pos, rank, definition)
-  VALUES (?, ?, ?, ?, ?)
-`);
-const insertAlias = db.prepare(`
-  INSERT OR IGNORE INTO wikdict_spanish_english_aliases (spanish, headword)
-  VALUES (?, ?)
-`);
-
 let entries = 0;
 let rows = 0;
 let aliases = 0;
 const canonicalByIndex = new Map();
-db.exec("BEGIN");
 try {
-  db.exec("DELETE FROM wikdict_spanish_english_aliases");
-  db.exec("DELETE FROM wikdict_spanish_english");
-  for (const [index, entry] of idxEntries.entries()) {
-    if (!/^[\p{Letter}][\p{Letter}'’ -]{0,100}$/u.test(entry.word)) continue;
-    const html = dictBuffer.slice(entry.dataOffset, entry.dataOffset + entry.size).toString("utf8");
-    const translations = extractEntries(html);
-    if (!translations.length) continue;
-    const canonical = translations.find((translation) => /^[\p{Letter}][\p{Letter}'’ -]{0,100}$/u.test(translation.headword))?.headword || entry.word;
-    canonicalByIndex.set(index, canonical);
-    entries += 1;
-    translations.forEach((translation, index) => {
-      const headword = /^[\p{Letter}][\p{Letter}'’ -]{0,100}$/u.test(translation.headword) ? translation.headword : canonical;
-      insertEntry.run(headword, translation.translation, translation.pos || null, index, null);
-      rows += 1;
-    });
-    if (entry.word !== canonical) {
-      insertAlias.run(entry.word, canonical);
+  await db.transaction(async (tx) => {
+    const insertEntry = tx.prepare(`
+      INSERT INTO wikdict_spanish_english (spanish, english, pos, rank, definition)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT (spanish, english) DO UPDATE SET
+        pos = EXCLUDED.pos,
+        rank = EXCLUDED.rank,
+        definition = EXCLUDED.definition
+    `);
+    const insertAlias = tx.prepare(`
+      INSERT INTO wikdict_spanish_english_aliases (spanish, headword)
+      VALUES (?, ?)
+      ON CONFLICT (spanish) DO NOTHING
+    `);
+
+    await tx.prepare("DELETE FROM wikdict_spanish_english_aliases").run();
+    await tx.prepare("DELETE FROM wikdict_spanish_english").run();
+    for (const [index, entry] of idxEntries.entries()) {
+      if (!/^[\p{Letter}][\p{Letter}'’ -]{0,100}$/u.test(entry.word)) continue;
+      const html = dictBuffer.slice(entry.dataOffset, entry.dataOffset + entry.size).toString("utf8");
+      const translations = extractEntries(html);
+      if (!translations.length) continue;
+      const canonical = translations.find((translation) => /^[\p{Letter}][\p{Letter}'’ -]{0,100}$/u.test(translation.headword))?.headword || entry.word;
+      canonicalByIndex.set(index, canonical);
+      entries += 1;
+      for (const [rank, translation] of translations.entries()) {
+        const headword = /^[\p{Letter}][\p{Letter}'’ -]{0,100}$/u.test(translation.headword) ? translation.headword : canonical;
+        await insertEntry.run(headword, translation.translation, translation.pos || null, rank, null);
+        rows += 1;
+      }
+      if (entry.word !== canonical) {
+        await insertAlias.run(entry.word, canonical);
+        aliases += 1;
+      }
+    }
+    for (const alias of synEntries) {
+      const headword = canonicalByIndex.get(alias.index) || alias.headword;
+      if (!/^[\p{Letter}][\p{Letter}'’ -]{0,100}$/u.test(alias.word)) continue;
+      if (!/^[\p{Letter}][\p{Letter}'’ -]{0,100}$/u.test(headword)) continue;
+      await insertAlias.run(alias.word, headword);
       aliases += 1;
     }
-  }
-  for (const alias of synEntries) {
-    const headword = canonicalByIndex.get(alias.index) || alias.headword;
-    if (!/^[\p{Letter}][\p{Letter}'’ -]{0,100}$/u.test(alias.word)) continue;
-    if (!/^[\p{Letter}][\p{Letter}'’ -]{0,100}$/u.test(headword)) continue;
-    insertAlias.run(alias.word, headword);
-    aliases += 1;
-  }
-  db.exec("COMMIT");
-} catch (error) {
-  db.exec("ROLLBACK");
-  throw error;
+  });
 } finally {
-  db.close();
+  await pool.end();
 }
 
 console.log(JSON.stringify({ entries, rows, aliases }, null, 2));

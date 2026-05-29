@@ -1,9 +1,8 @@
 import { createGunzip } from "node:zlib";
 import { createReadStream } from "node:fs";
 import { join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
-import { DB_PATH, ROOT } from "../src/config.js";
-import { runMigrations } from "../src/db/migrate.js";
+import { db, pool } from "../src/db/index.js";
+import { ROOT } from "../src/config.js";
 
 // Build local Japanese-English and English-Japanese lookup indexes from JMdict.
 const sourcePath = process.argv[2] || join(ROOT, "data", "dictionaries", "JMdict_e.gz");
@@ -41,17 +40,6 @@ function priorityFor(entry) {
 }
 
 const xml = await readGzip(sourcePath);
-const db = new DatabaseSync(DB_PATH);
-runMigrations(db);
-
-const insert = db.prepare(`
-  INSERT OR REPLACE INTO jmdict_entries (expression, reading, gloss, priority)
-  VALUES (?, ?, ?, ?)
-`);
-const insertEnglish = db.prepare(`
-  INSERT OR REPLACE INTO jmdict_english_index (english, expression, gloss, pos, priority)
-  VALUES (?, ?, ?, ?, ?)
-`);
 
 function posForCode(code) {
   const clean = String(code || "").replaceAll("&", "").replaceAll(";", "");
@@ -93,40 +81,52 @@ function englishKeys(glosses) {
 
 let entries = 0;
 let rows = 0;
-db.exec("BEGIN");
 try {
-  // Rebuild the derived index from source data.
-  db.exec("DELETE FROM jmdict_entries");
-  db.exec("DELETE FROM jmdict_english_index");
-  for (const match of xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)) {
-    entries += 1;
-    const entry = match[1];
-    const expressions = values(entry, "keb");
-    const readings = values(entry, "reb");
-    const forms = expressions.length ? expressions : readings;
-    const reading = readings[0] || null;
-    const priority = priorityFor(entry);
-    const entrySenses = senses(entry);
-    const glosses = entrySenses.flatMap((sense) => sense.glosses);
-    for (const form of forms) {
-      const gloss = [...new Set(glosses)].slice(0, 6).join("; ");
-      if (form && gloss) {
-        insert.run(form, reading, gloss, priority);
-        for (const sense of entrySenses) {
-          for (const english of englishKeys(sense.glosses)) {
-            insertEnglish.run(english, form, gloss, sense.pos || null, priority);
+  await db.transaction(async (tx) => {
+    const insert = tx.prepare(`
+      INSERT INTO jmdict_entries (expression, reading, gloss, priority)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT (expression, gloss) DO UPDATE SET
+        reading = EXCLUDED.reading,
+        priority = EXCLUDED.priority
+    `);
+    const insertEnglish = tx.prepare(`
+      INSERT INTO jmdict_english_index (english, expression, gloss, pos, priority)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT (english, expression) DO UPDATE SET
+        gloss = EXCLUDED.gloss,
+        pos = EXCLUDED.pos,
+        priority = EXCLUDED.priority
+    `);
+    // Rebuild the derived index from source data.
+    await tx.prepare("DELETE FROM jmdict_entries").run();
+    await tx.prepare("DELETE FROM jmdict_english_index").run();
+    for (const match of xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)) {
+      entries += 1;
+      const entry = match[1];
+      const expressions = values(entry, "keb");
+      const readings = values(entry, "reb");
+      const forms = expressions.length ? expressions : readings;
+      const reading = readings[0] || null;
+      const priority = priorityFor(entry);
+      const entrySenses = senses(entry);
+      const glosses = entrySenses.flatMap((sense) => sense.glosses);
+      for (const form of forms) {
+        const gloss = [...new Set(glosses)].slice(0, 6).join("; ");
+        if (form && gloss) {
+          await insert.run(form, reading, gloss, priority);
+          for (const sense of entrySenses) {
+            for (const english of englishKeys(sense.glosses)) {
+              await insertEnglish.run(english, form, gloss, sense.pos || null, priority);
+            }
           }
+          rows += 1;
         }
-        rows += 1;
       }
     }
-  }
-  db.exec("COMMIT");
-} catch (error) {
-  db.exec("ROLLBACK");
-  throw error;
+  });
 } finally {
-  db.close();
+  await pool.end();
 }
 
 console.log(JSON.stringify({ entries, rows }, null, 2));

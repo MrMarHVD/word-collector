@@ -39,9 +39,9 @@ export function translationTargetsForLanguage(sourceLanguage) {
   return [...new Set(TRANSLATION_ROUTES.filter((route) => route.source === source).map((route) => route.target))];
 }
 
-export function lookupTranslation(repositories, sourceLanguage, targetLanguage, term) {
+export async function lookupTranslation(repositories, sourceLanguage, targetLanguage, term) {
   const route = translationRoute(sourceLanguage, targetLanguage);
-  return route ? normalizeName(route.lookup(repositories.dictionaries, term)) : "";
+  return route ? normalizeName(await route.lookup(repositories.dictionaries, term)) : "";
 }
 
 function tokenSourceTerms(token) {
@@ -273,7 +273,7 @@ function spanishLemmaCandidates(term) {
   return uniqueTerms(candidates);
 }
 
-function lookupDictionaryEntriesForRoute(repositories, sourceLanguage, targetLanguage, term) {
+async function lookupDictionaryEntriesForRoute(repositories, sourceLanguage, targetLanguage, term) {
   const source = languageKey(sourceLanguage);
   const target = languageKey(targetLanguage);
   if (source === "English" && target === "Japanese") {
@@ -314,14 +314,14 @@ function candidateSourceTerms(sourceLanguage, token) {
   return uniqueTerms(baseTerms);
 }
 
-export function translationDisambiguationCandidates(repositories, sourceLanguage, targetLanguage, token) {
+export async function translationDisambiguationCandidates(repositories, sourceLanguage, targetLanguage, token) {
   if (!translationRoute(sourceLanguage, targetLanguage)) {
     return [];
   }
   const candidates = [];
   const seen = new Set();
   for (const source of candidateSourceTerms(sourceLanguage, token)) {
-    for (const entry of lookupDictionaryEntriesForRoute(repositories, sourceLanguage, targetLanguage, source)) {
+    for (const entry of await lookupDictionaryEntriesForRoute(repositories, sourceLanguage, targetLanguage, source)) {
       if (entry.translation.toLowerCase() === String(entry.source || source).toLowerCase()) continue;
       const key = `${entry.source || source}\u0000${entry.translation.toLowerCase()}\u0000${entry.pos.toLowerCase()}`;
       if (seen.has(key)) continue;
@@ -332,13 +332,13 @@ export function translationDisambiguationCandidates(repositories, sourceLanguage
   return candidates;
 }
 
-export function displayTranslationForToken(repositories, sourceLanguage, targetLanguage, token) {
-  const candidates = translationDisambiguationCandidates(repositories, sourceLanguage, targetLanguage, token);
+export async function displayTranslationForToken(repositories, sourceLanguage, targetLanguage, token) {
+  const candidates = await translationDisambiguationCandidates(repositories, sourceLanguage, targetLanguage, token);
   if (candidates.length) {
     return candidates[0].translation;
   }
-  return lookupTranslation(repositories, sourceLanguage, targetLanguage, token.lemma || token.word)
-    || lookupTranslation(repositories, sourceLanguage, targetLanguage, token.surface || token.word);
+  return (await lookupTranslation(repositories, sourceLanguage, targetLanguage, token.lemma || token.word))
+    || (await lookupTranslation(repositories, sourceLanguage, targetLanguage, token.surface || token.word));
 }
 
 export function supportedTargetNativeLanguage(sourceLanguage, nativeLanguage) {
@@ -347,22 +347,22 @@ export function supportedTargetNativeLanguage(sourceLanguage, nativeLanguage) {
   return "";
 }
 
-export function getStoredTranslation(repositories, wordId, nativeLanguage) {
-  return normalizeName(repositories.translations.findWordTranslation(wordId, nativeLanguage)?.translation || "");
+export async function getStoredTranslation(repositories, wordId, nativeLanguage) {
+  return normalizeName((await repositories.translations.findWordTranslation(wordId, nativeLanguage))?.translation || "");
 }
 
-export function hasTranslationAttempt(repositories, wordId, nativeLanguage) {
-  return Boolean(repositories.translations.findWordTranslation(wordId, nativeLanguage));
+export async function hasTranslationAttempt(repositories, wordId, nativeLanguage) {
+  return Boolean(await repositories.translations.findWordTranslation(wordId, nativeLanguage));
 }
 
-export function hasUsableStoredTranslation(repositories, wordId, nativeLanguage, token) {
-  const stored = getStoredTranslation(repositories, wordId, nativeLanguage);
+export async function hasUsableStoredTranslation(repositories, wordId, nativeLanguage, token) {
+  const stored = await getStoredTranslation(repositories, wordId, nativeLanguage);
   if (!stored) return false;
   return stored.toLowerCase() !== token.lemma.toLowerCase() && stored.toLowerCase() !== token.surface.toLowerCase();
 }
 
-export function translationForToken(repositories, sourceLanguage, targetLanguage, token, translations = new Map()) {
-  if (translationDisambiguationCandidates(repositories, sourceLanguage, targetLanguage, token).length) {
+export async function translationForToken(repositories, sourceLanguage, targetLanguage, token, translations = new Map()) {
+  if ((await translationDisambiguationCandidates(repositories, sourceLanguage, targetLanguage, token)).length) {
     return displayTranslationForToken(repositories, sourceLanguage, targetLanguage, token);
   }
   const stored = translations.get(token.lemma.toLowerCase()) || "";
@@ -370,7 +370,7 @@ export function translationForToken(repositories, sourceLanguage, targetLanguage
   return lookupTranslation(repositories, sourceLanguage, targetLanguage, token.surface);
 }
 
-export function getTranslationCandidates(repositories, userId, sourceLanguage, targetLanguage, tokens) {
+export async function getTranslationCandidates(repositories, userId, sourceLanguage, targetLanguage, tokens) {
   if (!translationRoute(sourceLanguage, targetLanguage)) {
     return new Map();
   }
@@ -381,33 +381,31 @@ export function getTranslationCandidates(repositories, userId, sourceLanguage, t
     if (candidates.has(key)) {
       continue;
     }
-    const existing = repositories.words.findWordInLanguageBySurfaceOrLemma(userId, sourceLanguage.id, token.surface, token.lemma);
-    if (existing && hasUsableStoredTranslation(repositories, existing.id, targetLanguage, token)) {
+    const existing = await repositories.words.findWordInLanguageBySurfaceOrLemma(userId, sourceLanguage.id, token.surface, token.lemma);
+    if (existing && await hasUsableStoredTranslation(repositories, existing.id, targetLanguage, token)) {
       continue;
     }
     candidates.set(key, token.lemma);
   }
 
-  return new Map(
-    [...candidates.values()].map((lemma) => {
-      const translation = lookupTranslation(repositories, sourceLanguage, targetLanguage, lemma);
-      return [lemma.toLowerCase(), translation];
-    })
-  );
+  const resolved = new Map();
+  for (const lemma of candidates.values()) {
+    const translation = await lookupTranslation(repositories, sourceLanguage, targetLanguage, lemma);
+    resolved.set(lemma.toLowerCase(), translation);
+  }
+  return resolved;
 }
 
 export function scheduleMaterialTranslationBackfill(repositories, userId, materialId, activeTargetLanguage) {
   setTimeout(() => {
-    try {
-      backfillMaterialTranslations(repositories, userId, materialId, activeTargetLanguage);
-    } catch (error) {
+    backfillMaterialTranslations(repositories, userId, materialId, activeTargetLanguage).catch((error) => {
       console.error(`Translation backfill failed for material ${materialId}:`, error);
-    }
+    });
   }, 0);
 }
 
-export function backfillMaterialTranslations(repositories, userId, materialId, activeTargetLanguage = "") {
-  const material = repositories.materials.findById(Number(materialId), userId);
+export async function backfillMaterialTranslations(repositories, userId, materialId, activeTargetLanguage = "") {
+  const material = await repositories.materials.findById(Number(materialId), userId);
   if (!material) {
     return { updated: 0 };
   }
@@ -417,32 +415,32 @@ export function backfillMaterialTranslations(repositories, userId, materialId, a
   return backfillMaterialTranslationTargets(repositories, material, sourceLanguage, targets);
 }
 
-function backfillMaterialTranslationTargets(repositories, material, sourceLanguage, targets) {
+async function backfillMaterialTranslationTargets(repositories, material, sourceLanguage, targets) {
   if (!targets.length) {
     return { updated: 0 };
   }
 
   const tokensByWord = new Map();
-  for (const token of repositories.translations.listMaterialTranslationTokens(material.id)) {
+  for (const token of await repositories.translations.listMaterialTranslationTokens(material.id)) {
     if (!tokensByWord.has(token.wordId)) {
       tokensByWord.set(token.wordId, token);
     }
   }
 
   let updated = 0;
-  repositories.database.transaction(() => {
+  await repositories.database.transaction(async (tx) => {
     for (const target of targets) {
       for (const token of tokensByWord.values()) {
-        const stored = getStoredTranslation(repositories, token.wordId, target);
-        const attempted = hasTranslationAttempt(repositories, token.wordId, target);
-        const translation = displayTranslationForToken(repositories, sourceLanguage, target, token);
+        const stored = await getStoredTranslation(tx, token.wordId, target);
+        const attempted = await hasTranslationAttempt(tx, token.wordId, target);
+        const translation = await displayTranslationForToken(tx, sourceLanguage, target, token);
         if (stored && (!translation || stored === translation)) {
           continue;
         }
         if (!translation && attempted) {
           continue;
         }
-        repositories.translations.upsertWordTranslation(token.wordId, target, translation);
+        await tx.translations.upsertWordTranslation(token.wordId, target, translation);
         updated += 1;
       }
     }
@@ -451,24 +449,24 @@ function backfillMaterialTranslationTargets(repositories, material, sourceLangua
   return { updated };
 }
 
-export function backfillUserTranslations(repositories, userId, targetLanguage) {
+export async function backfillUserTranslations(repositories, userId, targetLanguage) {
   const target = languageKey(targetLanguage);
   if (!target) {
     return { updated: 0 };
   }
 
   let updated = 0;
-  for (const material of repositories.materials.listByUser(userId)) {
+  for (const material of await repositories.materials.listByUser(userId)) {
     const sourceLanguage = { id: material.languageId, name: material.languageName };
     if (!translationRoute(sourceLanguage, target)) {
       continue;
     }
-    updated += backfillMaterialTranslationTargets(repositories, material, sourceLanguage, [target]).updated;
+    updated += (await backfillMaterialTranslationTargets(repositories, material, sourceLanguage, [target])).updated;
   }
   return { updated };
 }
 
-export function materialTranslationStatus(repositories, material, targetLanguage) {
+export async function materialTranslationStatus(repositories, material, targetLanguage) {
   const target = languageKey(targetLanguage);
   if (!material || !target) {
     return { targetLanguage: target, ready: false, totalWords: 0, completedWords: 0, missingWords: 0 };
@@ -477,7 +475,7 @@ export function materialTranslationStatus(repositories, material, targetLanguage
     return { targetLanguage: target, ready: true, totalWords: 0, completedWords: 0, missingWords: 0 };
   }
 
-  const status = repositories.translations.getMaterialTranslationStatus(target, material.id);
+  const status = await repositories.translations.getMaterialTranslationStatus(target, material.id);
   const totalWords = Number(status?.totalWords || 0);
   const completedWords = Number(status?.completedWords || 0);
   return {

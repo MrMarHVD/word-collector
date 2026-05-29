@@ -1,9 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import JSZip from "jszip";
-import { DatabaseSync } from "node:sqlite";
-import { DB_PATH, ROOT } from "../src/config.js";
-import { runMigrations } from "../src/db/migrate.js";
+import { db, pool } from "../src/db/index.js";
+import { ROOT } from "../src/config.js";
 
 const sourcePath = process.argv[2] || join(ROOT, "data", "dictionaries", "wikdict-en-zh.zip");
 
@@ -78,37 +77,35 @@ if (!idxFile || !dictFile) {
 
 const idxBuffer = Buffer.from(await idxFile.async("nodebuffer"));
 const dictBuffer = Buffer.from(await dictFile.async("nodebuffer"));
-const db = new DatabaseSync(DB_PATH);
-runMigrations(db);
-
-const insert = db.prepare(`
-  INSERT OR REPLACE INTO wikdict_english_chinese (english, chinese, pos, rank, definition)
-  VALUES (?, ?, ?, ?, ?)
-`);
 
 let entries = 0;
 let rows = 0;
-db.exec("BEGIN");
 try {
-  db.exec("DELETE FROM wikdict_english_chinese");
-  for (const entry of readIdxEntries(idxBuffer)) {
-    if (!/^[a-z][a-z'-]{1,80}$/.test(entry.word)) continue;
-    entries += 1;
-    const html = dictBuffer.slice(entry.dataOffset, entry.dataOffset + entry.size).toString("utf8");
-    const pos = extractPos(html) || null;
-    const definition = extractDefinition(html) || null;
-    const translations = extractTranslations(html);
-    translations.forEach((translation, index) => {
-      insert.run(entry.word, translation, pos, index, definition);
-      rows += 1;
-    });
-  }
-  db.exec("COMMIT");
-} catch (error) {
-  db.exec("ROLLBACK");
-  throw error;
+  await db.transaction(async (tx) => {
+    const insert = tx.prepare(`
+      INSERT INTO wikdict_english_chinese (english, chinese, pos, rank, definition)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT (english, chinese) DO UPDATE SET
+        pos = EXCLUDED.pos,
+        rank = EXCLUDED.rank,
+        definition = EXCLUDED.definition
+    `);
+    await tx.prepare("DELETE FROM wikdict_english_chinese").run();
+    for (const entry of readIdxEntries(idxBuffer)) {
+      if (!/^[a-z][a-z'-]{1,80}$/.test(entry.word)) continue;
+      entries += 1;
+      const html = dictBuffer.slice(entry.dataOffset, entry.dataOffset + entry.size).toString("utf8");
+      const pos = extractPos(html) || null;
+      const definition = extractDefinition(html) || null;
+      const translations = extractTranslations(html);
+      for (const [index, translation] of translations.entries()) {
+        await insert.run(entry.word, translation, pos, index, definition);
+        rows += 1;
+      }
+    }
+  });
 } finally {
-  db.close();
+  await pool.end();
 }
 
 console.log(JSON.stringify({ entries, rows }, null, 2));

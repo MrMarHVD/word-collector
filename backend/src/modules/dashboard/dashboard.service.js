@@ -17,15 +17,15 @@ function normalizeCollection(collection) {
 }
 
 // Build the dashboard payload for the selected language or all user collections.
-export function getDashboard(repositories, userId, languageId) {
+export async function getDashboard(repositories, userId, languageId) {
   const selectedLanguageId = Number(languageId) || null;
-  const totals = repositories.dashboard.getTotals(userId, selectedLanguageId);
-  const collections = repositories.dashboard.listCollections(userId, selectedLanguageId);
-  const allCollections = repositories.dashboard.listAllCollections(userId);
+  const totals = await repositories.dashboard.getTotals(userId, selectedLanguageId);
+  const collections = await repositories.dashboard.listCollections(userId, selectedLanguageId);
+  const allCollections = await repositories.dashboard.listAllCollections(userId);
 
   return {
-    languages: getLanguages(repositories, userId),
-    predefinedLanguages: repositories.languages.listPredefined(),
+    languages: await getLanguages(repositories, userId),
+    predefinedLanguages: await repositories.languages.listPredefined(),
     studyLanguageOptions: STUDY_LANGUAGE_OPTIONS,
     selectedLanguageId,
     totalWords: Number(totals.totalWords || 0),

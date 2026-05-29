@@ -31,7 +31,7 @@ export function createApiHandler({ repositories }) {
       }
     }
 
-    const user = session.requireUser(req, res);
+    const user = await session.requireUser(req, res);
     if (!user) {
       return;
     }

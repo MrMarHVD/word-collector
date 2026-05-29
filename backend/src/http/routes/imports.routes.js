@@ -9,7 +9,7 @@ export function createImportsRoutes({ repositories }) {
     }
 
     const body = await readJson(req);
-    const result = importWords(repositories, user.userId, {
+    const result = await importWords(repositories, user.userId, {
       collectionName: body.collectionName,
       collectionId: body.collectionId,
       languageId: body.languageId,

@@ -9,14 +9,14 @@ export function createPracticeRoutes({ repositories }) {
     }
 
     const languageId = Number(url.searchParams.get("languageId"));
-    const language = getLanguage(repositories, user.userId, languageId);
+    const language = await getLanguage(repositories, user.userId, languageId);
     if (!language) {
       jsonResponse(res, 404, { error: "Language not found." });
       return true;
     }
 
-    const profile = repositories.auth.findUserById(user.userId);
-    const session = buildPracticeSession(
+    const profile = await repositories.auth.findUserById(user.userId);
+    const session = await buildPracticeSession(
       repositories,
       user.userId,
       languageId,

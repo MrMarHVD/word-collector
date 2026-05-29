@@ -1,15 +1,10 @@
-export function createDatabaseRepository(db) {
+export function createDatabaseRepository(executor, rebuild) {
   return {
+    // Run `work` as an atomic unit. The callback receives a transaction-scoped
+    // repository set whose queries all run on the same connection, so they
+    // commit or roll back together.
     transaction(work) {
-      db.exec("BEGIN");
-      try {
-        const result = work();
-        db.exec("COMMIT");
-        return result;
-      } catch (error) {
-        db.exec("ROLLBACK");
-        throw error;
-      }
+      return executor.transaction((scoped) => work(rebuild(scoped)));
     }
   };
 }

@@ -27,9 +27,9 @@ export function normalizeWordsPerSession(value) {
 // A learning word never opened (click_count 0) is not a valid practice word, so
 // when fewer than the requested count are valid the caller is told how many
 // (validCount) were available.
-export function buildPracticeSession(repositories, userId, languageId, languageName, nativeLanguage, requestedCount) {
+export async function buildPracticeSession(repositories, userId, languageId, languageName, nativeLanguage, requestedCount) {
   const requested = normalizeWordsPerSession(requestedCount);
-  const learning = repositories.practice.listLearningWords(userId, languageId, nativeLanguage);
+  const learning = await repositories.practice.listLearningWords(userId, languageId, nativeLanguage);
 
   const card = (word) => ({
     wordId: word.wordId,

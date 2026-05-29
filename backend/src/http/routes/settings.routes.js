@@ -16,14 +16,14 @@ export function createSettingsRoutes({ repositories }) {
       jsonResponse(res, 400, { error: "Unsupported native language." });
       return true;
     }
-    repositories.auth.updateNativeLanguage(nativeLanguage, user.userId);
-    backfillUserTranslations(repositories, user.userId, nativeLanguage);
+    await repositories.auth.updateNativeLanguage(nativeLanguage, user.userId);
+    await backfillUserTranslations(repositories, user.userId, nativeLanguage);
 
     if (body.practiceWordsPerSession !== undefined && body.practiceWordsPerSession !== null) {
-      repositories.auth.updatePracticeWordsPerSession(normalizeWordsPerSession(body.practiceWordsPerSession), user.userId);
+      await repositories.auth.updatePracticeWordsPerSession(normalizeWordsPerSession(body.practiceWordsPerSession), user.userId);
     }
 
-    const profile = repositories.auth.findUserById(user.userId);
+    const profile = await repositories.auth.findUserById(user.userId);
     jsonResponse(res, 200, {
       user: {
         id: user.userId,

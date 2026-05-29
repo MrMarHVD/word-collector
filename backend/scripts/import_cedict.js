@@ -1,9 +1,8 @@
 import { createGunzip } from "node:zlib";
 import { createReadStream } from "node:fs";
 import { join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
-import { DB_PATH, ROOT } from "../src/config.js";
-import { runMigrations } from "../src/db/migrate.js";
+import { db, pool } from "../src/db/index.js";
+import { ROOT } from "../src/config.js";
 
 // Build the local English-to-Chinese lookup index from a gzipped CEDICT file.
 const sourcePath = process.argv[2] || join(ROOT, "data", "dictionaries", "cedict_ts.u8.gz");
@@ -85,40 +84,40 @@ function englishKeys(definitions) {
 }
 
 const text = await readGzip(sourcePath);
-const db = new DatabaseSync(DB_PATH);
-runMigrations(db);
-
-const insert = db.prepare(`
-  INSERT OR REPLACE INTO cedict_english_index (english, simplified, traditional, pinyin, definitions, pos, priority)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
-`);
 
 let entries = 0;
 let rows = 0;
-db.exec("BEGIN");
 try {
-  // Rebuild the derived index from source data.
-  db.exec("DELETE FROM cedict_english_index");
-  for (const line of text.split(/\r?\n/)) {
-    if (!line || line.startsWith("#")) continue;
-    const match = line.match(/^(\S+)\s+(\S+)\s+\[([^\]]+)\]\s+\/(.+)\/$/);
-    if (!match) continue;
-    entries += 1;
-    const [, traditional, simplified, pinyin, rawDefinitions] = match;
-    const definitions = rawDefinitions.split("/").map((entry) => entry.trim()).filter(Boolean);
-    const definitionText = definitions.slice(0, 6).join("; ");
-    const entryPriority = definitions.length <= 3 ? 1 : 0;
-    for (const { key, priority, pos } of englishKeys(definitions)) {
-      insert.run(key, simplified, traditional, pinyin, definitionText, pos || null, priority + entryPriority);
-      rows += 1;
+  await db.transaction(async (tx) => {
+    const insert = tx.prepare(`
+      INSERT INTO cedict_english_index (english, simplified, traditional, pinyin, definitions, pos, priority)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT (english, simplified) DO UPDATE SET
+        traditional = EXCLUDED.traditional,
+        pinyin = EXCLUDED.pinyin,
+        definitions = EXCLUDED.definitions,
+        pos = EXCLUDED.pos,
+        priority = EXCLUDED.priority
+    `);
+    // Rebuild the derived index from source data.
+    await tx.prepare("DELETE FROM cedict_english_index").run();
+    for (const line of text.split(/\r?\n/)) {
+      if (!line || line.startsWith("#")) continue;
+      const match = line.match(/^(\S+)\s+(\S+)\s+\[([^\]]+)\]\s+\/(.+)\/$/);
+      if (!match) continue;
+      entries += 1;
+      const [, traditional, simplified, pinyin, rawDefinitions] = match;
+      const definitions = rawDefinitions.split("/").map((entry) => entry.trim()).filter(Boolean);
+      const definitionText = definitions.slice(0, 6).join("; ");
+      const entryPriority = definitions.length <= 3 ? 1 : 0;
+      for (const { key, priority, pos } of englishKeys(definitions)) {
+        await insert.run(key, simplified, traditional, pinyin, definitionText, pos || null, priority + entryPriority);
+        rows += 1;
+      }
     }
-  }
-  db.exec("COMMIT");
-} catch (error) {
-  db.exec("ROLLBACK");
-  throw error;
+  });
 } finally {
-  db.close();
+  await pool.end();
 }
 
 console.log(JSON.stringify({ entries, rows }, null, 2));

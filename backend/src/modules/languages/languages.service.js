@@ -38,7 +38,7 @@ export function getLanguage(repositories, userId, languageId) {
 
 // Add a single study language to the user's enrolled list. Names that aren't
 // part of the supported study options are rejected.
-export function addStudyLanguageForUser(repositories, userId, name, nativeLanguage = "English") {
+export async function addStudyLanguageForUser(repositories, userId, name, nativeLanguage = "English") {
   const candidate = String(name || "").trim();
   const match = STUDY_LANGUAGE_OPTIONS.find((option) => option.toLowerCase() === candidate.toLowerCase());
   if (!match) {
@@ -48,10 +48,10 @@ export function addStudyLanguageForUser(repositories, userId, name, nativeLangua
   if (conflict) {
     return conflict;
   }
-  const existing = repositories.languages.findByName(userId, match);
+  const existing = await repositories.languages.findByName(userId, match);
   if (existing) {
     return { language: existing };
   }
-  repositories.languages.createForUser(userId, match);
-  return { language: repositories.languages.findByName(userId, match) };
+  await repositories.languages.createForUser(userId, match);
+  return { language: await repositories.languages.findByName(userId, match) };
 }

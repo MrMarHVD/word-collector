@@ -2,15 +2,16 @@ export function createMaterialsRepository(db) {
   const createMaterial = db.prepare(`
     INSERT INTO materials (user_id, language_id, title, file_name, file_type, raw_text, word_count)
     VALUES (?, ?, ?, ?, ?, ?, ?)
+    RETURNING id
   `);
   const insertMaterialToken = db.prepare(`
     INSERT INTO material_tokens (material_id, position, surface, normalized, lemma, pos, word_id, paragraph_index, sentence_index, conjugation_form, block_index, block_type, leading_text, trailing_text)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const materialById = db.prepare(`
-    SELECT m.id, m.user_id AS userId, m.language_id AS languageId, l.name AS languageName, m.title, m.file_name AS fileName,
-           m.file_type AS fileType, m.word_count AS wordCount, m.reader_start AS readerStart, m.created_at AS createdAt,
-           m.import_status AS importStatus, m.import_total AS importTotal, m.import_processed AS importProcessed, m.import_error AS importError
+    SELECT m.id, m.user_id AS "userId", m.language_id AS "languageId", l.name AS "languageName", m.title, m.file_name AS "fileName",
+           m.file_type AS "fileType", m.word_count AS "wordCount", m.reader_start AS "readerStart", m.created_at AS "createdAt",
+           m.import_status AS "importStatus", m.import_total AS "importTotal", m.import_processed AS "importProcessed", m.import_error AS "importError"
     FROM materials m
     JOIN languages l ON l.id = m.language_id
     WHERE m.id = ? AND m.user_id = ?
@@ -18,6 +19,7 @@ export function createMaterialsRepository(db) {
   const createProcessingMaterial = db.prepare(`
     INSERT INTO materials (user_id, language_id, title, file_name, file_type, raw_text, word_count, import_status, import_total, import_processed)
     VALUES (?, ?, ?, ?, ?, '', 0, 'processing', 0, 0)
+    RETURNING id
   `);
   const updateMaterialImportMeta = db.prepare(`
     UPDATE materials SET raw_text = ?, word_count = ?, file_type = ?, import_total = ? WHERE id = ?
@@ -28,35 +30,35 @@ export function createMaterialsRepository(db) {
   const updateMaterialReaderStart = db.prepare("UPDATE materials SET reader_start = ? WHERE id = ? AND user_id = ?");
   const deleteMaterial = db.prepare("DELETE FROM materials WHERE id = ? AND user_id = ?");
   const materialsByUserAndLanguage = db.prepare(`
-    SELECT id, title, file_name AS fileName, file_type AS fileType, word_count AS wordCount, reader_start AS readerStart, created_at AS createdAt,
-           import_status AS importStatus, import_total AS importTotal, import_processed AS importProcessed, import_error AS importError
+    SELECT id, title, file_name AS "fileName", file_type AS "fileType", word_count AS "wordCount", reader_start AS "readerStart", created_at AS "createdAt",
+           import_status AS "importStatus", import_total AS "importTotal", import_processed AS "importProcessed", import_error AS "importError"
     FROM materials
     WHERE user_id = ? AND language_id = ?
-    ORDER BY datetime(created_at) DESC, id DESC
+    ORDER BY created_at DESC, id DESC
     LIMIT ? OFFSET ?
   `);
   const materialsByUserLanguageSearch = db.prepare(`
-    SELECT id, title, file_name AS fileName, file_type AS fileType, word_count AS wordCount, reader_start AS readerStart, created_at AS createdAt,
-           import_status AS importStatus, import_total AS importTotal, import_processed AS importProcessed, import_error AS importError
+    SELECT id, title, file_name AS "fileName", file_type AS "fileType", word_count AS "wordCount", reader_start AS "readerStart", created_at AS "createdAt",
+           import_status AS "importStatus", import_total AS "importTotal", import_processed AS "importProcessed", import_error AS "importError"
     FROM materials
-    WHERE user_id = ? AND language_id = ? AND title LIKE ? ESCAPE '\\'
-    ORDER BY datetime(created_at) DESC, id DESC
+    WHERE user_id = ? AND language_id = ? AND title ILIKE ? ESCAPE '\\'
+    ORDER BY created_at DESC, id DESC
     LIMIT ? OFFSET ?
   `);
   const materialsByUser = db.prepare(`
-    SELECT m.id, m.user_id AS userId, m.language_id AS languageId, l.name AS languageName, m.title, m.file_name AS fileName,
-           m.file_type AS fileType, m.word_count AS wordCount, m.reader_start AS readerStart, m.created_at AS createdAt
+    SELECT m.id, m.user_id AS "userId", m.language_id AS "languageId", l.name AS "languageName", m.title, m.file_name AS "fileName",
+           m.file_type AS "fileType", m.word_count AS "wordCount", m.reader_start AS "readerStart", m.created_at AS "createdAt"
     FROM materials m
     JOIN languages l ON l.id = m.language_id
     WHERE m.user_id = ?
-    ORDER BY datetime(m.created_at) DESC, m.id DESC
+    ORDER BY m.created_at DESC, m.id DESC
   `);
   const readerTokens = db.prepare(`
-    SELECT mt.id, mt.position, mt.surface, mt.lemma, mt.pos, mt.conjugation_form AS conjugationForm, mt.word_id AS wordId,
-           mt.block_index AS blockIndex, mt.block_type AS blockType,
-           mt.leading_text AS leadingText, mt.trailing_text AS trailingText,
-           w.word AS dictionaryForm,
-           w.pos AS wordPos, w.pos_subcategory AS posSubcategory, w.reading, w.pinyin, w.traditional,
+    SELECT mt.id, mt.position, mt.surface, mt.lemma, mt.pos, mt.conjugation_form AS "conjugationForm", mt.word_id AS "wordId",
+           mt.block_index AS "blockIndex", mt.block_type AS "blockType",
+           mt.leading_text AS "leadingText", mt.trailing_text AS "trailingText",
+           w.word AS "dictionaryForm",
+           w.pos AS "wordPos", w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
            CASE
              WHEN wt.translation IS NOT NULL AND trim(wt.translation) <> '' THEN wt.translation
              WHEN lower(?) = lower(?) THEN w.word

@@ -6,8 +6,8 @@ export function createLanguagesRepository(db) {
     WHERE user_id = ?
     ORDER BY lower(name)
   `);
-  const languageById = db.prepare("SELECT id, user_id AS userId, name FROM languages WHERE id = ? AND user_id = ?");
-  const languageByName = db.prepare("SELECT id, user_id AS userId, name FROM languages WHERE user_id = ? AND lower(name) = lower(?)");
+  const languageById = db.prepare(`SELECT id, user_id AS "userId", name FROM languages WHERE id = ? AND user_id = ?`);
+  const languageByName = db.prepare(`SELECT id, user_id AS "userId", name FROM languages WHERE user_id = ? AND lower(name) = lower(?)`);
   const createLanguage = db.prepare("INSERT INTO languages (user_id, name) VALUES (?, ?)");
 
   return {

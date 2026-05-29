@@ -9,9 +9,9 @@ export function createDashboardRepository(db) {
       const params = selectedLanguageId ? [userId, selectedLanguageId] : [userId];
       return db.prepare(`
         SELECT
-          COUNT(w.id) AS totalWords,
-          COALESCE(SUM(CASE WHEN uws.status = 'known' THEN 1 ELSE 0 END), 0) AS knownWords,
-          COALESCE(SUM(CASE WHEN uws.status = 'learning' THEN 1 ELSE 0 END), 0) AS learningWords
+          COUNT(w.id) AS "totalWords",
+          COALESCE(SUM(CASE WHEN uws.status = 'known' THEN 1 ELSE 0 END), 0) AS "knownWords",
+          COALESCE(SUM(CASE WHEN uws.status = 'learning' THEN 1 ELSE 0 END), 0) AS "learningWords"
         FROM collections c
         JOIN languages l ON l.id = c.language_id
         LEFT JOIN words w ON w.collection_id = c.id
@@ -26,17 +26,17 @@ export function createDashboardRepository(db) {
         SELECT
           c.id,
           c.name,
-          c.language_id AS languageId,
-          l.name AS languageName,
-          COUNT(w.id) AS totalWords,
-          COALESCE(SUM(CASE WHEN uws.status = 'known' THEN 1 ELSE 0 END), 0) AS knownWords,
-          COALESCE(SUM(CASE WHEN uws.status = 'learning' THEN 1 ELSE 0 END), 0) AS learningWords
+          c.language_id AS "languageId",
+          l.name AS "languageName",
+          COUNT(w.id) AS "totalWords",
+          COALESCE(SUM(CASE WHEN uws.status = 'known' THEN 1 ELSE 0 END), 0) AS "knownWords",
+          COALESCE(SUM(CASE WHEN uws.status = 'learning' THEN 1 ELSE 0 END), 0) AS "learningWords"
         FROM collections c
         JOIN languages l ON l.id = c.language_id
         LEFT JOIN words w ON w.collection_id = c.id
         LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
         ${filter}
-        GROUP BY c.id
+        GROUP BY c.id, l.name
         ORDER BY lower(l.name), lower(c.name)
       `).all(userId, ...params);
     },
@@ -45,17 +45,17 @@ export function createDashboardRepository(db) {
         SELECT
           c.id,
           c.name,
-          c.language_id AS languageId,
-          l.name AS languageName,
-          COUNT(w.id) AS totalWords,
-          COALESCE(SUM(CASE WHEN uws.status = 'known' THEN 1 ELSE 0 END), 0) AS knownWords,
-          COALESCE(SUM(CASE WHEN uws.status = 'learning' THEN 1 ELSE 0 END), 0) AS learningWords
+          c.language_id AS "languageId",
+          l.name AS "languageName",
+          COUNT(w.id) AS "totalWords",
+          COALESCE(SUM(CASE WHEN uws.status = 'known' THEN 1 ELSE 0 END), 0) AS "knownWords",
+          COALESCE(SUM(CASE WHEN uws.status = 'learning' THEN 1 ELSE 0 END), 0) AS "learningWords"
         FROM collections c
         JOIN languages l ON l.id = c.language_id
         LEFT JOIN words w ON w.collection_id = c.id
         LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
         WHERE l.user_id = ?
-        GROUP BY c.id
+        GROUP BY c.id, l.name
         ORDER BY lower(l.name), lower(c.name)
       `).all(userId, userId);
     }
