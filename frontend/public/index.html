@@ -25,6 +25,12 @@
   <body class="min-h-screen bg-page text-main antialiased">
     <main id="authView" class="auth-shell grid min-h-screen place-items-center px-4 py-8" hidden>
       <section class="auth-panel w-full max-w-md rounded-lg border border-line bg-panel p-6 shadow-panel">
+        <button id="authBackButton" class="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-secondary hover:text-brand" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4 fill-none stroke-current stroke-[2]">
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+          <span data-i18n="auth.back">Back</span>
+        </button>
         <p class="eyebrow mb-2 text-xs font-bold uppercase text-brand" data-i18n="brand">Supergloss</p>
         <h1 class="text-3xl font-bold tracking-tight" data-i18n="auth.title">ログイン</h1>
         <div class="auth-tabs my-5 grid grid-cols-2 gap-1 rounded-lg border border-line bg-muted p-1">
@@ -99,8 +105,21 @@
             <span class="visually-hidden" data-i18n="tabs.settings">Settings</span>
           </button>
           <button id="logoutButton" class="secondary-button logout-button min-h-[52px] rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="auth.logout">ログアウト</button>
+          <button id="loginButton" class="login-button min-h-[52px] rounded-md bg-brand px-5 text-sm font-bold text-white hover:bg-brand-strong" type="button" data-i18n="auth.login" hidden>ログイン</button>
         </div>
       </header>
+
+      <section id="welcomeView" class="welcome-view grid min-h-[calc(100vh-180px)] place-items-center px-4 py-8" hidden>
+        <div class="welcome-hero w-full max-w-lg text-center">
+          <p class="eyebrow mb-3 text-xs font-bold uppercase tracking-wide text-brand" data-i18n="brand">Supergloss</p>
+          <h1 class="text-4xl font-black tracking-tight max-md:text-3xl" data-i18n="welcome.title">Welcome to Supergloss!</h1>
+          <p class="mt-4 text-lg text-secondary" data-i18n="welcome.subtitle">Get started now</p>
+          <div class="welcome-actions mx-auto mt-8 grid w-full max-w-xs grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <button id="welcomeLoginButton" class="min-h-12 rounded-md bg-brand px-5 text-sm font-bold text-white hover:bg-brand-strong" type="button" data-i18n="auth.login">ログイン</button>
+            <button id="welcomeRegisterButton" class="min-h-12 rounded-md border border-line bg-panel px-5 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="auth.register">登録</button>
+          </div>
+        </div>
+      </section>
 
       <section id="dashboardView" class="tab-view">
         <section class="metrics mb-4 grid grid-cols-4 gap-3.5 max-md:grid-cols-1" aria-label="Overall progress">

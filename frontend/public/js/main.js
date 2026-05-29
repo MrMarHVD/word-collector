@@ -50,7 +50,7 @@ configureImportsController({ loadDashboard });
 configurePracticeController({ loadDashboard });
 configureSettingsController({ reloadDashboard: loadDashboard });
 
-setUnauthorizedHandler(() => showView("auth"));
+setUnauthorizedHandler(() => showView("welcome"));
 startRouter();
 applyTheme();
 bindShellEvents();

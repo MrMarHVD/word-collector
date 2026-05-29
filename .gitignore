@@ -6,3 +6,5 @@ data/dictionaries/
 node_modules/
 .venv/
 .DS_Store
+ssh
+ssh.pub

@@ -23,8 +23,7 @@ export async function loadSession() {
   state.studyLanguageOptions = result.studyLanguageOptions || [];
   state.nativeLanguageOptions = result.nativeLanguageOptions || [];
   if (!state.user) {
-    showView("auth");
-    renderAuthMode();
+    showView("welcome");
     return;
   }
   const savedLanguageName = localStorage.getItem("wordMarkerStudyLanguageName") || "";
@@ -38,7 +37,19 @@ export async function loadSession() {
   await loadDashboard();
 }
 
+function openAuthForm(mode) {
+  state.authMode = mode;
+  elements.authStatus.textContent = "";
+  showView("auth");
+  renderAuthMode();
+}
+
 export function bindAuthEvents() {
+  elements.loginButton.addEventListener("click", () => openAuthForm("login"));
+  elements.welcomeLoginButton.addEventListener("click", () => openAuthForm("login"));
+  elements.welcomeRegisterButton.addEventListener("click", () => openAuthForm("register"));
+  elements.authBackButton.addEventListener("click", () => showView("welcome"));
+
   elements.authModeButtons.forEach((button) => {
     button.addEventListener("click", () => {
       state.authMode = button.dataset.authMode;
@@ -78,7 +89,7 @@ export function bindAuthEvents() {
       state.user = null;
       state.dashboard = null;
       state.words = [];
-      showView("auth");
+      showView("welcome");
       elements.logoutButton.disabled = false;
     }
   });
