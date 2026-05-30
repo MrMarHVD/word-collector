@@ -203,7 +203,10 @@
     "progress.knownPercent": "{percent}% 既知",
     "errors.requestFailed": "リクエストに失敗しました。",
     "errors.invalidNativeStudyLanguage": "現在の学習言語は選択した母語では利用できません。先に有効な学習言語に切り替えてください。",
-    "errors.matchingNativeStudyLanguage": "学習言語と母語を同じ言語にすることはできません。"
+    "errors.matchingNativeStudyLanguage": "学習言語と母語を同じ言語にすることはできません。",
+    "errors.invalidCredentials": "メールアドレスまたはパスワードが正しくありません。",
+    "errors.registrationFieldsRequired": "メールアドレス、パスワード、および一致する確認用パスワードを入力してください。",
+    "errors.userAlreadyExists": "このユーザーは既に存在します。"
   },
   "en": {
     "app.title": "Supergloss",
@@ -409,7 +412,10 @@
     "progress.knownPercent": "{percent}% known",
     "errors.requestFailed": "Request failed.",
     "errors.invalidNativeStudyLanguage": "The current study language is not available for the selected native language. Please switch to a valid study language first.",
-    "errors.matchingNativeStudyLanguage": "The study language cannot be the same as the native language."
+    "errors.matchingNativeStudyLanguage": "The study language cannot be the same as the native language.",
+    "errors.invalidCredentials": "Invalid email or password.",
+    "errors.registrationFieldsRequired": "Email, password, and matching confirmation are required.",
+    "errors.userAlreadyExists": "An account with this email already exists."
   },
   "zh": {
     "app.title": "Supergloss",
@@ -590,6 +596,9 @@
     "errors.requestFailed": "请求失败。",
     "errors.invalidNativeStudyLanguage": "当前学习语言不适用于所选母语。请先切换到有效的学习语言。",
     "errors.matchingNativeStudyLanguage": "学习语言不能与母语相同。",
+    "errors.invalidCredentials": "邮箱或密码无效。",
+    "errors.registrationFieldsRequired": "请填写邮箱、密码以及一致的确认密码。",
+    "errors.userAlreadyExists": "该邮箱的账户已存在。",
     "pos.noun": "名词",
     "pos.verb": "动词",
     "pos.adjective": "形容词",

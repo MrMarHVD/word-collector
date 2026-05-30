@@ -66,6 +66,7 @@ export function bindAuthEvents() {
     try {
       await requestJson(isRegister ? "/api/auth/register" : "/api/auth/login", {
         method: "POST",
+        handleUnauthorized: false,
         body: JSON.stringify({
           email: elements.authEmail.value,
           password: elements.authPassword.value,

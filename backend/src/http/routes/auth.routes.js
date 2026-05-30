@@ -31,7 +31,7 @@ export function createAuthRoutes({ repositories, getAuthenticatedUser, setJwtFor
       const body = await readJson(req);
       const result = await loginUser(repositories, body.email, body.password);
       if (result.error) {
-        jsonResponse(res, result.status, { error: result.error });
+        jsonResponse(res, result.status, { error: result.error, errorKey: result.errorKey });
         return true;
       }
       setJwtForUser(res, result.user);
@@ -43,7 +43,7 @@ export function createAuthRoutes({ repositories, getAuthenticatedUser, setJwtFor
       const body = await readJson(req);
       const result = await registerUser(repositories, body.email, body.password, body.confirmPassword);
       if (result.error) {
-        jsonResponse(res, result.status, { error: result.error });
+        jsonResponse(res, result.status, { error: result.error, errorKey: result.errorKey });
         return true;
       }
       setJwtForUser(res, result.user);
