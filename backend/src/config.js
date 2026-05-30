@@ -39,6 +39,15 @@ export const DATABASE_URL = process.env.DATABASE_URL
 export const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
 export const JWT_TTL_SECONDS = 7 * 24 * 60 * 60;
 
+// Error monitoring. Sentry is enabled only when SENTRY_DSN is set, so local and
+// CI runs stay offline by default. The sample rate tunes performance tracing.
+export const SENTRY_DSN = process.env.SENTRY_DSN || "";
+export const SENTRY_TRACES_SAMPLE_RATE = Number(process.env.SENTRY_TRACES_SAMPLE_RATE || 0);
+
+// Seconds clients may cache the HSTS policy. Only emitted in production, where
+// TLS is terminated upstream, so it is never sent over plain HTTP in dev.
+export const HSTS_MAX_AGE_SECONDS = Number(process.env.HSTS_MAX_AGE_SECONDS || 15552000);
+
 // JWT signing secret. Required in production; in development we fall back to a
 // generated, file-persisted secret so local restarts keep sessions valid.
 const JWT_SECRET_PATH = join(DATA_DIR, "jwt.secret");

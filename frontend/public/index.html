@@ -4,22 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Supergloss</title>
-    <script>
-      (() => {
-        let preference = "system";
-        try {
-          preference = localStorage.getItem("wordMarkerTheme") || "system";
-        } catch {
-          preference = "system";
-        }
-        if (!["system", "light", "dark"].includes(preference)) {
-          preference = "system";
-        }
-        const theme = preference === "system" ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : preference;
-        document.documentElement.dataset.theme = theme;
-        document.documentElement.dataset.themePreference = preference;
-      })();
-    </script>
+    <script src="/js/theme-init.js"></script>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="min-h-screen bg-page text-main antialiased">
