@@ -134,21 +134,28 @@ export async function startMaterialImport(repositories, userId, languageId, file
     workerData: { materialId, userId, languageId: language.id, fileName, fileBytes: bytes.buffer },
     transferList: [bytes.buffer]
   });
+  // markImportFailed is async, so swallow its rejection here: these handlers run
+  // detached from any awaiter and an unhandled rejection would crash the process.
+  const failImport = (reason) => {
+    repositories.materials.markImportFailed(materialId, reason).catch((error) => {
+      console.error(`Failed to mark material ${materialId} import as failed:`, error);
+    });
+  };
   let settled = false;
   worker.once("message", (message) => {
     settled = true;
     if (message?.error) {
-      repositories.materials.markImportFailed(materialId, message.error);
+      failImport(message.error);
     }
   });
   worker.once("error", (error) => {
     if (!settled) {
-      repositories.materials.markImportFailed(materialId, error.message || "Import failed.");
+      failImport(error.message || "Import failed.");
     }
   });
   worker.once("exit", (code) => {
     if (!settled && code !== 0) {
-      repositories.materials.markImportFailed(materialId, "Import worker stopped unexpectedly.");
+      failImport("Import worker stopped unexpectedly.");
     }
   });
 
