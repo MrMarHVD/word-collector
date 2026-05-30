@@ -4,7 +4,9 @@ import { getAuthContext, loginUser, registerUser } from "../../modules/auth/auth
 import { readJson } from "../request.js";
 import { jsonResponse } from "../response.js";
 
-export function createAuthRoutes({ repositories, getAuthenticatedUser, setJwtForUser }) {
+// `emailService` is wired through for the Phase 4 verification / password-reset
+// flows; it is not yet used by the current login/register/logout endpoints.
+export function createAuthRoutes({ repositories, emailService, getAuthenticatedUser, setJwtForUser }) {
   return async function handleAuthRoutes(req, res, url) {
     if (req.method === "GET" && url.pathname === "/api/auth/me") {
       const user = await getAuthenticatedUser(req);

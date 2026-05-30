@@ -10,9 +10,9 @@ import { createPracticeRoutes } from "./practice.routes.js";
 import { createSettingsRoutes } from "./settings.routes.js";
 import { createWordsRoutes } from "./words.routes.js";
 
-export function createApiHandler({ repositories }) {
+export function createApiHandler({ repositories, emailService }) {
   const session = createSessionHelpers(repositories.auth);
-  const publicRoutes = [createAuthRoutes({ repositories, ...session })];
+  const publicRoutes = [createAuthRoutes({ repositories, emailService, ...session })];
   const authenticatedRoutes = [
     createDashboardRoutes({ repositories }),
     createLanguagesRoutes({ repositories }),

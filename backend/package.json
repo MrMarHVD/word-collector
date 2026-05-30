@@ -10,6 +10,7 @@
     "migrate:up": "node-pg-migrate up",
     "migrate:down": "node-pg-migrate down",
     "provision:admin": "node scripts/provision_admin.js",
+    "email:test": "node scripts/send_test_email.js",
     "import:wikdict-en-ja": "node scripts/import_wikdict_en_ja.js",
     "import:wikdict-en-zh": "node scripts/import_wikdict_en_zh.js",
     "import:wikdict-es-en": "node scripts/import_wikdict_romance_en.js spanish",

@@ -70,13 +70,25 @@ Infrastructure / ops (outside the repo — owner: deploy):
 
 ---
 
-## Phase 3 — Email infrastructure (Resend) — ⬜ not started
+## Phase 3 — Email infrastructure (Resend) — 🔄 in progress (app code done)
 **Goal:** Reliable transactional email behind a provider-agnostic interface.
 
-- `backend/src/modules/email/` with a small `EmailService` (`sendVerification`,
-  `sendPasswordReset`, `sendReceipt`, `sendDunning`) wrapping Resend.
-- Localized email templates for every supported locale.
-- Domain auth (SPF/DKIM) for deliverability.
+Application code (done in-repo):
+- ✅ `backend/src/modules/email/` with a small `EmailService` (`sendVerification`,
+  `sendPasswordReset`, `sendReceipt`, `sendDunning`) over a pluggable transport.
+  A Resend transport (HTTP API via `fetch`, no SDK dependency) is used when
+  `RESEND_API_KEY` is set; otherwise a console transport logs messages so
+  dev/CI stay offline (mirrors the Sentry pattern).
+- ✅ Localized email templates (subject + HTML + text) for every supported
+  locale (en/ja/zh), selected from the recipient's native language.
+- ✅ Service wired through `server.js` → `createApiHandler` → auth routes,
+  ready for the Phase 4 verification / password-reset flows.
+- ✅ `npm run email:test -w backend` sends a localized email end-to-end
+  (`TEST_EMAIL_TO`, optional `TEST_EMAIL_LOCALE` / `TEST_EMAIL_TYPE`).
+
+Infrastructure / ops (outside the repo — owner: deploy):
+- ⬜ Resend account + `RESEND_API_KEY`; verified sending domain; set `EMAIL_FROM`.
+- ⬜ Domain auth (SPF/DKIM) DNS records for deliverability.
 
 **Exit:** Can send a localized verification email end-to-end.
 

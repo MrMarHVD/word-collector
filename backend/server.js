@@ -6,6 +6,7 @@ import { serveStatic } from "./src/http/static.js";
 import { applySecurityHeaders } from "./src/http/security.js";
 import { createApiHandler } from "./src/http/routes/api.js";
 import { createRepositories } from "./src/modules/index.js";
+import { createEmailServiceFromConfig } from "./src/modules/email/index.js";
 import { captureException, closeSentry, initSentry } from "./src/observability/sentry.js";
 
 // Start error monitoring before anything can throw. No-op unless SENTRY_DSN is set.
@@ -14,7 +15,8 @@ await initSentry();
 // The schema is managed by node-pg-migrate; run `npm run migrate:up` before
 // starting the server so the tables the repositories depend on exist.
 const repositories = createRepositories(db);
-const handleApi = createApiHandler({ repositories });
+const emailService = createEmailServiceFromConfig();
+const handleApi = createApiHandler({ repositories, emailService });
 
 function applyCors(req, res) {
   const origin = req.headers.origin;

@@ -78,3 +78,15 @@ export const READER_WORK_PAGE_SIZE = 50;
 //   "stdout"   — write to the server's stdout
 //   <path>     — append to the given file (relative paths resolve to project root)
 export const EPUB_IMPORT_LOG = process.env.EPUB_IMPORT_LOG || "off";
+
+// Transactional email (Resend). When RESEND_API_KEY is set, email is sent via
+// the Resend API; otherwise a console transport logs messages so local and CI
+// runs stay offline by default (mirrors the Sentry pattern).
+export const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+// Default "From" address. The resend.dev sandbox sender works for testing
+// before a verified domain is configured.
+export const EMAIL_FROM = process.env.EMAIL_FROM || "Supergloss <onboarding@resend.dev>";
+export const EMAIL_REPLY_TO = process.env.EMAIL_REPLY_TO || "";
+// Base URL used to build links inside emails (verification, password reset).
+// Falls back to the allowed browser origin in development.
+export const APP_URL = process.env.APP_URL || CORS_ORIGIN;
