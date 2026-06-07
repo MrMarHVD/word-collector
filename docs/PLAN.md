@@ -111,8 +111,10 @@ Application code (done in-repo):
   links land on the app root with a query-param token the SPA consumes.
 - ✅ Input validation: email-format check and an 8-char minimum password rule
   (`auth.service.js`).
-- ⬜ CSRF tokens (double-submit / synchronized token) on state-changing requests —
-  deferred; currently relying on `SameSite=Lax` cookies + single-origin CORS.
+- ✅ CSRF tokens on state-changing requests: `/api/auth/me` issues a signed
+  token tied to the current session cookie hash (or anonymous context before
+  login), and `POST` / `PATCH` / `DELETE` API requests must send it in
+  `x-csrf-token`.
 
 Ops (one-time):
 - ⬜ Run `npm run migrate:up -w backend` against each environment to apply

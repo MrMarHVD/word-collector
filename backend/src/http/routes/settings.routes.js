@@ -17,8 +17,8 @@ export function createSettingsRoutes({ repositories, session }) {
         return true;
       }
       await session.destroyAllUserSessions(user.userId);
-      await session.createSessionForUser(res, { id: user.userId });
-      jsonResponse(res, 200, { changed: true });
+      const nextSession = await session.createSessionForUser(res, { id: user.userId });
+      jsonResponse(res, 200, { changed: true, csrfToken: nextSession.csrfToken });
       return true;
     }
 
@@ -45,7 +45,8 @@ export function createSettingsRoutes({ repositories, session }) {
         id: user.userId,
         email: user.email,
         nativeLanguage: profile.nativeLanguage,
-        practiceWordsPerSession: profile.practiceWordsPerSession
+        practiceWordsPerSession: profile.practiceWordsPerSession,
+        emailVerified: profile.emailVerified === true
       },
       nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS
     });

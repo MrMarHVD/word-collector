@@ -237,7 +237,8 @@
     "errors.passwordConfirmationMismatch": "パスワードが一致しません。",
     "errors.currentPasswordIncorrect": "現在のパスワードが正しくありません。",
     "errors.tooManyAttempts": "試行回数が多すぎます。しばらくしてからもう一度お試しください。",
-    "errors.authenticationRequired": "続行するにはログインしてください。"
+    "errors.authenticationRequired": "続行するにはログインしてください。",
+    "errors.csrfInvalid": "セキュリティトークンが見つからないか、有効期限が切れています。ページを再読み込みしてもう一度お試しください。"
   },
   "en": {
     "app.title": "Supergloss",
@@ -477,7 +478,8 @@
     "errors.passwordConfirmationMismatch": "Passwords do not match.",
     "errors.currentPasswordIncorrect": "Your current password is incorrect.",
     "errors.tooManyAttempts": "Too many attempts. Please try again later.",
-    "errors.authenticationRequired": "Please sign in to continue."
+    "errors.authenticationRequired": "Please sign in to continue.",
+    "errors.csrfInvalid": "Security token is missing or expired. Please refresh the page and try again."
   },
   "zh": {
     "app.title": "Supergloss",
@@ -717,6 +719,7 @@
     "errors.passwordConfirmationMismatch": "两次输入的密码不一致。",
     "errors.currentPasswordIncorrect": "当前密码不正确。",
     "errors.tooManyAttempts": "尝试次数过多，请稍后再试。",
-    "errors.authenticationRequired": "请登录后继续。"
+    "errors.authenticationRequired": "请登录后继续。",
+    "errors.csrfInvalid": "安全令牌缺失或已过期。请刷新页面后重试。"
   }
 }

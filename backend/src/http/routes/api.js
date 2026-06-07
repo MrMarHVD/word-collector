@@ -10,6 +10,8 @@ import { createPracticeRoutes } from "./practice.routes.js";
 import { createSettingsRoutes } from "./settings.routes.js";
 import { createWordsRoutes } from "./words.routes.js";
 
+const UNSAFE_METHODS = new Set(["POST", "PATCH", "DELETE"]);
+
 export function createApiHandler({ repositories, emailService }) {
   const session = createSessionHelpers(repositories.auth);
   const publicRoutes = [createAuthRoutes({ repositories, emailService, ...session })];
@@ -25,6 +27,14 @@ export function createApiHandler({ repositories, emailService }) {
   ];
 
   return async function handleApi(req, res, url) {
+    if (UNSAFE_METHODS.has(req.method) && !session.verifyCsrfTokenForRequest(req)) {
+      jsonResponse(res, 403, {
+        error: "Security token is missing or expired. Please refresh the page and try again.",
+        errorKey: "errors.csrfInvalid"
+      });
+      return;
+    }
+
     for (const route of publicRoutes) {
       if (await route(req, res, url)) {
         return;

@@ -204,6 +204,7 @@ export function bindAuthEvents() {
       await requestJson("/api/auth/logout", { method: "POST" });
     } finally {
       state.user = null;
+      state.csrfToken = null;
       state.dashboard = null;
       state.words = [];
       renderVerifyBanner();

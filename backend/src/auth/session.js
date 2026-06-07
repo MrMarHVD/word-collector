@@ -1,5 +1,6 @@
 import { AUTH_COOKIE, IS_PRODUCTION, JWT_TTL_SECONDS } from "../config.js";
 import { jsonResponse } from "../http/response.js";
+import { createCsrfToken, verifyCsrfToken } from "./csrf.js";
 import { generateToken, hashToken } from "./tokens.js";
 
 // Sessions are opaque, server-side, and revocable. The cookie carries a random
@@ -51,6 +52,14 @@ export function createSessionHelpers(authRepository) {
     return token ? hashToken(token) : null;
   }
 
+  function createCsrfTokenForRequest(req) {
+    return createCsrfToken(sessionIdFromRequest(req));
+  }
+
+  function verifyCsrfTokenForRequest(req) {
+    return verifyCsrfToken(req.headers["x-csrf-token"], sessionIdFromRequest(req));
+  }
+
   // Look up the active (non-expired) session and its user.
   async function getAuthenticatedUser(req) {
     const sessionId = sessionIdFromRequest(req);
@@ -80,6 +89,7 @@ export function createSessionHelpers(authRepository) {
     const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000).toISOString();
     await authRepository.createSession(hash, user.id, expiresAt);
     setAuthCookie(res, raw);
+    return { sessionId: hash, csrfToken: createCsrfToken(hash) };
   }
 
   // Destroy the current session (logout) and clear the cookie.
@@ -98,6 +108,8 @@ export function createSessionHelpers(authRepository) {
 
   return {
     getAuthenticatedUser,
+    createCsrfTokenForRequest,
+    verifyCsrfTokenForRequest,
     requireUser,
     createSessionForUser,
     destroyCurrentSession,

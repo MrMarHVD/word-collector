@@ -1,4 +1,4 @@
-import { apiUrl, requestJson } from "../../api.js";
+import { apiUrl, csrfHeaders, requestJson } from "../../api.js";
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
 import { state } from "../../state.js";
@@ -113,7 +113,7 @@ export function bindMaterialsEvents() {
       const form = new FormData();
       form.append("languageId", String(state.selectedStudyLanguageId));
       form.append("file", file);
-      const response = await fetch(apiUrl("/api/materials"), { method: "POST", body: form, credentials: "include" });
+      const response = await fetch(apiUrl("/api/materials"), { method: "POST", headers: await csrfHeaders(), body: form, credentials: "include" });
       const payload = await response.json();
       if (!response.ok) {
         throw new Error(payload.error || t("errors.requestFailed"));

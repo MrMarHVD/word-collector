@@ -7,6 +7,7 @@ function normalizeDisplayMode(stored) {
 
 // Mutable browser state. Persisted preferences are read once during startup.
 export const state = {
+  csrfToken: null,
   user: null,
   languages: [],
   predefinedLanguages: [],

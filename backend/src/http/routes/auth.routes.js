@@ -27,6 +27,7 @@ export function createAuthRoutes({
   repositories,
   emailService,
   getAuthenticatedUser,
+  createCsrfTokenForRequest,
   createSessionForUser,
   destroyCurrentSession
 }) {
@@ -52,6 +53,7 @@ export function createAuthRoutes({
       const user = await getAuthenticatedUser(req);
       if (!user) {
         jsonResponse(res, 200, {
+          csrfToken: createCsrfTokenForRequest(req),
           user: null,
           languages: [],
           predefinedLanguages: await repositories.languages.listPredefined(),
@@ -62,6 +64,7 @@ export function createAuthRoutes({
       }
       const context = await getAuthContext(repositories, user.userId);
       jsonResponse(res, 200, {
+        csrfToken: createCsrfTokenForRequest(req),
         ...context,
         studyLanguageOptions: STUDY_LANGUAGE_OPTIONS,
         nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS
@@ -79,8 +82,8 @@ export function createAuthRoutes({
         jsonResponse(res, result.status, { error: result.error, errorKey: result.errorKey });
         return true;
       }
-      await createSessionForUser(res, result.user);
-      jsonResponse(res, 200, { user: publicUser(result.user) });
+      const session = await createSessionForUser(res, result.user);
+      jsonResponse(res, 200, { csrfToken: session.csrfToken, user: publicUser(result.user) });
       return true;
     }
 
@@ -94,9 +97,9 @@ export function createAuthRoutes({
         jsonResponse(res, result.status, { error: result.error, errorKey: result.errorKey });
         return true;
       }
-      await createSessionForUser(res, result.user);
+      const session = await createSessionForUser(res, result.user);
       await sendVerificationEmail(result.user);
-      jsonResponse(res, 201, { user: publicUser(result.user) });
+      jsonResponse(res, 201, { csrfToken: session.csrfToken, user: publicUser(result.user) });
       return true;
     }
 
