@@ -1,17 +1,20 @@
 export function createAuthRepository(db) {
-  const userByEmail = db.prepare(`SELECT id, email, native_language AS "nativeLanguage", practice_words_per_session AS "practiceWordsPerSession", email_verified AS "emailVerified", password_hash AS "passwordHash", password_salt AS "passwordSalt" FROM users WHERE lower(email) = lower(?)`);
-  const userById = db.prepare(`SELECT id, email, native_language AS "nativeLanguage", practice_words_per_session AS "practiceWordsPerSession", email_verified AS "emailVerified" FROM users WHERE id = ?`);
+  const userByEmail = db.prepare(`SELECT id, email, native_language AS "nativeLanguage", practice_words_per_session AS "practiceWordsPerSession", email_verified AS "emailVerified", (password_hash IS NOT NULL AND password_salt IS NOT NULL) AS "hasPassword", password_hash AS "passwordHash", password_salt AS "passwordSalt" FROM users WHERE lower(email) = lower(?)`);
+  const userById = db.prepare(`SELECT id, email, native_language AS "nativeLanguage", practice_words_per_session AS "practiceWordsPerSession", email_verified AS "emailVerified", (password_hash IS NOT NULL AND password_salt IS NOT NULL) AS "hasPassword" FROM users WHERE id = ?`);
   const userSecretById = db.prepare(`SELECT id, email, email_verified AS "emailVerified", password_hash AS "passwordHash", password_salt AS "passwordSalt" FROM users WHERE id = ?`);
   const createUser = db.prepare("INSERT INTO users (email, password_hash, password_salt) VALUES (?, ?, ?)");
+  const createOAuthUser = db.prepare("INSERT INTO users (email, email_verified) VALUES (?, true)");
   const updateNativeLanguage = db.prepare("UPDATE users SET native_language = ? WHERE id = ?");
   const updatePracticeWordsPerSession = db.prepare("UPDATE users SET practice_words_per_session = ? WHERE id = ?");
   const updatePassword = db.prepare("UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?");
   const markEmailVerified = db.prepare("UPDATE users SET email_verified = true WHERE id = ?");
+  const oauthAccountByProviderUser = db.prepare(`SELECT user_id AS "userId", provider, provider_user_id AS "providerUserId", email FROM oauth_accounts WHERE provider = ? AND provider_user_id = ?`);
+  const createOAuthAccount = db.prepare("INSERT INTO oauth_accounts (user_id, provider, provider_user_id, email) VALUES (?, ?, ?, ?) ON CONFLICT (provider, provider_user_id) DO UPDATE SET email = EXCLUDED.email, updated_at = now()");
 
   // Sessions: opaque, server-side, revocable. `id` is the SHA-256 hash of the
   // raw token held in the user's cookie.
   const insertSession = db.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)");
-  const sessionUser = db.prepare(`SELECT u.id, u.email, u.native_language AS "nativeLanguage", u.email_verified AS "emailVerified" FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ? AND s.expires_at > now()`);
+  const sessionUser = db.prepare(`SELECT u.id, u.email, u.native_language AS "nativeLanguage", u.email_verified AS "emailVerified", (u.password_hash IS NOT NULL AND u.password_salt IS NOT NULL) AS "hasPassword" FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ? AND s.expires_at > now()`);
   const deleteSession = db.prepare("DELETE FROM sessions WHERE id = ?");
   const deleteUserSessions = db.prepare("DELETE FROM sessions WHERE user_id = ?");
   const deleteOtherUserSessions = db.prepare("DELETE FROM sessions WHERE user_id = ? AND id <> ?");
@@ -36,6 +39,9 @@ export function createAuthRepository(db) {
     createUser(email, passwordHash, passwordSalt) {
       return createUser.run(email, passwordHash, passwordSalt);
     },
+    createOAuthUser(email) {
+      return createOAuthUser.run(email);
+    },
     updateNativeLanguage(nativeLanguage, userId) {
       return updateNativeLanguage.run(nativeLanguage, userId);
     },
@@ -47,6 +53,12 @@ export function createAuthRepository(db) {
     },
     markEmailVerified(userId) {
       return markEmailVerified.run(userId);
+    },
+    findOAuthAccount(provider, providerUserId) {
+      return oauthAccountByProviderUser.get(provider, providerUserId);
+    },
+    createOAuthAccount(userId, provider, providerUserId, email) {
+      return createOAuthAccount.run(userId, provider, providerUserId, email);
     },
 
     createSession(id, userId, expiresAt) {

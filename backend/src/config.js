@@ -37,6 +37,7 @@ export const AUTH_COOKIE = "word_collector_token";
 export const DATABASE_URL = process.env.DATABASE_URL
   || (IS_PRODUCTION ? requireEnv("DATABASE_URL") : "postgres://localhost:5432/word_marker");
 export const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
+export const API_URL = process.env.API_URL || `http://localhost:${PORT}`;
 export const JWT_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 // Error monitoring. Sentry is enabled only when SENTRY_DSN is set, so local and
@@ -90,3 +91,9 @@ export const EMAIL_REPLY_TO = process.env.EMAIL_REPLY_TO || "";
 // Base URL used to build links inside emails (verification, password reset).
 // Falls back to the allowed browser origin in development.
 export const APP_URL = process.env.APP_URL || CORS_ORIGIN;
+
+// Google OAuth sign-in. Basic sign-in uses only non-sensitive OpenID Connect
+// scopes (`openid email profile`). Set these vars to enable the Google button.
+export const GOOGLE_OAUTH_CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID || "";
+export const GOOGLE_OAUTH_CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET || "";
+export const GOOGLE_OAUTH_REDIRECT_URI = process.env.GOOGLE_OAUTH_REDIRECT_URI || `${API_URL.replace(/\/+$/, "")}/api/auth/google/callback`;

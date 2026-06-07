@@ -38,6 +38,12 @@
           <button id="authSubmit" class="min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="submit" data-i18n="auth.login">ログイン</button>
           <p id="authStatus" class="status min-h-5 text-sm text-secondary" role="status"></p>
         </form>
+        <div id="authDivider" class="my-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-xs font-semibold uppercase text-secondary" hidden>
+          <span class="h-px bg-line"></span>
+          <span data-i18n="auth.or">または</span>
+          <span class="h-px bg-line"></span>
+        </div>
+        <button id="authGoogleButton" class="min-h-11 w-full rounded-md border border-line bg-panel px-4 text-sm font-bold text-main hover:bg-hover" type="button" data-i18n="auth.google" hidden>Googleで続行</button>
         <button id="authForgotButton" class="mt-2 text-sm font-semibold text-brand hover:text-brand-strong" type="button" data-i18n="auth.forgotPassword">Forgot your password?</button>
       </section>
 

@@ -36,6 +36,12 @@ export function renderSettings() {
   if (elements.practiceWordsPerSession) {
     elements.practiceWordsPerSession.value = String(Number(state.user?.practiceWordsPerSession) || 20);
   }
+  elements.changePasswordForm.hidden = state.user?.hasPassword !== true;
+  if (state.user?.hasPassword !== true) {
+    elements.changePasswordStatus.textContent = t("settings.passwordUnavailable");
+  } else if (elements.changePasswordStatus.textContent === t("settings.passwordUnavailable")) {
+    elements.changePasswordStatus.textContent = "";
+  }
 }
 
 export function bindSettingsEvents() {

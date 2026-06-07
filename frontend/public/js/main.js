@@ -3,7 +3,7 @@ import { applyLocale, bindLocaleEvents, configureLocale } from "./app/locale.js"
 import { navigateToTab, resolveInitialTab, startRouter } from "./app/router.js";
 import { bindStudyLanguageEvents, configureStudyLanguage, renderStudyLanguageSelect } from "./app/study-language.js";
 import { elements } from "./dom.js";
-import { bindAuthEvents, configureAuthController, consumeVerificationToken, loadSession, openResetPassword, showVerificationResult } from "./features/auth/auth.controller.js";
+import { bindAuthEvents, configureAuthController, consumeVerificationToken, loadSession, openResetPassword, showOAuthError, showVerificationResult } from "./features/auth/auth.controller.js";
 import { bindCollectionsEvents, configureCollectionsController, loadWords } from "./features/collections/collections.controller.js";
 import { configureDashboardController, loadDashboard } from "./features/dashboard/dashboard.controller.js";
 import { bindImportEvents, configureImportsController } from "./features/imports/imports.controller.js";
@@ -75,7 +75,8 @@ renderAuthMode();
 const authParams = new URLSearchParams(window.location.search);
 const resetToken = authParams.get("reset_token");
 const verifyToken = authParams.get("verify_token");
-if (resetToken || verifyToken) {
+const oauthError = authParams.get("oauth_error");
+if (resetToken || verifyToken || oauthError || authParams.get("oauth")) {
   window.history.replaceState({}, "", window.location.pathname);
 }
 
@@ -86,5 +87,7 @@ if (resetToken) {
   await loadSession();
   if (verifyResult) {
     showVerificationResult(verifyResult);
+  } else if (oauthError) {
+    showOAuthError(oauthError);
   }
 }

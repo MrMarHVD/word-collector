@@ -21,6 +21,8 @@ export const elements = {
   authConfirmPassword: document.querySelector("#authConfirmPassword"),
   authSubmit: document.querySelector("#authSubmit"),
   authStatus: document.querySelector("#authStatus"),
+  authGoogleButton: document.querySelector("#authGoogleButton"),
+  authDivider: document.querySelector("#authDivider"),
   authForgotButton: document.querySelector("#authForgotButton"),
   authLoginPanel: document.querySelector("#authLoginPanel"),
   authForgotPanel: document.querySelector("#authForgotPanel"),

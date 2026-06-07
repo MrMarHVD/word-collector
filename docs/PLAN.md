@@ -125,15 +125,26 @@ Ops (one-time):
 
 ---
 
-## Phase 5 — Google OAuth & account linking — ⬜ not started
+## Phase 5 — Google OAuth & account linking — 🔄 in progress (app code done)
 **Goal:** "Sign in with Google" alongside email/password. Depends on Phase 4.
 
-- Schema: make `password_hash`/`password_salt` nullable; add `auth_provider`,
-  `provider_user_id`, `email_verified`. Migration is additive.
-- OAuth authorization-code flow (server-side), verify `id_token`, create/find user.
-- Account-linking rules: same email via Google + existing password account → link
-  (after verification), don't duplicate. Decide whether to allow setting a password later.
-- Frontend: Google button + callback handling in auth views; localize.
+Application code (done in-repo):
+- ✅ Schema: `1748000000003_google-oauth` makes password fields nullable and
+  adds `oauth_accounts` for additive provider account linking.
+- ✅ OAuth authorization-code flow (server-side), Google ID-token verification,
+  and normal app session creation after Google sign-in.
+- ✅ Account-linking rules: existing Google account logs in; verified Google
+  email matching an existing password user links to that user; otherwise a new
+  Google-only user is created with `email_verified = true`.
+- ✅ Frontend Google button + callback error handling in auth views; localized.
+
+Ops / user action:
+- ⬜ Create a Google Cloud OAuth client with `openid email profile` scopes.
+- ⬜ Add local redirect URI: `http://localhost:3000/api/auth/google/callback`.
+- ⬜ Add production redirect URI after Cloudflare launch.
+- ⬜ Set `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `API_URL`,
+  and `APP_URL` in each environment.
+- ⬜ Run `npm run migrate:up -w backend` against each environment.
 
 **Exit:** Can register and log in via Google; linking behaves correctly; email/password still works.
 

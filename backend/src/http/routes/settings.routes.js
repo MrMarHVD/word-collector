@@ -46,7 +46,8 @@ export function createSettingsRoutes({ repositories, session }) {
         email: user.email,
         nativeLanguage: profile.nativeLanguage,
         practiceWordsPerSession: profile.practiceWordsPerSession,
-        emailVerified: profile.emailVerified === true
+        emailVerified: profile.emailVerified === true,
+        hasPassword: profile.hasPassword === true
       },
       nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS
     });

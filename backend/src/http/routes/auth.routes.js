@@ -1,8 +1,18 @@
 import { NATIVE_LANGUAGE_OPTIONS, STUDY_LANGUAGE_OPTIONS } from "../../config.js";
 import {
+  clearGoogleOAuthStateCookie,
+  exchangeGoogleOAuthCode,
+  googleOAuthConfigured,
+  googleOAuthStartUrl,
+  redirectToApp,
+  verifyGoogleIdToken,
+  verifyGoogleOAuthState
+} from "../../auth/google-oauth.js";
+import {
   createPasswordReset,
   createVerificationToken,
   getAuthContext,
+  loginWithOAuthProfile,
   loginUser,
   registerUser,
   resetPassword,
@@ -19,7 +29,8 @@ function publicUser(user) {
     email: user.email,
     nativeLanguage: user.nativeLanguage,
     practiceWordsPerSession: user.practiceWordsPerSession,
-    emailVerified: user.emailVerified === true
+    emailVerified: user.emailVerified === true,
+    hasPassword: user.hasPassword === true
   };
 }
 
@@ -58,7 +69,8 @@ export function createAuthRoutes({
           languages: [],
           predefinedLanguages: await repositories.languages.listPredefined(),
           studyLanguageOptions: STUDY_LANGUAGE_OPTIONS,
-          nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS
+          nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS,
+          authProviders: { google: googleOAuthConfigured() }
         });
         return true;
       }
@@ -67,8 +79,54 @@ export function createAuthRoutes({
         csrfToken: createCsrfTokenForRequest(req),
         ...context,
         studyLanguageOptions: STUDY_LANGUAGE_OPTIONS,
-        nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS
+        nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS,
+        authProviders: { google: googleOAuthConfigured() }
       });
+      return true;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/auth/google/start") {
+      if (!googleOAuthConfigured()) {
+        redirectToApp(res, { oauth_error: "google_not_configured" });
+        return true;
+      }
+      res.statusCode = 302;
+      res.setHeader("location", googleOAuthStartUrl(res));
+      res.end();
+      return true;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/auth/google/callback") {
+      clearGoogleOAuthStateCookie(res);
+      if (!googleOAuthConfigured()) {
+        redirectToApp(res, { oauth_error: "google_not_configured" });
+        return true;
+      }
+      const code = url.searchParams.get("code");
+      const state = url.searchParams.get("state");
+      const googleError = url.searchParams.get("error");
+      if (googleError) {
+        redirectToApp(res, { oauth_error: "google_denied" });
+        return true;
+      }
+      if (!code || !state || !verifyGoogleOAuthState(req, state)) {
+        redirectToApp(res, { oauth_error: "google_state_invalid" });
+        return true;
+      }
+      try {
+        const tokens = await exchangeGoogleOAuthCode(code);
+        const profile = await verifyGoogleIdToken(tokens.id_token);
+        const result = await loginWithOAuthProfile(repositories, profile);
+        if (result.error) {
+          redirectToApp(res, { oauth_error: result.errorKey || "google_failed" });
+          return true;
+        }
+        await createSessionForUser(res, result.user);
+        redirectToApp(res, { oauth: "success" });
+      } catch (error) {
+        console.error(`Google OAuth failed: ${error.message}`);
+        redirectToApp(res, { oauth_error: "google_failed" });
+      }
       return true;
     }
 

@@ -13,6 +13,7 @@ export const state = {
   predefinedLanguages: [],
   studyLanguageOptions: [],
   nativeLanguageOptions: [],
+  authProviders: {},
   authMode: "login",
   resetToken: null,
   dashboard: null,

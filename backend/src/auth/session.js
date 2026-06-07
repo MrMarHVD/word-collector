@@ -36,12 +36,23 @@ export function parseCookies(req) {
 
 // Attach the session cookie to a response.
 export function setAuthCookie(res, token) {
-  res.setHeader("set-cookie", `${AUTH_COOKIE}=${encodeURIComponent(token)}; ${cookieAttributes(SESSION_TTL_SECONDS)}`);
+  appendSetCookie(res, `${AUTH_COOKIE}=${encodeURIComponent(token)}; ${cookieAttributes(SESSION_TTL_SECONDS)}`);
 }
 
 // Expire the session cookie on the client.
 export function clearAuthCookie(res) {
-  res.setHeader("set-cookie", `${AUTH_COOKIE}=; ${cookieAttributes(0)}`);
+  appendSetCookie(res, `${AUTH_COOKIE}=; ${cookieAttributes(0)}`);
+}
+
+function appendSetCookie(res, cookie) {
+  const existing = res.getHeader?.("set-cookie");
+  if (!existing) {
+    res.setHeader("set-cookie", cookie);
+  } else if (Array.isArray(existing)) {
+    res.setHeader("set-cookie", [...existing, cookie]);
+  } else {
+    res.setHeader("set-cookie", [existing, cookie]);
+  }
 }
 
 // Build request authentication helpers around the user/session repository.
@@ -70,7 +81,7 @@ export function createSessionHelpers(authRepository) {
     if (!user) {
       return null;
     }
-    return { userId: user.id, email: user.email, emailVerified: user.emailVerified === true, sessionId };
+    return { userId: user.id, email: user.email, emailVerified: user.emailVerified === true, hasPassword: user.hasPassword === true, sessionId };
   }
 
   // Require a valid user or write a 401 response.

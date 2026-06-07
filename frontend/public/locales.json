@@ -21,6 +21,8 @@
     "auth.loggingIn": "ログイン中...",
     "auth.registering": "登録中...",
     "auth.logout": "ログアウト",
+    "auth.or": "または",
+    "auth.google": "Googleで続行",
     "auth.back": "戻る",
     "welcome.title": "Supergloss へようこそ！",
     "welcome.subtitle": "今すぐ始めましょう",
@@ -230,6 +232,7 @@
     "settings.updatePassword": "パスワードを更新",
     "settings.updatingPassword": "パスワードを更新中…",
     "settings.passwordUpdated": "パスワードを更新しました。",
+    "settings.passwordUnavailable": "このアカウントはGoogleログインを使用しているため、パスワードの変更は利用できません。",
     "errors.passwordTooShort": "パスワードは8文字以上で入力してください。",
     "errors.invalidEmail": "有効なメールアドレスを入力してください。",
     "errors.verificationLinkInvalid": "この確認リンクは無効か、有効期限が切れています。",
@@ -238,7 +241,13 @@
     "errors.currentPasswordIncorrect": "現在のパスワードが正しくありません。",
     "errors.tooManyAttempts": "試行回数が多すぎます。しばらくしてからもう一度お試しください。",
     "errors.authenticationRequired": "続行するにはログインしてください。",
-    "errors.csrfInvalid": "セキュリティトークンが見つからないか、有効期限が切れています。ページを再読み込みしてもう一度お試しください。"
+    "errors.csrfInvalid": "セキュリティトークンが見つからないか、有効期限が切れています。ページを再読み込みしてもう一度お試しください。",
+    "errors.googleOAuthFailed": "Googleログインを完了できませんでした。もう一度お試しください。",
+    "errors.google_not_configured": "Googleログインはまだ設定されていません。",
+    "errors.google_denied": "Googleログインがキャンセルされました。",
+    "errors.google_state_invalid": "Googleログインの確認に失敗しました。もう一度お試しください。",
+    "errors.google_failed": "Googleログインを完了できませんでした。もう一度お試しください。",
+    "errors.googleEmailUnverified": "Googleから確認済みのメールアドレスを取得できませんでした。"
   },
   "en": {
     "app.title": "Supergloss",
@@ -262,6 +271,8 @@
     "auth.loggingIn": "Logging in...",
     "auth.registering": "Registering...",
     "auth.logout": "Log out",
+    "auth.or": "Or",
+    "auth.google": "Continue with Google",
     "auth.back": "Back",
     "welcome.title": "Welcome to Supergloss!",
     "welcome.subtitle": "Get started now",
@@ -471,6 +482,7 @@
     "settings.updatePassword": "Update password",
     "settings.updatingPassword": "Updating password…",
     "settings.passwordUpdated": "Password updated.",
+    "settings.passwordUnavailable": "This account uses Google sign-in, so password changes are not available.",
     "errors.passwordTooShort": "Password must be at least 8 characters.",
     "errors.invalidEmail": "Enter a valid email address.",
     "errors.verificationLinkInvalid": "This verification link is invalid or has expired.",
@@ -479,7 +491,13 @@
     "errors.currentPasswordIncorrect": "Your current password is incorrect.",
     "errors.tooManyAttempts": "Too many attempts. Please try again later.",
     "errors.authenticationRequired": "Please sign in to continue.",
-    "errors.csrfInvalid": "Security token is missing or expired. Please refresh the page and try again."
+    "errors.csrfInvalid": "Security token is missing or expired. Please refresh the page and try again.",
+    "errors.googleOAuthFailed": "Google sign-in could not be completed. Please try again.",
+    "errors.google_not_configured": "Google sign-in has not been configured yet.",
+    "errors.google_denied": "Google sign-in was canceled.",
+    "errors.google_state_invalid": "Google sign-in validation failed. Please try again.",
+    "errors.google_failed": "Google sign-in could not be completed. Please try again.",
+    "errors.googleEmailUnverified": "Google did not return a verified email address."
   },
   "zh": {
     "app.title": "Supergloss",
@@ -503,6 +521,8 @@
     "auth.loggingIn": "登录中...",
     "auth.registering": "注册中...",
     "auth.logout": "退出登录",
+    "auth.or": "或",
+    "auth.google": "使用 Google 继续",
     "auth.back": "返回",
     "welcome.title": "欢迎使用 Supergloss！",
     "welcome.subtitle": "立即开始",
@@ -712,6 +732,7 @@
     "settings.updatePassword": "更新密码",
     "settings.updatingPassword": "正在更新密码…",
     "settings.passwordUpdated": "密码已更新。",
+    "settings.passwordUnavailable": "此账户使用 Google 登录，因此无法修改密码。",
     "errors.passwordTooShort": "密码至少需要8个字符。",
     "errors.invalidEmail": "请输入有效的邮箱地址。",
     "errors.verificationLinkInvalid": "此验证链接无效或已过期。",
@@ -720,6 +741,12 @@
     "errors.currentPasswordIncorrect": "当前密码不正确。",
     "errors.tooManyAttempts": "尝试次数过多，请稍后再试。",
     "errors.authenticationRequired": "请登录后继续。",
-    "errors.csrfInvalid": "安全令牌缺失或已过期。请刷新页面后重试。"
+    "errors.csrfInvalid": "安全令牌缺失或已过期。请刷新页面后重试。",
+    "errors.googleOAuthFailed": "无法完成 Google 登录。请重试。",
+    "errors.google_not_configured": "尚未配置 Google 登录。",
+    "errors.google_denied": "Google 登录已取消。",
+    "errors.google_state_invalid": "Google 登录验证失败。请重试。",
+    "errors.google_failed": "无法完成 Google 登录。请重试。",
+    "errors.googleEmailUnverified": "Google 未返回已验证的邮箱地址。"
   }
 }

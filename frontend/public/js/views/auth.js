@@ -14,6 +14,9 @@ export function renderAuthMode() {
   elements.authConfirmWrap.hidden = !isRegister;
   elements.authConfirmPassword.required = isRegister;
   elements.authSubmit.textContent = t(isRegister ? "auth.register" : "auth.login");
+  const googleEnabled = state.authProviders?.google === true;
+  elements.authGoogleButton.hidden = !googleEnabled;
+  elements.authDivider.hidden = !googleEnabled;
   // The forgot-password link only makes sense when signing in.
   elements.authForgotButton.hidden = isRegister;
 }

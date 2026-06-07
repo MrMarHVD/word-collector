@@ -46,7 +46,8 @@ export async function getAuthContext(repositories, userId) {
       email: profile.email,
       nativeLanguage: profile.nativeLanguage,
       practiceWordsPerSession: profile.practiceWordsPerSession,
-      emailVerified: profile.emailVerified === true
+      emailVerified: profile.emailVerified === true,
+      hasPassword: profile.hasPassword === true
     },
     languages,
     predefinedLanguages: await repositories.languages.listPredefined(),
@@ -57,7 +58,7 @@ export async function getAuthContext(repositories, userId) {
 export async function loginUser(repositories, emailInput, passwordInput) {
   const email = normalizeName(emailInput).toLowerCase();
   const user = await repositories.auth.findUserByEmail(email);
-  if (!user || !verifyPassword(String(passwordInput || ""), user.passwordSalt, user.passwordHash)) {
+  if (!user || !user.passwordSalt || !user.passwordHash || !verifyPassword(String(passwordInput || ""), user.passwordSalt, user.passwordHash)) {
     return { error: "Invalid email or password.", errorKey: "errors.invalidCredentials", status: 401 };
   }
   return { user };
@@ -113,7 +114,7 @@ export async function verifyEmail(repositories, rawToken) {
 export async function createPasswordReset(repositories, emailInput) {
   const email = normalizeName(emailInput).toLowerCase();
   const user = await repositories.auth.findUserByEmail(email);
-  if (!user) {
+  if (!user || !user.passwordHash || !user.passwordSalt) {
     return { user: null };
   }
   await repositories.auth.deleteUserTokensOfType(user.id, TOKEN_TYPES.RESET);
@@ -153,7 +154,7 @@ export async function changePassword(repositories, userId, currentInput, nextInp
   const next = String(nextInput || "");
   const confirm = String(confirmInput || "");
   const profile = await repositories.auth.findUserSecretById(userId);
-  if (!profile || !verifyPassword(current, profile.passwordSalt, profile.passwordHash)) {
+  if (!profile || !profile.passwordSalt || !profile.passwordHash || !verifyPassword(current, profile.passwordSalt, profile.passwordHash)) {
     return { error: "Your current password is incorrect.", errorKey: "errors.currentPasswordIncorrect", status: 400 };
   }
   const policyError = passwordError(next);
@@ -166,4 +167,34 @@ export async function changePassword(repositories, userId, currentInput, nextInp
   const passwordHash = hashPassword(next);
   await repositories.auth.updatePassword(passwordHash.hash, passwordHash.salt, userId);
   return { userId };
+}
+
+export async function loginWithOAuthProfile(repositories, profile) {
+  const provider = "google";
+  const providerUserId = String(profile.providerUserId || "");
+  const email = normalizeName(profile.email).toLowerCase();
+  if (!providerUserId || !email || !profile.emailVerified || !isValidEmail(email)) {
+    return { error: "Google did not return a verified email address.", errorKey: "errors.googleEmailUnverified", status: 400 };
+  }
+
+  const account = await repositories.auth.findOAuthAccount(provider, providerUserId);
+  if (account) {
+    const linkedUser = await repositories.auth.findUserById(account.userId);
+    if (!linkedUser) {
+      return { error: "Linked account was not found.", errorKey: "errors.requestFailed", status: 500 };
+    }
+    return { user: linkedUser };
+  }
+
+  let user = await repositories.auth.findUserByEmail(email);
+  if (!user) {
+    await repositories.auth.createOAuthUser(email);
+    user = await repositories.auth.findUserByEmail(email);
+  } else if (user.emailVerified !== true) {
+    await repositories.auth.markEmailVerified(user.id);
+    user = await repositories.auth.findUserByEmail(email);
+  }
+
+  await repositories.auth.createOAuthAccount(user.id, provider, providerUserId, email);
+  return { user };
 }

@@ -1,4 +1,4 @@
-import { requestJson } from "../../api.js";
+import { apiUrl, requestJson } from "../../api.js";
 import { availableStudyLanguages, setStudyLanguage } from "../../app/study-language.js";
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
@@ -22,6 +22,7 @@ export async function loadSession() {
   state.predefinedLanguages = result.predefinedLanguages || [];
   state.studyLanguageOptions = result.studyLanguageOptions || [];
   state.nativeLanguageOptions = result.nativeLanguageOptions || [];
+  state.authProviders = result.authProviders || {};
   if (!state.user) {
     showView("welcome");
     return;
@@ -41,6 +42,15 @@ export async function loadSession() {
 function openAuthForm(mode) {
   state.authMode = mode;
   elements.authStatus.textContent = "";
+  showAuthPanel("login");
+  showView("auth");
+  renderAuthMode();
+}
+
+export function showOAuthError(errorKey) {
+  const key = errorKey?.startsWith("errors.") ? errorKey : `errors.${errorKey || "googleOAuthFailed"}`;
+  state.authMode = "login";
+  elements.authStatus.textContent = t(key, {}, t("errors.googleOAuthFailed"));
   showAuthPanel("login");
   showView("auth");
   renderAuthMode();
@@ -131,6 +141,10 @@ export function bindAuthEvents() {
     elements.forgotStatus.textContent = "";
     elements.forgotForm.reset();
     showAuthPanel("forgot");
+  });
+
+  elements.authGoogleButton.addEventListener("click", () => {
+    window.location.href = apiUrl("/api/auth/google/start");
   });
 
   elements.authForgotBackButton.addEventListener("click", () => {
