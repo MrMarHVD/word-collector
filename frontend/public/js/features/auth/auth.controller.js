@@ -216,13 +216,15 @@ export function bindAuthEvents() {
     elements.logoutButton.disabled = true;
     try {
       await requestJson("/api/auth/logout", { method: "POST" });
-    } finally {
       state.user = null;
       state.csrfToken = null;
       state.dashboard = null;
       state.words = [];
       renderVerifyBanner();
       showView("welcome");
+    } catch (error) {
+      elements.verifyBannerStatus.textContent = error.message;
+    } finally {
       elements.logoutButton.disabled = false;
     }
   });

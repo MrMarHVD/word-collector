@@ -4,6 +4,7 @@ import { db, pool } from "./src/db/index.js";
 import { jsonResponse } from "./src/http/response.js";
 import { serveStatic } from "./src/http/static.js";
 import { applySecurityHeaders } from "./src/http/security.js";
+import { createApiRequestLog } from "./src/http/api-logging.js";
 import { createApiHandler } from "./src/http/routes/api.js";
 import { createRepositories } from "./src/modules/index.js";
 import { createEmailServiceFromConfig } from "./src/modules/email/index.js";
@@ -25,7 +26,7 @@ function applyCors(req, res) {
   res.setHeader("access-control-allow-origin", CORS_ORIGIN);
   res.setHeader("access-control-allow-credentials", "true");
   res.setHeader("access-control-allow-methods", "GET,POST,PATCH,DELETE,OPTIONS");
-  res.setHeader("access-control-allow-headers", "content-type");
+  res.setHeader("access-control-allow-headers", "content-type, x-csrf-token");
   res.setHeader("vary", "Origin");
 }
 
@@ -43,15 +44,19 @@ async function handleHealth(res) {
 
 // API requests are routed explicitly; all other paths are static app assets.
 const server = createServer(async (req, res) => {
+  let apiLog = null;
   try {
     applySecurityHeaders(res);
     applyCors(req, res);
+    const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+    if (url.pathname.startsWith("/api/")) {
+      apiLog = createApiRequestLog(req, res, url);
+    }
     if (req.method === "OPTIONS") {
       res.writeHead(204);
       res.end();
       return;
     }
-    const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
     if (url.pathname === "/health" || url.pathname === "/api/health") {
       await handleHealth(res);
       return;
@@ -63,10 +68,18 @@ const server = createServer(async (req, res) => {
     await serveStatic(req, res, url);
   } catch (error) {
     // Log and report the real error, but never leak its details to the client.
-    console.error("Unhandled request error:", error);
+    if (apiLog) {
+      apiLog.error(error);
+    } else {
+      console.error("Unhandled request error:", error);
+    }
     captureException(error);
     const message = IS_PRODUCTION ? "Internal server error." : error.message || "Internal server error.";
     jsonResponse(res, 500, { error: message });
+  } finally {
+    if (apiLog) {
+      apiLog.response();
+    }
   }
 });
 
