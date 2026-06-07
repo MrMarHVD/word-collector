@@ -57,6 +57,8 @@ export const elements = {
   settingsMenu: document.querySelector("#settingsMenu"),
   settingsMenuButtons: document.querySelectorAll(".settings-menu-button"),
   settingsPanels: document.querySelectorAll("[data-settings-panel]"),
+  accountDetails: document.querySelector("#accountDetails"),
+  changePasswordSection: document.querySelector("#changePasswordSection"),
   settingsForm: document.querySelector("#settingsForm"),
   nativeLanguageSelect: document.querySelector("#nativeLanguageSelect"),
   practiceWordsPerSession: document.querySelector("#practiceWordsPerSession"),

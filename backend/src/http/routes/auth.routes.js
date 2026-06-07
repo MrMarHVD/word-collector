@@ -27,10 +27,13 @@ function publicUser(user) {
   return {
     id: user.id,
     email: user.email,
+    displayName: user.displayName || "",
+    createdAt: user.createdAt,
     nativeLanguage: user.nativeLanguage,
     practiceWordsPerSession: user.practiceWordsPerSession,
     emailVerified: user.emailVerified === true,
-    hasPassword: user.hasPassword === true
+    hasPassword: user.hasPassword === true,
+    hasGoogle: user.hasGoogle === true
   };
 }
 

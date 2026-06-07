@@ -150,7 +150,7 @@ Ops / user action:
 
 ---
 
-## Phase 6 — Subscription limits (enforcement layer) — ⬜ not started
+## Phase 6 — Subscription limits (enforcement layer) — ⬜ not started, to be postponed until a test launch is complete
 **Goal:** Server-side free-tier enforcement, independent of Stripe so it's testable first.
 
 - Add a plan concept on the user (default free) plus a `subscriptions` table (status,
@@ -174,7 +174,7 @@ manually for now) lifts them.
 
 ---
 
-## Phase 7 — Stripe subscriptions — ⬜ not started
+## Phase 7 — Stripe subscriptions — ⬜ not started, to be postponed
 **Goal:** Real billing wired to Phase 6 enforcement. Depends on Phases 3, 4, 6.
 
 - Stripe products/prices; Checkout (or Billing) session creation endpoint.
@@ -189,7 +189,7 @@ manually for now) lifts them.
 
 ---
 
-## Phase 8 — Legal & GDPR — ⬜ not started
+## Phase 8 — Legal & GDPR — ⬜ not started, to be postponed
 **Goal:** Compliance required to take payments from the EU. Can run parallel to 6–7.
 
 - Terms of Service, Privacy Policy, Refund Policy (live pages, linked at signup/checkout).
@@ -202,7 +202,7 @@ manually for now) lifts them.
 
 ---
 
-## Phase 9 — Tests, admin, launch readiness — ⬜ not started
+## Phase 9 — Tests, admin, launch readiness — ⬜ not started, to be postponed
 **Goal:** Confidence on the money/identity paths. (Test scaffolding seeded earlier and
 grown per phase.)
 

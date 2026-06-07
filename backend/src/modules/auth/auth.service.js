@@ -44,10 +44,13 @@ export async function getAuthContext(repositories, userId) {
     user: {
       id: userId,
       email: profile.email,
+      displayName: profile.displayName || "",
+      createdAt: profile.createdAt,
       nativeLanguage: profile.nativeLanguage,
       practiceWordsPerSession: profile.practiceWordsPerSession,
       emailVerified: profile.emailVerified === true,
-      hasPassword: profile.hasPassword === true
+      hasPassword: profile.hasPassword === true,
+      hasGoogle: profile.hasGoogle === true
     },
     languages,
     predefinedLanguages: await repositories.languages.listPredefined(),
@@ -195,6 +198,6 @@ export async function loginWithOAuthProfile(repositories, profile) {
     user = await repositories.auth.findUserByEmail(email);
   }
 
-  await repositories.auth.createOAuthAccount(user.id, provider, providerUserId, email);
+  await repositories.auth.createOAuthAccount(user.id, provider, providerUserId, email, profile.displayName || "");
   return { user };
 }

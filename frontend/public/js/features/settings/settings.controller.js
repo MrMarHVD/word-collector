@@ -11,6 +11,36 @@ export function configureSettingsController(options) {
   reloadDashboard = options.reloadDashboard;
 }
 
+function formatAccountDate(value) {
+  if (!value) {
+    return t("settings.accountUnknown");
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return t("settings.accountUnknown");
+  }
+  return new Intl.DateTimeFormat(state.locale, { dateStyle: "medium" }).format(date);
+}
+
+function renderAccountDetails() {
+  const user = state.user || {};
+  const rows = [
+    ["settings.accountEmail", user.email || t("settings.accountUnknown")],
+    ["settings.accountName", user.displayName || t("settings.accountNotProvided")],
+    ["settings.accountCreatedAt", formatAccountDate(user.createdAt)],
+    ["settings.accountSignInMethods", [user.hasGoogle ? t("settings.accountGoogle") : "", user.hasPassword ? t("settings.accountPassword") : ""].filter(Boolean).join(", ") || t("settings.accountUnknown")],
+    ["settings.accountEmailVerified", user.emailVerified === true ? t("settings.accountVerified") : t("settings.accountNotVerified")]
+  ];
+  elements.accountDetails.innerHTML = rows
+    .map(([labelKey, value]) => `
+      <div class="grid gap-1 rounded-md border border-line bg-muted px-3 py-2">
+        <dt class="text-xs font-semibold uppercase text-secondary">${escapeHtml(t(labelKey))}</dt>
+        <dd class="break-words font-semibold text-main">${escapeHtml(value)}</dd>
+      </div>
+    `)
+    .join("");
+}
+
 export function renderSettingsTabs() {
   elements.settingsMenuButtons.forEach((button) => {
     const active = button.dataset.settingsTab === state.settingsTab;
@@ -36,10 +66,9 @@ export function renderSettings() {
   if (elements.practiceWordsPerSession) {
     elements.practiceWordsPerSession.value = String(Number(state.user?.practiceWordsPerSession) || 20);
   }
-  elements.changePasswordForm.hidden = state.user?.hasPassword !== true;
-  if (state.user?.hasPassword !== true) {
-    elements.changePasswordStatus.textContent = t("settings.passwordUnavailable");
-  } else if (elements.changePasswordStatus.textContent === t("settings.passwordUnavailable")) {
+  renderAccountDetails();
+  elements.changePasswordSection.hidden = state.user?.hasPassword !== true;
+  if (state.user?.hasPassword === true && elements.changePasswordStatus.textContent === t("settings.passwordUnavailable")) {
     elements.changePasswordStatus.textContent = "";
   }
 }

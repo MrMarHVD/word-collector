@@ -140,7 +140,8 @@ export async function verifyGoogleIdToken(idToken, fetchImpl = fetch) {
   return {
     providerUserId: payload.sub,
     email: payload.email,
-    emailVerified: payload.email_verified === "true" || payload.email_verified === true
+    emailVerified: payload.email_verified === "true" || payload.email_verified === true,
+    displayName: payload.name || ""
   };
 }
 

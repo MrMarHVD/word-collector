@@ -44,10 +44,13 @@ export function createSettingsRoutes({ repositories, session }) {
       user: {
         id: user.userId,
         email: user.email,
+        displayName: profile.displayName || "",
+        createdAt: profile.createdAt,
         nativeLanguage: profile.nativeLanguage,
         practiceWordsPerSession: profile.practiceWordsPerSession,
         emailVerified: profile.emailVerified === true,
-        hasPassword: profile.hasPassword === true
+        hasPassword: profile.hasPassword === true,
+        hasGoogle: profile.hasGoogle === true
       },
       nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS
     });
