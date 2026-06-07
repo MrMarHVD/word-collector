@@ -1,11 +1,27 @@
 import { NATIVE_LANGUAGE_OPTIONS } from "../../config.js";
+import { changePassword } from "../../modules/auth/auth.service.js";
 import { normalizeWordsPerSession } from "../../modules/practice/practice.service.js";
 import { backfillUserTranslations } from "../../modules/translations/translations.service.js";
 import { readJson } from "../request.js";
 import { jsonResponse } from "../response.js";
 
-export function createSettingsRoutes({ repositories }) {
+export function createSettingsRoutes({ repositories, session }) {
   return async function handleSettingsRoutes(req, res, url, user) {
+    // Change the signed-in user's password. After success, revoke every session
+    // (logging out other devices) and reissue a fresh one for this device.
+    if (req.method === "POST" && url.pathname === "/api/settings/password") {
+      const body = await readJson(req);
+      const result = await changePassword(repositories, user.userId, body.currentPassword, body.newPassword, body.confirmPassword);
+      if (result.error) {
+        jsonResponse(res, result.status, { error: result.error, errorKey: result.errorKey });
+        return true;
+      }
+      await session.destroyAllUserSessions(user.userId);
+      await session.createSessionForUser(res, { id: user.userId });
+      jsonResponse(res, 200, { changed: true });
+      return true;
+    }
+
     if (req.method !== "PATCH" || url.pathname !== "/api/settings") {
       return false;
     }

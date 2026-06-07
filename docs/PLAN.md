@@ -94,18 +94,30 @@ Infrastructure / ops (outside the repo — owner: deploy):
 
 ---
 
-## Phase 4 — Auth hardening — ⬜ not started
+## Phase 4 — Auth hardening — 🔄 in progress (app code done)
 **Goal:** Session model fit to handle money and identity. Depends on Phases 1 & 3.
 
-- Real, revocable sessions. Activate the unused `sessions` table: store server-side
-  sessions (or short-lived JWT + refresh token persisted in DB) so logout, password
-  change, and downgrades can revoke. Update `session.js` and `api.js`.
-- CSRF tokens (separate origins): double-submit cookie or synchronized token on all
-  state-changing requests; CORS with credentials to the one known origin.
-- Secure flag on cookies (`session.js`).
-- Rate limiting on login/register/reset/verify (`auth.routes.js`) — per-IP and per-account.
-- Email verification + password reset flows (routes, tokens table, emails, frontend views).
-- Input validation: real email-format check and password-strength rules in `auth.service.js`.
+Application code (done in-repo):
+- ✅ Real, revocable sessions. The `sessions` table is now active: cookies carry an
+  opaque random token, only its SHA-256 hash is stored, so logout, password change,
+  and password reset all revoke server-side. `src/auth/session.js`,
+  `src/auth/tokens.js`, `auth.repository.js`, wired through `api.js`.
+- ✅ Secure flag on cookies in production (`session.js`).
+- ✅ Per-IP rate limiting on login / register / request-reset / resend-verification
+  (`src/http/rate-limit.js`, applied in `auth.routes.js`).
+- ✅ Email verification (soft gate: reminder banner + resend) and password reset
+  flows — backend routes, `auth_tokens` table, localized emails, and frontend views
+  (forgot/reset panels, verify banner, change-password in settings). Verify/reset
+  links land on the app root with a query-param token the SPA consumes.
+- ✅ Input validation: email-format check and an 8-char minimum password rule
+  (`auth.service.js`).
+- ⬜ CSRF tokens (double-submit / synchronized token) on state-changing requests —
+  deferred; currently relying on `SameSite=Lax` cookies + single-origin CORS.
+
+Ops (one-time):
+- ⬜ Run `npm run migrate:up -w backend` against each environment to apply
+  `1748000000002_auth-hardening` (adds `email_verified` + `auth_tokens`; existing
+  users are backfilled as verified so they are never nagged).
 
 **Exit:** Verified signup, login, logout-everywhere, password reset, throttling all work.
 

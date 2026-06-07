@@ -372,6 +372,9 @@
   .min-h-8 {
     min-height: calc(var(--spacing) * 8);
   }
+  .min-h-9 {
+    min-height: calc(var(--spacing) * 9);
+  }
   .min-h-10 {
     min-height: calc(var(--spacing) * 10);
   }
@@ -450,6 +453,9 @@
   .flex-none {
     flex: none;
   }
+  .shrink-0 {
+    flex-shrink: 0;
+  }
   .border-collapse {
     border-collapse: collapse;
   }
@@ -476,6 +482,9 @@
   }
   .grid-cols-\[repeat\(auto-fit\,minmax\(220px\,1fr\)\)\] {
     grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+  }
+  .flex-col {
+    flex-direction: column;
   }
   .flex-nowrap {
     flex-wrap: nowrap;
@@ -879,6 +888,13 @@
       }
     }
   }
+  .hover\:text-brand-strong {
+    &:hover {
+      @media (hover: hover) {
+        color: var(--color-brand-strong);
+      }
+    }
+  }
   .focus\:border-brand {
     &:focus {
       border-color: var(--color-brand);
@@ -969,6 +985,31 @@
   .max-sm\:grid-cols-1 {
     @media (width < 40rem) {
       grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+  }
+  .sm\:w-44 {
+    @media (width >= 40rem) {
+      width: calc(var(--spacing) * 44);
+    }
+  }
+  .sm\:flex-col {
+    @media (width >= 40rem) {
+      flex-direction: column;
+    }
+  }
+  .sm\:flex-row {
+    @media (width >= 40rem) {
+      flex-direction: row;
+    }
+  }
+  .sm\:items-start {
+    @media (width >= 40rem) {
+      align-items: flex-start;
+    }
+  }
+  .sm\:text-left {
+    @media (width >= 40rem) {
+      text-align: left;
     }
   }
 }
@@ -1067,7 +1108,7 @@ button:disabled {
   border-color: var(--danger-border-hover);
   background: var(--danger-hover-surface);
 }
-.auth-mode-button.is-active, .tab-button.is-active, .locale-button.is-active, .display-mode-button.is-active, .reader-sidebar-tab-button.is-active, .theme-button.is-active, .upload-target-button.is-active {
+.auth-mode-button.is-active, .tab-button.is-active, .locale-button.is-active, .display-mode-button.is-active, .reader-sidebar-tab-button.is-active, .theme-button.is-active, .settings-menu-button.is-active, .upload-target-button.is-active {
   background: var(--surface-panel);
   color: var(--text-main);
   box-shadow: 0 1px 2px var(--shadow-color), inset 0 0 0 1px var(--brand);
@@ -1186,7 +1227,7 @@ button:disabled {
 .word-row.is-dragging {
   opacity: 0.5;
 }
-.tab-button:hover, .locale-button:hover, .display-mode-button:hover, .reader-sidebar-tab-button:hover, .theme-button:hover {
+.tab-button:hover, .locale-button:hover, .display-mode-button:hover, .reader-sidebar-tab-button:hover, .theme-button:hover, .settings-menu-button:hover {
   background: var(--surface-panel);
   color: var(--text-main);
 }

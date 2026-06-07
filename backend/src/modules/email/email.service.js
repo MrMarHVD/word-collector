@@ -18,9 +18,11 @@ export function createEmailService({ transport, from, replyTo = "", appUrl, bran
     throw new Error("createEmailService requires a transport.");
   }
 
-  function actionUrl(path, token) {
+  // The frontend SPA has no server-side path fallback, so action links land on
+  // the app root and carry their token as a query parameter the bootstrap reads.
+  function actionUrl(param, token) {
     const base = String(appUrl || "").replace(/\/+$/, "");
-    return `${base}${path}?token=${encodeURIComponent(token)}`;
+    return `${base}/?${param}=${encodeURIComponent(token)}`;
   }
 
   async function deliver(template, user, params) {
@@ -37,10 +39,10 @@ export function createEmailService({ transport, from, replyTo = "", appUrl, bran
 
   return {
     sendVerification(user, token) {
-      return deliver(emailTemplates.verification, user, { actionUrl: actionUrl("/verify-email", token) });
+      return deliver(emailTemplates.verification, user, { actionUrl: actionUrl("verify_token", token) });
     },
     sendPasswordReset(user, token) {
-      return deliver(emailTemplates.passwordReset, user, { actionUrl: actionUrl("/reset-password", token) });
+      return deliver(emailTemplates.passwordReset, user, { actionUrl: actionUrl("reset_token", token) });
     },
     // details: { planName, amount, periodEnd, invoiceUrl }
     sendReceipt(user, details = {}) {

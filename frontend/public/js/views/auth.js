@@ -14,4 +14,23 @@ export function renderAuthMode() {
   elements.authConfirmWrap.hidden = !isRegister;
   elements.authConfirmPassword.required = isRegister;
   elements.authSubmit.textContent = t(isRegister ? "auth.register" : "auth.login");
+  // The forgot-password link only makes sense when signing in.
+  elements.authForgotButton.hidden = isRegister;
+}
+
+// Switch the visible auth sub-panel: "login", "forgot", or "reset".
+export function showAuthPanel(panel) {
+  elements.authLoginPanel.hidden = panel !== "login";
+  elements.authForgotPanel.hidden = panel !== "forgot";
+  elements.authResetPanel.hidden = panel !== "reset";
+}
+
+// Soft email-verification gate: a dismissible-looking reminder banner shown
+// inside the app shell until the signed-in user verifies their address.
+export function renderVerifyBanner() {
+  const show = Boolean(state.user) && state.user.emailVerified !== true;
+  elements.verifyBanner.hidden = !show;
+  if (!show) {
+    elements.verifyBannerStatus.textContent = "";
+  }
 }

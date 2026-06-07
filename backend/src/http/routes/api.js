@@ -18,7 +18,7 @@ export function createApiHandler({ repositories, emailService }) {
     createLanguagesRoutes({ repositories }),
     createMaterialsRoutes({ repositories }),
     createPracticeRoutes({ repositories }),
-    createSettingsRoutes({ repositories }),
+    createSettingsRoutes({ repositories, session }),
     createWordsRoutes({ repositories }),
     createCollectionsRoutes({ repositories }),
     createImportsRoutes({ repositories })

@@ -11,7 +11,19 @@ export function configureSettingsController(options) {
   reloadDashboard = options.reloadDashboard;
 }
 
+export function renderSettingsTabs() {
+  elements.settingsMenuButtons.forEach((button) => {
+    const active = button.dataset.settingsTab === state.settingsTab;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-current", active ? "page" : "false");
+  });
+  elements.settingsPanels.forEach((panel) => {
+    panel.hidden = panel.dataset.settingsPanel !== state.settingsTab;
+  });
+}
+
 export function renderSettings() {
+  renderSettingsTabs();
   if (!elements.nativeLanguageSelect) {
     return;
   }
@@ -27,6 +39,38 @@ export function renderSettings() {
 }
 
 export function bindSettingsEvents() {
+  elements.settingsMenu.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-settings-tab]");
+    if (!button) {
+      return;
+    }
+    state.settingsTab = button.dataset.settingsTab;
+    renderSettingsTabs();
+  });
+
+  elements.changePasswordForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    elements.changePasswordStatus.textContent = t("settings.updatingPassword");
+    const submitButton = elements.changePasswordForm.querySelector("button");
+    submitButton.disabled = true;
+    try {
+      await requestJson("/api/settings/password", {
+        method: "POST",
+        body: JSON.stringify({
+          currentPassword: elements.currentPassword.value,
+          newPassword: elements.newPassword.value,
+          confirmPassword: elements.confirmNewPassword.value
+        })
+      });
+      elements.changePasswordForm.reset();
+      elements.changePasswordStatus.textContent = t("settings.passwordUpdated");
+    } catch (error) {
+      elements.changePasswordStatus.textContent = error.message;
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+
   elements.settingsForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     elements.settingsStatus.textContent = t("settings.saving");

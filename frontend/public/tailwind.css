@@ -139,6 +139,7 @@ button:disabled {
 .display-mode-button.is-active,
 .reader-sidebar-tab-button.is-active,
 .theme-button.is-active,
+.settings-menu-button.is-active,
 .upload-target-button.is-active {
   background: var(--surface-panel);
   color: var(--text-main);
@@ -283,7 +284,8 @@ button:disabled {
 .locale-button:hover,
 .display-mode-button:hover,
 .reader-sidebar-tab-button:hover,
-.theme-button:hover {
+.theme-button:hover,
+.settings-menu-button:hover {
   background: var(--surface-panel);
   color: var(--text-main);
 }

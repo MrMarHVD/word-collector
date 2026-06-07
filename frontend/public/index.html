@@ -9,7 +9,7 @@
   </head>
   <body class="min-h-screen bg-page text-main antialiased">
     <main id="authView" class="auth-shell grid min-h-screen place-items-center px-4 py-8" hidden>
-      <section class="auth-panel w-full max-w-md rounded-lg border border-line bg-panel p-6 shadow-panel">
+      <section id="authLoginPanel" class="auth-panel w-full max-w-md rounded-lg border border-line bg-panel p-6 shadow-panel">
         <button id="authBackButton" class="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-secondary hover:text-brand" type="button">
           <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4 fill-none stroke-current stroke-[2]">
             <path d="M15 6l-6 6 6 6" />
@@ -37,6 +37,44 @@
           </label>
           <button id="authSubmit" class="min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="submit" data-i18n="auth.login">ログイン</button>
           <p id="authStatus" class="status min-h-5 text-sm text-secondary" role="status"></p>
+        </form>
+        <button id="authForgotButton" class="mt-2 text-sm font-semibold text-brand hover:text-brand-strong" type="button" data-i18n="auth.forgotPassword">Forgot your password?</button>
+      </section>
+
+      <section id="authForgotPanel" class="auth-panel w-full max-w-md rounded-lg border border-line bg-panel p-6 shadow-panel" hidden>
+        <button id="authForgotBackButton" class="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-secondary hover:text-brand" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4 fill-none stroke-current stroke-[2]">
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+          <span data-i18n="auth.back">Back</span>
+        </button>
+        <p class="eyebrow mb-2 text-xs font-bold uppercase text-brand" data-i18n="brand">Supergloss</p>
+        <h1 class="text-3xl font-bold tracking-tight" data-i18n="auth.forgotTitle">Reset your password</h1>
+        <p class="mt-2 text-sm text-secondary" data-i18n="auth.forgotIntro">Enter your email and we'll send you a reset link.</p>
+        <form id="forgotForm" class="mt-5 grid gap-4">
+          <label class="grid gap-1.5 text-sm font-semibold text-label">
+            <span data-i18n="auth.email">メール</span>
+            <input id="forgotEmail" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="email" autocomplete="email" required />
+          </label>
+          <button id="forgotSubmit" class="min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="submit" data-i18n="auth.sendResetLink">Send reset link</button>
+          <p id="forgotStatus" class="status min-h-5 text-sm text-secondary" role="status"></p>
+        </form>
+      </section>
+
+      <section id="authResetPanel" class="auth-panel w-full max-w-md rounded-lg border border-line bg-panel p-6 shadow-panel" hidden>
+        <p class="eyebrow mb-2 text-xs font-bold uppercase text-brand" data-i18n="brand">Supergloss</p>
+        <h1 class="text-3xl font-bold tracking-tight" data-i18n="auth.resetTitle">Choose a new password</h1>
+        <form id="resetForm" class="mt-5 grid gap-4">
+          <label class="grid gap-1.5 text-sm font-semibold text-label">
+            <span data-i18n="auth.newPassword">New password</span>
+            <input id="resetPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="new-password" required />
+          </label>
+          <label class="grid gap-1.5 text-sm font-semibold text-label">
+            <span data-i18n="auth.confirmPassword">パスワード確認</span>
+            <input id="resetConfirmPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="new-password" required />
+          </label>
+          <button id="resetSubmit" class="min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="submit" data-i18n="auth.updatePassword">Update password</button>
+          <p id="resetStatus" class="status min-h-5 text-sm text-secondary" role="status"></p>
         </form>
       </section>
     </main>
@@ -93,6 +131,12 @@
           <button id="loginButton" class="login-button min-h-[52px] rounded-md bg-brand px-5 text-sm font-bold text-white hover:bg-brand-strong" type="button" data-i18n="auth.login" hidden>ログイン</button>
         </div>
       </header>
+
+      <div id="verifyBanner" class="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-muted px-4 py-3 text-sm" role="status" hidden>
+        <span class="flex-1 font-semibold text-label" data-i18n="verify.bannerText">Please verify your email address.</span>
+        <button id="verifyResendButton" class="min-h-9 rounded-md bg-brand px-3 text-sm font-bold text-white hover:bg-brand-strong" type="button" data-i18n="verify.resend">Resend email</button>
+        <span id="verifyBannerStatus" class="text-secondary" role="status"></span>
+      </div>
 
       <section id="welcomeView" class="welcome-view grid min-h-[calc(100vh-180px)] place-items-center px-4 py-8" hidden>
         <div class="welcome-hero w-full max-w-lg text-center">
@@ -285,7 +329,13 @@
       </section>
 
       <section id="settingsView" class="tab-view" hidden>
-        <section class="settings-panel max-w-xl rounded-lg border border-line bg-panel p-5 shadow-panel">
+        <div class="settings-layout flex flex-col gap-4 sm:flex-row sm:items-start">
+          <nav id="settingsMenu" class="settings-menu flex shrink-0 gap-1 rounded-lg border border-line bg-muted p-1 sm:w-44 sm:flex-col" aria-label="Settings sections">
+            <button class="settings-menu-button flex-1 rounded-md px-3 py-2 text-sm font-semibold text-secondary sm:text-left" type="button" data-settings-tab="system" data-i18n="settings.menuSystem">System</button>
+            <button class="settings-menu-button flex-1 rounded-md px-3 py-2 text-sm font-semibold text-secondary sm:text-left" type="button" data-settings-tab="account" data-i18n="settings.menuAccount">Account</button>
+          </nav>
+          <div class="settings-content min-w-0 w-full max-w-xl">
+        <section class="settings-panel rounded-lg border border-line bg-panel p-5 shadow-panel" data-settings-panel="system">
           <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
             <h2 class="text-base font-bold" data-i18n="settings.title">設定</h2>
           </div>
@@ -312,6 +362,30 @@
             <p id="settingsStatus" class="status mt-3 min-h-5 text-sm text-secondary" role="status"></p>
           </form>
         </section>
+
+        <section class="settings-panel rounded-lg border border-line bg-panel p-5 shadow-panel" data-settings-panel="account" hidden>
+          <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
+            <h2 class="text-base font-bold" data-i18n="settings.passwordTitle">Change password</h2>
+          </div>
+          <form id="changePasswordForm" class="grid gap-4">
+            <label class="grid gap-1.5 text-sm font-semibold text-label">
+              <span data-i18n="settings.currentPassword">Current password</span>
+              <input id="currentPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="current-password" required />
+            </label>
+            <label class="grid gap-1.5 text-sm font-semibold text-label">
+              <span data-i18n="auth.newPassword">New password</span>
+              <input id="newPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="new-password" required />
+            </label>
+            <label class="grid gap-1.5 text-sm font-semibold text-label">
+              <span data-i18n="auth.confirmPassword">パスワード確認</span>
+              <input id="confirmNewPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="new-password" required />
+            </label>
+            <button class="min-h-11 rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="submit" data-i18n="settings.updatePassword">Update password</button>
+            <p id="changePasswordStatus" class="status min-h-5 text-sm text-secondary" role="status"></p>
+          </form>
+        </section>
+          </div>
+        </div>
       </section>
     </main>
 

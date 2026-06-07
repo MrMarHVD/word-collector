@@ -1,12 +1,52 @@
-import { clearAuthCookie } from "../../auth/session.js";
 import { NATIVE_LANGUAGE_OPTIONS, STUDY_LANGUAGE_OPTIONS } from "../../config.js";
-import { getAuthContext, loginUser, registerUser } from "../../modules/auth/auth.service.js";
+import {
+  createPasswordReset,
+  createVerificationToken,
+  getAuthContext,
+  loginUser,
+  registerUser,
+  resetPassword,
+  verifyEmail
+} from "../../modules/auth/auth.service.js";
+import { clientIp, createRateLimiter, enforceRateLimit } from "../rate-limit.js";
 import { readJson } from "../request.js";
 import { jsonResponse } from "../response.js";
 
-// `emailService` is wired through for the Phase 4 verification / password-reset
-// flows; it is not yet used by the current login/register/logout endpoints.
-export function createAuthRoutes({ repositories, emailService, getAuthenticatedUser, setJwtForUser }) {
+// Public user shape returned to the client; never leak password material.
+function publicUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    nativeLanguage: user.nativeLanguage,
+    practiceWordsPerSession: user.practiceWordsPerSession,
+    emailVerified: user.emailVerified === true
+  };
+}
+
+export function createAuthRoutes({
+  repositories,
+  emailService,
+  getAuthenticatedUser,
+  createSessionForUser,
+  destroyCurrentSession
+}) {
+  // Per-IP throttles on the abuse-prone endpoints. Credential checks are the
+  // tightest; email-triggering endpoints are limited to curb mail flooding.
+  const loginLimiter = createRateLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
+  const registerLimiter = createRateLimiter({ max: 5, windowMs: 60 * 60 * 1000 });
+  const emailLimiter = createRateLimiter({ max: 5, windowMs: 60 * 60 * 1000 });
+
+  // Issue and email a verification link. Failures to send are logged but never
+  // surfaced to the client or allowed to break the surrounding flow.
+  async function sendVerificationEmail(user) {
+    try {
+      const raw = await createVerificationToken(repositories, user.id);
+      await emailService.sendVerification(user, raw);
+    } catch (error) {
+      console.error(`Failed to send verification email to ${user.email}: ${error.message}`);
+    }
+  }
+
   return async function handleAuthRoutes(req, res, url) {
     if (req.method === "GET" && url.pathname === "/api/auth/me") {
       const user = await getAuthenticatedUser(req);
@@ -30,32 +70,98 @@ export function createAuthRoutes({ repositories, emailService, getAuthenticatedU
     }
 
     if (req.method === "POST" && url.pathname === "/api/auth/login") {
+      if (!enforceRateLimit(res, loginLimiter, clientIp(req))) {
+        return true;
+      }
       const body = await readJson(req);
       const result = await loginUser(repositories, body.email, body.password);
       if (result.error) {
         jsonResponse(res, result.status, { error: result.error, errorKey: result.errorKey });
         return true;
       }
-      setJwtForUser(res, result.user);
-      jsonResponse(res, 200, { user: { id: result.user.id, email: result.user.email, nativeLanguage: result.user.nativeLanguage, practiceWordsPerSession: result.user.practiceWordsPerSession } });
+      await createSessionForUser(res, result.user);
+      jsonResponse(res, 200, { user: publicUser(result.user) });
       return true;
     }
 
     if (req.method === "POST" && url.pathname === "/api/auth/register") {
+      if (!enforceRateLimit(res, registerLimiter, clientIp(req))) {
+        return true;
+      }
       const body = await readJson(req);
       const result = await registerUser(repositories, body.email, body.password, body.confirmPassword);
       if (result.error) {
         jsonResponse(res, result.status, { error: result.error, errorKey: result.errorKey });
         return true;
       }
-      setJwtForUser(res, result.user);
-      jsonResponse(res, 201, { user: { id: result.user.id, email: result.user.email, nativeLanguage: result.user.nativeLanguage, practiceWordsPerSession: result.user.practiceWordsPerSession } });
+      await createSessionForUser(res, result.user);
+      await sendVerificationEmail(result.user);
+      jsonResponse(res, 201, { user: publicUser(result.user) });
       return true;
     }
 
     if (req.method === "POST" && url.pathname === "/api/auth/logout") {
-      clearAuthCookie(res);
+      await destroyCurrentSession(req, res);
       jsonResponse(res, 200, { loggedOut: true });
+      return true;
+    }
+
+    // Re-send a verification email to the signed-in user (soft-gate banner).
+    if (req.method === "POST" && url.pathname === "/api/auth/resend-verification") {
+      const user = await getAuthenticatedUser(req);
+      if (!user) {
+        jsonResponse(res, 401, { error: "Authentication required.", errorKey: "errors.authenticationRequired" });
+        return true;
+      }
+      if (!enforceRateLimit(res, emailLimiter, clientIp(req))) {
+        return true;
+      }
+      if (!user.emailVerified) {
+        await sendVerificationEmail({ id: user.userId, email: user.email });
+      }
+      jsonResponse(res, 200, { sent: true });
+      return true;
+    }
+
+    // Consume an emailed verification token.
+    if (req.method === "POST" && url.pathname === "/api/auth/verify-email") {
+      const body = await readJson(req);
+      const result = await verifyEmail(repositories, body.token);
+      if (result.error) {
+        jsonResponse(res, result.status, { error: result.error, errorKey: result.errorKey });
+        return true;
+      }
+      jsonResponse(res, 200, { verified: true });
+      return true;
+    }
+
+    // Begin a password reset. Always responds 200 to avoid account enumeration.
+    if (req.method === "POST" && url.pathname === "/api/auth/request-password-reset") {
+      if (!enforceRateLimit(res, emailLimiter, clientIp(req))) {
+        return true;
+      }
+      const body = await readJson(req);
+      const result = await createPasswordReset(repositories, body.email);
+      if (result.user && result.raw) {
+        try {
+          await emailService.sendPasswordReset(result.user, result.raw);
+        } catch (error) {
+          console.error(`Failed to send password-reset email to ${result.user.email}: ${error.message}`);
+        }
+      }
+      jsonResponse(res, 200, { requested: true });
+      return true;
+    }
+
+    // Complete a password reset with the emailed token; revokes all sessions.
+    if (req.method === "POST" && url.pathname === "/api/auth/reset-password") {
+      const body = await readJson(req);
+      const result = await resetPassword(repositories, body.token, body.password, body.confirmPassword);
+      if (result.error) {
+        jsonResponse(res, result.status, { error: result.error, errorKey: result.errorKey });
+        return true;
+      }
+      jsonResponse(res, 200, { reset: true });
       return true;
     }
 

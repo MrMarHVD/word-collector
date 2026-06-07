@@ -3,7 +3,7 @@ import { applyLocale, bindLocaleEvents, configureLocale } from "./app/locale.js"
 import { navigateToTab, resolveInitialTab, startRouter } from "./app/router.js";
 import { bindStudyLanguageEvents, configureStudyLanguage, renderStudyLanguageSelect } from "./app/study-language.js";
 import { elements } from "./dom.js";
-import { bindAuthEvents, configureAuthController, loadSession } from "./features/auth/auth.controller.js";
+import { bindAuthEvents, configureAuthController, consumeVerificationToken, loadSession, openResetPassword, showVerificationResult } from "./features/auth/auth.controller.js";
 import { bindCollectionsEvents, configureCollectionsController, loadWords } from "./features/collections/collections.controller.js";
 import { configureDashboardController, loadDashboard } from "./features/dashboard/dashboard.controller.js";
 import { bindImportEvents, configureImportsController } from "./features/imports/imports.controller.js";
@@ -68,4 +68,23 @@ await loadMessages();
 applyLocale();
 renderReaderSidebarTabs();
 renderAuthMode();
-await loadSession();
+
+// Emailed verification / password-reset links land on the app root carrying
+// their token as a query parameter. Consume it, then strip it from the URL so
+// the token is not left in history or re-triggered on reload.
+const authParams = new URLSearchParams(window.location.search);
+const resetToken = authParams.get("reset_token");
+const verifyToken = authParams.get("verify_token");
+if (resetToken || verifyToken) {
+  window.history.replaceState({}, "", window.location.pathname);
+}
+
+if (resetToken) {
+  openResetPassword(resetToken);
+} else {
+  const verifyResult = verifyToken ? await consumeVerificationToken(verifyToken) : null;
+  await loadSession();
+  if (verifyResult) {
+    showVerificationResult(verifyResult);
+  }
+}

@@ -1,8 +1,24 @@
-import { AUTH_COOKIE, JWT_TTL_SECONDS } from "../config.js";
+import { AUTH_COOKIE, IS_PRODUCTION, JWT_TTL_SECONDS } from "../config.js";
 import { jsonResponse } from "../http/response.js";
-import { createJwt, verifyJwt } from "./jwt.js";
+import { generateToken, hashToken } from "./tokens.js";
 
-// Cookie helpers isolate auth transport from route behavior.
+// Sessions are opaque, server-side, and revocable. The cookie carries a random
+// token; only its SHA-256 hash is stored in the `sessions` table, so the server
+// can invalidate any session (logout, logout-everywhere, password change) and a
+// database leak never exposes a usable cookie.
+
+const SESSION_TTL_SECONDS = JWT_TTL_SECONDS;
+
+// Build the Set-Cookie attributes. `Secure` is only added in production, where
+// TLS is terminated upstream, so local HTTP development still works.
+function cookieAttributes(maxAgeSeconds) {
+  const parts = ["HttpOnly", "SameSite=Lax", "Path=/", `Max-Age=${maxAgeSeconds}`];
+  if (IS_PRODUCTION) {
+    parts.push("Secure");
+  }
+  return parts.join("; ");
+}
+
 // Parse the Cookie header into decoded key-value pairs.
 export function parseCookies(req) {
   return Object.fromEntries(
@@ -17,30 +33,35 @@ export function parseCookies(req) {
   );
 }
 
-// Attach the auth JWT cookie to a response.
+// Attach the session cookie to a response.
 export function setAuthCookie(res, token) {
-  res.setHeader("set-cookie", `${AUTH_COOKIE}=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${JWT_TTL_SECONDS}`);
+  res.setHeader("set-cookie", `${AUTH_COOKIE}=${encodeURIComponent(token)}; ${cookieAttributes(SESSION_TTL_SECONDS)}`);
 }
 
-// Expire the auth cookie on the client.
+// Expire the session cookie on the client.
 export function clearAuthCookie(res) {
-  res.setHeader("set-cookie", `${AUTH_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`);
+  res.setHeader("set-cookie", `${AUTH_COOKIE}=; ${cookieAttributes(0)}`);
 }
 
-// Build request authentication helpers around the user repository.
+// Build request authentication helpers around the user/session repository.
 export function createSessionHelpers(authRepository) {
-  // Verify the token and then require the referenced user row to still exist.
-  async function getAuthenticatedUser(req) {
+  // Resolve the session token from the cookie to its stored hash.
+  function sessionIdFromRequest(req) {
     const token = parseCookies(req)[AUTH_COOKIE];
-    const payload = verifyJwt(token);
-    if (!payload) {
+    return token ? hashToken(token) : null;
+  }
+
+  // Look up the active (non-expired) session and its user.
+  async function getAuthenticatedUser(req) {
+    const sessionId = sessionIdFromRequest(req);
+    if (!sessionId) {
       return null;
     }
-    const user = await authRepository.findUserById(Number(payload.sub));
-    if (!user || user.email !== payload.email) {
+    const user = await authRepository.findSessionUser(sessionId);
+    if (!user) {
       return null;
     }
-    return { userId: user.id, email: user.email };
+    return { userId: user.id, email: user.email, emailVerified: user.emailVerified === true, sessionId };
   }
 
   // Require a valid user or write a 401 response.
@@ -53,10 +74,33 @@ export function createSessionHelpers(authRepository) {
     return user;
   }
 
-  // Create a JWT for a user and attach it as the auth cookie.
-  function setJwtForUser(res, user) {
-    setAuthCookie(res, createJwt(user));
+  // Create a new session row for a user and set the session cookie.
+  async function createSessionForUser(res, user) {
+    const { raw, hash } = generateToken();
+    const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000).toISOString();
+    await authRepository.createSession(hash, user.id, expiresAt);
+    setAuthCookie(res, raw);
   }
 
-  return { getAuthenticatedUser, requireUser, setJwtForUser };
+  // Destroy the current session (logout) and clear the cookie.
+  async function destroyCurrentSession(req, res) {
+    const sessionId = sessionIdFromRequest(req);
+    if (sessionId) {
+      await authRepository.deleteSession(sessionId);
+    }
+    clearAuthCookie(res);
+  }
+
+  // Revoke every session for a user (e.g. after a password reset).
+  async function destroyAllUserSessions(userId) {
+    await authRepository.deleteUserSessions(userId);
+  }
+
+  return {
+    getAuthenticatedUser,
+    requireUser,
+    createSessionForUser,
+    destroyCurrentSession,
+    destroyAllUserSessions
+  };
 }
