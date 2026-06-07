@@ -31,6 +31,7 @@
             <span data-i18n="auth.password">パスワード</span>
             <input id="authPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="current-password" required />
           </label>
+          <p id="authPasswordRequirements" class="text-sm text-secondary" data-i18n="auth.passwordRequirements" hidden>パスワードは8文字以上で、数字を1つ以上含めてください。</p>
           <label id="authConfirmWrap" class="grid gap-1.5 text-sm font-semibold text-label" hidden>
             <span data-i18n="auth.confirmPassword">パスワード確認</span>
             <input id="authConfirmPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="new-password" />
@@ -43,7 +44,10 @@
           <span data-i18n="auth.or">または</span>
           <span class="h-px bg-line"></span>
         </div>
-        <button id="authGoogleButton" class="min-h-11 w-full rounded-md border border-line bg-panel px-4 text-sm font-bold text-main hover:bg-hover" type="button" data-i18n="auth.google" hidden>Googleで続行</button>
+        <button id="authGoogleButton" class="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-line bg-panel px-4 text-sm font-bold text-main hover:bg-hover" type="button" hidden>
+          <span class="grid h-5 w-5 place-items-center rounded-full bg-white text-sm font-black text-[#4285F4]" aria-hidden="true">G</span>
+          <span data-i18n="auth.google">Googleで続行</span>
+        </button>
         <button id="authForgotButton" class="mt-2 text-sm font-semibold text-brand hover:text-brand-strong" type="button" data-i18n="auth.forgotPassword">Forgot your password?</button>
       </section>
 
@@ -75,6 +79,7 @@
             <span data-i18n="auth.newPassword">New password</span>
             <input id="resetPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="new-password" required />
           </label>
+          <p class="text-sm text-secondary" data-i18n="auth.passwordRequirements">Password must be at least 8 characters and include at least one number.</p>
           <label class="grid gap-1.5 text-sm font-semibold text-label">
             <span data-i18n="auth.confirmPassword">パスワード確認</span>
             <input id="resetConfirmPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="new-password" required />
@@ -373,27 +378,32 @@
           <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
             <h2 class="text-base font-bold" data-i18n="settings.accountDetailsTitle">Account details</h2>
           </div>
-          <dl id="accountDetails" class="mb-6 grid gap-3 text-sm"></dl>
-          <div id="changePasswordSection" class="grid gap-4">
-          <div class="section-head flex min-h-8 items-center justify-between gap-3">
-            <h2 class="text-base font-bold" data-i18n="settings.passwordTitle">Change password</h2>
-          </div>
-          <form id="changePasswordForm" class="grid gap-4">
-            <label class="grid gap-1.5 text-sm font-semibold text-label">
-              <span data-i18n="settings.currentPassword">Current password</span>
-              <input id="currentPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="current-password" required />
-            </label>
-            <label class="grid gap-1.5 text-sm font-semibold text-label">
-              <span data-i18n="auth.newPassword">New password</span>
-              <input id="newPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="new-password" required />
-            </label>
-            <label class="grid gap-1.5 text-sm font-semibold text-label">
-              <span data-i18n="auth.confirmPassword">パスワード確認</span>
-              <input id="confirmNewPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="new-password" required />
-            </label>
-            <button class="min-h-11 rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="submit" data-i18n="settings.updatePassword">Update password</button>
-            <p id="changePasswordStatus" class="status min-h-5 text-sm text-secondary" role="status"></p>
-          </form>
+          <dl id="accountDetails" class="grid gap-3 text-sm"></dl>
+          <div id="changePasswordSection" class="mt-8 rounded-md border border-line bg-panel shadow-sm">
+            <div class="border-b border-line px-3 py-2">
+              <h3 class="text-sm font-bold text-main" data-i18n="settings.securityTitle">Security</h3>
+            </div>
+            <button id="changePasswordToggle" class="flex min-h-12 w-full items-center justify-between gap-3 px-3 text-left text-sm font-bold text-main hover:bg-hover" type="button" aria-expanded="false">
+              <span data-i18n="settings.passwordTitle">Change password</span>
+              <span class="text-base leading-none text-secondary" aria-hidden="true">+</span>
+            </button>
+            <form id="changePasswordForm" class="grid gap-4 border-t border-line bg-panel p-3" hidden>
+              <p class="text-sm text-secondary" data-i18n="auth.passwordRequirements">Password must be at least 8 characters and include at least one number.</p>
+              <label class="grid gap-1.5 text-sm font-semibold text-label">
+                <span data-i18n="settings.currentPassword">Current password</span>
+                <input id="currentPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="current-password" required />
+              </label>
+              <label class="grid gap-1.5 text-sm font-semibold text-label">
+                <span data-i18n="auth.newPassword">New password</span>
+                <input id="newPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="new-password" required />
+              </label>
+              <label class="grid gap-1.5 text-sm font-semibold text-label">
+                <span data-i18n="auth.confirmPassword">パスワード確認</span>
+                <input id="confirmNewPassword" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="password" autocomplete="new-password" required />
+              </label>
+              <button class="min-h-11 rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="submit" data-i18n="settings.updatePassword">Update password</button>
+              <p id="changePasswordStatus" class="status min-h-5 text-sm text-secondary" role="status"></p>
+            </form>
           </div>
         </section>
           </div>

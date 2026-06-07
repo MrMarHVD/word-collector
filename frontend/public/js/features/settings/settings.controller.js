@@ -68,6 +68,8 @@ export function renderSettings() {
   }
   renderAccountDetails();
   elements.changePasswordSection.hidden = state.user?.hasPassword !== true;
+  elements.changePasswordForm.hidden = true;
+  elements.changePasswordToggle.setAttribute("aria-expanded", "false");
   if (state.user?.hasPassword === true && elements.changePasswordStatus.textContent === t("settings.passwordUnavailable")) {
     elements.changePasswordStatus.textContent = "";
   }
@@ -81,6 +83,15 @@ export function bindSettingsEvents() {
     }
     state.settingsTab = button.dataset.settingsTab;
     renderSettingsTabs();
+  });
+
+  elements.changePasswordToggle.addEventListener("click", () => {
+    const expanded = elements.changePasswordToggle.getAttribute("aria-expanded") === "true";
+    elements.changePasswordToggle.setAttribute("aria-expanded", String(!expanded));
+    elements.changePasswordForm.hidden = expanded;
+    if (!expanded) {
+      elements.currentPassword.focus();
+    }
   });
 
   elements.changePasswordForm.addEventListener("submit", async (event) => {

@@ -13,6 +13,7 @@ export function renderAuthMode() {
   const isRegister = state.authMode === "register";
   elements.authConfirmWrap.hidden = !isRegister;
   elements.authConfirmPassword.required = isRegister;
+  elements.authPasswordRequirements.hidden = !isRegister;
   elements.authSubmit.textContent = t(isRegister ? "auth.register" : "auth.login");
   const googleEnabled = state.authProviders?.google === true;
   elements.authGoogleButton.hidden = !googleEnabled;

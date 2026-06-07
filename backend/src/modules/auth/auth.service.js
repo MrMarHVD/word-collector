@@ -8,6 +8,7 @@ export const TOKEN_TYPES = { VERIFICATION: "email_verification", RESET: "passwor
 const VERIFICATION_TTL_SECONDS = 24 * 60 * 60; // 24h
 const RESET_TTL_SECONDS = 60 * 60; // 1h
 const MIN_PASSWORD_LENGTH = 8;
+const PASSWORD_NUMBER_PATTERN = /\d/;
 
 // Pragmatic email shape check: a single @, non-empty local part, and a dotted
 // domain. Real deliverability is confirmed by the verification email itself.
@@ -21,6 +22,9 @@ function isValidEmail(email) {
 function passwordError(password) {
   if (password.length < MIN_PASSWORD_LENGTH) {
     return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`, errorKey: "errors.passwordTooShort", status: 400 };
+  }
+  if (!PASSWORD_NUMBER_PATTERN.test(password)) {
+    return { error: "Password must include at least one number.", errorKey: "errors.passwordRequiresNumber", status: 400 };
   }
   return null;
 }
