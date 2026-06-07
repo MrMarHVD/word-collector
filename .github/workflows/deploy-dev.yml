@@ -1,0 +1,44 @@
+name: Deploy dev
+
+on:
+  push:
+    branches:
+      - dev
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Deploy to Oracle VM
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USER }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          port: ${{ secrets.ORACLE_SSH_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -eu
+
+            APP_DIR="${ORACLE_APP_DIR:-/home/ubuntu/word_marker}"
+            SERVICE_NAME="${ORACLE_SERVICE_NAME:-word-marker}"
+
+            cd "$APP_DIR"
+            git fetch origin dev
+            git reset --hard origin/dev
+
+            npm install
+            npm run build:css -w frontend
+            npm run migrate:up -w backend
+
+            sudo systemctl restart "$SERVICE_NAME"
+            sudo systemctl status "$SERVICE_NAME" --no-pager
+        env:
+          ORACLE_APP_DIR: ${{ secrets.ORACLE_APP_DIR }}
+          ORACLE_SERVICE_NAME: ${{ secrets.ORACLE_SERVICE_NAME }}
