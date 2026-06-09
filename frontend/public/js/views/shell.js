@@ -6,6 +6,10 @@ import { state, WORD_PAGE_SIZE } from "../state.js";
 export function setActiveTab(tabName) {
   state.activeTab = tabName;
   localStorage.setItem("wordMarkerActiveTab", tabName);
+  document.body.classList.toggle("is-reader-active", tabName === "reader");
+  if (tabName === "reader") {
+    window.scrollTo(0, 0);
+  }
   elements.welcomeView.hidden = true;
   elements.dashboardView.hidden = tabName !== "dashboard";
   elements.collectionsView.hidden = tabName !== "collections";
@@ -21,6 +25,9 @@ export function setActiveTab(tabName) {
 
 // Show one top-level shell: auth, onboarding, welcome, or app.
 export function showView(viewName) {
+  if (viewName !== "app") {
+    document.body.classList.remove("is-reader-active");
+  }
   elements.authView.hidden = viewName !== "auth";
   elements.onboardingView.hidden = viewName !== "onboarding";
   elements.appShell.hidden = viewName !== "app" && viewName !== "welcome";
