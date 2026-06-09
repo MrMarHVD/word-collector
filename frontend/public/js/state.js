@@ -1,5 +1,7 @@
 export const WORD_PAGE_SIZE = 50;
 export const WORDS_PER_PAGE = 10;
+export const BETA_MAX_MATERIALS_PER_USER = 10;
+export const BETA_MAX_MATERIAL_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 function normalizeDisplayMode(stored) {
   return stored === "infinite" ? "infinite" : "page";

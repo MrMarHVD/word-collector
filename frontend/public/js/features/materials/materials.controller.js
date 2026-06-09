@@ -1,7 +1,7 @@
-import { apiUrl, csrfHeaders, requestJson } from "../../api.js";
+import { apiErrorMessage, apiUrl, csrfHeaders, requestJson } from "../../api.js";
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
-import { state } from "../../state.js";
+import { BETA_MAX_MATERIALS_PER_USER, BETA_MAX_MATERIAL_UPLOAD_BYTES, state } from "../../state.js";
 import { renderImportProgress, renderMaterialList, renderReaderTokens } from "../../views/reader.js";
 
 let loadDashboard = async () => {};
@@ -119,6 +119,18 @@ export function bindMaterialsEvents() {
       elements.materialImportStatus.textContent = t("reader.chooseFile");
       return;
     }
+    if (file.size > BETA_MAX_MATERIAL_UPLOAD_BYTES) {
+      elements.materialImportStatus.textContent = t("errors.materialFileTooLarge", {
+        maxMegabytes: String(Math.round(BETA_MAX_MATERIAL_UPLOAD_BYTES / 1024 / 1024))
+      });
+      return;
+    }
+    if (state.materials.length >= BETA_MAX_MATERIALS_PER_USER) {
+      elements.materialImportStatus.textContent = t("errors.materialLimitReached", {
+        maxDocuments: String(BETA_MAX_MATERIALS_PER_USER)
+      });
+      return;
+    }
     const submitButton = elements.materialImportForm.querySelector("button[type=submit]");
     submitButton.disabled = true;
     elements.materialImportStatus.textContent = t("reader.importing");
@@ -132,7 +144,7 @@ export function bindMaterialsEvents() {
       const response = await fetch(apiUrl("/api/materials"), { method: "POST", headers: await csrfHeaders(), body: form, credentials: "include" });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error || t("errors.requestFailed"));
+        throw new Error(apiErrorMessage(payload));
       }
       elements.materialImportForm.reset();
       elements.materialImportStatus.textContent = t("reader.importStarted");

@@ -14,6 +14,10 @@ export function apiUrl(url) {
   return `${apiBaseUrl}${url}`;
 }
 
+export function apiErrorMessage(payload) {
+  return payload.errorKey ? t(payload.errorKey, payload.details || {}) : payload.error || t("errors.requestFailed");
+}
+
 const UNSAFE_METHODS = new Set(["POST", "PATCH", "DELETE"]);
 
 async function refreshCsrfToken() {
@@ -66,7 +70,7 @@ export async function requestJson(url, options = {}) {
     unauthorizedHandler();
   }
   if (!response.ok) {
-    throw new Error(payload.errorKey ? t(payload.errorKey) : payload.error || t("errors.requestFailed"));
+    throw new Error(apiErrorMessage(payload));
   }
   return payload;
 }

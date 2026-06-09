@@ -265,7 +265,9 @@
     "errors.google_denied": "Googleログインがキャンセルされました。",
     "errors.google_state_invalid": "Googleログインの確認に失敗しました。もう一度お試しください。",
     "errors.google_failed": "Googleログインを完了できませんでした。もう一度お試しください。",
-    "errors.googleEmailUnverified": "Googleから確認済みのメールアドレスを取得できませんでした。"
+    "errors.googleEmailUnverified": "Googleから確認済みのメールアドレスを取得できませんでした。",
+    "errors.materialFileTooLarge": "ベータ期間中、ドキュメントは{maxMegabytes} MB以下にしてください。",
+    "errors.materialLimitReached": "ベータ期間中に保存できるドキュメントは{maxDocuments}件までです。新しくアップロードするには既存のドキュメントを削除してください。"
   },
   "en": {
     "app.title": "Supergloss",
@@ -533,7 +535,9 @@
     "errors.google_denied": "Google sign-in was canceled.",
     "errors.google_state_invalid": "Google sign-in validation failed. Please try again.",
     "errors.google_failed": "Google sign-in could not be completed. Please try again.",
-    "errors.googleEmailUnverified": "Google did not return a verified email address."
+    "errors.googleEmailUnverified": "Google did not return a verified email address.",
+    "errors.materialFileTooLarge": "Documents can be no larger than {maxMegabytes} MB during beta.",
+    "errors.materialLimitReached": "You can keep up to {maxDocuments} documents during beta. Delete one before uploading another."
   },
   "zh": {
     "app.title": "Supergloss",
@@ -801,6 +805,8 @@
     "errors.google_denied": "Google 登录已取消。",
     "errors.google_state_invalid": "Google 登录验证失败。请重试。",
     "errors.google_failed": "无法完成 Google 登录。请重试。",
-    "errors.googleEmailUnverified": "Google 未返回已验证的邮箱地址。"
+    "errors.googleEmailUnverified": "Google 未返回已验证的邮箱地址。",
+    "errors.materialFileTooLarge": "测试期间，文档大小不能超过 {maxMegabytes} MB。",
+    "errors.materialLimitReached": "测试期间最多可保留 {maxDocuments} 个文档。请先删除一个现有文档再上传。"
   }
 }

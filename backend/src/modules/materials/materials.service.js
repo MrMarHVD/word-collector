@@ -1,5 +1,5 @@
 import { Worker } from "node:worker_threads";
-import { READER_WORK_PAGE_SIZE } from "../../config.js";
+import { BETA_MAX_MATERIALS_PER_USER, BETA_MAX_MATERIAL_UPLOAD_BYTES, READER_WORK_PAGE_SIZE } from "../../config.js";
 import { normalizeName } from "../../shared/normalize.js";
 import { lookupChineseDetails, lookupEnglishPos } from "../dictionaries/dictionaries.service.js";
 import { backfillMaterialTranslations, displayTranslationForToken, getTranslationCandidates, hasTranslationAttempt, hasUsableStoredTranslation, languageKey, lookupTranslation, materialTranslationStatus, scheduleMaterialTranslationBackfill, supportedTargetNativeLanguage, translationDisambiguationCandidates, translationForToken } from "../translations/translations.service.js";
@@ -103,6 +103,10 @@ const IMPORT_MIME_TYPES = {
 // batches so the polling endpoint can report it while the worker keeps running.
 const IMPORT_BATCH_SIZE = 200;
 
+function formatMegabytes(bytes) {
+  return Math.round(bytes / 1024 / 1024);
+}
+
 // Create the material row and hand the heavy work (extraction, tokenization,
 // translation, token persistence) to a worker thread so the HTTP server stays
 // responsive and the client can poll import progress. Returns immediately with
@@ -114,6 +118,24 @@ export async function startMaterialImport(repositories, userId, languageId, file
   }
   if (!file?.buffer?.length) {
     return { error: "Upload a PDF, EPUB, or text file." };
+  }
+  if (file.buffer.length > BETA_MAX_MATERIAL_UPLOAD_BYTES) {
+    const megabytes = formatMegabytes(BETA_MAX_MATERIAL_UPLOAD_BYTES);
+    return {
+      status: 413,
+      error: `Documents can be no larger than ${megabytes} MB during beta.`,
+      errorKey: "errors.materialFileTooLarge",
+      details: { maxMegabytes: megabytes }
+    };
+  }
+  const materialCount = await repositories.materials.countByUser(userId);
+  if (materialCount >= BETA_MAX_MATERIALS_PER_USER) {
+    return {
+      status: 409,
+      error: `You can keep up to ${BETA_MAX_MATERIALS_PER_USER} documents during beta. Delete one before uploading another.`,
+      errorKey: "errors.materialLimitReached",
+      details: { maxDocuments: BETA_MAX_MATERIALS_PER_USER }
+    };
   }
 
   const fileName = file.filename || "Untitled";
