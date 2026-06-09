@@ -127,10 +127,14 @@
               <div id="studyLanguageDropdown" class="study-language-dropdown absolute right-0 top-[calc(100%+6px)] z-30 min-w-[160px] rounded-md border border-line bg-panel p-1 shadow-panel" role="menu" hidden></div>
             </div>
           </div>
-          <div class="locale-buttons grid min-w-[160px] grid-cols-2 gap-1 rounded-lg border border-line bg-muted p-1 max-md:grid-cols-1" aria-label="UI language">
-            <button class="locale-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-locale="ja" data-i18n="ui.japanese">日本語</button>
-            <button class="locale-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-locale="en" data-i18n="ui.english">English</button>
-          </div>
+          <label class="locale-select-wrap grid min-w-[140px]">
+            <span class="visually-hidden" data-i18n="ui.language">UI language</span>
+            <select id="localeSelect" class="min-h-[52px] rounded-md border border-line bg-panel px-3 text-sm font-bold text-main outline-none hover:bg-hover focus:border-brand focus:ring-2 focus:ring-focus" aria-label="UI language">
+              <option value="en" data-i18n="ui.english">English</option>
+              <option value="zh" data-i18n="ui.chinese">中文</option>
+              <option value="ja" data-i18n="ui.japanese">日本語</option>
+            </select>
+          </label>
           <button id="settingsButton" class="secondary-button icon-button tab-button grid h-[52px] w-[52px] place-items-center rounded-md border border-line bg-panel text-brand hover:bg-hover" type="button" data-tab="settings">
             <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[1.8]">
               <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />

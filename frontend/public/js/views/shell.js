@@ -48,11 +48,7 @@ export function renderMenuForAuth(isLoggedIn) {
 
 // Render active state for locale selection controls.
 export function renderLocaleButtons() {
-  elements.localeButtons.forEach((button) => {
-    const active = button.dataset.locale === state.locale;
-    button.classList.toggle("is-active", active);
-    button.setAttribute("aria-pressed", String(active));
-  });
+  elements.localeSelect.value = state.locale;
 }
 
 // Render active state for collection word display mode controls.

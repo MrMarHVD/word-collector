@@ -49,11 +49,9 @@ export function applyLocale() {
 }
 
 export function bindLocaleEvents() {
-  elements.localeButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      state.locale = button.dataset.locale;
-      localStorage.setItem("wordMarkerLocale", state.locale);
-      applyLocale();
-    });
+  elements.localeSelect.addEventListener("change", () => {
+    state.locale = elements.localeSelect.value;
+    localStorage.setItem("wordMarkerLocale", state.locale);
+    applyLocale();
   });
 }

@@ -44,7 +44,7 @@ export const elements = {
   onboardingLanguages: document.querySelector("#onboardingLanguages"),
   onboardingStatus: document.querySelector("#onboardingStatus"),
   tabButtons: document.querySelectorAll(".tab-button"),
-  localeButtons: document.querySelectorAll(".locale-button"),
+  localeSelect: document.querySelector("#localeSelect"),
   dashboardView: document.querySelector("#dashboardView"),
   collectionsView: document.querySelector("#collectionsView"),
   readerView: document.querySelector("#readerView"),
