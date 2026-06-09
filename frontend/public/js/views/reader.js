@@ -79,6 +79,39 @@ export function renderReaderSidebarTabs() {
   elements.readerHighlightOpacity.value = String(state.readerHighlightOpacity);
 }
 
+function importProgressDetails(material) {
+  const total = Number(material?.importTotal || 0);
+  const processed = Number(material?.importProcessed || 0);
+  if (total > 0) {
+    const percent = Math.min(100, Math.round((processed / total) * 100));
+    return {
+      percent,
+      determinate: true,
+      label: t("reader.translationProgress", { percent: String(percent) })
+    };
+  }
+  return {
+    percent: 100,
+    determinate: false,
+    label: t("reader.preparing")
+  };
+}
+
+function materialProgressMarkup(material) {
+  if (material.importStatus !== "processing") {
+    return "";
+  }
+  const progress = importProgressDetails(material);
+  return `
+    <div class="material-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" ${progress.determinate ? `aria-valuenow="${progress.percent}"` : ""}>
+      <div class="material-progress-track">
+        <div class="material-progress-bar${progress.determinate ? "" : " animate-pulse"}" style="width:${progress.percent}%"></div>
+      </div>
+      <small>${escapeHtml(progress.label)}</small>
+    </div>
+  `;
+}
+
 // Render the imported material list and active material state.
 export function renderMaterialList() {
   const searching = state.materialSearch.trim().length > 0;
@@ -105,6 +138,7 @@ export function renderMaterialList() {
               <button class="material-button rounded-lg border border-line bg-panel p-2.5 text-left hover:bg-hover" type="button" data-material-id="${material.id}" ${disabled ? "disabled" : ""}>
                 <span>${escapeHtml(material.title)}</span>
                 <small>${escapeHtml(meta)}</small>
+                ${materialProgressMarkup(material)}
               </button>
               <button class="material-delete-button rounded-lg border px-2.5 text-sm font-bold" type="button" data-delete-material-id="${material.id}" aria-label="${escapeHtml(t("reader.deleteMaterial"))}">
                 ${escapeHtml(t("reader.deleteMaterial"))}
@@ -147,21 +181,25 @@ export function renderImportProgress() {
     return;
   }
 
-  const total = Number(tracked?.importTotal || 0);
-  const processed = Number(tracked?.importProcessed || 0);
-  if (importing && total > 0) {
-    const percent = Math.min(100, Math.round((processed / total) * 100));
+  if (importing) {
+    const progress = importProgressDetails(tracked);
     elements.materialImportProgressBar.classList.remove("animate-pulse");
-    elements.materialImportProgressBar.style.width = `${percent}%`;
-    elements.materialImportProgress.setAttribute("aria-valuenow", String(percent));
-    elements.materialImportProgressLabel.textContent = t("reader.translationProgress", { percent: String(percent) });
-  } else {
-    // Extraction and tokenization happen before the token count is known.
+    elements.materialImportProgressBar.style.width = `${progress.percent}%`;
+    elements.materialImportProgressLabel.textContent = progress.label;
+    if (progress.determinate) {
+      elements.materialImportProgress.setAttribute("aria-valuenow", String(progress.percent));
+      return;
+    }
     elements.materialImportProgressBar.classList.add("animate-pulse");
-    elements.materialImportProgressBar.style.width = "100%";
     elements.materialImportProgress.removeAttribute("aria-valuenow");
-    elements.materialImportProgressLabel.textContent = t("reader.preparing");
+    return;
   }
+
+  // Extraction and tokenization happen before the material row exists.
+  elements.materialImportProgressBar.classList.add("animate-pulse");
+  elements.materialImportProgressBar.style.width = "100%";
+  elements.materialImportProgress.removeAttribute("aria-valuenow");
+  elements.materialImportProgressLabel.textContent = t("reader.preparing");
 }
 
 function tokenButtonMarkup(token) {

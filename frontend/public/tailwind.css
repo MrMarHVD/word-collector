@@ -903,6 +903,32 @@ tbody tr:last-child td {
   font-weight: 600;
 }
 
+.material-progress {
+  display: grid;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.material-progress-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.material-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--brand);
+  transition: width 500ms ease;
+}
+
+.material-progress small {
+  font-size: 0.72rem;
+  line-height: 1.2;
+  color: var(--text-muted);
+}
+
 .material-delete-button {
   min-width: 58px;
   border: 1px solid var(--danger-border);

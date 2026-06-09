@@ -60,6 +60,19 @@ function scheduleTranslationRefresh() {
   }, 1500);
 }
 
+function openMaterialImportModal() {
+  elements.materialImportModal.hidden = false;
+  elements.materialImportModal.classList.remove("hidden");
+  elements.materialImportModal.classList.add("flex");
+  elements.materialFile.focus();
+}
+
+function closeMaterialImportModal() {
+  elements.materialImportModal.hidden = true;
+  elements.materialImportModal.classList.add("hidden");
+  elements.materialImportModal.classList.remove("flex");
+}
+
 export async function loadMaterials(reset = false) {
   if (!state.selectedStudyLanguageId) {
     if (translationPollId) {
@@ -96,6 +109,9 @@ export async function loadMaterials(reset = false) {
 }
 
 export function bindMaterialsEvents() {
+  elements.materialImportOpen.addEventListener("click", openMaterialImportModal);
+  elements.materialImportModalClose.addEventListener("click", closeMaterialImportModal);
+
   elements.materialImportForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const file = elements.materialFile.files[0];
@@ -103,7 +119,7 @@ export function bindMaterialsEvents() {
       elements.materialImportStatus.textContent = t("reader.chooseFile");
       return;
     }
-    const submitButton = elements.materialImportForm.querySelector("button");
+    const submitButton = elements.materialImportForm.querySelector("button[type=submit]");
     submitButton.disabled = true;
     elements.materialImportStatus.textContent = t("reader.importing");
     state.importInProgress = true;
