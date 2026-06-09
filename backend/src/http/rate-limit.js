@@ -1,15 +1,21 @@
 import { jsonResponse } from "./response.js";
+import { TRUSTED_PROXY_IPS } from "../config.js";
 
 // Lightweight in-memory rate limiter for abuse-prone auth endpoints. A fixed
 // window per (key) keeps the implementation simple and dependency-free; it is
 // per-process, which is sufficient for a single-instance deployment. Move to a
 // shared store (Redis) if the app is ever scaled horizontally.
 
-// Derive a best-effort client identifier. Behind a trusted reverse proxy the
-// real client is the first hop in X-Forwarded-For; otherwise use the socket.
+function normalizeIp(value) {
+  return String(value || "").replace(/^::ffff:/, "").trim();
+}
+
+// Derive a best-effort client identifier. Only trust X-Forwarded-For when the
+// direct peer is a configured trusted reverse proxy.
 export function clientIp(req) {
+  const remote = normalizeIp(req.socket?.remoteAddress) || "unknown";
   const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
-  return forwarded || req.socket?.remoteAddress || "unknown";
+  return TRUSTED_PROXY_IPS.includes(remote) && forwarded ? normalizeIp(forwarded) : remote;
 }
 
 // Create a limiter that allows `max` hits per `windowMs` for a given key. The

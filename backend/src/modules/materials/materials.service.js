@@ -1,5 +1,5 @@
 import { Worker } from "node:worker_threads";
-import { BETA_MAX_MATERIALS_PER_USER, BETA_MAX_MATERIAL_UPLOAD_BYTES, READER_WORK_PAGE_SIZE } from "../../config.js";
+import { BETA_MAX_ACTIVE_IMPORTS_GLOBAL, BETA_MAX_ACTIVE_IMPORTS_PER_USER, BETA_MAX_MATERIALS_PER_USER, BETA_MAX_MATERIAL_UPLOAD_BYTES, READER_WORK_PAGE_SIZE } from "../../config.js";
 import { normalizeName } from "../../shared/normalize.js";
 import { lookupChineseDetails, lookupEnglishPos } from "../dictionaries/dictionaries.service.js";
 import { backfillMaterialTranslations, displayTranslationForToken, getTranslationCandidates, hasTranslationAttempt, hasUsableStoredTranslation, languageKey, lookupTranslation, materialTranslationStatus, scheduleMaterialTranslationBackfill, supportedTargetNativeLanguage, translationDisambiguationCandidates, translationForToken } from "../translations/translations.service.js";
@@ -135,6 +135,20 @@ export async function startMaterialImport(repositories, userId, languageId, file
       error: `You can keep up to ${BETA_MAX_MATERIALS_PER_USER} documents during beta. Delete one before uploading another.`,
       errorKey: "errors.materialLimitReached",
       details: { maxDocuments: BETA_MAX_MATERIALS_PER_USER }
+    };
+  }
+  if (await repositories.materials.countProcessingByUser(userId) >= BETA_MAX_ACTIVE_IMPORTS_PER_USER) {
+    return {
+      status: 409,
+      error: "An import is already running. Wait for it to finish before starting another.",
+      errorKey: "errors.materialUserImportInProgress"
+    };
+  }
+  if (await repositories.materials.countProcessingGlobal() >= BETA_MAX_ACTIVE_IMPORTS_GLOBAL) {
+    return {
+      status: 503,
+      error: "Import capacity is currently full. Please try again shortly.",
+      errorKey: "errors.materialImportCapacityFull"
     };
   }
 

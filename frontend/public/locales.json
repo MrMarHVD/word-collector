@@ -267,7 +267,9 @@
     "errors.google_failed": "Googleログインを完了できませんでした。もう一度お試しください。",
     "errors.googleEmailUnverified": "Googleから確認済みのメールアドレスを取得できませんでした。",
     "errors.materialFileTooLarge": "ベータ期間中、ドキュメントは{maxMegabytes} MB以下にしてください。",
-    "errors.materialLimitReached": "ベータ期間中に保存できるドキュメントは{maxDocuments}件までです。新しくアップロードするには既存のドキュメントを削除してください。"
+    "errors.materialLimitReached": "ベータ期間中に保存できるドキュメントは{maxDocuments}件までです。新しくアップロードするには既存のドキュメントを削除してください。",
+    "errors.materialUserImportInProgress": "インポートがすでに実行中です。完了してから次のインポートを開始してください。",
+    "errors.materialImportCapacityFull": "現在、インポート処理の空きがありません。しばらくしてからもう一度お試しください。"
   },
   "en": {
     "app.title": "Supergloss",
@@ -537,7 +539,9 @@
     "errors.google_failed": "Google sign-in could not be completed. Please try again.",
     "errors.googleEmailUnverified": "Google did not return a verified email address.",
     "errors.materialFileTooLarge": "Documents can be no larger than {maxMegabytes} MB during beta.",
-    "errors.materialLimitReached": "You can keep up to {maxDocuments} documents during beta. Delete one before uploading another."
+    "errors.materialLimitReached": "You can keep up to {maxDocuments} documents during beta. Delete one before uploading another.",
+    "errors.materialUserImportInProgress": "An import is already running. Wait for it to finish before starting another.",
+    "errors.materialImportCapacityFull": "Import capacity is currently full. Please try again shortly."
   },
   "zh": {
     "app.title": "Supergloss",
@@ -807,6 +811,8 @@
     "errors.google_failed": "无法完成 Google 登录。请重试。",
     "errors.googleEmailUnverified": "Google 未返回已验证的邮箱地址。",
     "errors.materialFileTooLarge": "测试期间，文档大小不能超过 {maxMegabytes} MB。",
-    "errors.materialLimitReached": "测试期间最多可保留 {maxDocuments} 个文档。请先删除一个现有文档再上传。"
+    "errors.materialLimitReached": "测试期间最多可保留 {maxDocuments} 个文档。请先删除一个现有文档再上传。",
+    "errors.materialUserImportInProgress": "已有一个导入正在运行。请等待完成后再开始新的导入。",
+    "errors.materialImportCapacityFull": "当前导入处理已满。请稍后再试。"
   }
 }

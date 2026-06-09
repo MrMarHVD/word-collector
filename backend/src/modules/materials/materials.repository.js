@@ -54,6 +54,8 @@ export function createMaterialsRepository(db) {
     ORDER BY m.created_at DESC, m.id DESC
   `);
   const countMaterialsByUser = db.prepare("SELECT COUNT(*)::int AS count FROM materials WHERE user_id = ?");
+  const countProcessingMaterialsByUser = db.prepare("SELECT COUNT(*)::int AS count FROM materials WHERE user_id = ? AND import_status = 'processing'");
+  const countProcessingMaterialsGlobal = db.prepare("SELECT COUNT(*)::int AS count FROM materials WHERE import_status = 'processing'");
   const readerTokens = db.prepare(`
     SELECT mt.id, mt.position, mt.surface, mt.lemma, mt.pos, mt.conjugation_form AS "conjugationForm", mt.word_id AS "wordId",
            mt.block_index AS "blockIndex", mt.block_type AS "blockType",
@@ -135,6 +137,12 @@ export function createMaterialsRepository(db) {
     },
     countByUser(userId) {
       return countMaterialsByUser.get(userId)?.count || 0;
+    },
+    countProcessingByUser(userId) {
+      return countProcessingMaterialsByUser.get(userId)?.count || 0;
+    },
+    countProcessingGlobal() {
+      return countProcessingMaterialsGlobal.get()?.count || 0;
     },
     listReaderTokens(material, nativeLanguage, safeLimit, safeStart, userId) {
       return readerTokens.all(nativeLanguage, material.languageName, nativeLanguage, material.languageName, nativeLanguage, userId, material.id, safeLimit, safeStart);

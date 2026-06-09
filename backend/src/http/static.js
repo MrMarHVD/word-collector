@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { extname, join, normalize } from "node:path";
+import { extname, isAbsolute, relative, resolve } from "node:path";
 import { PUBLIC_DIR } from "../config.js";
 import { textResponse } from "./response.js";
 
@@ -11,13 +11,15 @@ const mimeTypes = {
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8"
 };
+const publicRoot = resolve(PUBLIC_DIR);
 
 // Resolve and return a static file for non-API requests.
 export async function serveStatic(req, res, url) {
   const requestedPath = url.pathname === "/" ? "/index.html" : url.pathname;
-  const filePath = normalize(join(PUBLIC_DIR, requestedPath));
+  const filePath = resolve(publicRoot, `.${requestedPath}`);
+  const pathFromRoot = relative(publicRoot, filePath);
 
-  if (!filePath.startsWith(PUBLIC_DIR) || !existsSync(filePath)) {
+  if (pathFromRoot.startsWith("..") || isAbsolute(pathFromRoot) || !existsSync(filePath)) {
     return textResponse(res, 404, "Not found");
   }
 

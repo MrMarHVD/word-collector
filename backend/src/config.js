@@ -75,6 +75,12 @@ export const ENGLISH_NATIVE_ONLY_STUDY_LANGUAGES = ["Spanish", "French"];
 export const READER_WORK_PAGE_SIZE = 50;
 export const BETA_MAX_MATERIALS_PER_USER = Number(process.env.BETA_MAX_MATERIALS_PER_USER || 10);
 export const BETA_MAX_MATERIAL_UPLOAD_BYTES = Number(process.env.BETA_MAX_MATERIAL_UPLOAD_BYTES || 50 * 1024 * 1024);
+export const BETA_MAX_ACTIVE_IMPORTS_PER_USER = Number(process.env.BETA_MAX_ACTIVE_IMPORTS_PER_USER || 1);
+export const BETA_MAX_ACTIVE_IMPORTS_GLOBAL = Number(process.env.BETA_MAX_ACTIVE_IMPORTS_GLOBAL || 2);
+export const TRUSTED_PROXY_IPS = String(process.env.TRUSTED_PROXY_IPS || "127.0.0.1,::1,::ffff:127.0.0.1")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
 
 // EPUB import diagnostics. Set via the EPUB_IMPORT_LOG env var.
 //   "off"      — disabled (default)
