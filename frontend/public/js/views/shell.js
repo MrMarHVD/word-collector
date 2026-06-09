@@ -25,9 +25,11 @@ export function showView(viewName) {
   elements.onboardingView.hidden = viewName !== "onboarding";
   elements.appShell.hidden = viewName !== "app" && viewName !== "welcome";
   if (viewName === "welcome" || viewName === "app") {
-    renderMenuForAuth(viewName === "app");
+    renderMenuForAuth(Boolean(state.user) || viewName === "app");
   }
   if (viewName === "welcome") {
+    elements.welcomeActions.hidden = Boolean(state.user);
+    elements.welcomeLanguageGate.hidden = !state.user || Boolean(state.selectedStudyLanguageId);
     elements.welcomeView.hidden = false;
     elements.dashboardView.hidden = true;
     elements.collectionsView.hidden = true;
@@ -39,7 +41,8 @@ export function showView(viewName) {
 
 // Toggle menu bar controls between the logged-out and logged-in layouts.
 export function renderMenuForAuth(isLoggedIn) {
-  elements.menuTabs.hidden = !isLoggedIn;
+  const hasStudyLanguage = Boolean(state.selectedStudyLanguageId);
+  elements.menuTabs.hidden = !isLoggedIn || !hasStudyLanguage;
   elements.studyLanguageBar.hidden = !isLoggedIn;
   elements.settingsButton.hidden = !isLoggedIn;
   elements.logoutButton.hidden = !isLoggedIn;

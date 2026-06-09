@@ -13,6 +13,7 @@ const TAB_TO_PATH = {
 };
 const PATH_TO_TAB = Object.fromEntries(Object.entries(TAB_TO_PATH).map(([tab, path]) => [path, tab]));
 const DEFAULT_TAB = "dashboard";
+const LANGUAGE_REQUIRED_TABS = new Set(["dashboard", "collections", "reader", "practice"]);
 
 // Return the URL path for a tab, falling back to the default.
 export function pathForTab(tabName) {
@@ -40,6 +41,13 @@ export function activateTab(tabName) {
 
 // Navigate to a tab: update the URL history and activate it.
 export function navigateToTab(tabName, { replace = false } = {}) {
+  if (LANGUAGE_REQUIRED_TABS.has(tabName) && !state.selectedStudyLanguageId) {
+    if (window.location.pathname !== "/") {
+      window.history.replaceState({}, "", "/");
+    }
+    showView("welcome");
+    return;
+  }
   const path = pathForTab(tabName);
   if (window.location.pathname !== path) {
     const historyState = { tab: tabName };
@@ -63,7 +71,12 @@ export function startRouter() {
     if (!state.user) {
       return;
     }
-    activateTab(tabForPath(window.location.pathname) || DEFAULT_TAB);
+    const tab = tabForPath(window.location.pathname) || DEFAULT_TAB;
+    if (LANGUAGE_REQUIRED_TABS.has(tab) && !state.selectedStudyLanguageId) {
+      showView("welcome");
+      return;
+    }
+    activateTab(tab);
   });
 }
 

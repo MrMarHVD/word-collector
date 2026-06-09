@@ -1,4 +1,5 @@
 import { requestJson } from "../api.js";
+import { navigateToTab } from "./router.js";
 import { elements } from "../dom.js";
 import { t } from "../i18n.js";
 import { escapeHtml } from "../shared/html.js";
@@ -133,18 +134,18 @@ export async function setStudyLanguage(languageName, { persist = true, reload = 
     if (reload) {
       await reloadDashboard();
     }
-    return;
+    return true;
   }
 
   const language = languageByName(state.languages, languageName);
   if (!language) {
-    return;
+    return false;
   }
   if (language.name === state.user?.nativeLanguage) {
-    return;
+    return false;
   }
   if (!availableStudyLanguages().some((available) => available.id === language.id)) {
-    return;
+    return false;
   }
   state.selectedStudyLanguageName = language.name;
   state.selectedStudyLanguageId = language.id;
@@ -162,6 +163,12 @@ export async function setStudyLanguage(languageName, { persist = true, reload = 
     resetWordWindow();
     await reloadDashboard();
   }
+  return true;
+}
+
+function reloadDashboardPage() {
+  navigateToTab("dashboard", { replace: true });
+  window.location.reload();
 }
 
 async function addStudyLanguage(name) {
@@ -172,7 +179,10 @@ async function addStudyLanguage(name) {
   state.languages = result.languages || state.languages;
   state.studyLanguageOptions = result.studyLanguageOptions || state.studyLanguageOptions;
   state.predefinedLanguages = result.predefinedLanguages || state.predefinedLanguages;
-  await setStudyLanguage(result.language?.name || name, { persist: true, reload: true });
+  const selected = await setStudyLanguage(result.language?.name || name, { persist: true, reload: false });
+  if (selected) {
+    reloadDashboardPage();
+  }
 }
 
 export function bindStudyLanguageEvents() {
@@ -181,7 +191,10 @@ export function bindStudyLanguageEvents() {
     if (!button) {
       return;
     }
-    await setStudyLanguage(button.dataset.languageName);
+    const selected = await setStudyLanguage(button.dataset.languageName, { reload: false });
+    if (selected) {
+      reloadDashboardPage();
+    }
   });
 
   elements.studyLanguageAddButton.addEventListener("click", (event) => {

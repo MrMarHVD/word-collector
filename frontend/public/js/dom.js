@@ -6,6 +6,8 @@ export const elements = {
   onboardingView: document.querySelector("#onboardingView"),
   appShell: document.querySelector("#appShell"),
   welcomeView: document.querySelector("#welcomeView"),
+  welcomeActions: document.querySelector("#welcomeActions"),
+  welcomeLanguageGate: document.querySelector("#welcomeLanguageGate"),
   welcomeLoginButton: document.querySelector("#welcomeLoginButton"),
   welcomeRegisterButton: document.querySelector("#welcomeRegisterButton"),
   menuTabs: document.querySelector(".tabs"),

@@ -3,7 +3,7 @@ import { availableStudyLanguages, setStudyLanguage } from "../../app/study-langu
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
 import { state } from "../../state.js";
-import { navigateToTab, resolveInitialTab } from "../../app/router.js";
+import { navigateToTab, resolveInitialTab, tabForPath } from "../../app/router.js";
 import { renderAuthMode, renderVerifyBanner, showAuthPanel } from "../../views/auth.js";
 import { showView } from "../../views/shell.js";
 
@@ -31,11 +31,20 @@ export async function loadSession() {
   const availableLanguages = availableStudyLanguages();
   const fallbackLanguageName = availableLanguages[0]?.name || "";
   state.selectedStudyLanguageName = availableLanguages.some((language) => language.name === savedLanguageName) ? savedLanguageName : fallbackLanguageName;
-  showView("app");
   renderVerifyBanner();
-  navigateToTab(resolveInitialTab(), { replace: true });
   renderSettings();
   await setStudyLanguage(state.selectedStudyLanguageName, { persist: true, reload: false });
+  if (!state.selectedStudyLanguageId) {
+    if (tabForPath(window.location.pathname) === "settings") {
+      showView("app");
+      navigateToTab("settings", { replace: true });
+      return;
+    }
+    showView("welcome");
+    return;
+  }
+  showView("app");
+  navigateToTab(resolveInitialTab(), { replace: true });
   await loadDashboard();
 }
 
