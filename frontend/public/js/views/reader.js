@@ -315,6 +315,15 @@ function renderReaderTokenMarkup(tokens, languageName) {
   return parts.join("");
 }
 
+function renderReaderPagination(material) {
+  const end = Math.min(state.readerStart + state.readerTokens.length, material?.wordCount || 0);
+  elements.readerPageStatus.textContent = material
+    ? t("reader.pageStatus", { start: formatCount(state.readerStart + 1), end: formatCount(end), total: formatCount(material.wordCount) })
+    : "";
+  elements.readerPrevPage.disabled = state.readerStart <= 0;
+  elements.readerNextPage.disabled = !material || end >= material.wordCount;
+}
+
 // Render the current reader token page and pagination controls.
 export function renderReaderTokens() {
   // Reader pages are rendered as token buttons so each word can expose details.
@@ -349,13 +358,34 @@ export function renderReaderTokens() {
   elements.readerTitle.textContent = material?.title || t("reader.title");
   elements.readerMeta.textContent = material ? t("reader.readerMeta", { words: formatCount(material.wordCount), language: material.languageName }) : "";
   elements.readerText.innerHTML = renderReaderTokenMarkup(state.readerTokens, material?.languageName);
+  renderReaderPagination(material);
+}
 
-  const end = Math.min(state.readerStart + state.readerTokens.length, material?.wordCount || 0);
-  elements.readerPageStatus.textContent = material
-    ? t("reader.pageStatus", { start: formatCount(state.readerStart + 1), end: formatCount(end), total: formatCount(material.wordCount) })
-    : "";
-  elements.readerPrevPage.disabled = state.readerStart <= 0;
-  elements.readerNextPage.disabled = !material || end >= material.wordCount;
+export function fitReaderTokensToPage(tokens = state.readerFetchedTokens) {
+  const material = state.currentMaterial;
+  if (state.readerWordsPerPage !== "fit" || !material?.translationStatus?.ready || !tokens.length) {
+    return;
+  }
+  let low = 1;
+  let high = tokens.length;
+  let best = 1;
+  const fits = (count) => {
+    elements.readerText.innerHTML = renderReaderTokenMarkup(tokens.slice(0, count), material.languageName);
+    return elements.readerText.scrollHeight <= elements.readerText.clientHeight + 1;
+  };
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    if (fits(mid)) {
+      best = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  state.readerTokens = tokens.slice(0, best);
+  elements.readerText.innerHTML = renderReaderTokenMarkup(state.readerTokens, material.languageName);
+  elements.readerText.scrollTop = 0;
+  renderReaderPagination(material);
 }
 
 function positionReaderWordInfo(anchor) {

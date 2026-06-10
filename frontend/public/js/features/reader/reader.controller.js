@@ -2,13 +2,14 @@ import { requestJson } from "../../api.js";
 import { elements } from "../../dom.js";
 import { state } from "../../state.js";
 import { normalizeStatus } from "../../shared/status.js";
-import { renderReaderSidebar, renderReaderSidebarTabs, renderReaderTokens, renderReaderWordInfo } from "../../views/reader.js";
+import { fitReaderTokensToPage, renderReaderSidebar, renderReaderSidebarTabs, renderReaderTokens, renderReaderWordInfo } from "../../views/reader.js";
 
 const MIN_READER_PANEL_WIDTH = 360;
 const MIN_READER_PANEL_HEIGHT = 520;
 const MAX_READER_SIDEBAR_WIDTH = 340;
 const MAX_READER_SIDEBAR_WIDTH_SMALL = 240;
 const READER_PANEL_BOTTOM_MARGIN = 16;
+const FIT_READER_FETCH_LIMIT = 1000;
 
 let loadDashboard = async () => {};
 let readerPageTurnInProgress = false;
@@ -30,10 +31,12 @@ export async function loadMaterialReader(start = null, { persist = true } = {}) 
   if (!state.selectedMaterialId) {
     state.currentMaterial = null;
     state.readerTokens = [];
+    state.readerFetchedTokens = [];
     renderReaderTokens();
     return;
   }
-  const params = new URLSearchParams({ limit: String(state.readerWordsPerPage) });
+  const pageLimit = state.readerWordsPerPage === "fit" ? FIT_READER_FETCH_LIMIT : state.readerWordsPerPage;
+  const params = new URLSearchParams({ limit: String(pageLimit) });
   if (start !== null && start !== undefined) {
     params.set("start", String(Math.max(start, 0)));
   }
@@ -41,12 +44,14 @@ export async function loadMaterialReader(start = null, { persist = true } = {}) 
   state.currentMaterial = result.material;
   state.currentMaterial.translationStatus = result.translationStatus;
   state.readerStart = result.start;
+  state.readerFetchedTokens = result.tokens;
   state.readerTokens = result.tokens;
   state.materials = state.materials.map((material) => (material.id === state.selectedMaterialId ? { ...material, readerStart: result.start } : material));
   if (persist && result.translationStatus?.ready) {
     await saveMaterialReaderStart(state.selectedMaterialId, result.start);
   }
   renderReaderTokens();
+  fitReaderTokensToPage();
   renderReaderSidebarTabs();
 }
 
@@ -96,6 +101,7 @@ function startReaderResize(event, target) {
       }
     }
     renderReaderSidebar();
+    fitReaderTokensToPage();
   }
 
   function stopResize() {
@@ -192,13 +198,19 @@ function applyReaderHighlightOpacity(value) {
   });
 }
 
+function renderReaderLayout() {
+  renderReaderSidebar();
+  fitReaderTokensToPage();
+}
+
 async function turnReaderPage(direction) {
   if (readerPageTurnInProgress || !state.currentMaterial?.translationStatus?.ready) {
     return;
   }
+  const pageStep = state.readerWordsPerPage === "fit" ? Math.max(state.readerTokens.length, 1) : Number(state.readerWordsPerPage);
   const nextStart = direction === "next"
-    ? state.readerStart + state.readerWordsPerPage
-    : Math.max(state.readerStart - state.readerWordsPerPage, 0);
+    ? state.readerStart + pageStep
+    : Math.max(state.readerStart - pageStep, 0);
   const currentEnd = state.readerStart + state.readerTokens.length;
   const canTurn = direction === "next"
     ? currentEnd < state.currentMaterial.wordCount
@@ -224,13 +236,13 @@ export function bindReaderEvents() {
   elements.readerSidebarToggle.addEventListener("click", () => {
     state.readerSidebarCollapsed = !state.readerSidebarCollapsed;
     localStorage.setItem("wordMarkerReaderSidebarCollapsed", String(state.readerSidebarCollapsed));
-    renderReaderSidebar();
+    renderReaderLayout();
   });
 
   elements.readerSidebarOpen.addEventListener("click", () => {
     state.readerSidebarCollapsed = false;
     localStorage.setItem("wordMarkerReaderSidebarCollapsed", String(state.readerSidebarCollapsed));
-    renderReaderSidebar();
+    renderReaderLayout();
   });
 
   elements.readerSidebarResize.addEventListener("pointerdown", (event) => startReaderResize(event, "sidebar"));
@@ -240,7 +252,7 @@ export function bindReaderEvents() {
     state.readerFocusMode = !state.readerFocusMode;
     localStorage.setItem("wordMarkerReaderFocusMode", String(state.readerFocusMode));
     closeReaderWordInfo();
-    renderReaderSidebar();
+    renderReaderLayout();
   });
 
   elements.readerSidebarTabs.addEventListener("click", (event) => {
@@ -268,6 +280,7 @@ export function bindReaderEvents() {
     state.readerShowWordSpaces = event.target.checked;
     localStorage.setItem("wordMarkerReaderShowWordSpaces", String(state.readerShowWordSpaces));
     renderReaderTokens();
+    fitReaderTokensToPage();
   });
 
   elements.readerHighlightOpacity.addEventListener("input", (event) => {
@@ -283,10 +296,11 @@ export function bindReaderEvents() {
     state.readerFontSize = Number(event.target.value);
     localStorage.setItem("wordMarkerReaderFontSize", String(state.readerFontSize));
     renderReaderTokens();
+    fitReaderTokensToPage();
   });
 
   elements.readerWordsPerPage.addEventListener("change", async (event) => {
-    state.readerWordsPerPage = Number(event.target.value);
+    state.readerWordsPerPage = event.target.value === "fit" ? "fit" : Number(event.target.value);
     localStorage.setItem("wordMarkerReaderWordsPerPage", String(state.readerWordsPerPage));
     await loadMaterialReader(state.readerStart);
   });
@@ -375,7 +389,7 @@ export function bindReaderEvents() {
       state.readerFocusMode = false;
       localStorage.setItem("wordMarkerReaderFocusMode", "false");
       closeReaderWordInfo();
-      renderReaderSidebar();
+      renderReaderLayout();
     }
   });
 
@@ -385,5 +399,5 @@ export function bindReaderEvents() {
     }
   });
 
-  window.addEventListener("resize", renderReaderSidebar);
+  window.addEventListener("resize", renderReaderLayout);
 }

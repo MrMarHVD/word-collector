@@ -7,6 +7,13 @@ function normalizeDisplayMode(stored) {
   return stored === "infinite" ? "infinite" : "page";
 }
 
+function normalizeReaderWordsPerPage(stored) {
+  if (stored === "fit") {
+    return "fit";
+  }
+  return Number(stored) || 250;
+}
+
 // Mutable browser state. Persisted preferences are read once during startup.
 export const state = {
   csrfToken: null,
@@ -31,8 +38,9 @@ export const state = {
   materialOffset: 0,
   materialHasMore: true,
   readerTokens: [],
+  readerFetchedTokens: [],
   readerStart: 0,
-  readerWordsPerPage: Number(localStorage.getItem("wordMarkerReaderWordsPerPage")) || 250,
+  readerWordsPerPage: normalizeReaderWordsPerPage(localStorage.getItem("wordMarkerReaderWordsPerPage")),
   readerFontSize: Number(localStorage.getItem("wordMarkerReaderFontSize")) || 22,
   readerSidebarCollapsed: localStorage.getItem("wordMarkerReaderSidebarCollapsed") === "true",
   readerSidebarWidth: Number(localStorage.getItem("wordMarkerReaderSidebarWidth")) || 300,
