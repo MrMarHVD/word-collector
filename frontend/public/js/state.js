@@ -49,7 +49,7 @@ export const state = {
   readerPanelHeight: Number(localStorage.getItem("wordMarkerReaderPanelHeight")) || 0,
   readerFocusMode: localStorage.getItem("wordMarkerReaderFocusMode") === "true",
   readerFocusPanelWidth: Number(localStorage.getItem("wordMarkerReaderFocusPanelWidth")) || 0,
-  readerSidebarTab: "import",
+  readerSidebarTab: "read",
   settingsTab: "system",
   readerAutoMarkKnownOnPageTurn: localStorage.getItem("wordMarkerReaderAutoMarkKnownOnPageTurn") === "true",
   readerAutoMarkLearningOnClick: localStorage.getItem("wordMarkerReaderAutoMarkLearningOnClick") !== "false",

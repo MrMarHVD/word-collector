@@ -2,7 +2,7 @@ import { apiErrorMessage, apiUrl, csrfHeaders, requestJson } from "../../api.js"
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
 import { BETA_MAX_MATERIALS_PER_USER, BETA_MAX_MATERIAL_UPLOAD_BYTES, state } from "../../state.js";
-import { renderImportProgress, renderMaterialList, renderReaderTokens } from "../../views/reader.js";
+import { renderImportProgress, renderMaterialList, renderReaderSidebarTabs, renderReaderTokens } from "../../views/reader.js";
 
 let loadDashboard = async () => {};
 let loadMaterialReader = async () => {};
@@ -271,7 +271,9 @@ export function bindMaterialsEvents() {
     }
     state.selectedMaterialId = Number(button.dataset.materialId);
     state.readerStart = Number(material.readerStart) || 0;
+    state.readerSidebarTab = "read";
     renderMaterialList();
+    renderReaderSidebarTabs();
     await loadMaterialReader();
   });
 

@@ -20,8 +20,36 @@ import { renderWords } from "./views/words.js";
 import { state } from "./state.js";
 
 function bindShellEvents() {
+  function closeAccountDropdown() {
+    elements.accountDropdown.hidden = accountMenuUsesDropdown();
+    elements.settingsButton.setAttribute("aria-expanded", "false");
+  }
+
+  function accountMenuUsesDropdown() {
+    return window.matchMedia("(max-width: 760px)").matches;
+  }
+
   elements.tabButtons.forEach((button) => {
-    button.addEventListener("click", () => navigateToTab(button.dataset.tab));
+    button.addEventListener("click", () => {
+      closeAccountDropdown();
+      navigateToTab(button.dataset.tab);
+    });
+  });
+
+  elements.settingsButton.addEventListener("click", () => {
+    if (!accountMenuUsesDropdown()) {
+      closeAccountDropdown();
+      navigateToTab("settings");
+      return;
+    }
+    const nextOpen = elements.accountDropdown.hidden;
+    elements.accountDropdown.hidden = !nextOpen;
+    elements.settingsButton.setAttribute("aria-expanded", String(nextOpen));
+  });
+
+  elements.accountSettingsButton.addEventListener("click", () => {
+    closeAccountDropdown();
+    navigateToTab("settings");
   });
 
   elements.themeButtons.forEach((button) => {
@@ -37,6 +65,21 @@ function bindShellEvents() {
       renderWords(state.words);
     });
   });
+
+  document.addEventListener("click", (event) => {
+    if (elements.accountDropdown.hidden || event.target.closest(".account-menu")) {
+      return;
+    }
+    closeAccountDropdown();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeAccountDropdown();
+    }
+  });
+
+  window.addEventListener("resize", closeAccountDropdown);
 }
 
 configureLocale({ renderSettings, renderStudyLanguageSelect });

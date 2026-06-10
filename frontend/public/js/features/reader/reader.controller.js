@@ -261,7 +261,12 @@ export function bindReaderEvents() {
       return;
     }
     state.readerSidebarTab = button.dataset.readerSidebarTab;
+    if (state.readerSidebarTab !== "read") {
+      state.readerSidebarCollapsed = false;
+      localStorage.setItem("wordMarkerReaderSidebarCollapsed", "false");
+    }
     renderReaderSidebarTabs();
+    renderReaderLayout();
   });
 
   elements.readerAutoMarkKnown.addEventListener("change", (event) => {

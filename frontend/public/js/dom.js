@@ -13,6 +13,8 @@ export const elements = {
   menuTabs: document.querySelector(".tabs"),
   studyLanguageBar: document.querySelector(".study-language-bar"),
   settingsButton: document.querySelector("#settingsButton"),
+  accountDropdown: document.querySelector("#accountDropdown"),
+  accountSettingsButton: document.querySelector("#accountSettingsButton"),
   loginButton: document.querySelector("#loginButton"),
   authBackButton: document.querySelector("#authBackButton"),
   authForm: document.querySelector("#authForm"),

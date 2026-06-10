@@ -50,10 +50,14 @@ export function showView(viewName) {
 // Toggle menu bar controls between the logged-out and logged-in layouts.
 export function renderMenuForAuth(isLoggedIn) {
   const hasStudyLanguage = Boolean(state.selectedStudyLanguageId);
+  const accountMenuUsesDropdown = window.matchMedia("(max-width: 760px)").matches;
   elements.menuTabs.hidden = !isLoggedIn || !hasStudyLanguage;
   elements.studyLanguageBar.hidden = !isLoggedIn;
   elements.settingsButton.hidden = !isLoggedIn;
   elements.logoutButton.hidden = !isLoggedIn;
+  elements.accountSettingsButton.hidden = !accountMenuUsesDropdown;
+  elements.accountDropdown.hidden = !isLoggedIn || accountMenuUsesDropdown;
+  elements.settingsButton.setAttribute("aria-expanded", "false");
   elements.loginButton.hidden = isLoggedIn;
 }
 

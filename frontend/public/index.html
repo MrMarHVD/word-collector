@@ -135,14 +135,19 @@
               <option value="ja" data-i18n="ui.japanese">日本語</option>
             </select>
           </label>
-          <button id="settingsButton" class="secondary-button icon-button tab-button grid h-[52px] w-[52px] place-items-center rounded-md border border-line bg-panel text-brand hover:bg-hover" type="button" data-tab="settings">
-            <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[1.8]">
-              <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
-              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.3a2 2 0 0 1-4 0V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 0 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H2.7a2 2 0 0 1 0-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7A2 2 0 0 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6v-.3a2 2 0 0 1 4 0V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 0 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.3a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z" />
-            </svg>
-            <span class="visually-hidden" data-i18n="tabs.settings">Settings</span>
-          </button>
-          <button id="logoutButton" class="secondary-button logout-button min-h-[52px] rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="auth.logout">ログアウト</button>
+          <div class="account-menu relative">
+            <button id="settingsButton" class="secondary-button icon-button grid h-[52px] w-[52px] place-items-center rounded-md border border-line bg-panel text-brand hover:bg-hover" type="button" aria-haspopup="menu" aria-expanded="false">
+              <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[1.8]">
+                <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+                <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.3a2 2 0 0 1-4 0V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 0 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H2.7a2 2 0 0 1 0-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7A2 2 0 0 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6v-.3a2 2 0 0 1 4 0V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 0 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.3a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z" />
+              </svg>
+              <span class="visually-hidden" data-i18n="tabs.settings">Settings</span>
+            </button>
+            <div id="accountDropdown" class="account-dropdown absolute right-0 top-[calc(100%+6px)] z-30 min-w-[180px] rounded-md border border-line bg-panel p-1 shadow-panel" role="menu" hidden>
+              <button id="accountSettingsButton" class="account-menu-item w-full rounded-md px-3 py-2 text-left text-sm font-bold text-main hover:bg-hover" type="button" role="menuitem" data-i18n="tabs.settings">Settings</button>
+              <button id="logoutButton" class="account-menu-item logout-button w-full rounded-md px-3 py-2 text-left text-sm font-bold text-brand hover:bg-hover" type="button" role="menuitem" data-i18n="auth.logout">ログアウト</button>
+            </div>
+          </div>
           <button id="loginButton" class="login-button min-h-[52px] rounded-md bg-brand px-5 text-sm font-bold text-white hover:bg-brand-strong" type="button" data-i18n="auth.login" hidden>ログイン</button>
         </div>
       </header>
@@ -206,12 +211,6 @@
           <section class="browser-panel rounded-lg border border-line bg-panel p-5 shadow-panel">
             <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3 max-md:grid">
               <h2 class="text-base font-bold" data-i18n="collections.wordsTitle">単語一覧</h2>
-              <div class="collection-actions flex flex-wrap items-center justify-end gap-2.5 max-md:grid">
-                <div class="display-mode-buttons grid grid-cols-2 gap-1 rounded-lg border border-line bg-muted p-1 max-md:grid-cols-1">
-                  <button class="display-mode-button is-active rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-display-mode="page" data-i18n="collections.displayPage">ページ</button>
-                  <button class="display-mode-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-display-mode="infinite" data-i18n="collections.displayInfinite">Infinite Scroll</button>
-                </div>
-              </div>
             </div>
             <div class="browser-tools grid items-end gap-3">
               <label class="grid gap-1.5 text-sm font-semibold text-label">
@@ -250,6 +249,11 @@
       </section>
 
       <section id="readerView" class="tab-view" hidden>
+        <div id="readerSidebarTabs" class="reader-sidebar-tabs mb-3 grid grid-cols-3 gap-1 rounded-lg border border-line bg-muted p-1">
+          <button class="reader-sidebar-tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-reader-sidebar-tab="read" data-i18n="reader.readTab">Read</button>
+          <button class="reader-sidebar-tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-reader-sidebar-tab="documents" data-i18n="reader.documentsTab">Documents</button>
+          <button class="reader-sidebar-tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-reader-sidebar-tab="settings" data-i18n="reader.settingsTab">Settings</button>
+        </div>
         <button id="readerSidebarOpen" class="reader-sidebar-open secondary-button fixed left-0 top-[86px] z-[9] grid min-h-[52px] w-[42px] place-items-center rounded-r-lg border border-l-0 border-line bg-panel text-brand shadow-panel max-md:top-3" type="button" hidden>
           <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[1.8]">
             <path d="M4 5h16M4 12h16M4 19h16" />
@@ -266,11 +270,7 @@
                 <span class="visually-hidden" data-i18n="reader.toggleSidebar">Toggle sidebar</span>
               </button>
             </div>
-            <div id="readerSidebarTabs" class="reader-sidebar-tabs mb-3 grid grid-cols-2 gap-1 rounded-lg border border-line bg-muted p-1">
-              <button class="reader-sidebar-tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-reader-sidebar-tab="import" data-i18n="reader.importTab">Import</button>
-              <button class="reader-sidebar-tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-reader-sidebar-tab="settings" data-i18n="reader.settingsTab">Settings</button>
-            </div>
-            <div id="readerImportTabPanel" class="reader-sidebar-tab-panel" data-reader-sidebar-panel="import">
+            <div id="readerImportTabPanel" class="reader-sidebar-tab-panel" data-reader-sidebar-panel="documents">
               <button id="materialImportOpen" class="mb-3 min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="button" data-i18n="reader.importButton">インポート</button>
               <input id="materialSearch" class="mb-3 min-h-11 w-full rounded-md border border-line bg-panel px-3 py-2 text-sm text-main" type="search" autocomplete="off" data-i18n-placeholder="reader.searchPlaceholder" placeholder="Search works" />
               <div id="materialList" class="material-list grid max-h-[calc(100vh-260px)] gap-2 overflow-auto"></div>
@@ -359,6 +359,13 @@
               <input id="practiceWordsPerSession" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="number" min="1" max="200" step="1" />
             </label>
             <p class="hint mt-3 min-h-5 text-sm text-secondary" data-i18n="settings.practiceWordsPerSessionHint">How many words to study in each practice session.</p>
+            <fieldset class="mt-4 grid gap-2">
+              <legend class="text-sm font-semibold text-label" data-i18n="collections.displayMode">Display mode</legend>
+              <div class="display-mode-buttons grid grid-cols-2 gap-1 rounded-lg border border-line bg-muted p-1 max-sm:grid-cols-1">
+                <button class="display-mode-button is-active rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-display-mode="page" data-i18n="collections.displayPage">ページ</button>
+                <button class="display-mode-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-display-mode="infinite" data-i18n="collections.displayInfinite">Infinite Scroll</button>
+              </div>
+            </fieldset>
             <fieldset class="mt-4 grid gap-2">
               <legend class="text-sm font-semibold text-label" data-i18n="settings.theme">Theme</legend>
               <div class="theme-buttons grid grid-cols-3 gap-1 rounded-lg border border-line bg-muted p-1 max-sm:grid-cols-1">

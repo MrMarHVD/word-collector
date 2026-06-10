@@ -89,7 +89,7 @@ export function renderWords(words) {
         const expanded = state.expandedDisambiguationWordId === entry.id;
         return `
       <tr class="word-row${selected ? " is-selected" : ""}" draggable="true" data-word-id="${entry.id}" data-collection-id="${entry.collectionId}" aria-selected="${selected}">
-        <td class="word-drag-cell px-2 py-3 align-middle">
+        <td class="word-drag-cell px-2 py-3 align-middle" data-label="${escapeHtml(t("collections.collection"))}">
           <span class="word-drag-handle" aria-label="${escapeHtml(t("collections.dragHandle"))}" title="${escapeHtml(t("collections.dragHandle"))}">
             <svg aria-hidden="true" viewBox="0 0 16 16" class="h-4 w-4 fill-current">
               <circle cx="5" cy="3" r="1.4"/><circle cx="11" cy="3" r="1.4"/>
@@ -98,23 +98,23 @@ export function renderWords(words) {
             </svg>
           </span>
         </td>
-        <td class="px-3 py-3 align-top">
+        <td class="px-3 py-3 align-top" data-label="${escapeHtml(t("table.word"))}">
           <div class="word-cell">
             <span class="word-cell-main">${escapeHtml(entry.word)}</span>
             ${phonetics.length ? `<span class="word-cell-phonetic">${escapeHtml(phonetics.join(" · "))}</span>` : ""}
             ${badges.length ? `<span class="word-cell-badges">${badges.map((badge) => `<span class="word-badge">${escapeHtml(badge)}</span>`).join("")}</span>` : ""}
           </div>
         </td>
-        <td class="px-3 py-3 align-top text-label">
+        <td class="px-3 py-3 align-top text-label" data-label="${escapeHtml(t("table.translation"))}">
           ${escapeHtml(entry.translation)}
         </td>
-        <td class="px-3 py-3 align-middle">
+        <td class="px-3 py-3 align-middle word-action-cell" data-label="${escapeHtml(t("reader.disambiguate"))}">
           ${candidates.length > 1 ? `<button class="disambiguation-button secondary-button rounded-md border border-line bg-panel px-3 text-sm font-bold text-brand hover:bg-hover" type="button" data-word-disambiguate="${entry.id}" aria-expanded="${expanded}">
             <span class="disambiguation-button-icon" aria-hidden="true">▾</span>
             <span>${escapeHtml(t("reader.disambiguate"))}</span>
           </button>` : ""}
         </td>
-        <td class="status-cell">
+        <td class="status-cell" data-label="${escapeHtml(t("table.status"))}">
           ${renderStatusToggle(entry.id, entry.status)}
         </td>
       </tr>

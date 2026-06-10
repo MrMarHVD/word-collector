@@ -13,6 +13,9 @@ export async function loadMessages() {
   if (!["dashboard", "collections", "reader", "practice", "settings"].includes(state.activeTab)) {
     state.activeTab = "dashboard";
   }
+  if (!["read", "documents", "settings"].includes(state.readerSidebarTab)) {
+    state.readerSidebarTab = "read";
+  }
   if (!["system", "light", "dark"].includes(state.theme)) {
     state.theme = "system";
   }
