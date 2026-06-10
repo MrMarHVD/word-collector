@@ -121,6 +121,7 @@ export const elements = {
   readerSidebarToggle: document.querySelector("#readerSidebarToggle"),
   readerSidebarOpen: document.querySelector("#readerSidebarOpen"),
   readerSidebarResize: document.querySelector("#readerSidebarResize"),
+  readerFocusToggle: document.querySelector("#readerFocusToggle"),
   readerAutoMarkKnown: document.querySelector("#readerAutoMarkKnown"),
   readerAutoMarkLearning: document.querySelector("#readerAutoMarkLearning"),
   readerShowWordSpaces: document.querySelector("#readerShowWordSpaces"),

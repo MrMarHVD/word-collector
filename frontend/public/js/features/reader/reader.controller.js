@@ -56,10 +56,11 @@ function clamp(value, min, max) {
 
 function startReaderResize(event, target) {
   event.preventDefault();
+  const focusMode = state.activeTab === "reader" && state.readerFocusMode;
   const startX = event.clientX;
   const startY = event.clientY;
   const layoutRect = elements.readerLayout.getBoundingClientRect();
-  const sidebarWidth = state.readerSidebarCollapsed ? 0 : elements.readerSidebar.getBoundingClientRect().width;
+  const sidebarWidth = focusMode || state.readerSidebarCollapsed ? 0 : elements.readerSidebar.getBoundingClientRect().width;
   const panelRect = elements.readerPanel.getBoundingClientRect();
   const initialWidth = target === "sidebar" ? state.readerSidebarWidth : target === "info" ? state.readerInfoWidth : panelRect.width;
   const initialHeight = panelRect.height;
@@ -84,10 +85,15 @@ function startReaderResize(event, target) {
       localStorage.setItem("wordMarkerReaderInfoWidth", String(nextWidth));
     } else {
       const nextHeight = clamp(initialHeight + moveEvent.clientY - startY, minHeight, maxHeight);
-      state.readerPanelWidth = nextWidth;
-      state.readerPanelHeight = nextHeight;
-      localStorage.setItem("wordMarkerReaderPanelWidth", String(nextWidth));
-      localStorage.setItem("wordMarkerReaderPanelHeight", String(nextHeight));
+      if (state.readerFocusMode) {
+        state.readerFocusPanelWidth = nextWidth;
+        localStorage.setItem("wordMarkerReaderFocusPanelWidth", String(nextWidth));
+      } else {
+        state.readerPanelWidth = nextWidth;
+        state.readerPanelHeight = nextHeight;
+        localStorage.setItem("wordMarkerReaderPanelWidth", String(nextWidth));
+        localStorage.setItem("wordMarkerReaderPanelHeight", String(nextHeight));
+      }
     }
     renderReaderSidebar();
   }
@@ -230,6 +236,13 @@ export function bindReaderEvents() {
   elements.readerSidebarResize.addEventListener("pointerdown", (event) => startReaderResize(event, "sidebar"));
   elements.readerPanelResize.addEventListener("pointerdown", (event) => startReaderResize(event, "panel"));
 
+  elements.readerFocusToggle.addEventListener("click", () => {
+    state.readerFocusMode = !state.readerFocusMode;
+    localStorage.setItem("wordMarkerReaderFocusMode", String(state.readerFocusMode));
+    closeReaderWordInfo();
+    renderReaderSidebar();
+  });
+
   elements.readerSidebarTabs.addEventListener("click", (event) => {
     const button = event.target.closest("[data-reader-sidebar-tab]");
     if (!button) {
@@ -358,6 +371,11 @@ export function bindReaderEvents() {
     } else if (event.key === "ArrowRight") {
       event.preventDefault();
       await turnReaderPage("next");
+    } else if (event.key === "Escape" && state.readerFocusMode) {
+      state.readerFocusMode = false;
+      localStorage.setItem("wordMarkerReaderFocusMode", "false");
+      closeReaderWordInfo();
+      renderReaderSidebar();
     }
   });
 

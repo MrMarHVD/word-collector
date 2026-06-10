@@ -38,6 +38,8 @@ export const state = {
   readerInfoWidth: Number(localStorage.getItem("wordMarkerReaderInfoWidth")) || 300,
   readerPanelWidth: Number(localStorage.getItem("wordMarkerReaderPanelWidth")) || 0,
   readerPanelHeight: Number(localStorage.getItem("wordMarkerReaderPanelHeight")) || 0,
+  readerFocusMode: localStorage.getItem("wordMarkerReaderFocusMode") === "true",
+  readerFocusPanelWidth: Number(localStorage.getItem("wordMarkerReaderFocusPanelWidth")) || 0,
   readerSidebarTab: "import",
   settingsTab: "system",
   readerAutoMarkKnownOnPageTurn: localStorage.getItem("wordMarkerReaderAutoMarkKnownOnPageTurn") === "true",

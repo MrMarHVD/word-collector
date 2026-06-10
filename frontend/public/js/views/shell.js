@@ -7,6 +7,7 @@ export function setActiveTab(tabName) {
   state.activeTab = tabName;
   localStorage.setItem("wordMarkerActiveTab", tabName);
   document.body.classList.toggle("is-reader-active", tabName === "reader");
+  document.body.classList.toggle("is-reader-focus", tabName === "reader" && state.readerFocusMode);
   if (tabName === "reader") {
     window.scrollTo(0, 0);
   }

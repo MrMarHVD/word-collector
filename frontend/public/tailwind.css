@@ -633,6 +633,90 @@ tbody tr:last-child td {
   margin-left: var(--readerPanelOffset, 0px);
 }
 
+.reader-page-actions {
+  grid-template-columns: 1fr auto 1fr;
+}
+
+.reader-focus-toggle {
+  display: none;
+}
+
+.is-reader-active .reader-focus-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.reader-pagination-controls {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.is-reader-focus .menu-bar,
+.is-reader-focus #verifyBanner,
+.is-reader-focus .reader-sidebar,
+.is-reader-focus .reader-sidebar-open,
+.is-reader-focus .reader-toolbar {
+  display: none;
+  pointer-events: none;
+}
+
+.is-reader-focus .shell {
+  width: 100vw;
+  max-width: none;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.is-reader-focus .reader-layout {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  min-height: 100vh;
+  width: 100vw;
+  margin-left: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.is-reader-focus .reader-panel {
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100vh;
+  max-height: 100vh;
+  min-height: 100vh;
+  margin-left: 0 !important;
+  border-radius: 0;
+}
+
+.is-reader-focus .reader-text {
+  height: auto;
+}
+
+.is-reader-focus .reader-panel-resize {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 12px;
+  height: auto;
+  cursor: col-resize;
+}
+
+.is-reader-focus .reader-panel-resize:hover::before {
+  top: 12px;
+  right: 5px;
+  bottom: 12px;
+  width: 2px;
+  height: auto;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 999px;
+  background: var(--brand);
+}
+
 .reader-text {
   min-height: 0;
   font-size: var(--readerFontSize, 22px);

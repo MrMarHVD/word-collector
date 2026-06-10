@@ -6,7 +6,6 @@ import { state } from "../state.js";
 import { escapeHtml } from "../shared/html.js";
 
 const MIN_READER_PANEL_WIDTH = 360;
-const MIN_READER_PANEL_HEIGHT = 520;
 const MAX_READER_SIDEBAR_WIDTH = 340;
 const MAX_READER_SIDEBAR_WIDTH_SMALL = 240;
 const READER_PANEL_BOTTOM_MARGIN = 16;
@@ -27,19 +26,32 @@ function readerSidebarColumnWidth() {
 // Apply persisted reader layout dimensions through CSS custom properties.
 // Render reader panel dimensions and sidebar collapsed state.
 export function renderReaderSidebar() {
+  const focusMode = state.activeTab === "reader" && state.readerFocusMode;
+  document.body.classList.toggle("is-reader-focus", focusMode);
   const parentRect = elements.readerLayout.parentElement.getBoundingClientRect();
-  const maxPanelWidth = Math.max(1, document.documentElement.clientWidth - readerSidebarColumnWidth());
-  const maxPanelHeight = Math.max(1, window.innerHeight - elements.readerPanel.getBoundingClientRect().top - READER_PANEL_BOTTOM_MARGIN);
+  const sidebarWidth = focusMode ? 0 : readerSidebarColumnWidth();
+  const maxPanelWidth = Math.max(1, document.documentElement.clientWidth - sidebarWidth);
+  const maxPanelHeight = focusMode
+    ? Math.max(1, window.innerHeight)
+    : Math.max(1, window.innerHeight - elements.readerPanel.getBoundingClientRect().top - READER_PANEL_BOTTOM_MARGIN);
   const minPanelWidth = Math.min(MIN_READER_PANEL_WIDTH, maxPanelWidth);
-  const minPanelHeight = Math.min(MIN_READER_PANEL_HEIGHT, maxPanelHeight);
-  const panelWidth = state.readerPanelWidth ? clamp(state.readerPanelWidth, minPanelWidth, maxPanelWidth) : maxPanelWidth;
-  const panelHeight = state.readerPanelHeight ? clamp(state.readerPanelHeight, minPanelHeight, maxPanelHeight) : maxPanelHeight;
-  const sidebarWidth = readerSidebarColumnWidth();
+  const minPanelHeight = focusMode ? maxPanelHeight : Math.min(520, maxPanelHeight);
+  const savedPanelWidth = focusMode ? state.readerFocusPanelWidth : state.readerPanelWidth;
+  const savedPanelHeight = focusMode ? 0 : state.readerPanelHeight;
+  const defaultPanelWidth = focusMode ? Math.floor(document.documentElement.clientWidth * 0.5) : maxPanelWidth;
+  const panelWidth = savedPanelWidth ? clamp(savedPanelWidth, minPanelWidth, maxPanelWidth) : clamp(defaultPanelWidth, minPanelWidth, maxPanelWidth);
+  const panelHeight = focusMode
+    ? maxPanelHeight
+    : savedPanelHeight ? clamp(savedPanelHeight, minPanelHeight, maxPanelHeight) : maxPanelHeight;
   const centeredPanelLeft = Math.max(sidebarWidth, (document.documentElement.clientWidth - panelWidth) / 2);
   const panelOffset = centeredPanelLeft - sidebarWidth;
 
-  state.readerPanelWidth = panelWidth;
-  state.readerPanelHeight = panelHeight;
+  if (focusMode) {
+    state.readerFocusPanelWidth = panelWidth;
+  } else {
+    state.readerPanelWidth = panelWidth;
+    state.readerPanelHeight = panelHeight;
+  }
   elements.readerLayout.style.setProperty("--readerViewportWidth", `${document.documentElement.clientWidth}px`);
   elements.readerLayout.style.setProperty("--readerViewportOffset", `${parentRect.left}px`);
   elements.readerLayout.style.setProperty("--readerSidebarWidth", `${sidebarWidth}px`);
@@ -52,7 +64,9 @@ export function renderReaderSidebar() {
   elements.readerLayout.style.setProperty("--readerPanelOffset", `${panelOffset}px`);
   elements.readerLayout.classList.toggle("is-sidebar-collapsed", state.readerSidebarCollapsed);
   elements.readerSidebarToggle.setAttribute("aria-expanded", String(!state.readerSidebarCollapsed));
-  elements.readerSidebarOpen.hidden = !state.readerSidebarCollapsed;
+  elements.readerSidebarOpen.hidden = focusMode || !state.readerSidebarCollapsed;
+  elements.readerFocusToggle.textContent = focusMode ? t("reader.exitFocus") : t("reader.focus");
+  elements.readerFocusToggle.setAttribute("aria-pressed", String(focusMode));
 }
 
 function isWordSpacingLanguage(name) {

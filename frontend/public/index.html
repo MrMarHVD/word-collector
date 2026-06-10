@@ -318,10 +318,13 @@
               </div>
             </div>
             <div id="readerText" class="reader-text h-full min-h-0 overflow-auto rounded-lg border border-line bg-reader p-6 leading-[1.9]"></div>
-            <div class="reader-page-actions mt-4 flex items-center justify-center gap-3.5 max-md:grid">
-              <button id="readerPrevPage" class="secondary-button min-h-10 rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="reader.previous">前へ</button>
-              <span id="readerPageStatus" class="hint text-sm text-secondary"></span>
-              <button id="readerNextPage" class="secondary-button min-h-10 rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="reader.next">次へ</button>
+            <div class="reader-page-actions mt-4 grid items-center gap-3.5">
+              <button id="readerFocusToggle" class="reader-focus-toggle secondary-button min-h-10 rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="reader.focus">Focus</button>
+              <div class="reader-pagination-controls flex items-center justify-center gap-3.5">
+                <button id="readerPrevPage" class="secondary-button min-h-10 rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="reader.previous">前へ</button>
+                <span id="readerPageStatus" class="hint text-sm text-secondary"></span>
+                <button id="readerNextPage" class="secondary-button min-h-10 rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="reader.next">次へ</button>
+              </div>
             </div>
             <aside id="readerWordInfo" class="reader-word-info fixed z-10 max-h-[min(420px,calc(100vh-24px))] min-w-60 max-w-[min(340px,calc(100vw-24px))] overflow-auto rounded-lg border border-line bg-panel p-3.5 shadow-panel" hidden></aside>
             <div id="readerPanelResize" class="reader-panel-resize" role="separator" aria-orientation="vertical"></div>
