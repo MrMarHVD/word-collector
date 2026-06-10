@@ -137,6 +137,7 @@ export function renderMaterialList() {
           const failed = material.importStatus === "failed";
           const translating = !importing && !failed && material.translationStatus && !material.translationStatus.ready;
           const disabled = importing || failed || translating;
+          const renaming = state.materialRenameId === material.id;
           let meta;
           if (importing) {
             meta = t("reader.importingMaterial");
@@ -147,16 +148,33 @@ export function renderMaterialList() {
           } else {
             meta = t("reader.materialMeta", { words: formatCount(material.wordCount), type: material.fileType.toUpperCase() });
           }
+          const titleMarkup = renaming
+            ? `<form class="material-title-form" data-rename-material-form="${material.id}">
+                <input class="material-title-input" name="title" value="${escapeHtml(material.title)}" aria-label="${escapeHtml(t("reader.renameMaterialInput"))}" autocomplete="off" />
+              </form>`
+            : `<button class="material-title-button" type="button" data-material-id="${material.id}" ${disabled ? "disabled" : ""}>${escapeHtml(material.title)}</button>`;
           return `
             <div class="material-row ${active}">
-              <button class="material-button rounded-lg border border-line bg-panel p-2.5 text-left hover:bg-hover" type="button" data-material-id="${material.id}" ${disabled ? "disabled" : ""}>
-                <span>${escapeHtml(material.title)}</span>
-                <small>${escapeHtml(meta)}</small>
-                ${materialProgressMarkup(material)}
-              </button>
-              <button class="material-delete-button rounded-lg border px-2.5 text-sm font-bold" type="button" data-delete-material-id="${material.id}" aria-label="${escapeHtml(t("reader.deleteMaterial"))}">
-                ${escapeHtml(t("reader.deleteMaterial"))}
-              </button>
+              <div class="material-card">
+                <div class="material-main">
+                  ${titleMarkup}
+                  <small>${escapeHtml(meta)}</small>
+                  ${materialProgressMarkup(material)}
+                </div>
+                <div class="material-actions">
+                  <button class="material-icon-button material-rename-button" type="button" data-rename-material-id="${material.id}" aria-label="${escapeHtml(t("reader.renameMaterial"))}" title="${escapeHtml(t("reader.renameMaterial"))}">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" class="material-action-icon">
+                      <path d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16v4Z" />
+                      <path d="M13.5 6.5l4 4" />
+                    </svg>
+                  </button>
+                  <button class="material-icon-button material-delete-button" type="button" data-delete-material-id="${material.id}" aria-label="${escapeHtml(t("reader.deleteMaterial"))}" title="${escapeHtml(t("reader.deleteMaterial"))}">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" class="material-action-icon">
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
           `;
         })

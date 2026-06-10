@@ -28,6 +28,7 @@ export function createMaterialsRepository(db) {
   const markMaterialImportReady = db.prepare("UPDATE materials SET import_status = 'ready', import_error = NULL WHERE id = ?");
   const markMaterialImportFailed = db.prepare("UPDATE materials SET import_status = 'failed', import_error = ? WHERE id = ?");
   const updateMaterialReaderStart = db.prepare("UPDATE materials SET reader_start = ? WHERE id = ? AND user_id = ?");
+  const updateMaterialTitle = db.prepare("UPDATE materials SET title = ? WHERE id = ? AND user_id = ?");
   const deleteMaterial = db.prepare("DELETE FROM materials WHERE id = ? AND user_id = ?");
   const materialsByUserAndLanguage = db.prepare(`
     SELECT id, title, file_name AS "fileName", file_type AS "fileType", word_count AS "wordCount", reader_start AS "readerStart", created_at AS "createdAt",
@@ -120,6 +121,9 @@ export function createMaterialsRepository(db) {
     },
     updateReaderStart(readerStart, materialId, userId) {
       return updateMaterialReaderStart.run(readerStart, materialId, userId);
+    },
+    updateTitle(title, materialId, userId) {
+      return updateMaterialTitle.run(title, materialId, userId);
     },
     deleteById(materialId, userId) {
       return deleteMaterial.run(materialId, userId);

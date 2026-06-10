@@ -1,4 +1,4 @@
-import { getMaterialReader, getMaterials, startMaterialImport, updateMaterialReaderStart } from "../../modules/materials/materials.service.js";
+import { getMaterialReader, getMaterials, startMaterialImport, updateMaterial } from "../../modules/materials/materials.service.js";
 import { readJson, readMultipart } from "../request.js";
 import { jsonResponse } from "../response.js";
 import { BETA_MAX_MATERIAL_UPLOAD_BYTES } from "../../config.js";
@@ -60,9 +60,13 @@ export function createMaterialsRoutes({ repositories }) {
 
     if (req.method === "PATCH") {
       const body = await readJson(req);
-      const material = await updateMaterialReaderStart(repositories, user.userId, Number(materialMatch[1]), body.readerStart);
+      const material = await updateMaterial(repositories, user.userId, Number(materialMatch[1]), body);
       if (!material) {
         jsonResponse(res, 404, { error: "Material not found." });
+        return true;
+      }
+      if (material.error) {
+        jsonResponse(res, 400, material);
         return true;
       }
       jsonResponse(res, 200, { material });

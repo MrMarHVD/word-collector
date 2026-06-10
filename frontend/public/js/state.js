@@ -25,6 +25,7 @@ export const state = {
   selectedMaterialId: null,
   materials: [],
   materialSearch: "",
+  materialRenameId: null,
   importInProgress: false,
   importingMaterialId: null,
   materialOffset: 0,

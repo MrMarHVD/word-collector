@@ -332,3 +332,23 @@ export async function updateMaterialReaderStart(repositories, userId, materialId
   await repositories.materials.updateReaderStart(safeStart, material.id, userId);
   return repositories.materials.findById(material.id, userId);
 }
+
+export async function updateMaterial(repositories, userId, materialId, updates = {}) {
+  const requestedUpdates = updates && typeof updates === "object" ? updates : {};
+  const material = await repositories.materials.findById(Number(materialId), userId);
+  if (!material) {
+    return null;
+  }
+  if (Object.hasOwn(requestedUpdates, "readerStart")) {
+    const safeStart = Math.min(Math.max(Number(requestedUpdates.readerStart) || 0, 0), Math.max(Number(material.wordCount || 0) - 1, 0));
+    await repositories.materials.updateReaderStart(safeStart, material.id, userId);
+  }
+  if (Object.hasOwn(requestedUpdates, "title")) {
+    const title = normalizeName(String(requestedUpdates.title || ""));
+    if (!title) {
+      return { error: "Document name is required.", errorKey: "reader.renameMaterialRequired" };
+    }
+    await repositories.materials.updateTitle(title.slice(0, 200), material.id, userId);
+  }
+  return repositories.materials.findById(material.id, userId);
+}

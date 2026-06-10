@@ -73,6 +73,44 @@ function closeMaterialImportModal() {
   elements.materialImportModal.classList.remove("flex");
 }
 
+function focusMaterialRenameInput() {
+  requestAnimationFrame(() => {
+    const input = elements.materialList.querySelector(".material-title-input");
+    input?.focus();
+    input?.select();
+  });
+}
+
+async function saveMaterialRename(materialId, title) {
+  const material = state.materials.find((entry) => entry.id === materialId);
+  if (!material) {
+    return;
+  }
+  const nextTitle = title.trim();
+  if (!nextTitle) {
+    elements.materialImportStatus.textContent = t("reader.renameMaterialRequired");
+    focusMaterialRenameInput();
+    return;
+  }
+  if (nextTitle === material.title) {
+    state.materialRenameId = null;
+    renderMaterialList();
+    return;
+  }
+  const result = await requestJson(`/api/materials/${materialId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title: nextTitle })
+  });
+  state.materials = state.materials.map((entry) => (entry.id === materialId ? { ...entry, title: result.material.title } : entry));
+  if (state.currentMaterial?.id === materialId) {
+    state.currentMaterial = { ...state.currentMaterial, title: result.material.title };
+  }
+  state.materialRenameId = null;
+  elements.materialImportStatus.textContent = t("reader.renamedMaterial");
+  renderMaterialList();
+  renderReaderTokens();
+}
+
 export async function loadMaterials(reset = false) {
   if (!state.selectedStudyLanguageId) {
     if (translationPollId) {
@@ -181,6 +219,19 @@ export function bindMaterialsEvents() {
   });
 
   elements.materialList.addEventListener("click", async (event) => {
+    const renameButton = event.target.closest("[data-rename-material-id]");
+    if (renameButton) {
+      const materialId = Number(renameButton.dataset.renameMaterialId);
+      const material = state.materials.find((entry) => entry.id === materialId);
+      if (!material) {
+        return;
+      }
+      state.materialRenameId = materialId;
+      renderMaterialList();
+      focusMaterialRenameInput();
+      return;
+    }
+
     const deleteButton = event.target.closest("[data-delete-material-id]");
     if (deleteButton) {
       const materialId = Number(deleteButton.dataset.deleteMaterialId);
@@ -222,5 +273,48 @@ export function bindMaterialsEvents() {
     state.readerStart = Number(material.readerStart) || 0;
     renderMaterialList();
     await loadMaterialReader();
+  });
+
+  elements.materialList.addEventListener("submit", async (event) => {
+    const form = event.target.closest("[data-rename-material-form]");
+    if (!form) {
+      return;
+    }
+    event.preventDefault();
+    const materialId = Number(form.dataset.renameMaterialForm);
+    const input = form.elements.title;
+    try {
+      await saveMaterialRename(materialId, input.value);
+    } catch (error) {
+      elements.materialImportStatus.textContent = error.message;
+      focusMaterialRenameInput();
+    }
+  });
+
+  elements.materialList.addEventListener("focusout", async (event) => {
+    const input = event.target.closest(".material-title-input");
+    if (!input || input.dataset.cancelRename === "true") {
+      return;
+    }
+    const form = input.closest("[data-rename-material-form]");
+    if (!form) {
+      return;
+    }
+    try {
+      await saveMaterialRename(Number(form.dataset.renameMaterialForm), input.value);
+    } catch (error) {
+      elements.materialImportStatus.textContent = error.message;
+      focusMaterialRenameInput();
+    }
+  });
+
+  elements.materialList.addEventListener("keydown", (event) => {
+    const input = event.target.closest(".material-title-input");
+    if (!input || event.key !== "Escape") {
+      return;
+    }
+    input.dataset.cancelRename = "true";
+    state.materialRenameId = null;
+    renderMaterialList();
   });
 }
