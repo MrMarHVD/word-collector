@@ -7,7 +7,7 @@ export async function loadMessages() {
   if (!state.messages[state.locale]) {
     state.locale = "ja";
   }
-  if (!["all", "infinite"].includes(state.wordDisplayMode)) {
+  if (!["page", "infinite"].includes(state.wordDisplayMode)) {
     state.wordDisplayMode = "infinite";
   }
   if (!["dashboard", "collections", "reader", "practice", "settings"].includes(state.activeTab)) {

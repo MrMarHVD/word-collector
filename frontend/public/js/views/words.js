@@ -5,6 +5,10 @@ import { escapeHtml } from "../shared/html.js";
 import { normalizeStatus, WORD_STATUSES } from "../shared/status.js";
 import { renderDisplayModeButtons } from "./shell.js";
 
+function usePagedWordList() {
+  return state.wordDisplayMode === "page";
+}
+
 // Render the three-segment unknown/learning/known toggle for one word row.
 export function renderStatusToggle(wordId, currentStatus, { dataAttr = "data-word-id" } = {}) {
   const active = normalizeStatus(currentStatus);
@@ -56,7 +60,8 @@ function renderDisambiguationRows(entry) {
 // Render collection word rows, empty states, and pagination controls.
 export function renderWords(words) {
   renderDisplayModeButtons();
-  const pageMode = state.wordDisplayMode === "page";
+  const pageMode = usePagedWordList();
+  const scrollableInfiniteMode = !pageMode && words.length > 5;
   const totalPages = pageMode ? Math.max(1, Math.ceil(words.length / WORDS_PER_PAGE)) : 1;
   if (pageMode && state.wordsPage >= totalPages) {
     state.wordsPage = totalPages - 1;
@@ -67,7 +72,7 @@ export function renderWords(words) {
   const visibleWords = pageMode
     ? words.slice(state.wordsPage * WORDS_PER_PAGE, (state.wordsPage + 1) * WORDS_PER_PAGE)
     : words.slice(0, state.visibleWordCount);
-  elements.tableWrap.classList.toggle("is-scrollable", !pageMode && words.length > WORD_PAGE_SIZE);
+  elements.tableWrap.classList.toggle("is-scrollable", scrollableInfiniteMode);
 
   elements.wordRows.innerHTML = visibleWords
     .map(
@@ -144,7 +149,7 @@ export function renderWords(words) {
 
 // Extend the visible word window when the table scroll nears the bottom.
 export function loadMoreWordsIfNeeded() {
-  if (state.wordDisplayMode !== "infinite" || state.visibleWordCount >= state.words.length) {
+  if (usePagedWordList() || state.visibleWordCount >= state.words.length) {
     return;
   }
 
