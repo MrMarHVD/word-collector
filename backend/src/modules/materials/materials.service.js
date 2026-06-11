@@ -262,7 +262,7 @@ export async function runMaterialImport(repositories, { materialId, userId, lang
     await repositories.database.transaction(async (tx) => {
       const entries = [];
       for (const token of batch) {
-        const key = `${String(token.surface || "").toLowerCase()} ${String(token.lemma || "").toLowerCase()}`;
+        const key = `${String(token.surface || "").toLowerCase()}\u0000${String(token.lemma || "").toLowerCase()}`;
         let wordId = resolvedWordIds.get(key);
         if (wordId === undefined) {
           const fallback = await translationForToken(tx, language, targetNativeLanguage, token, translations);

@@ -1,3 +1,33 @@
+// Dictionary tables are static reference data populated by scripts/, so
+// lookups can be memoized for the life of the process. The cache is module
+// level and therefore shared across repository instances, including the
+// transaction-scoped ones rebuilt per import batch. Bounded FIFO eviction
+// keeps memory in check; restart the server after re-seeding dictionaries.
+const DICTIONARY_CACHE_MAX_ENTRIES = 50_000;
+const dictionaryCache = new Map();
+
+function withDictionaryCache(methods) {
+  const wrapped = {};
+  for (const [name, method] of Object.entries(methods)) {
+    wrapped[name] = (...args) => {
+      const key = `${name}\u0000${args.join("\u0000")}`;
+      const hit = dictionaryCache.get(key);
+      if (hit) {
+        return hit;
+      }
+      const result = Promise.resolve(method(...args));
+      dictionaryCache.set(key, result);
+      if (dictionaryCache.size > DICTIONARY_CACHE_MAX_ENTRIES) {
+        dictionaryCache.delete(dictionaryCache.keys().next().value);
+      }
+      // Never cache failures (e.g. transient connection errors).
+      result.catch(() => dictionaryCache.delete(key));
+      return result;
+    };
+  }
+  return wrapped;
+}
+
 export function createDictionariesRepository(db) {
   const wikdictEnglishJapanese = db.prepare(`
     SELECT japanese, pos
@@ -194,7 +224,7 @@ export function createDictionariesRepository(db) {
     LIMIT 1
   `);
 
-  return {
+  return withDictionaryCache({
     findWikdictEnglishJapanese(term) {
       return wikdictEnglishJapanese.get(term);
     },
@@ -259,5 +289,5 @@ export function createDictionariesRepository(db) {
     findJapaneseDetailsByReading(term) {
       return japaneseDetailsByReading.get(term);
     }
-  };
+  });
 }
