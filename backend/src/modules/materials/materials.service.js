@@ -2,7 +2,7 @@ import { Worker } from "node:worker_threads";
 import { BETA_MAX_ACTIVE_IMPORTS_GLOBAL, BETA_MAX_ACTIVE_IMPORTS_PER_USER, BETA_MAX_MATERIALS_PER_USER, BETA_MAX_MATERIAL_UPLOAD_BYTES, READER_WORK_PAGE_SIZE } from "../../config.js";
 import { normalizeName } from "../../shared/normalize.js";
 import { lookupChineseDetails, lookupEnglishPos } from "../dictionaries/dictionaries.service.js";
-import { backfillMaterialTranslations, displayTranslationForToken, getTranslationCandidates, hasTranslationAttempt, hasUsableStoredTranslation, languageKey, lookupTranslation, materialTranslationStatus, scheduleMaterialTranslationBackfill, supportedTargetNativeLanguage, translationDisambiguationCandidates, translationForToken } from "../translations/translations.service.js";
+import { backfillMaterialTranslations, displayTranslationForToken, getTranslationCandidates, languageKey, lookupTranslation, materialTranslationStatus, scheduleMaterialTranslationBackfill, supportedTargetNativeLanguage, translationDisambiguationCandidates, translationForToken } from "../translations/translations.service.js";
 import { extractTextFromUpload } from "./text-extraction.service.js";
 import { tokenizeBlocksForLanguage, tokenizeForLanguage } from "./tokenizer.service.js";
 
@@ -38,7 +38,9 @@ async function wordMetadataForToken(repositories, sourceLanguage, token) {
 }
 
 // Return a dictionary word row, creating and translating one when necessary.
-async function getOrCreateDictionaryWord(repositories, userId, language, token, targetNativeLanguage, fallbackTranslation) {
+// `importContext`, when given, caches the Uncollected collection across calls
+// within one import run.
+async function getOrCreateDictionaryWord(repositories, userId, language, token, targetNativeLanguage, fallbackTranslation, importContext = null) {
   const metadata = await wordMetadataForToken(repositories, language, token);
   const source = languageKey(language);
   const baseTranslation = source === "English"
@@ -47,18 +49,28 @@ async function getOrCreateDictionaryWord(repositories, userId, language, token, 
   // Reuse a matching user-owned word before creating an uncollected entry.
   const existing = await repositories.words.findWordInLanguageBySurfaceOrLemma(userId, language.id, token.surface, token.lemma);
   if (existing) {
-    const attempted = targetNativeLanguage ? await hasTranslationAttempt(repositories, existing.id, targetNativeLanguage) : false;
-    if (targetNativeLanguage && !(await hasUsableStoredTranslation(repositories, existing.id, targetNativeLanguage, token)) && (fallbackTranslation || !attempted)) {
-      await repositories.translations.upsertWordTranslation(existing.id, targetNativeLanguage, fallbackTranslation);
+    if (targetNativeLanguage) {
+      // One read answers both "was a translation attempted" (row exists) and
+      // "is it usable" (non-empty and not just the word itself).
+      const storedRow = await repositories.translations.findWordTranslation(existing.id, targetNativeLanguage);
+      const stored = normalizeName(storedRow?.translation || "").toLowerCase();
+      const usable = stored && stored !== token.lemma.toLowerCase() && stored !== token.surface.toLowerCase();
+      if (!usable && (fallbackTranslation || !storedRow)) {
+        await repositories.translations.upsertWordTranslation(existing.id, targetNativeLanguage, fallbackTranslation);
+      }
     }
     await repositories.words.updateWordMetadata(existing.id, metadata);
     return existing;
   }
 
-  const collection = await getUncollectedCollection(repositories, userId, language.id);
+  const collection = importContext?.uncollected
+    || await getUncollectedCollection(repositories, userId, language.id);
+  if (importContext) {
+    importContext.uncollected = collection;
+  }
   let word = await repositories.words.findWordByCollectionAndLemma(collection.id, token.lemma);
   if (!word) {
-    await repositories.words.insertWord(
+    word = await repositories.words.insertWordReturning(
       collection.id,
       token.lemma,
       baseTranslation,
@@ -68,8 +80,7 @@ async function getOrCreateDictionaryWord(repositories, userId, language, token, 
       metadata.reading || null,
       metadata.pinyin || null,
       metadata.traditional || null
-    );
-    word = await repositories.words.findWordByCollectionAndLemma(collection.id, token.lemma);
+    ) || await repositories.words.findWordByCollectionAndLemma(collection.id, token.lemma);
   } else {
     await repositories.words.updateWordMetadata(word.id, metadata);
   }
@@ -245,6 +256,7 @@ export async function runMaterialImport(repositories, { materialId, userId, lang
   // every repeated occurrence; token rows themselves are written in bulk. This
   // keeps query volume proportional to the vocabulary, not the document size.
   const resolvedWordIds = new Map();
+  const importContext = {};
   for (let offset = 0; offset < tokens.length; offset += IMPORT_BATCH_SIZE) {
     const batch = tokens.slice(offset, offset + IMPORT_BATCH_SIZE);
     await repositories.database.transaction(async (tx) => {
@@ -254,7 +266,7 @@ export async function runMaterialImport(repositories, { materialId, userId, lang
         let wordId = resolvedWordIds.get(key);
         if (wordId === undefined) {
           const fallback = await translationForToken(tx, language, targetNativeLanguage, token, translations);
-          const word = await getOrCreateDictionaryWord(tx, userId, language, token, targetNativeLanguage, fallback);
+          const word = await getOrCreateDictionaryWord(tx, userId, language, token, targetNativeLanguage, fallback, importContext);
           wordId = word.id;
           resolvedWordIds.set(key, wordId);
         }

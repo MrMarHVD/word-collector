@@ -39,6 +39,12 @@ export function createWordsRepository(db) {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(collection_id, word, translation) DO NOTHING
   `);
+  const insertWordReturning = db.prepare(`
+    INSERT INTO words (collection_id, word, translation, lemma, pos, pos_subcategory, reading, pinyin, traditional)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(collection_id, word, translation) DO NOTHING
+    RETURNING id, word, translation, lemma, pos, pos_subcategory AS "posSubcategory", reading, pinyin, traditional
+  `);
   const updateWordMetadata = db.prepare(`
     UPDATE words
     SET pos = CASE WHEN pos IS NULL OR trim(pos) = '' OR pos = 'unknown' THEN ? ELSE pos END,
@@ -118,6 +124,11 @@ export function createWordsRepository(db) {
     },
     insertWord(collectionId, word, translation, lemma, pos = null, posSubcategory = null, reading = null, pinyin = null, traditional = null) {
       return insertWord.run(collectionId, word, translation, lemma, pos, posSubcategory, reading, pinyin, traditional);
+    },
+    // Insert-and-return in one round trip. Returns undefined when the unique
+    // (collection_id, word, translation) constraint suppressed the insert.
+    insertWordReturning(collectionId, word, translation, lemma, pos = null, posSubcategory = null, reading = null, pinyin = null, traditional = null) {
+      return insertWordReturning.get(collectionId, word, translation, lemma, pos, posSubcategory, reading, pinyin, traditional);
     },
     updateWordMetadata(wordId, metadata) {
       return updateWordMetadata.run(metadata.pos, metadata.posSubcategory, metadata.reading, metadata.pinyin, metadata.traditional, wordId);
