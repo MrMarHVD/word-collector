@@ -24,6 +24,8 @@ jobs:
           script_stop: true
           script: |
             set -eu
+            export NVM_DIR="$HOME/.nvm"
+            source "$NVM_DIR/nvm.sh"
 
             cd ~/supergloss/word-collector
             git fetch origin dev
