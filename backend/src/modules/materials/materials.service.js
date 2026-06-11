@@ -241,14 +241,26 @@ export async function runMaterialImport(repositories, { materialId, userId, lang
   const targetNativeLanguage = supportedTargetNativeLanguage(language, (await repositories.auth.findUserById(userId))?.nativeLanguage || "English");
   const translations = await getTranslationCandidates(repositories, userId, language, targetNativeLanguage, tokens);
 
+  // Resolve each unique surface+lemma pair once and reuse the word id for
+  // every repeated occurrence; token rows themselves are written in bulk. This
+  // keeps query volume proportional to the vocabulary, not the document size.
+  const resolvedWordIds = new Map();
   for (let offset = 0; offset < tokens.length; offset += IMPORT_BATCH_SIZE) {
     const batch = tokens.slice(offset, offset + IMPORT_BATCH_SIZE);
     await repositories.database.transaction(async (tx) => {
+      const entries = [];
       for (const token of batch) {
-        const fallback = await translationForToken(tx, language, targetNativeLanguage, token, translations);
-        const word = await getOrCreateDictionaryWord(tx, userId, language, token, targetNativeLanguage, fallback);
-        await tx.materials.insertMaterialToken(materialId, token, word.id);
+        const key = `${String(token.surface || "").toLowerCase()} ${String(token.lemma || "").toLowerCase()}`;
+        let wordId = resolvedWordIds.get(key);
+        if (wordId === undefined) {
+          const fallback = await translationForToken(tx, language, targetNativeLanguage, token, translations);
+          const word = await getOrCreateDictionaryWord(tx, userId, language, token, targetNativeLanguage, fallback);
+          wordId = word.id;
+          resolvedWordIds.set(key, wordId);
+        }
+        entries.push({ token, wordId });
       }
+      await tx.materials.insertMaterialTokens(materialId, entries);
     });
     await repositories.materials.setImportProcessed(materialId, Math.min(offset + batch.length, tokens.length));
   }

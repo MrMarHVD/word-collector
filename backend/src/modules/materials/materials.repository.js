@@ -116,6 +116,38 @@ export function createMaterialsRepository(db) {
         token.trailingText ?? null
       );
     },
+    // Insert a batch of tokens in one multi-row statement. `entries` is an
+    // array of { token, wordId } in position order.
+    insertMaterialTokens(materialId, entries) {
+      if (!entries.length) {
+        return { changes: 0 };
+      }
+      const params = [];
+      const rows = entries.map(({ token, wordId }) => {
+        params.push(
+          materialId,
+          token.position,
+          token.surface,
+          token.normalized,
+          token.lemma,
+          token.pos,
+          wordId,
+          token.paragraphIndex,
+          token.sentenceIndex,
+          token.conjugationForm || null,
+          token.blockIndex ?? null,
+          token.blockType ?? null,
+          token.leadingText ?? null,
+          token.trailingText ?? null
+        );
+        return "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      });
+      const statement = db.prepare(`
+        INSERT INTO material_tokens (material_id, position, surface, normalized, lemma, pos, word_id, paragraph_index, sentence_index, conjugation_form, block_index, block_type, leading_text, trailing_text)
+        VALUES ${rows.join(", ")}
+      `);
+      return statement.run(...params);
+    },
     findById(materialId, userId) {
       return materialById.get(materialId, userId);
     },
