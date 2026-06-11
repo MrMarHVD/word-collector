@@ -183,52 +183,6 @@
     min-height: 42px;
   }
 
-  .word-row {
-    display: grid !important;
-    gap: 0;
-    padding: 0;
-  }
-
-  .word-row .word-drag-cell {
-    display: none;
-  }
-
-  .word-row td {
-    grid-template-columns: 1fr;
-    gap: 6px;
-    padding: 12px 14px;
-  }
-
-  .word-row td::before {
-    letter-spacing: 0;
-  }
-
-  .word-row td[data-label] .word-cell-main {
-    font-size: 1.08rem;
-    font-weight: 800;
-  }
-
-  .word-row td:nth-child(2)::before {
-    display: none;
-  }
-
-  .word-row td:nth-child(2) {
-    padding-bottom: 8px;
-  }
-
-  .word-row td:nth-child(3) {
-    background: var(--surface-subtle);
-    color: var(--text-label);
-  }
-
-  .word-row .word-action-cell:empty {
-    display: none;
-  }
-
-  .word-row .status-cell {
-    padding-top: 14px;
-  }
-
   .reader-sidebar-tabs {
     position: sticky;
     top: 0;
