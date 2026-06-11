@@ -33,6 +33,6 @@ jobs:
 
             npm install
             npm run build:css -w frontend
-            npm run migrate:up -w backend
+            cd backend && DATABASE_URL=$(grep '^DATABASE_URL=' ~/supergloss/word-collector/.env | cut -d= -f2-) npx node-pg-migrate up && cd ..
 
             pm2 restart word-marker
