@@ -28,6 +28,13 @@ export function renderCollectionsList() {
   }
   const collections = state.dashboard?.collections || [];
   const allActive = state.selectedCollectionId === "all";
+  if (elements.collectionsSelect) {
+    elements.collectionsSelect.innerHTML = `
+      <option value="all">${escapeHtml(t("collections.all"))}</option>
+      ${collections.map((collection) => `<option value="${collection.id}">${escapeHtml(collection.name)}</option>`).join("")}
+    `;
+    elements.collectionsSelect.value = String(state.selectedCollectionId);
+  }
   const allButton = `
     <button class="collection-button${allActive ? " is-active" : ""} min-h-11 rounded-md border border-line bg-panel px-3 text-left text-sm font-semibold text-label hover:bg-hover"
       type="button" data-collection-id="all" aria-pressed="${allActive}">

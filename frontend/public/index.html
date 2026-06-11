@@ -205,6 +205,10 @@
         <section class="workspace grid grid-cols-[minmax(220px,260px)_1fr] items-start gap-3.5 max-md:grid-cols-1">
           <aside class="collections-sidebar rounded-lg border border-line bg-panel p-3.5 shadow-panel">
             <button id="uploadOpenButton" class="collections-sidebar-upload mb-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="button" data-i18n="collections.upload">アップロード</button>
+            <label class="collections-mobile-select-wrap grid gap-1.5 text-sm font-semibold text-label">
+              <span data-i18n="collections.collection">コレクション</span>
+              <select id="collectionsSelect" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus"></select>
+            </label>
             <nav id="collectionsList" class="collections-list grid max-h-[calc(100vh-220px)] gap-1 overflow-auto" aria-label="Collections"></nav>
           </aside>
 

@@ -82,6 +82,7 @@ export const elements = {
   collectionCount: document.querySelector("#collectionCount"),
   collectionCharts: document.querySelector("#collectionCharts"),
   collectionsList: document.querySelector("#collectionsList"),
+  collectionsSelect: document.querySelector("#collectionsSelect"),
   uploadOpenButton: document.querySelector("#uploadOpenButton"),
   uploadModal: document.querySelector("#uploadModal"),
   uploadModalClose: document.querySelector("#uploadModalClose"),

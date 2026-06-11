@@ -12,6 +12,10 @@ export function configureCollectionsController(options) {
   loadDashboard = options.loadDashboard;
 }
 
+function isMobileCollectionLayout() {
+  return window.matchMedia("(max-width: 760px)").matches;
+}
+
 function renderDeleteButtonState() {
   if (!elements.deleteSelectedButton) {
     return;
@@ -149,6 +153,10 @@ export function bindCollectionsEvents() {
     await selectCollection(button.dataset.collectionId);
   });
 
+  elements.collectionsSelect.addEventListener("change", async (event) => {
+    await selectCollection(event.target.value);
+  });
+
   elements.searchInput.addEventListener("input", async (event) => {
     state.search = event.target.value.trim();
     resetWordWindow();
@@ -218,6 +226,10 @@ export function bindCollectionsEvents() {
   });
 
   elements.wordRows.addEventListener("dragstart", (event) => {
+    if (isMobileCollectionLayout()) {
+      event.preventDefault();
+      return;
+    }
     const row = event.target.closest(".word-row");
     if (!row) {
       return;
