@@ -51,6 +51,7 @@ export function showView(viewName) {
 export function renderMenuForAuth(isLoggedIn) {
   const hasStudyLanguage = Boolean(state.selectedStudyLanguageId);
   const accountMenuUsesDropdown = window.matchMedia("(max-width: 760px)").matches;
+  elements.menuBar.classList.toggle("is-guest", !isLoggedIn);
   elements.menuTabs.hidden = !isLoggedIn || !hasStudyLanguage;
   elements.studyLanguageBar.hidden = !isLoggedIn;
   elements.settingsButton.hidden = !isLoggedIn;

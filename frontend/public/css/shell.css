@@ -168,6 +168,13 @@
     padding: 0 16px;
     text-align: center;
   }
+
+  /* Logged out: only the locale select remains, so center it in the bar. */
+  .menu-bar.is-guest .menu-actions {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 
 @media (max-width: 760px) {
@@ -266,6 +273,16 @@
       grid-template-columns: minmax(0, 1fr) minmax(7.5rem, auto) auto;
       align-items: center;
       gap: 8px;
+    }
+
+    /* Logged out: only the locale select remains, so center it. */
+    .menu-bar.is-guest .menu-actions {
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }
+
+    .menu-bar.is-guest .locale-select-wrap {
+      width: min(15rem, 100%);
     }
   
     .study-language-bar {

@@ -1316,6 +1316,11 @@ button:disabled {
     padding: 0 16px;
     text-align: center;
   }
+  .menu-bar.is-guest .menu-actions {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 @media (max-width: 760px) {
   .account-menu {
@@ -1394,6 +1399,13 @@ button:disabled {
     grid-template-columns: minmax(0, 1fr) minmax(7.5rem, auto) auto;
     align-items: center;
     gap: 8px;
+  }
+  .menu-bar.is-guest .menu-actions {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+  .menu-bar.is-guest .locale-select-wrap {
+    width: min(15rem, 100%);
   }
   .study-language-bar {
     display: grid;
@@ -2641,7 +2653,7 @@ tbody tr:last-child td {
   .section-head, .reader-toolbar, .practice-session-head {
     align-items: stretch;
   }
-  .collection-actions, .display-mode-buttons, .word-pagination, .practice-answer, .practice-notice-actions {
+  .collection-actions, .word-pagination, .practice-answer, .practice-notice-actions {
     display: grid;
     grid-template-columns: 1fr;
   }

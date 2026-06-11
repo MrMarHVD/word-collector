@@ -11,6 +11,7 @@ export const elements = {
   welcomeLoginButton: document.querySelector("#welcomeLoginButton"),
   welcomeRegisterButton: document.querySelector("#welcomeRegisterButton"),
   brandHomeButton: document.querySelector("#brandHomeButton"),
+  menuBar: document.querySelector(".menu-bar"),
   menuTabs: document.querySelector(".tabs"),
   studyLanguageBar: document.querySelector(".study-language-bar"),
   settingsButton: document.querySelector("#settingsButton"),
