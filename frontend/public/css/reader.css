@@ -666,6 +666,28 @@
       padding: 14px;
     }
 
+    .reader-layout.is-reader-read-panel {
+      height: calc(100dvh - 190px);
+      overflow: hidden;
+    }
+
+    .reader-layout.is-reader-read-panel .reader-panel {
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      height: 100%;
+      min-height: 0;
+      max-height: 100%;
+      overflow: hidden;
+    }
+
+    .reader-layout.is-reader-read-panel .reader-text {
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .reader-layout.is-reader-read-panel .reader-page-actions {
+      margin-top: 0.75rem;
+    }
+
     .is-reader-focus .reader-layout {
       height: 100dvh;
       min-height: 100dvh;
