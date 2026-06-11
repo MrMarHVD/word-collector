@@ -59,6 +59,18 @@ export function createWordsRepository(db) {
              lower(c.name)
     LIMIT 1
   `);
+  // Batched variant of the lookup above: returns every word in the language
+  // matching any of the given surfaces (by word) or lemmas (by lemma). Callers
+  // re-apply the single-row match preference in memory.
+  const wordsInLanguageByTerms = db.prepare(`
+    SELECT w.id, w.word, w.lemma, c.name AS "collectionName"
+    FROM words w
+    JOIN collections c ON c.id = w.collection_id
+    JOIN languages l ON l.id = c.language_id
+    WHERE l.user_id = ? AND l.id = ?
+      AND (lower(w.word) = ANY(ARRAY(SELECT lower(unnest(?::text[]))))
+        OR lower(COALESCE(w.lemma, w.word)) = ANY(ARRAY(SELECT lower(unnest(?::text[])))))
+  `);
   const wordByCollectionAndLemma = db.prepare(`
     SELECT w.id, w.word, w.translation, w.lemma, w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional
     FROM words w
@@ -112,6 +124,9 @@ export function createWordsRepository(db) {
     },
     findWordInLanguageBySurfaceOrLemma(userId, languageId, surface, lemma) {
       return wordInLanguageBySurfaceOrLemma.get(userId, languageId, surface, lemma, surface);
+    },
+    findWordsInLanguageByTerms(userId, languageId, surfaces, lemmas) {
+      return wordsInLanguageByTerms.all(userId, languageId, surfaces, lemmas);
     },
     findWordByCollectionAndLemma(collectionId, lemma) {
       return wordByCollectionAndLemma.get(collectionId, lemma);

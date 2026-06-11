@@ -370,28 +370,79 @@ export async function translationForToken(repositories, sourceLanguage, targetLa
   return lookupTranslation(repositories, sourceLanguage, targetLanguage, token.surface);
 }
 
+// Mirror the SQL preference of findWordInLanguageBySurfaceOrLemma: named
+// collections before "Uncollected", exact surface matches before lemma-only
+// matches, then collection name.
+function pickPreferredWordMatch(matches, surfaceKey) {
+  return [...matches].sort((a, b) => {
+    const aUncollected = String(a.collectionName || "").toLowerCase() === "uncollected" ? 1 : 0;
+    const bUncollected = String(b.collectionName || "").toLowerCase() === "uncollected" ? 1 : 0;
+    if (aUncollected !== bUncollected) return aUncollected - bUncollected;
+    const aSurface = String(a.word || "").toLowerCase() === surfaceKey ? 0 : 1;
+    const bSurface = String(b.word || "").toLowerCase() === surfaceKey ? 0 : 1;
+    if (aSurface !== bSurface) return aSurface - bSurface;
+    return String(a.collectionName || "").toLowerCase().localeCompare(String(b.collectionName || "").toLowerCase());
+  })[0];
+}
+
 export async function getTranslationCandidates(repositories, userId, sourceLanguage, targetLanguage, tokens) {
   if (!translationRoute(sourceLanguage, targetLanguage)) {
     return new Map();
   }
 
-  const candidates = new Map();
+  // One representative token per unique lemma; its surface drives the
+  // existing-word match exactly as the previous per-token lookups did.
+  const uniqueTokens = new Map();
   for (const token of tokens) {
     const key = token.lemma.toLowerCase();
-    if (candidates.has(key)) {
-      continue;
+    if (!uniqueTokens.has(key)) {
+      uniqueTokens.set(key, token);
     }
-    const existing = await repositories.words.findWordInLanguageBySurfaceOrLemma(userId, sourceLanguage.id, token.surface, token.lemma);
-    if (existing && await hasUsableStoredTranslation(repositories, existing.id, targetLanguage, token)) {
-      continue;
+  }
+  if (!uniqueTokens.size) {
+    return new Map();
+  }
+
+  // Two batched queries replace the per-lemma word and translation lookups;
+  // the original single-row match preference is re-applied in memory.
+  const representatives = [...uniqueTokens.values()];
+  const surfaces = [...new Set(representatives.map((token) => String(token.surface || "")))];
+  const lemmas = [...new Set(representatives.map((token) => String(token.lemma || "")))];
+  const rows = await repositories.words.findWordsInLanguageByTerms(userId, sourceLanguage.id, surfaces, lemmas);
+
+  const rowsByWord = new Map();
+  const rowsByLemma = new Map();
+  for (const row of rows) {
+    const wordKey = String(row.word || "").toLowerCase();
+    const lemmaKey = String(row.lemma || row.word || "").toLowerCase();
+    if (!rowsByWord.has(wordKey)) rowsByWord.set(wordKey, []);
+    rowsByWord.get(wordKey).push(row);
+    if (!rowsByLemma.has(lemmaKey)) rowsByLemma.set(lemmaKey, []);
+    rowsByLemma.get(lemmaKey).push(row);
+  }
+
+  const storedByWordId = new Map();
+  if (rows.length) {
+    const wordIds = [...new Set(rows.map((row) => row.id))];
+    for (const entry of await repositories.translations.listWordTranslationsForWords(targetLanguage, wordIds)) {
+      storedByWordId.set(entry.wordId, normalizeName(entry.translation || ""));
     }
-    candidates.set(key, token.lemma);
   }
 
   const resolved = new Map();
-  for (const lemma of candidates.values()) {
-    const translation = await lookupTranslation(repositories, sourceLanguage, targetLanguage, lemma);
-    resolved.set(lemma.toLowerCase(), translation);
+  for (const [key, token] of uniqueTokens) {
+    const surfaceKey = String(token.surface || "").toLowerCase();
+    const matches = new Map();
+    for (const row of rowsByWord.get(surfaceKey) || []) matches.set(row.id, row);
+    for (const row of rowsByLemma.get(key) || []) matches.set(row.id, row);
+    const existing = matches.size ? pickPreferredWordMatch(matches.values(), surfaceKey) : null;
+    if (existing && storedByWordId.has(existing.id)) {
+      const stored = storedByWordId.get(existing.id);
+      if (stored && stored.toLowerCase() !== token.lemma.toLowerCase() && stored.toLowerCase() !== surfaceKey) {
+        continue;
+      }
+    }
+    resolved.set(key, await lookupTranslation(repositories, sourceLanguage, targetLanguage, token.lemma));
   }
   return resolved;
 }

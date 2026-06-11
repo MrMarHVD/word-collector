@@ -5,6 +5,11 @@ export function createTranslationsRepository(db) {
     VALUES (?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(word_id, native_language) DO UPDATE SET translation = excluded.translation, updated_at = CURRENT_TIMESTAMP
   `);
+  const wordTranslationsForWords = db.prepare(`
+    SELECT word_id AS "wordId", translation
+    FROM word_translations
+    WHERE native_language = ? AND word_id = ANY(?::int[])
+  `);
   const materialTranslationTokens = db.prepare(`
     SELECT mt.word_id AS "wordId", mt.surface, mt.lemma
     FROM material_tokens mt
@@ -22,6 +27,9 @@ export function createTranslationsRepository(db) {
   return {
     findWordTranslation(wordId, nativeLanguage) {
       return wordTranslation.get(wordId, nativeLanguage);
+    },
+    listWordTranslationsForWords(nativeLanguage, wordIds) {
+      return wordTranslationsForWords.all(nativeLanguage, wordIds);
     },
     upsertWordTranslation(wordId, nativeLanguage, translation) {
       return upsertWordTranslation.run(wordId, nativeLanguage, translation);
