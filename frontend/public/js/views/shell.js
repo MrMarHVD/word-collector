@@ -58,7 +58,7 @@ export function renderMenuForAuth(isLoggedIn) {
   elements.accountSettingsButton.hidden = !accountMenuUsesDropdown;
   elements.accountDropdown.hidden = !isLoggedIn || accountMenuUsesDropdown;
   elements.settingsButton.setAttribute("aria-expanded", "false");
-  elements.loginButton.hidden = isLoggedIn;
+  elements.loginButton.hidden = true;
 }
 
 // Render active state for locale selection controls.

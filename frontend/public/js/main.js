@@ -19,6 +19,27 @@ import { renderDisplayModeButtons, resetWordWindow, showView } from "./views/she
 import { renderWords } from "./views/words.js";
 import { state } from "./state.js";
 
+function bindMobileZoomGuard() {
+  function isMobileLayout() {
+    return window.matchMedia("(max-width: 760px), (pointer: coarse)").matches;
+  }
+
+  function preventMobileZoom(event) {
+    if (isMobileLayout()) {
+      event.preventDefault();
+    }
+  }
+
+  document.addEventListener("gesturestart", preventMobileZoom, { passive: false });
+  document.addEventListener("gesturechange", preventMobileZoom, { passive: false });
+  document.addEventListener("gestureend", preventMobileZoom, { passive: false });
+  document.addEventListener("touchmove", (event) => {
+    if (event.touches.length > 1) {
+      preventMobileZoom(event);
+    }
+  }, { passive: false });
+}
+
 function bindShellEvents() {
   function closeAccountDropdown() {
     elements.accountDropdown.hidden = accountMenuUsesDropdown();
@@ -108,6 +129,7 @@ configureSettingsController({ reloadDashboard: loadDashboard });
 setUnauthorizedHandler(() => showView("welcome"));
 startRouter();
 applyTheme();
+bindMobileZoomGuard();
 bindShellEvents();
 bindLocaleEvents();
 bindStudyLanguageEvents();
