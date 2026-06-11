@@ -10,3 +10,4 @@ node_modules/
 .DS_Store
 ssh
 ssh.pub
+.env.production
