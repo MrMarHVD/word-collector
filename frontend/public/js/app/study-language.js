@@ -51,6 +51,10 @@ function studyLanguageDropdownOptions() {
     .filter((option) => !option.enrolled || option.reason);
 }
 
+function addableStudyLanguageOptions() {
+  return studyLanguageDropdownOptions().filter((option) => !option.enrolled && !option.reason);
+}
+
 export function languageByName(languages, name) {
   return languages.find((language) => language.name.toLowerCase() === name.toLowerCase());
 }
@@ -82,6 +86,33 @@ export function renderStudyLanguageSelect() {
     })
     .join("");
   renderStudyLanguageDropdown();
+  renderWelcomeLanguageGate();
+}
+
+function renderWelcomeLanguageGate() {
+  if (!elements.welcomeLanguageGate) {
+    return;
+  }
+  if (!state.user || state.selectedStudyLanguageId) {
+    elements.welcomeLanguageGate.innerHTML = "";
+    return;
+  }
+  const options = addableStudyLanguageOptions();
+  elements.welcomeLanguageGate.innerHTML = `
+    <p class="text-base font-bold text-main">${escapeHtml(t("welcome.chooseStudyLanguage"))}</p>
+    <div class="welcome-language-grid">
+      ${
+        options.length
+          ? options.map(({ name }) => `
+              <button class="welcome-language-button" type="button" data-welcome-study-language="${escapeHtml(name)}">
+                <span class="welcome-language-flag">${flagSvg(name)}</span>
+                <span>${escapeHtml(studyLanguageLabel(name))}</span>
+              </button>
+            `).join("")
+          : `<p class="text-sm text-secondary">${escapeHtml(t("learning.noAvailableForNative"))}</p>`
+      }
+    </div>
+  `;
 }
 
 function renderStudyLanguageDropdown() {
@@ -222,6 +253,19 @@ export function bindStudyLanguageEvents() {
       await addStudyLanguage(item.dataset.languageName);
     } finally {
       item.disabled = false;
+    }
+  });
+
+  elements.welcomeLanguageGate.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-welcome-study-language]");
+    if (!button) {
+      return;
+    }
+    button.disabled = true;
+    try {
+      await addStudyLanguage(button.dataset.welcomeStudyLanguage);
+    } finally {
+      button.disabled = false;
     }
   });
 

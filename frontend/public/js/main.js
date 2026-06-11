@@ -36,6 +36,18 @@ function bindShellEvents() {
     });
   });
 
+  elements.brandHomeButton.addEventListener("click", () => {
+    closeAccountDropdown();
+    if (!state.selectedStudyLanguageId) {
+      if (window.location.pathname !== "/") {
+        window.history.pushState({}, "", "/");
+      }
+      showView("welcome");
+      return;
+    }
+    navigateToTab("dashboard");
+  });
+
   elements.settingsButton.addEventListener("click", () => {
     if (!accountMenuUsesDropdown()) {
       closeAccountDropdown();

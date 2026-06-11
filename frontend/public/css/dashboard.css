@@ -1,0 +1,90 @@
+.chart-card {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 112px;
+  border: 1px solid var(--border-main);
+  border-radius: 8px;
+  background: var(--surface-panel);
+  padding: 14px;
+}
+
+.chart-card strong,
+.chart-card span {
+  display: block;
+}
+
+.chart-card strong {
+  margin-bottom: 6px;
+  color: var(--text-main);
+}
+
+.chart-card span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.pie {
+  position: relative;
+  width: 74px;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: conic-gradient(
+    var(--known) 0 var(--knownPercent),
+    var(--learning) var(--knownPercent) var(--learningPercent),
+    var(--unknown) var(--learningPercent) 100%
+  );
+}
+
+.pie::after {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  border-radius: inherit;
+  background: var(--surface-panel);
+}
+
+.selected-stats span {
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+.selected-stats strong {
+  color: var(--brand);
+}
+
+@media (max-width: 760px) {
+    .metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 10px;
+    }
+  
+    .metrics article,
+    .collection-panel,
+    .browser-panel,
+    .settings-panel,
+    .practice-panel {
+      padding: 16px;
+    }
+  
+    .chart-card {
+      grid-template-columns: 56px 1fr;
+      min-height: 92px;
+      padding: 12px;
+    }
+  
+    .pie {
+      width: 56px;
+    }
+  
+    .pie::after {
+      inset: 12px;
+    }
+}
+
+@media (max-width: 420px) {
+    .metrics {
+      grid-template-columns: 1fr !important;
+    }
+}

@@ -1,0 +1,80 @@
+@theme {
+  --color-ink: var(--text-main);
+  --color-mist: var(--surface-page);
+  --color-page: var(--surface-page);
+  --color-panel: var(--surface-panel);
+  --color-muted: var(--surface-muted);
+  --color-subtle: var(--surface-subtle);
+  --color-reader: var(--surface-reader);
+  --color-main: var(--text-main);
+  --color-label: var(--text-label);
+  --color-secondary: var(--text-muted);
+  --color-line: var(--border-main);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-hover: var(--brand-hover-surface);
+  --color-focus: var(--focus-ring);
+  --color-gold: var(--unknown);
+  --shadow-panel: 0 18px 45px var(--shadow-color);
+}
+
+:root {
+  color-scheme: light;
+  --surface-page: #f6f7f4;
+  --surface-panel: #ffffff;
+  --surface-muted: #f1f5f9;
+  --surface-subtle: #f8fafc;
+  --surface-reader: #fffefb;
+  --text-main: #172026;
+  --text-label: #334155;
+  --text-muted: #64748b;
+  --border-main: #dbe2df;
+  --brand: #0f766e;
+  --brand-strong: #115e59;
+  --brand-hover-surface: #f0fdfa;
+  --focus-ring: #ccfbf1;
+  --shadow-color: rgba(23, 32, 38, 0.08);
+  --shadow-panel: 0 18px 45px var(--shadow-color);
+  --known: var(--brand);
+  --learning: #3b82f6;
+  --learning-strong: #1d4ed8;
+  --unknown: #d9a441;
+  --unknown-strong: #8a5a07;
+  --reader-token-unknown-rgb: 217 164 65;
+  --reader-token-learning-rgb: 59 130 246;
+  --reader-token-selected: rgba(15, 118, 110, 0.16);
+  --danger: #b91c1c;
+  --danger-border: rgba(185, 28, 28, 0.28);
+  --danger-border-hover: rgba(185, 28, 28, 0.58);
+  --danger-hover-surface: #fef2f2;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-page: #101417;
+  --surface-panel: #171d21;
+  --surface-muted: #222a2f;
+  --surface-subtle: #20282c;
+  --surface-reader: #111719;
+  --text-main: #eef4f2;
+  --text-label: #d8e1de;
+  --text-muted: #c2cfcb;
+  --border-main: #33413d;
+  --brand: #2dd4bf;
+  --brand-strong: #14b8a6;
+  --brand-hover-surface: rgba(45, 212, 191, 0.12);
+  --focus-ring: rgba(45, 212, 191, 0.24);
+  --shadow-color: rgba(0, 0, 0, 0.28);
+  --known: #2dd4bf;
+  --learning: #60a5fa;
+  --learning-strong: #93c5fd;
+  --unknown: #f0b94b;
+  --unknown-strong: #f8cf73;
+  --reader-token-unknown-rgb: 240 185 75;
+  --reader-token-learning-rgb: 96 165 250;
+  --reader-token-selected: rgba(45, 212, 191, 0.18);
+  --danger: #f87171;
+  --danger-border: rgba(248, 113, 113, 0.3);
+  --danger-border-hover: rgba(248, 113, 113, 0.58);
+  --danger-hover-surface: rgba(248, 113, 113, 0.12);
+}

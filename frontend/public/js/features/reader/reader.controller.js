@@ -248,25 +248,37 @@ export function bindReaderEvents() {
   elements.readerSidebarResize.addEventListener("pointerdown", (event) => startReaderResize(event, "sidebar"));
   elements.readerPanelResize.addEventListener("pointerdown", (event) => startReaderResize(event, "panel"));
 
-  elements.readerFocusToggle.addEventListener("click", () => {
-    state.readerFocusMode = !state.readerFocusMode;
+  function setReaderFocusMode(enabled) {
+    state.readerFocusMode = enabled;
     localStorage.setItem("wordMarkerReaderFocusMode", String(state.readerFocusMode));
     closeReaderWordInfo();
     renderReaderLayout();
+  }
+
+  elements.readerFocusToggles.forEach((button) => {
+    button.addEventListener("click", () => {
+      setReaderFocusMode(true);
+    });
   });
 
-  elements.readerSidebarTabs.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-reader-sidebar-tab]");
-    if (!button) {
-      return;
-    }
-    state.readerSidebarTab = button.dataset.readerSidebarTab;
-    if (state.readerSidebarTab !== "read") {
-      state.readerSidebarCollapsed = false;
-      localStorage.setItem("wordMarkerReaderSidebarCollapsed", "false");
-    }
-    renderReaderSidebarTabs();
-    renderReaderLayout();
+  elements.readerFocusExit.addEventListener("click", () => {
+    setReaderFocusMode(false);
+  });
+
+  elements.readerSidebarTabs.forEach((tabs) => {
+    tabs.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-reader-sidebar-tab]");
+      if (!button) {
+        return;
+      }
+      state.readerSidebarTab = button.dataset.readerSidebarTab;
+      if (state.readerSidebarTab !== "read") {
+        state.readerSidebarCollapsed = false;
+        localStorage.setItem("wordMarkerReaderSidebarCollapsed", "false");
+      }
+      renderReaderSidebarTabs();
+      renderReaderLayout();
+    });
   });
 
   elements.readerAutoMarkKnown.addEventListener("change", (event) => {

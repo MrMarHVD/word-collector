@@ -1,0 +1,20 @@
+
+@media (min-width: 761px) {
+  .settings-display-mode {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+    .settings-layout {
+      gap: 12px;
+    }
+  
+    .settings-menu {
+      overflow-x: auto;
+    }
+  
+    .settings-menu-button {
+      min-width: 120px;
+    }
+}

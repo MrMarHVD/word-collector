@@ -1,0 +1,45 @@
+@media (max-width: 760px) {
+    body {
+      overflow-x: hidden;
+    }
+  
+    body.is-reader-active {
+      height: auto;
+      overflow: auto;
+    }
+
+    body.is-reader-focus {
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    .section-head,
+    .collection-actions,
+    .word-table-toolbar,
+    .word-pagination,
+    .reader-toolbar,
+    .practice-session-head,
+    .practice-answer,
+    .practice-notice-actions {
+      width: 100%;
+    }
+  
+    .section-head,
+    .reader-toolbar,
+    .practice-session-head {
+      align-items: stretch;
+    }
+  
+    .collection-actions,
+    .display-mode-buttons,
+    .word-pagination,
+    .practice-answer,
+    .practice-notice-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+  
+    .word-pagination {
+      gap: 8px;
+    }
+}

@@ -27,6 +27,7 @@ function readerSidebarColumnWidth() {
 // Render reader panel dimensions and sidebar collapsed state.
 export function renderReaderSidebar() {
   const focusMode = state.activeTab === "reader" && state.readerFocusMode;
+  const mobileLayout = window.matchMedia("(max-width: 760px)").matches;
   document.body.classList.toggle("is-reader-focus", focusMode);
   const parentRect = elements.readerLayout.parentElement.getBoundingClientRect();
   const sidebarWidth = focusMode ? 0 : readerSidebarColumnWidth();
@@ -62,11 +63,16 @@ export function renderReaderSidebar() {
   elements.readerLayout.style.setProperty("--readerPanelWidth", `${panelWidth}px`);
   elements.readerLayout.style.setProperty("--readerPanelHeight", `${panelHeight}px`);
   elements.readerLayout.style.setProperty("--readerPanelOffset", `${panelOffset}px`);
+  elements.readerSidebarOpen.style.setProperty("--readerSidebarOpenTop", `${elements.readerSidebar.getBoundingClientRect().top + 14}px`);
   elements.readerLayout.classList.toggle("is-sidebar-collapsed", state.readerSidebarCollapsed);
   elements.readerSidebarToggle.setAttribute("aria-expanded", String(!state.readerSidebarCollapsed));
-  elements.readerSidebarOpen.hidden = focusMode || state.readerSidebarTab === "read" || !state.readerSidebarCollapsed;
-  elements.readerFocusToggle.textContent = focusMode ? t("reader.exitFocus") : t("reader.focus");
-  elements.readerFocusToggle.setAttribute("aria-pressed", String(focusMode));
+  elements.readerSidebarOpen.hidden = focusMode || (mobileLayout && state.readerSidebarTab === "read") || !state.readerSidebarCollapsed;
+  elements.readerFocusToggles.forEach((button) => {
+    button.textContent = t("reader.focus");
+    button.setAttribute("aria-pressed", "false");
+  });
+  elements.readerFocusExit.hidden = !focusMode;
+  elements.readerFocusExit.setAttribute("aria-label", t("reader.exitFocus"));
 }
 
 function isWordSpacingLanguage(name) {
@@ -76,19 +82,21 @@ function isWordSpacingLanguage(name) {
 }
 
 export function renderReaderSidebarTabs() {
+  const mobileLayout = window.matchMedia("(max-width: 760px)").matches;
   const activeTab = state.readerSidebarTab;
+  const activeSidebarPanel = activeTab === "settings" ? "settings" : "documents";
   elements.readerSidebarTabButtons.forEach((button) => {
-    const active = button.dataset.readerSidebarTab === activeTab;
+    const active = button.dataset.readerSidebarTab === (mobileLayout ? activeTab : activeSidebarPanel);
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-selected", String(active));
   });
   elements.readerSidebarTabPanels.forEach((panel) => {
-    panel.hidden = panel.dataset.readerSidebarPanel !== activeTab;
+    panel.hidden = panel.dataset.readerSidebarPanel !== activeSidebarPanel;
   });
-  elements.readerLayout.classList.toggle("is-reader-read-panel", activeTab === "read");
-  elements.readerLayout.classList.toggle("is-reader-side-panel", activeTab !== "read");
-  elements.readerSidebar.hidden = activeTab === "read";
-  elements.readerPanel.hidden = activeTab !== "read";
+  elements.readerLayout.classList.toggle("is-reader-read-panel", mobileLayout && activeTab === "read");
+  elements.readerLayout.classList.toggle("is-reader-side-panel", mobileLayout && activeTab !== "read");
+  elements.readerSidebar.hidden = mobileLayout && activeTab === "read";
+  elements.readerPanel.hidden = mobileLayout && activeTab !== "read";
   elements.readerAutoMarkKnown.checked = state.readerAutoMarkKnownOnPageTurn;
   elements.readerAutoMarkLearning.checked = state.readerAutoMarkLearningOnClick;
   const showSpacingToggle = isWordSpacingLanguage(state.currentMaterial?.languageName)

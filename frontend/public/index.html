@@ -102,7 +102,7 @@
     <main id="appShell" class="shell mx-auto w-[min(1180px,calc(100%-32px))] pb-8 pt-24 max-md:w-[calc(100%-20px)] max-md:pt-5" hidden>
       <header class="menu-bar fixed inset-x-0 top-0 z-10 flex min-h-[72px] items-center gap-3 border-b border-line bg-page/95 px-5 py-2.5 backdrop-blur max-md:static max-md:flex-col max-md:items-stretch">
         <div class="menu-left flex min-w-0 flex-1 items-center gap-4 max-md:grid max-md:grid-cols-1">
-          <div class="menu-brand whitespace-nowrap text-base font-black text-brand" data-i18n="brand">Supergloss</div>
+          <button id="brandHomeButton" class="menu-brand whitespace-nowrap text-left text-base font-black text-brand hover:text-brand-strong" type="button" data-i18n="brand">Supergloss</button>
           <nav class="tabs grid w-[min(560px,100%)] grid-cols-4 gap-1 rounded-lg border border-line bg-muted p-1 max-md:w-full max-md:grid-cols-1" aria-label="Main views">
             <button class="tab-button is-active rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-tab="dashboard" data-i18n="tabs.dashboard">ダッシュボード</button>
             <button class="tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-tab="collections" data-i18n="tabs.collections">語彙</button>
@@ -163,9 +163,7 @@
           <p class="eyebrow mb-3 text-xs font-bold uppercase tracking-wide text-brand" data-i18n="brand">Supergloss</p>
           <h1 class="text-4xl font-black tracking-tight max-md:text-3xl" data-i18n="welcome.title">Welcome to Supergloss!</h1>
           <p class="mt-4 text-lg text-secondary" data-i18n="welcome.subtitle">Get started now</p>
-          <div id="welcomeLanguageGate" class="mx-auto mt-8 grid w-full max-w-sm gap-3" hidden>
-            <p class="text-base font-bold text-main" data-i18n="welcome.pickLanguageTopRight">Pick a language in the top right.</p>
-          </div>
+          <div id="welcomeLanguageGate" class="welcome-language-gate mx-auto mt-8 grid w-full max-w-sm gap-3" hidden></div>
           <div id="welcomeActions" class="welcome-actions mx-auto mt-8 grid w-full max-w-xs grid-cols-2 gap-3 max-sm:grid-cols-1">
             <button id="welcomeLoginButton" class="min-h-12 rounded-md bg-brand px-5 text-sm font-bold text-white hover:bg-brand-strong" type="button" data-i18n="auth.login">ログイン</button>
             <button id="welcomeRegisterButton" class="min-h-12 rounded-md border border-line bg-panel px-5 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="auth.register">登録</button>
@@ -215,6 +213,12 @@
           <section class="browser-panel rounded-lg border border-line bg-panel p-5 shadow-panel">
             <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3 max-md:grid">
               <h2 class="text-base font-bold" data-i18n="collections.wordsTitle">単語一覧</h2>
+              <div class="collection-actions desktop-display-mode flex flex-wrap items-center justify-end gap-2.5 max-md:grid">
+                <div class="display-mode-buttons grid grid-cols-2 gap-1 rounded-lg border border-line bg-muted p-1 max-md:grid-cols-1">
+                  <button class="display-mode-button is-active rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-display-mode="page" data-i18n="collections.displayPage">ページ</button>
+                  <button class="display-mode-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-display-mode="infinite" data-i18n="collections.displayInfinite">Infinite Scroll</button>
+                </div>
+              </div>
             </div>
             <div class="browser-tools grid items-end gap-3">
               <label class="grid gap-1.5 text-sm font-semibold text-label">
@@ -253,7 +257,7 @@
       </section>
 
       <section id="readerView" class="tab-view" hidden>
-        <div id="readerSidebarTabs" class="reader-sidebar-tabs mb-3 grid grid-cols-3 gap-1 rounded-lg border border-line bg-muted p-1">
+        <div id="readerSidebarTabs" class="reader-sidebar-tabs mobile-reader-tabs mb-3 grid grid-cols-3 gap-1 rounded-lg border border-line bg-muted p-1">
           <button class="reader-sidebar-tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-reader-sidebar-tab="read" data-i18n="reader.readTab">Read</button>
           <button class="reader-sidebar-tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-reader-sidebar-tab="documents" data-i18n="reader.documentsTab">Documents</button>
           <button class="reader-sidebar-tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-reader-sidebar-tab="settings" data-i18n="reader.settingsTab">Settings</button>
@@ -273,6 +277,10 @@
                 </svg>
                 <span class="visually-hidden" data-i18n="reader.toggleSidebar">Toggle sidebar</span>
               </button>
+            </div>
+            <div class="reader-sidebar-tabs desktop-reader-tabs mb-3 grid grid-cols-2 gap-1 rounded-lg border border-line bg-muted p-1">
+              <button class="reader-sidebar-tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-reader-sidebar-tab="documents" data-i18n="reader.documentsTab">Documents</button>
+              <button class="reader-sidebar-tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-reader-sidebar-tab="settings" data-i18n="reader.settingsTab">Settings</button>
             </div>
             <div id="readerImportTabPanel" class="reader-sidebar-tab-panel" data-reader-sidebar-panel="documents">
               <button id="materialImportOpen" class="mb-3 min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="button" data-i18n="reader.importButton">インポート</button>
@@ -300,12 +308,14 @@
             <div id="readerSidebarResize" class="reader-resize-handle" role="separator" aria-orientation="vertical"></div>
           </aside>
           <section class="reader-panel relative grid overflow-hidden rounded-r-lg border border-line bg-panel p-5 shadow-panel">
+            <button class="reader-focus-toggle reader-focus-command secondary-button border border-line bg-panel text-brand shadow-panel hover:bg-hover" type="button" data-i18n="reader.focus">Focus</button>
+            <button id="readerFocusExit" class="reader-focus-exit secondary-button border border-line bg-panel text-brand shadow-panel hover:bg-hover" type="button" aria-label="" data-i18n="reader.exit" hidden>Exit</button>
             <div class="reader-toolbar mb-4 flex items-end justify-between gap-4 max-md:grid">
               <div>
                 <h2 id="readerTitle" class="text-xl font-bold" data-i18n="reader.title">Reader</h2>
                 <p id="readerMeta" class="hint mt-1 min-h-5 text-sm text-secondary"></p>
               </div>
-              <div class="reader-controls grid grid-cols-[minmax(180px,220px)_minmax(130px,160px)] items-end gap-3 max-md:grid-cols-1">
+              <div class="reader-controls grid grid-cols-[minmax(180px,220px)_minmax(130px,160px)] items-end gap-3">
                 <label class="grid gap-1.5 text-sm font-semibold text-label">
                   <span data-i18n="reader.fontSize">文字サイズ</span>
                   <input id="readerFontSize" class="accent-brand" type="range" min="16" max="34" value="22" />
@@ -324,7 +334,6 @@
             </div>
             <div id="readerText" class="reader-text h-full min-h-0 overflow-auto rounded-lg border border-line bg-reader p-6 leading-[1.9]"></div>
             <div class="reader-page-actions mt-4 grid items-center gap-3.5">
-              <button id="readerFocusToggle" class="reader-focus-toggle secondary-button min-h-10 rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="reader.focus">Focus</button>
               <div class="reader-pagination-controls flex items-center justify-center gap-3.5">
                 <button id="readerPrevPage" class="secondary-button min-h-10 rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover" type="button" data-i18n="reader.previous">前へ</button>
                 <span id="readerPageStatus" class="hint text-sm text-secondary"></span>
@@ -363,7 +372,7 @@
               <input id="practiceWordsPerSession" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="number" min="1" max="200" step="1" />
             </label>
             <p class="hint mt-3 min-h-5 text-sm text-secondary" data-i18n="settings.practiceWordsPerSessionHint">How many words to study in each practice session.</p>
-            <fieldset class="mt-4 grid gap-2">
+            <fieldset class="settings-display-mode mt-4 grid gap-2">
               <legend class="text-sm font-semibold text-label" data-i18n="collections.displayMode">Display mode</legend>
               <div class="display-mode-buttons grid grid-cols-2 gap-1 rounded-lg border border-line bg-muted p-1 max-sm:grid-cols-1">
                 <button class="display-mode-button is-active rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-display-mode="page" data-i18n="collections.displayPage">ページ</button>
