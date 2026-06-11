@@ -15,21 +15,17 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Deploy to Oracle VM
+      - name: Deploy to Contabo VPS
         uses: appleboy/ssh-action@v1.2.2
         with:
-          host: ${{ secrets.ORACLE_HOST }}
-          username: ${{ secrets.ORACLE_USER }}
-          key: ${{ secrets.ORACLE_SSH_KEY }}
-          port: ${{ secrets.ORACLE_SSH_PORT || 22 }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
           script: |
             set -eu
 
-            APP_DIR="${ORACLE_APP_DIR:-/home/ubuntu/word_marker}"
-            SERVICE_NAME="${ORACLE_SERVICE_NAME:-word-marker}"
-
-            cd "$APP_DIR"
+            cd ~/supergloss/word-collector
             git fetch origin dev
             git reset --hard origin/dev
 
@@ -37,8 +33,4 @@ jobs:
             npm run build:css -w frontend
             npm run migrate:up -w backend
 
-            sudo systemctl restart "$SERVICE_NAME"
-            sudo systemctl status "$SERVICE_NAME" --no-pager
-        env:
-          ORACLE_APP_DIR: ${{ secrets.ORACLE_APP_DIR }}
-          ORACLE_SERVICE_NAME: ${{ secrets.ORACLE_SERVICE_NAME }}
+            pm2 restart word-marker
