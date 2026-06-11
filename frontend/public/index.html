@@ -137,13 +137,21 @@
           </label>
           <div class="account-menu relative">
             <button id="settingsButton" class="secondary-button icon-button grid h-[52px] w-[52px] place-items-center rounded-md border border-line bg-panel text-brand hover:bg-hover" type="button" aria-haspopup="menu" aria-expanded="false">
-              <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[1.8]">
+              <svg aria-hidden="true" viewBox="0 0 24 24" class="menu-icon-burger h-5 w-5 fill-none stroke-current stroke-[2]">
+                <path d="M4 6h16M4 12h16M4 18h16"/>
+              </svg>
+              <svg aria-hidden="true" viewBox="0 0 24 24" class="menu-icon-gear h-5 w-5 fill-none stroke-current stroke-[1.8]">
                 <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
                 <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.3a2 2 0 0 1-4 0V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 0 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H2.7a2 2 0 0 1 0-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7A2 2 0 0 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6v-.3a2 2 0 0 1 4 0V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 0 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.3a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z" />
               </svg>
               <span class="visually-hidden" data-i18n="tabs.settings">Settings</span>
             </button>
             <div id="accountDropdown" class="account-dropdown absolute right-0 top-[calc(100%+6px)] z-30 min-w-[180px] rounded-md border border-line bg-panel p-1 shadow-panel" role="menu" hidden>
+              <button class="account-menu-item account-nav-item tab-button w-full rounded-md px-3 py-2 text-left text-sm font-bold text-main hover:bg-hover" type="button" role="menuitem" data-tab="dashboard" data-i18n="tabs.dashboard">ダッシュボード</button>
+              <button class="account-menu-item account-nav-item tab-button w-full rounded-md px-3 py-2 text-left text-sm font-bold text-main hover:bg-hover" type="button" role="menuitem" data-tab="collections" data-i18n="tabs.collections">語彙</button>
+              <button class="account-menu-item account-nav-item tab-button w-full rounded-md px-3 py-2 text-left text-sm font-bold text-main hover:bg-hover" type="button" role="menuitem" data-tab="reader" data-i18n="tabs.reader">Reader</button>
+              <button class="account-menu-item account-nav-item tab-button w-full rounded-md px-3 py-2 text-left text-sm font-bold text-main hover:bg-hover" type="button" role="menuitem" data-tab="practice" data-i18n="tabs.practice">Practice</button>
+              <hr class="account-menu-divider my-1 border-line" />
               <button id="accountSettingsButton" class="account-menu-item w-full rounded-md px-3 py-2 text-left text-sm font-bold text-main hover:bg-hover" type="button" role="menuitem" data-i18n="tabs.settings">Settings</button>
               <button id="logoutButton" class="account-menu-item logout-button w-full rounded-md px-3 py-2 text-left text-sm font-bold text-brand hover:bg-hover" type="button" role="menuitem" data-i18n="auth.logout">ログアウト</button>
             </div>

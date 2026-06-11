@@ -271,6 +271,9 @@
   .mx-auto {
     margin-inline: auto;
   }
+  .my-1 {
+    margin-block: calc(var(--spacing) * 1);
+  }
   .my-3 {
     margin-block: calc(var(--spacing) * 3);
   }
@@ -1296,9 +1299,15 @@ button:disabled {
   height: 100%;
   display: block;
 }
+.menu-icon-burger {
+  display: none;
+}
 @media (min-width: 761px) {
   .account-menu {
     display: contents;
+  }
+  .account-nav-item, .account-menu-divider {
+    display: none;
   }
   .account-dropdown {
     position: static;
@@ -1385,14 +1394,13 @@ button:disabled {
     text-align: center;
   }
   .tabs {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    gap: 2px;
-    width: 100%;
+    display: none;
   }
-  .tabs .tab-button {
-    min-height: 42px;
-    padding: 8px 6px;
-    font-size: 0.78rem;
+  .menu-icon-gear {
+    display: none;
+  }
+  .menu-icon-burger {
+    display: block;
   }
   .menu-actions {
     display: grid;

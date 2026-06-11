@@ -146,9 +146,19 @@
   display: block;
 }
 
+.menu-icon-burger {
+  display: none;
+}
+
 @media (min-width: 761px) {
   .account-menu {
     display: contents;
+  }
+
+  /* Tab navigation lives in the dropdown on mobile only. */
+  .account-nav-item,
+  .account-menu-divider {
+    display: none;
   }
 
   .account-dropdown {
@@ -256,16 +266,17 @@
       text-align: center;
     }
   
+    /* The tab bar is replaced by the hamburger dropdown on mobile. */
     .tabs {
-      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-      gap: 2px;
-      width: 100%;
+      display: none;
     }
-  
-    .tabs .tab-button {
-      min-height: 42px;
-      padding: 8px 6px;
-      font-size: 0.78rem;
+
+    .menu-icon-gear {
+      display: none;
+    }
+
+    .menu-icon-burger {
+      display: block;
     }
   
     .menu-actions {
