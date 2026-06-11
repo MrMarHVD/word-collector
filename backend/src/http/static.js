@@ -20,7 +20,11 @@ export async function serveStatic(req, res, url) {
   const pathFromRoot = relative(publicRoot, filePath);
 
   if (pathFromRoot.startsWith("..") || isAbsolute(pathFromRoot) || !existsSync(filePath)) {
-    return textResponse(res, 404, "Not found");
+    const indexPath = resolve(publicRoot, "index.html");
+    const content = await readFile(indexPath);
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.end(content);
+    return;
   }
 
   const content = await readFile(filePath);
