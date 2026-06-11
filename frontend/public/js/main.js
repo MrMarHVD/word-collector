@@ -118,7 +118,7 @@ function bindShellEvents() {
 configureLocale({ renderSettings, renderStudyLanguageSelect });
 configureStudyLanguage({ reloadDashboard: loadDashboard });
 configureAuthController({ loadDashboard, renderSettings });
-configureDashboardController({ loadMaterials, loadWords });
+configureDashboardController({ loadMaterials, loadMaterialReader, loadWords });
 configureMaterialsController({ loadDashboard, loadMaterialReader, loadWords });
 configureReaderController({ loadDashboard });
 configureCollectionsController({ loadDashboard });

@@ -9,6 +9,27 @@ let loadMaterialReader = async () => {};
 let loadWords = async () => {};
 let translationPollId = null;
 
+function selectedMaterialCacheKey() {
+  return state.selectedStudyLanguageId ? `wordMarkerSelectedMaterialId:${state.selectedStudyLanguageId}` : "";
+}
+
+export function cachedSelectedMaterialId() {
+  const key = selectedMaterialCacheKey();
+  return key ? Number(localStorage.getItem(key)) || null : null;
+}
+
+export function cacheSelectedMaterialId(materialId) {
+  const key = selectedMaterialCacheKey();
+  if (!key) {
+    return;
+  }
+  if (materialId) {
+    localStorage.setItem(key, String(materialId));
+  } else {
+    localStorage.removeItem(key);
+  }
+}
+
 export function configureMaterialsController(options) {
   loadDashboard = options.loadDashboard;
   loadMaterialReader = options.loadMaterialReader;
@@ -32,6 +53,7 @@ async function openImportedMaterialWhenReady() {
   }
   state.importingMaterialId = null;
   state.selectedMaterialId = tracked.id;
+  cacheSelectedMaterialId(tracked.id);
   state.readerStart = Number(tracked.readerStart) || 0;
   renderMaterialList();
   await loadMaterialReader(state.readerStart, { persist: false });
@@ -119,6 +141,7 @@ export async function loadMaterials(reset = false) {
     }
     state.materials = [];
     state.selectedMaterialId = null;
+    cacheSelectedMaterialId(null);
     renderMaterialList();
     renderImportProgress();
     renderReaderTokens();
@@ -245,6 +268,7 @@ export function bindMaterialsEvents() {
         state.materials = state.materials.filter((entry) => entry.id !== materialId);
         if (state.selectedMaterialId === materialId) {
           state.selectedMaterialId = null;
+          cacheSelectedMaterialId(null);
           state.currentMaterial = null;
           state.readerTokens = [];
           state.readerStart = 0;
@@ -270,6 +294,7 @@ export function bindMaterialsEvents() {
       return;
     }
     state.selectedMaterialId = Number(button.dataset.materialId);
+    cacheSelectedMaterialId(state.selectedMaterialId);
     state.readerStart = Number(material.readerStart) || 0;
     state.readerSidebarTab = "read";
     renderMaterialList();

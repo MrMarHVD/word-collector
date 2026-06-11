@@ -407,12 +407,14 @@ function positionReaderWordInfo(anchor) {
   }
   const gap = 10;
   const margin = 12;
+  const mobileFocus = document.body.classList.contains("is-reader-focus") && window.matchMedia("(max-width: 760px)").matches;
+  const bottomReserved = mobileFocus ? 86 : margin;
   const anchorRect = anchor.getBoundingClientRect();
   const infoRect = elements.readerWordInfo.getBoundingClientRect();
   const rightLeft = anchorRect.right + gap;
   const leftLeft = anchorRect.left - infoRect.width - gap;
   const left = rightLeft + infoRect.width <= window.innerWidth - margin ? rightLeft : Math.max(margin, leftLeft);
-  const top = Math.min(Math.max(margin, anchorRect.top + anchorRect.height / 2 - infoRect.height / 2), window.innerHeight - infoRect.height - margin);
+  const top = Math.min(Math.max(margin, anchorRect.top + anchorRect.height / 2 - infoRect.height / 2), window.innerHeight - infoRect.height - bottomReserved);
 
   elements.readerWordInfo.style.setProperty("--readerInfoLeft", `${left}px`);
   elements.readerWordInfo.style.setProperty("--readerInfoTop", `${top}px`);

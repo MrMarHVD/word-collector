@@ -689,18 +689,28 @@
     }
 
     .is-reader-focus .reader-layout {
+      align-items: stretch;
+      justify-content: stretch;
       height: 100dvh;
+      height: 100svh;
       min-height: 100dvh;
+      min-height: 100svh;
+      width: 100vw;
       overflow: hidden;
     }
 
     .is-reader-focus .reader-panel {
-      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-rows: auto minmax(0, 1fr);
+      width: 100vw;
+      min-width: 0;
       height: 100dvh;
-      min-height: 100dvh;
+      height: 100svh;
+      min-height: 0;
       max-height: 100dvh;
+      max-height: 100svh;
       overflow: hidden;
       border-radius: 0;
+      padding-bottom: calc(70px + env(safe-area-inset-bottom));
     }
 
     .is-reader-focus .reader-text {
@@ -709,7 +719,12 @@
     }
 
     .is-reader-focus .reader-page-actions {
-      margin-top: 0.75rem;
+      position: fixed;
+      right: 14px;
+      bottom: calc(14px + env(safe-area-inset-bottom));
+      left: 14px;
+      z-index: 12;
+      margin-top: 0;
     }
   
     .reader-controls {
@@ -761,6 +776,11 @@
       width: auto;
       max-height: min(70dvh, 520px);
       border-radius: 12px;
+    }
+
+    .is-reader-focus .reader-word-info {
+      bottom: calc(86px + env(safe-area-inset-bottom));
+      max-height: min(58dvh, calc(100svh - 112px - env(safe-area-inset-bottom)));
     }
 }
 

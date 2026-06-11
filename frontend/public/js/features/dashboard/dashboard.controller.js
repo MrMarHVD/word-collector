@@ -1,15 +1,43 @@
 import { requestJson } from "../../api.js";
 import { languageByName, renderStudyLanguageSelect } from "../../app/study-language.js";
+import { cachedSelectedMaterialId, cacheSelectedMaterialId } from "../materials/materials.controller.js";
 import { state } from "../../state.js";
 import { renderDashboard } from "../../views/dashboard.js";
 import { renderMaterialList, renderReaderSidebar, renderReaderSidebarTabs, renderReaderTokens } from "../../views/reader.js";
 
 let loadMaterials = async () => {};
+let loadMaterialReader = async () => {};
 let loadWords = async () => {};
 
 export function configureDashboardController(options) {
   loadMaterials = options.loadMaterials;
+  loadMaterialReader = options.loadMaterialReader;
   loadWords = options.loadWords;
+}
+
+async function restoreSelectedMaterial() {
+  if (state.selectedMaterialId || !state.selectedStudyLanguageId) {
+    return;
+  }
+  const materialId = cachedSelectedMaterialId();
+  if (!materialId) {
+    return;
+  }
+  state.selectedMaterialId = materialId;
+  state.readerSidebarTab = "read";
+  try {
+    await loadMaterialReader(null, { persist: false });
+    renderMaterialList();
+  } catch (error) {
+    state.selectedMaterialId = null;
+    state.currentMaterial = null;
+    state.readerTokens = [];
+    state.readerFetchedTokens = [];
+    state.readerStart = 0;
+    cacheSelectedMaterialId(null);
+    renderMaterialList();
+    renderReaderTokens();
+  }
 }
 
 export async function loadDashboard() {
@@ -39,6 +67,7 @@ export async function loadDashboard() {
   renderReaderSidebar();
   renderReaderSidebarTabs();
   await loadMaterials(true);
+  await restoreSelectedMaterial();
   await loadWords();
 }
 
