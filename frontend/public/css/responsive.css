@@ -1,6 +1,16 @@
 @media (max-width: 760px) {
     body {
       overflow-x: hidden;
+      /* Suppress double-tap and pinch zoom gestures (iOS ignores user-scalable=no). */
+      touch-action: pan-x pan-y;
+    }
+
+    /* iOS auto-zooms on focus when form controls are under 16px, and with
+       zoom-out blocked the page gets stuck zoomed in. */
+    input,
+    select,
+    textarea {
+      font-size: 16px;
     }
   
     body.is-reader-active {
