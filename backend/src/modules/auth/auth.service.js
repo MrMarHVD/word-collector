@@ -198,6 +198,14 @@ export async function loginWithOAuthProfile(repositories, profile) {
     await repositories.auth.createOAuthUser(email);
     user = await repositories.auth.findUserByEmail(email);
   } else if (user.emailVerified !== true) {
+    // Pre-hijack defence: an unverified password account with this email may
+    // have been registered by someone other than the rightful email owner.
+    // Google has verified the email, so trust the OAuth login as the owner and
+    // drop the unproven password and any sessions created with it.
+    if (user.passwordHash || user.passwordSalt) {
+      await repositories.auth.clearPassword(user.id);
+      await repositories.auth.deleteUserSessions(user.id);
+    }
     await repositories.auth.markEmailVerified(user.id);
     user = await repositories.auth.findUserByEmail(email);
   }

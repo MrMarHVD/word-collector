@@ -8,6 +8,7 @@ export function createAuthRepository(db) {
   const updateNativeLanguage = db.prepare("UPDATE users SET native_language = ? WHERE id = ?");
   const updatePracticeWordsPerSession = db.prepare("UPDATE users SET practice_words_per_session = ? WHERE id = ?");
   const updatePassword = db.prepare("UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?");
+  const clearPassword = db.prepare("UPDATE users SET password_hash = NULL, password_salt = NULL WHERE id = ?");
   const markEmailVerified = db.prepare("UPDATE users SET email_verified = true WHERE id = ?");
   const oauthAccountByProviderUser = db.prepare(`SELECT user_id AS "userId", provider, provider_user_id AS "providerUserId", email, display_name AS "displayName" FROM oauth_accounts WHERE provider = ? AND provider_user_id = ?`);
   const createOAuthAccount = db.prepare("INSERT INTO oauth_accounts (user_id, provider, provider_user_id, email, display_name) VALUES (?, ?, ?, ?, ?) ON CONFLICT (provider, provider_user_id) DO UPDATE SET email = EXCLUDED.email, display_name = EXCLUDED.display_name, updated_at = now()");
@@ -51,6 +52,9 @@ export function createAuthRepository(db) {
     },
     updatePassword(passwordHash, passwordSalt, userId) {
       return updatePassword.run(passwordHash, passwordSalt, userId);
+    },
+    clearPassword(userId) {
+      return clearPassword.run(userId);
     },
     markEmailVerified(userId) {
       return markEmailVerified.run(userId);
