@@ -75,6 +75,8 @@ export const elements = {
   newPassword: document.querySelector("#newPassword"),
   confirmNewPassword: document.querySelector("#confirmNewPassword"),
   changePasswordStatus: document.querySelector("#changePasswordStatus"),
+  deleteAccountToggle: document.querySelector("#deleteAccountToggle"),
+  deleteAccountPanel: document.querySelector("#deleteAccountPanel"),
   deleteAccountForm: document.querySelector("#deleteAccountForm"),
   deleteAccountConfirmation: document.querySelector("#deleteAccountConfirmation"),
   deleteAccountSubmit: document.querySelector("#deleteAccountSubmit"),

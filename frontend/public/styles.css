@@ -2634,6 +2634,14 @@ tbody tr:last-child td {
 }
 .delete-account-section {
   border-color: var(--danger-border);
+  background: var(--surface-panel);
+  overflow: hidden;
+}
+.delete-account-toggle {
+  color: var(--danger);
+}
+.delete-account-panel {
+  border-color: var(--danger-border);
   background: var(--danger-hover-surface);
 }
 .delete-account-section h3 {

@@ -97,6 +97,8 @@ export function renderSettings() {
   renderAccountDetails();
   elements.deleteAccountForm.reset();
   elements.deleteAccountStatus.textContent = "";
+  elements.deleteAccountPanel.hidden = true;
+  elements.deleteAccountToggle.setAttribute("aria-expanded", "false");
   renderDeleteAccountState();
   elements.changePasswordSection.hidden = state.user?.hasPassword !== true;
   elements.changePasswordForm.hidden = true;
@@ -145,6 +147,15 @@ export function bindSettingsEvents() {
       elements.changePasswordStatus.textContent = error.message;
     } finally {
       submitButton.disabled = false;
+    }
+  });
+
+  elements.deleteAccountToggle.addEventListener("click", () => {
+    const expanded = elements.deleteAccountToggle.getAttribute("aria-expanded") === "true";
+    elements.deleteAccountToggle.setAttribute("aria-expanded", String(!expanded));
+    elements.deleteAccountPanel.hidden = expanded;
+    if (!expanded) {
+      elements.deleteAccountConfirmation.focus();
     }
   });
 

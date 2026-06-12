@@ -432,19 +432,25 @@
               <p id="changePasswordStatus" class="status min-h-5 text-sm text-secondary" role="status"></p>
             </form>
           </div>
-          <section id="deleteAccountSection" class="delete-account-section mt-8 rounded-md border p-4">
-            <div class="grid gap-1">
-              <h3 class="text-sm font-bold" data-i18n="settings.deleteAccountTitle">Delete account</h3>
-              <p class="text-sm text-secondary" data-i18n="settings.deleteAccountDescription">Permanently delete your account and remove all words, collections, reader works, progress, sessions, and sign-in data.</p>
+          <section id="deleteAccountSection" class="delete-account-section mt-8 rounded-md border shadow-sm">
+            <button id="deleteAccountToggle" class="delete-account-toggle flex min-h-12 w-full items-center justify-between gap-3 px-3 text-left text-sm font-bold hover:bg-hover" type="button" aria-expanded="false">
+              <span data-i18n="settings.dangerZoneTitle">Danger zone</span>
+              <span class="text-base leading-none text-secondary" aria-hidden="true">+</span>
+            </button>
+            <div id="deleteAccountPanel" class="delete-account-panel grid gap-4 border-t p-4" hidden>
+              <div class="grid gap-1">
+                <h3 class="text-sm font-bold" data-i18n="settings.deleteAccountTitle">Delete account</h3>
+                <p class="text-sm text-secondary" data-i18n="settings.deleteAccountDescription">Permanently delete your account and remove all words, collections, reader works, progress, sessions, and sign-in data.</p>
+              </div>
+              <form id="deleteAccountForm" class="grid gap-3">
+                <label class="grid gap-1.5 text-sm font-semibold text-label">
+                  <span data-i18n="settings.deleteAccountConfirmLabel">Type your email to confirm</span>
+                  <input id="deleteAccountConfirmation" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="email" autocomplete="off" spellcheck="false" required data-i18n-placeholder="settings.deleteAccountConfirmPlaceholder" placeholder="you@example.com" />
+                </label>
+                <button id="deleteAccountSubmit" class="delete-account-button min-h-11 rounded-md px-4 text-sm font-bold" type="submit" disabled data-i18n="settings.deleteAccountButton">Delete account</button>
+                <p id="deleteAccountStatus" class="status min-h-5 text-sm text-secondary" role="status"></p>
+              </form>
             </div>
-            <form id="deleteAccountForm" class="mt-4 grid gap-3">
-              <label class="grid gap-1.5 text-sm font-semibold text-label">
-                <span data-i18n="settings.deleteAccountConfirmLabel">Type your email to confirm</span>
-                <input id="deleteAccountConfirmation" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="email" autocomplete="off" spellcheck="false" required data-i18n-placeholder="settings.deleteAccountConfirmPlaceholder" placeholder="you@example.com" />
-              </label>
-              <button id="deleteAccountSubmit" class="delete-account-button min-h-11 rounded-md px-4 text-sm font-bold" type="submit" disabled data-i18n="settings.deleteAccountButton">Delete account</button>
-              <p id="deleteAccountStatus" class="status min-h-5 text-sm text-secondary" role="status"></p>
-            </form>
           </section>
         </section>
           </div>
