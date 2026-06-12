@@ -41,6 +41,30 @@ export function createResendTransport({ apiKey, fetchImpl = fetch }) {
   };
 }
 
+// Brevo SMTP transport using Node's built-in net/tls — no extra dependencies.
+export function createBrevoTransport({ host, port, user, pass }) {
+  return {
+    name: "brevo",
+    async send({ from, to, subject, html, text, replyTo }) {
+      const { createTransport } = await import("nodemailer");
+      const transporter = createTransport({
+        host,
+        port,
+        auth: { user, pass }
+      });
+      const result = await transporter.sendMail({
+        from,
+        to: Array.isArray(to) ? to.join(", ") : to,
+        subject,
+        html,
+        text,
+        ...(replyTo ? { replyTo } : {})
+      });
+      return { id: result.messageId || null };
+    }
+  };
+}
+
 // Console transport. Used when no provider is configured (local dev / CI) so
 // email-sending code paths stay exercised and observable without going online.
 export function createConsoleTransport({ logger = console } = {}) {
