@@ -314,6 +314,28 @@ async function lookupDictionaryEntriesForRoute(repositories, sourceLanguage, tar
   return [];
 }
 
+function candidatePosRank(candidate, tokenPos) {
+  const expected = normalizeName(tokenPos).toLowerCase();
+  const actual = normalizeName(candidate.pos).toLowerCase();
+  if (!expected || expected === "unknown") return 0;
+  if (actual === expected) return 0;
+  if (!actual) return 1;
+  return 2;
+}
+
+function rankTranslationCandidates(sourceLanguage, targetLanguage, token, candidates) {
+  if (languageKey(sourceLanguage) !== "English" || languageKey(targetLanguage) !== "Japanese") {
+    return candidates;
+  }
+  return candidates
+    .map((candidate, index) => ({ candidate, index }))
+    .sort((a, b) => {
+      const posDiff = candidatePosRank(a.candidate, token.pos) - candidatePosRank(b.candidate, token.pos);
+      return posDiff || a.index - b.index;
+    })
+    .map((entry) => entry.candidate);
+}
+
 function candidateSourceTerms(sourceLanguage, token) {
   if (languageKey(sourceLanguage) === "English") {
     return tokenSourceTerms(token);
@@ -346,7 +368,7 @@ export async function translationDisambiguationCandidates(repositories, sourceLa
       candidates.push({ source: entry.source || source, translation: entry.translation, pos: entry.pos || "" });
     }
   }
-  return candidates;
+  return rankTranslationCandidates(sourceLanguage, targetLanguage, token, candidates);
 }
 
 export async function displayTranslationForToken(repositories, sourceLanguage, targetLanguage, token) {
