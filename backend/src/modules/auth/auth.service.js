@@ -176,6 +176,23 @@ export async function changePassword(repositories, userId, currentInput, nextInp
   return { userId };
 }
 
+export async function deleteAccount(repositories, userId, confirmationInput) {
+  const profile = await repositories.auth.findUserById(userId);
+  if (!profile) {
+    return { error: "Authentication required.", errorKey: "errors.authenticationRequired", status: 401 };
+  }
+  const confirmation = normalizeName(confirmationInput).toLowerCase();
+  if (confirmation !== String(profile.email || "").toLowerCase()) {
+    return {
+      error: "Enter your email address to confirm account deletion.",
+      errorKey: "errors.accountDeletionConfirmationMismatch",
+      status: 400
+    };
+  }
+  await repositories.database.transaction((tx) => tx.auth.deleteUserAccountData(userId));
+  return { deleted: true };
+}
+
 export async function loginWithOAuthProfile(repositories, profile) {
   const provider = "google";
   const providerUserId = String(profile.providerUserId || "");

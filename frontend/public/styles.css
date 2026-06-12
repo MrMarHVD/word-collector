@@ -671,6 +671,9 @@
   .p-3\.5 {
     padding: calc(var(--spacing) * 3.5);
   }
+  .p-4 {
+    padding: calc(var(--spacing) * 4);
+  }
   .p-5 {
     padding: calc(var(--spacing) * 5);
   }
@@ -2629,6 +2632,26 @@ tbody tr:last-child td {
     display: none;
   }
 }
+.delete-account-section {
+  border-color: var(--danger-border);
+  background: var(--danger-hover-surface);
+}
+.delete-account-section h3 {
+  color: var(--danger);
+}
+.delete-account-button {
+  border: 1px solid var(--danger);
+  background: var(--danger);
+  color: #ffffff;
+}
+.delete-account-button:hover:not(:disabled) {
+  border-color: var(--danger-border-hover);
+  filter: brightness(0.96);
+}
+.delete-account-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 @media (max-width: 760px) {
   .settings-layout {
     gap: 12px;
@@ -2638,6 +2661,12 @@ tbody tr:last-child td {
   }
   .settings-menu-button {
     min-width: 120px;
+  }
+  .delete-account-section {
+    padding: 14px;
+  }
+  .delete-account-button {
+    width: 100%;
   }
 }
 @media (max-width: 760px) {

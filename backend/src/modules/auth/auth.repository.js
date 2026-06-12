@@ -28,6 +28,47 @@ export function createAuthRepository(db) {
   const markTokenUsed = db.prepare("UPDATE auth_tokens SET used_at = now() WHERE id = ?");
   const deleteUserTokensOfType = db.prepare("DELETE FROM auth_tokens WHERE user_id = ? AND type = ?");
 
+  const deleteUserMaterialTokens = db.prepare(`
+    DELETE FROM material_tokens
+    WHERE material_id IN (SELECT id FROM materials WHERE user_id = ?)
+  `);
+  const deleteUserMaterials = db.prepare("DELETE FROM materials WHERE user_id = ?");
+  const deleteUserWordStatus = db.prepare(`
+    DELETE FROM user_word_status
+    WHERE user_id = ?
+       OR word_id IN (
+        SELECT w.id
+        FROM words w
+        JOIN collections c ON c.id = w.collection_id
+        JOIN languages l ON l.id = c.language_id
+        WHERE l.user_id = ?
+      )
+  `);
+  const deleteUserWordTranslations = db.prepare(`
+    DELETE FROM word_translations
+    WHERE word_id IN (
+      SELECT w.id
+      FROM words w
+      JOIN collections c ON c.id = w.collection_id
+      JOIN languages l ON l.id = c.language_id
+      WHERE l.user_id = ?
+    )
+  `);
+  const deleteUserWords = db.prepare(`
+    DELETE FROM words
+    WHERE collection_id IN (
+      SELECT c.id
+      FROM collections c
+      JOIN languages l ON l.id = c.language_id
+      WHERE l.user_id = ?
+    )
+  `);
+  const deleteUserCollections = db.prepare("DELETE FROM collections WHERE language_id IN (SELECT id FROM languages WHERE user_id = ?)");
+  const deleteUserLanguages = db.prepare("DELETE FROM languages WHERE user_id = ?");
+  const deleteUserAuthTokens = db.prepare("DELETE FROM auth_tokens WHERE user_id = ?");
+  const deleteUserOAuthAccounts = db.prepare("DELETE FROM oauth_accounts WHERE user_id = ?");
+  const deleteUser = db.prepare("DELETE FROM users WHERE id = ?");
+
   return {
     findUserByEmail(email) {
       return userByEmail.get(email);
@@ -93,6 +134,19 @@ export function createAuthRepository(db) {
     },
     deleteUserTokensOfType(userId, type) {
       return deleteUserTokensOfType.run(userId, type);
+    },
+    async deleteUserAccountData(userId) {
+      await deleteUserMaterialTokens.run(userId);
+      await deleteUserMaterials.run(userId);
+      await deleteUserWordStatus.run(userId, userId);
+      await deleteUserWordTranslations.run(userId);
+      await deleteUserWords.run(userId);
+      await deleteUserCollections.run(userId);
+      await deleteUserLanguages.run(userId);
+      await deleteUserAuthTokens.run(userId);
+      await deleteUserOAuthAccounts.run(userId);
+      await deleteUserSessions.run(userId);
+      return deleteUser.run(userId);
     }
   };
 }

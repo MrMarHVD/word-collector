@@ -1,5 +1,6 @@
 import { NATIVE_LANGUAGE_OPTIONS } from "../../config.js";
-import { changePassword } from "../../modules/auth/auth.service.js";
+import { clearAuthCookie } from "../../auth/session.js";
+import { changePassword, deleteAccount } from "../../modules/auth/auth.service.js";
 import { normalizeWordsPerSession } from "../../modules/practice/practice.service.js";
 import { backfillUserTranslations } from "../../modules/translations/translations.service.js";
 import { readJson } from "../request.js";
@@ -19,6 +20,18 @@ export function createSettingsRoutes({ repositories, session }) {
       await session.destroyAllUserSessions(user.userId);
       const nextSession = await session.createSessionForUser(res, { id: user.userId });
       jsonResponse(res, 200, { changed: true, csrfToken: nextSession.csrfToken });
+      return true;
+    }
+
+    if (req.method === "DELETE" && url.pathname === "/api/settings/account") {
+      const body = await readJson(req);
+      const result = await deleteAccount(repositories, user.userId, body.confirmation);
+      if (result.error) {
+        jsonResponse(res, result.status, { error: result.error, errorKey: result.errorKey });
+        return true;
+      }
+      clearAuthCookie(res);
+      jsonResponse(res, 200, { deleted: true, csrfToken: null });
       return true;
     }
 

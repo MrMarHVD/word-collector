@@ -4,6 +4,8 @@ import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
 import { escapeHtml } from "../../shared/html.js";
 import { state } from "../../state.js";
+import { renderVerifyBanner } from "../../views/auth.js";
+import { showView } from "../../views/shell.js";
 
 let reloadDashboard = async () => {};
 
@@ -41,6 +43,32 @@ function renderAccountDetails() {
     .join("");
 }
 
+function deleteConfirmationMatches() {
+  const email = String(state.user?.email || "").toLowerCase();
+  const confirmation = String(elements.deleteAccountConfirmation.value || "").trim().toLowerCase();
+  return Boolean(email) && confirmation === email;
+}
+
+function renderDeleteAccountState() {
+  elements.deleteAccountSubmit.disabled = !deleteConfirmationMatches();
+}
+
+function clearDeletedAccountState() {
+  state.user = null;
+  state.csrfToken = null;
+  state.languages = [];
+  state.dashboard = null;
+  state.words = [];
+  state.materials = [];
+  state.readerTokens = [];
+  state.readerFetchedTokens = [];
+  state.selectedStudyLanguageId = null;
+  state.selectedStudyLanguageName = "";
+  state.selectedCollectionId = "all";
+  state.selectedMaterialId = null;
+  localStorage.removeItem("wordMarkerStudyLanguageName");
+}
+
 export function renderSettingsTabs() {
   elements.settingsMenuButtons.forEach((button) => {
     const active = button.dataset.settingsTab === state.settingsTab;
@@ -67,6 +95,9 @@ export function renderSettings() {
     elements.practiceWordsPerSession.value = String(Number(state.user?.practiceWordsPerSession) || 20);
   }
   renderAccountDetails();
+  elements.deleteAccountForm.reset();
+  elements.deleteAccountStatus.textContent = "";
+  renderDeleteAccountState();
   elements.changePasswordSection.hidden = state.user?.hasPassword !== true;
   elements.changePasswordForm.hidden = true;
   elements.changePasswordToggle.setAttribute("aria-expanded", "false");
@@ -114,6 +145,35 @@ export function bindSettingsEvents() {
       elements.changePasswordStatus.textContent = error.message;
     } finally {
       submitButton.disabled = false;
+    }
+  });
+
+  elements.deleteAccountConfirmation.addEventListener("input", () => {
+    elements.deleteAccountStatus.textContent = "";
+    renderDeleteAccountState();
+  });
+
+  elements.deleteAccountForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!deleteConfirmationMatches()) {
+      elements.deleteAccountStatus.textContent = t("errors.accountDeletionConfirmationMismatch");
+      renderDeleteAccountState();
+      return;
+    }
+    elements.deleteAccountStatus.textContent = t("settings.deletingAccount");
+    elements.deleteAccountSubmit.disabled = true;
+    try {
+      await requestJson("/api/settings/account", {
+        method: "DELETE",
+        body: JSON.stringify({ confirmation: elements.deleteAccountConfirmation.value })
+      });
+      elements.deleteAccountForm.reset();
+      clearDeletedAccountState();
+      renderVerifyBanner();
+      showView("welcome");
+    } catch (error) {
+      elements.deleteAccountStatus.textContent = error.message;
+      renderDeleteAccountState();
     }
   });
 
