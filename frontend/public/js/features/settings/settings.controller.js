@@ -160,6 +160,10 @@ export function bindSettingsEvents() {
       renderDeleteAccountState();
       return;
     }
+    if (!window.confirm(t("settings.deleteAccountFinalConfirm"))) {
+      renderDeleteAccountState();
+      return;
+    }
     elements.deleteAccountStatus.textContent = t("settings.deletingAccount");
     elements.deleteAccountSubmit.disabled = true;
     try {
