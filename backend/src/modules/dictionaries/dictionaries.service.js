@@ -33,6 +33,7 @@ export async function lookupEnglishJapaneseEntries(dictionariesRepository, term,
     source: clean,
     translation: entry.expression,
     pos: entry.pos || "",
+    priority: Number(entry.priority || 0),
     dictionarySource: "jmdict"
   }));
   const wikdict = (await dictionariesRepository.listWikdictEnglishJapanese(clean, safeLimit)).map((entry) => ({
@@ -79,6 +80,7 @@ function rankEnglishJapaneseEntries(entries) {
 function englishJapaneseEntryScore(entry) {
   let score = 0;
   if (entry.dictionarySource === "wikdict") score += 20;
+  score -= Math.min(Number(entry.priority || 0), 100) / 5;
   if (isKatakanaOnly(entry.translation)) score += 30;
   if (entry.pos === "verb") score -= 8;
   if (entry.pos === "noun") score += 4;

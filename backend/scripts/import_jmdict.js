@@ -34,9 +34,22 @@ function decodeXml(value) {
     .replaceAll("&apos;", "'");
 }
 
-// Give priority to entries that JMdict marks as common.
+const PRIORITY_WEIGHTS = {
+  news1: 80,
+  ichi1: 70,
+  spec1: 60,
+  gai1: 50,
+  news2: 40,
+  ichi2: 35,
+  spec2: 30,
+  gai2: 25
+};
+
+// Score JMdict priority tags instead of collapsing them to a boolean.
 function priorityFor(entry) {
-  return /<ke_pri>|<re_pri>/.test(entry) ? 1 : 0;
+  return [...entry.matchAll(/<(?:ke_pri|re_pri)>([^<]+)<\/(?:ke_pri|re_pri)>/g)]
+    .map((match) => PRIORITY_WEIGHTS[match[1]] || 0)
+    .reduce((best, score) => Math.max(best, score), 0);
 }
 
 const xml = await readGzip(sourcePath);

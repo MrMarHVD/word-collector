@@ -118,7 +118,7 @@ export function createDictionariesRepository(db) {
     LIMIT ?
   `);
   const englishJapaneseTranslations = db.prepare(`
-    SELECT expression, pos
+    SELECT expression, pos, priority
     FROM jmdict_english_index
     WHERE english = ?
     ORDER BY
@@ -147,7 +147,7 @@ export function createDictionariesRepository(db) {
     LIMIT 1
   `);
   const englishJapanese = db.prepare(`
-    SELECT expression, pos
+    SELECT expression, pos, priority
     FROM jmdict_english_index
     WHERE english = ?
     ORDER BY
