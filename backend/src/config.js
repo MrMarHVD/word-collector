@@ -88,6 +88,13 @@ export const TRUSTED_PROXY_IPS = String(process.env.TRUSTED_PROXY_IPS || "127.0.
 //   <path>     — append to the given file (relative paths resolve to project root)
 export const EPUB_IMPORT_LOG = process.env.EPUB_IMPORT_LOG || "off";
 
+// Transactional email. When RESEND_API_KEY is set, Resend is used. When
+// BREVO_SMTP_* vars are set, Brevo SMTP is used. Otherwise emails are logged.
+export const BREVO_SMTP_HOST = process.env.BREVO_SMTP_HOST || "";
+export const BREVO_SMTP_PORT = Number(process.env.BREVO_SMTP_PORT || 587);
+export const BREVO_SMTP_USER = process.env.BREVO_SMTP_USER || "";
+export const BREVO_SMTP_PASS = process.env.BREVO_SMTP_PASS || "";
+
 // Transactional email (Resend). When RESEND_API_KEY is set, email is sent via
 // the Resend API; otherwise a console transport logs messages so local and CI
 // runs stay offline by default (mirrors the Sentry pattern).
