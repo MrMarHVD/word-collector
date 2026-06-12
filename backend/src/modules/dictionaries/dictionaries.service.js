@@ -28,19 +28,20 @@ export async function lookupEnglishJapaneseEntries(dictionariesRepository, term,
     return [];
   }
 
-  const wikdict = await dictionariesRepository.listWikdictEnglishJapanese(clean, limit);
-  if (wikdict.length) {
-    return dedupeDictionaryEntries(wikdict.map((entry) => ({
-      source: clean,
-      translation: entry.japanese,
-      pos: entry.pos || ""
-    })));
-  }
-  return dedupeDictionaryEntries((await dictionariesRepository.listEnglishJapanese(clean, limit)).map((entry) => ({
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 50, 50));
+  const jmdict = (await dictionariesRepository.listEnglishJapanese(clean, safeLimit)).map((entry) => ({
     source: clean,
     translation: entry.expression,
-    pos: entry.pos || ""
-  })));
+    pos: entry.pos || "",
+    dictionarySource: "jmdict"
+  }));
+  const wikdict = (await dictionariesRepository.listWikdictEnglishJapanese(clean, safeLimit)).map((entry) => ({
+    source: clean,
+    translation: entry.japanese,
+    pos: entry.pos || "",
+    dictionarySource: "wikdict"
+  }));
+  return rankEnglishJapaneseEntries(dedupeDictionaryEntries([...jmdict, ...wikdict])).slice(0, safeLimit);
 }
 
 export async function lookupEnglishJapaneseCategories(dictionariesRepository, term) {
@@ -60,6 +61,28 @@ function dedupeDictionaryEntries(entries) {
     result.push({ ...entry, translation, pos });
   }
   return result;
+}
+
+function isKatakanaOnly(value) {
+  return /^[\u30a0-\u30ffー・\s]+$/.test(String(value || ""));
+}
+
+function rankEnglishJapaneseEntries(entries) {
+  return [...entries].sort((a, b) => {
+    const aScore = englishJapaneseEntryScore(a);
+    const bScore = englishJapaneseEntryScore(b);
+    if (aScore !== bScore) return aScore - bScore;
+    return a.translation.length - b.translation.length;
+  });
+}
+
+function englishJapaneseEntryScore(entry) {
+  let score = 0;
+  if (entry.dictionarySource === "wikdict") score += 20;
+  if (isKatakanaOnly(entry.translation)) score += 30;
+  if (entry.pos === "verb") score -= 8;
+  if (entry.pos === "noun") score += 4;
+  return score;
 }
 
 // Look up a simplified Chinese expression from an English dictionary key.

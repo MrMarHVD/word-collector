@@ -44,13 +44,30 @@ export async function lookupTranslation(repositories, sourceLanguage, targetLang
   return route ? normalizeName(await route.lookup(repositories.dictionaries, term)) : "";
 }
 
+const ENGLISH_IRREGULAR_LEMMAS = {
+  am: ["be"],
+  is: ["be"],
+  are: ["be"],
+  was: ["be"],
+  were: ["be"],
+  been: ["be"],
+  being: ["be"],
+  has: ["have"],
+  have: ["have"],
+  had: ["have"],
+  does: ["do"],
+  did: ["do"],
+  done: ["do"]
+};
+
 function tokenSourceTerms(token) {
   const surface = normalizeName(token.surface || token.word).toLowerCase();
   const lemma = normalizeName(token.lemma || token.word || token.surface).toLowerCase();
   const lemmatized = surface
     ? [lemmatizer.verb(surface), lemmatizer.noun(surface), lemmatizer.adjective(surface)]
     : [];
-  return [surface, lemma, ...lemmatized].filter((term, index, terms) => term && terms.indexOf(term) === index);
+  const irregular = ENGLISH_IRREGULAR_LEMMAS[surface] || [];
+  return [...irregular, surface, lemma, ...lemmatized].filter((term, index, terms) => term && terms.indexOf(term) === index);
 }
 
 const FRENCH_IRREGULAR_LEMMAS = {
