@@ -5,7 +5,7 @@ import { state } from "./state.js";
 export async function loadMessages() {
   state.messages = await fetchJson("/locales.json");
   if (!state.messages[state.locale]) {
-    state.locale = "ja";
+    state.locale = "en";
   }
   if (!["page", "infinite"].includes(state.wordDisplayMode)) {
     state.wordDisplayMode = "infinite";

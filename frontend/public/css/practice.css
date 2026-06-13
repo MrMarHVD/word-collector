@@ -1,10 +1,53 @@
 .practice-content {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.practice-layout {
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+}
+
+.practice-sidebar {
+  position: sticky;
+  top: 88px;
+}
+
+.practice-sidebar-button {
+  text-align: left;
+}
+
+.practice-sidebar-button[aria-current="page"] {
+  background: var(--surface-panel);
+  color: var(--brand);
+  box-shadow: 0 1px 2px var(--shadow-color), inset 0 0 0 1px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+
+.practice-session {
   max-width: 720px;
   margin: 0 auto;
 }
 
 .practice-card-wrap {
   perspective: 1200px;
+  min-width: 0;
+}
+
+.practice-card-stage {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 56px;
+  align-items: center;
+  gap: 12px;
+}
+
+.practice-card-side-button {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 64px;
+  justify-self: center;
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .practice-card {
@@ -98,9 +141,48 @@
     .practice-content {
       max-width: none;
     }
+
+    .practice-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .practice-sidebar {
+      position: static;
+    }
+
+    .practice-sidebar-menu {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .practice-sidebar-button {
+      text-align: center;
+    }
   
     .practice-card {
       min-height: min(420px, 58dvh);
+    }
+
+    .practice-card-stage {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .practice-card-wrap {
+      grid-column: 1 / -1;
+      grid-row: 1;
+    }
+
+    .practice-card-side-button {
+      grid-row: 2;
+      width: 56px;
+      height: 48px;
+    }
+
+    .practice-card-side-button-prev {
+      grid-column: 1;
+    }
+
+    .practice-card-side-button-next {
+      grid-column: 2;
     }
   
     .practice-card-face {

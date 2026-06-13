@@ -91,9 +91,6 @@ export function renderSettings() {
       return `<option value="${escapeHtml(language)}" ${selected}>${escapeHtml(t(`settings.nativeLanguage.${language}`))}</option>`;
     })
     .join("");
-  if (elements.practiceWordsPerSession) {
-    elements.practiceWordsPerSession.value = String(Number(state.user?.practiceWordsPerSession) || 20);
-  }
   renderAccountDetails();
   elements.deleteAccountForm.reset();
   elements.deleteAccountStatus.textContent = "";
@@ -202,8 +199,7 @@ export function bindSettingsEvents() {
         method: "PATCH",
         body: JSON.stringify({
           nativeLanguage: elements.nativeLanguageSelect.value,
-          activeStudyLanguage: state.selectedStudyLanguageName,
-          practiceWordsPerSession: elements.practiceWordsPerSession.value
+          activeStudyLanguage: state.selectedStudyLanguageName
         })
       });
       state.user = result.user;

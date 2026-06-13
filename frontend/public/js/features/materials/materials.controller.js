@@ -198,6 +198,7 @@ export function bindMaterialsEvents() {
     state.importInProgress = true;
     state.importingMaterialId = null;
     renderImportProgress();
+    closeMaterialImportModal();
     try {
       const form = new FormData();
       form.append("languageId", String(state.selectedStudyLanguageId));

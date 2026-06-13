@@ -36,6 +36,19 @@ export async function deleteWords(repositories, userId, wordIds) {
     return { error: "No words selected." };
   }
 
+  // A word cannot be deleted while it still appears in a document, since its
+  // tokens cascade-delete and would corrupt the reader. Block the whole
+  // operation and tell the user which documents to remove first.
+  const documents = await repositories.words.listMaterialsReferencingWords(userId, ids);
+  if (documents.length) {
+    return {
+      status: 409,
+      error: `These words appear in the following document(s): ${documents.join(", ")}. Delete the document(s) from the reader before deleting the words.`,
+      errorKey: "errors.wordInDocument",
+      details: { documents: documents.join(", "), count: documents.length }
+    };
+  }
+
   let deleted = 0;
   let skipped = 0;
   await repositories.database.transaction(async (tx) => {
@@ -83,6 +96,24 @@ export async function setWordsStatus(repositories, userId, wordIds, status) {
   });
 
   return { updated, skipped, status };
+}
+
+// Set or clear a word's "want to practice" mark. The mark can only be turned on
+// while the word is in the 'learning' status; turning it off is always allowed.
+export async function setWantToPractice(repositories, userId, wordId, wantToPractice) {
+  const id = Number(wordId);
+  if (!Number.isFinite(id)) {
+    return { error: "Word not found.", status: 404 };
+  }
+  const word = await repositories.words.findWordById(userId, id);
+  if (!word) {
+    return { error: "Word not found.", status: 404 };
+  }
+  if (wantToPractice && word.status !== "learning") {
+    return { error: "Only learning words can be marked for practice.", status: 409, errorKey: "errors.practiceMarkRequiresLearning" };
+  }
+  await repositories.words.setWantToPractice(userId, id, wantToPractice);
+  return repositories.words.findWordById(userId, id);
 }
 
 // Move user-owned words into a destination collection. Words that would collide

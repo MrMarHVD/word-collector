@@ -7,6 +7,7 @@ import {
   renderPracticeEmpty,
   renderPracticeLanding,
   renderPracticeNotice,
+  renderPracticeSettings,
   renderPracticeSummary,
   setPracticeStatus
 } from "../../views/practice.js";
@@ -18,10 +19,11 @@ let loadDashboard = async () => {};
 const session = {
   active: false,
   words: [],
+  answers: [],
   index: 0,
   flipped: false,
-  results: { known: 0, unknown: 0 },
-  statusChanged: false
+  statusChanged: false,
+  panel: "practice"
 };
 
 export function configurePracticeController(options) {
@@ -31,9 +33,9 @@ export function configurePracticeController(options) {
 function resetSession() {
   session.active = false;
   session.words = [];
+  session.answers = [];
   session.index = 0;
   session.flipped = false;
-  session.results = { known: 0, unknown: 0 };
   session.statusChanged = false;
 }
 
@@ -44,40 +46,49 @@ export function enterPracticeTab() {
     return;
   }
   resetSession();
-  renderPracticeLanding();
+  renderPracticeLanding(session.panel);
 }
 
-async function fetchSession() {
+async function fetchSession(mode) {
   const params = new URLSearchParams();
   if (state.selectedStudyLanguageId) {
     params.set("languageId", state.selectedStudyLanguageId);
   }
+  if (mode) {
+    params.set("mode", mode);
+  }
   return requestJson(`/api/practice/session?${params}`);
 }
 
-async function startSession() {
+async function startSession(mode) {
   if (!state.selectedStudyLanguageId) {
     return;
   }
   setPracticeStatus(t("practice.loading"));
   let data;
   try {
-    data = await fetchSession();
+    data = await fetchSession(mode);
   } catch (error) {
     setPracticeStatus(error.message);
     return;
   }
 
   if (!data.words.length) {
+    // The marked-words flow has its own empty message and keeps the user on the
+    // landing page so they can still start an automatic session.
+    if (mode === "marked") {
+      setPracticeStatus(t("practice.markedEmpty"));
+      return;
+    }
     resetSession();
-    renderPracticeEmpty();
+    renderPracticeEmpty(session.panel);
     return;
   }
 
   if (data.insufficient) {
     resetSession();
     session.words = data.words;
-    renderPracticeNotice(data);
+    renderPracticeNotice(data, session.panel);
     return;
   }
 
@@ -88,6 +99,7 @@ function beginSession(words) {
   resetSession();
   session.active = true;
   session.words = words;
+  session.answers = new Array(words.length).fill(null);
   renderPracticeCard(session, session.index, session.flipped);
 }
 
@@ -104,8 +116,9 @@ async function answerCard(answer) {
     return;
   }
   const card = session.words[session.index];
-  if (answer === "known") {
-    session.results.known += 1;
+  const previousAnswer = session.answers[session.index];
+  session.answers[session.index] = answer;
+  if (answer === "known" && previousAnswer !== "known") {
     try {
       await requestJson(`/api/words/${card.wordId}`, {
         method: "PATCH",
@@ -116,8 +129,6 @@ async function answerCard(answer) {
       // A failed status write should not stall the session; the word simply
       // stays in its current status and can be reviewed again later.
     }
-  } else {
-    session.results.unknown += 1;
   }
 
   if (session.index + 1 >= session.words.length) {
@@ -125,12 +136,34 @@ async function answerCard(answer) {
     return;
   }
   session.index += 1;
-  session.flipped = false;
+  session.flipped = Boolean(session.answers[session.index]);
+  renderPracticeCard(session, session.index, session.flipped);
+}
+
+function previousCard() {
+  if (!session.active || session.index <= 0) {
+    return;
+  }
+  session.index -= 1;
+  session.flipped = true;
+  renderPracticeCard(session, session.index, session.flipped);
+}
+
+function nextCard() {
+  if (!session.active || !session.answers[session.index] || session.index + 1 >= session.words.length) {
+    return;
+  }
+  session.index += 1;
+  session.flipped = Boolean(session.answers[session.index]);
   renderPracticeCard(session, session.index, session.flipped);
 }
 
 function finishSession() {
-  const results = session.results;
+  const results = session.answers.reduce((totals, answer) => {
+    if (answer === "known") totals.known += 1;
+    if (answer === "unknown") totals.unknown += 1;
+    return totals;
+  }, { known: 0, unknown: 0 });
   const statusChanged = session.statusChanged;
   resetSession();
   renderPracticeSummary(results);
@@ -139,8 +172,42 @@ function finishSession() {
   }
 }
 
+async function savePracticeSettings(form) {
+  const status = form.querySelector("#practiceSettingsStatus");
+  const input = form.querySelector("#practiceWordsPerSession");
+  const submitButton = form.querySelector("button");
+  status.textContent = t("settings.saving");
+  submitButton.disabled = true;
+  try {
+    const result = await requestJson("/api/settings", {
+      method: "PATCH",
+      body: JSON.stringify({
+        practiceWordsPerSession: input.value
+      })
+    });
+    state.user = result.user;
+    state.nativeLanguageOptions = result.nativeLanguageOptions || state.nativeLanguageOptions;
+    renderPracticeSettings();
+    elements.practiceContent.querySelector("#practiceSettingsStatus").textContent = t("settings.saved");
+  } catch (error) {
+    status.textContent = error.message;
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
 export function bindPracticeEvents() {
   elements.practiceContent.addEventListener("click", async (event) => {
+    const panelButton = event.target.closest("[data-practice-panel]");
+    if (panelButton && !session.active) {
+      session.panel = panelButton.dataset.practicePanel;
+      renderPracticeLanding(session.panel);
+      return;
+    }
+    if (event.target.closest("[data-practice-start-marked]")) {
+      await startSession("marked");
+      return;
+    }
     if (event.target.closest("[data-practice-start]")) {
       await startSession();
       return;
@@ -151,7 +218,15 @@ export function bindPracticeEvents() {
     }
     if (event.target.closest("[data-practice-done]")) {
       resetSession();
-      renderPracticeLanding();
+      renderPracticeLanding(session.panel);
+      return;
+    }
+    if (event.target.closest("[data-practice-previous]")) {
+      previousCard();
+      return;
+    }
+    if (event.target.closest("[data-practice-next]")) {
+      nextCard();
       return;
     }
     const answer = event.target.closest("[data-practice-answer]");
@@ -162,6 +237,14 @@ export function bindPracticeEvents() {
     if (event.target.closest("[data-practice-card]")) {
       flipCard();
     }
+  });
+
+  elements.practiceContent.addEventListener("submit", async (event) => {
+    if (event.target.id !== "practiceSettingsForm") {
+      return;
+    }
+    event.preventDefault();
+    await savePracticeSettings(event.target);
   });
 
   document.addEventListener("keydown", async (event) => {

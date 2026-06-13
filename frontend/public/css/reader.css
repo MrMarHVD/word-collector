@@ -91,6 +91,17 @@
   .desktop-reader-tabs {
     display: grid;
   }
+
+  /* The sidebar owns the seam between it and the reading panel, so drop the
+     panel's left border to avoid a doubled line. */
+  .reader-panel {
+    border-left: 0;
+  }
+
+  /* With the sidebar hidden, the panel's left edge needs its own outline. */
+  .reader-layout.is-sidebar-collapsed .reader-panel {
+    border-left: 1px solid var(--border-main);
+  }
 }
 
 @media (max-width: 760px) {
@@ -110,7 +121,7 @@
 }
 
 .reader-panel {
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   min-width: var(--readerPanelMinWidth, 360px);
   min-height: var(--readerPanelMinHeight, 520px);
   width: clamp(var(--readerPanelMinWidth, 360px), var(--readerPanelWidth, 100%), 100%);
@@ -135,7 +146,7 @@
   min-height: 0;
   align-items: center;
   justify-content: center;
-  justify-self: center;
+  justify-self: end;
   align-self: start;
   margin: -20px 0 0;
   padding: 0 8px;
@@ -219,7 +230,7 @@
 }
 
 .is-reader-focus .reader-panel {
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   height: 100vh;
   height: 100dvh;
   height: 100svh;
@@ -263,6 +274,35 @@
   background: var(--brand);
 }
 
+/* Thin reading-progress line sitting directly above the reader pane. */
+.reader-progress {
+  height: 3px;
+  margin-bottom: 8px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+
+/* Stays in the grid (preserving the reader pane's flexible row) but is not
+   drawn when there is no material to track. */
+.reader-progress.is-hidden {
+  visibility: hidden;
+}
+
+.reader-progress-bar {
+  height: 100%;
+  width: var(--readerProgress, 0%);
+  border-radius: inherit;
+  background: var(--brand);
+  transition: width 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-progress-bar {
+    transition: none;
+  }
+}
+
 .reader-text {
   min-height: 0;
   font-size: var(--readerFontSize, 22px);
@@ -271,11 +311,11 @@
 }
 
 .reader-text.is-page-flip-next {
-  animation: reader-page-flip-next 220ms ease-out;
+  animation: reader-page-flip-next 100ms ease-out;
 }
 
 .reader-text.is-page-flip-prev {
-  animation: reader-page-flip-prev 220ms ease-out;
+  animation: reader-page-flip-prev 100ms ease-out;
 }
 
 @keyframes reader-page-flip-next {
@@ -461,6 +501,61 @@
   margin: 0;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+/* Practice mark: a full-width row that lines up with the status toggle below it
+   and matches the popup's bordered-surface styling. */
+.reader-practice-toggle {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-main);
+  border-radius: 10px;
+  background: var(--surface-subtle);
+  color: var(--text-label);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.reader-practice-toggle:hover {
+  border-color: color-mix(in srgb, var(--brand) 24%, transparent);
+  background: var(--surface-muted);
+}
+
+.reader-practice-toggle.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.reader-practice-toggle.is-disabled:hover {
+  border-color: var(--border-main);
+  background: var(--surface-subtle);
+}
+
+.reader-practice-toggle .reader-checkbox {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+
+.reader-practice-toggle .reader-checkbox::before {
+  width: 6px;
+  height: 10px;
+  margin-top: -2px;
+}
+
+.reader-practice-toggle span {
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .disambiguation-button {

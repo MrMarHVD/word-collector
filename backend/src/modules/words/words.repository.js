@@ -34,6 +34,15 @@ export function createWordsRepository(db) {
     JOIN languages l ON l.id = c.language_id
     WHERE w.id = ? AND l.user_id = ?
   `);
+  // Documents (materials) owned by the user that still reference any of the
+  // given words via their tokens. Used to block deletion of in-use words.
+  const materialsReferencingWords = db.prepare(`
+    SELECT DISTINCT m.title
+    FROM material_tokens mt
+    JOIN materials m ON m.id = mt.material_id
+    WHERE m.user_id = ? AND mt.word_id = ANY(?::int[])
+    ORDER BY m.title
+  `);
   const insertWord = db.prepare(`
     INSERT INTO words (collection_id, word, translation, lemma, pos, pos_subcategory, reading, pinyin, traditional)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -86,18 +95,33 @@ export function createWordsRepository(db) {
   const wordById = db.prepare(`
     SELECT w.id, w.collection_id AS "collectionId", w.word, w.translation, COALESCE(w.lemma, w.word) AS lemma,
            w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
-           COALESCE(uws.status, 'unknown') AS status
+           COALESCE(uws.status, 'unknown') AS status,
+           COALESCE(uws.want_to_practice, 0) AS "wantToPractice"
     FROM words w
     JOIN collections c ON c.id = w.collection_id
     JOIN languages l ON l.id = c.language_id
     LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
     WHERE w.id = ? AND l.user_id = ?
   `);
-  // Writes both status (canonical) and known (legacy) so older readers stay correct.
+  // Writes both status (canonical) and known (legacy) so older readers stay
+  // correct. A word that leaves 'learning' also drops its practice mark, since
+  // the flag is only meaningful for learning words.
   const upsertStatus = db.prepare(`
     INSERT INTO user_word_status (user_id, word_id, known, status, updated_at)
     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(user_id, word_id) DO UPDATE SET known = excluded.known, status = excluded.status, updated_at = CURRENT_TIMESTAMP
+    ON CONFLICT(user_id, word_id) DO UPDATE SET
+      known = excluded.known,
+      status = excluded.status,
+      want_to_practice = CASE WHEN excluded.status = 'learning' THEN user_word_status.want_to_practice ELSE 0 END,
+      updated_at = CURRENT_TIMESTAMP
+  `);
+  // Sets the practice mark, but only for a word that is currently learning. A
+  // word in any other status leaves no row updated, so the rule is enforced in
+  // the database as well as the service.
+  const setWantToPractice = db.prepare(`
+    UPDATE user_word_status
+    SET want_to_practice = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE user_id = ? AND word_id = ? AND status = 'learning'
   `);
   // Records one info-pane open for a word without touching its learning status.
   const incrementClickCount = db.prepare(`
@@ -149,6 +173,9 @@ export function createWordsRepository(db) {
       const known = status === "known" ? 1 : 0;
       return upsertStatus.run(userId, wordId, known, status);
     },
+    setWantToPractice(userId, wordId, wantToPractice) {
+      return setWantToPractice.run(wantToPractice ? 1 : 0, userId, wordId);
+    },
     incrementClickCount(userId, wordId) {
       return incrementClickCount.run(userId, wordId);
     },
@@ -163,6 +190,12 @@ export function createWordsRepository(db) {
     },
     async wordOwnedByUser(userId, wordId) {
       return Boolean(await wordOwnedByUser.get(wordId, userId));
+    },
+    async listMaterialsReferencingWords(userId, wordIds) {
+      if (!wordIds.length) {
+        return [];
+      }
+      return (await materialsReferencingWords.all(userId, wordIds)).map((row) => row.title);
     },
     listWordsInLanguage(userId, languageId, searchTerm, nativeLanguage = "English") {
       const translationExpression = displayedTranslationExpression();

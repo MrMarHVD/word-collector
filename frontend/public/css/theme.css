@@ -15,6 +15,7 @@
   --color-hover: var(--brand-hover-surface);
   --color-focus: var(--focus-ring);
   --color-gold: var(--unknown);
+  --color-danger: var(--danger);
   --shadow-panel: 0 18px 45px var(--shadow-color);
 }
 
