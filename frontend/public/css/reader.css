@@ -254,11 +254,11 @@
 }
 
 .reader-text.is-page-flip-next {
-  animation: reader-page-flip-next 220ms ease-out;
+  animation: reader-page-flip-next 100ms ease-out;
 }
 
 .reader-text.is-page-flip-prev {
-  animation: reader-page-flip-prev 220ms ease-out;
+  animation: reader-page-flip-prev 100ms ease-out;
 }
 
 @keyframes reader-page-flip-next {
