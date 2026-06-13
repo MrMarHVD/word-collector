@@ -12,6 +12,7 @@
 - Choose natural, concise UI names and labels. Prefer simple product language over literal translations or overly formal phrasing.
 - When changing user-facing frontend behavior or UI, implement the corresponding mobile layout and interaction updates at the same time, preserving desktop behavior unless the user asks otherwise.
 - Every UI change must be visually aligned and consistent with the surrounding interface design, and built in a neat, user-friendly fashion. Reuse the existing design tokens, spacing, component patterns, and control styles rather than introducing ad-hoc styling, so new elements look native to the surrounding pane.
+- When working in a worktree and testing locally, terminate any existing processes on ports `5174` and `3001`, then use `5174` for the frontend and `3001` for the API. Keep those test servers running until they must be restarted or the ports need to be reused for another purpose.
 - Do not update `README.md` unless the user explicitly asks for README changes.
 - Before implementing any major, multi-step change, first explain to the user the expected scope of the work: which files, components, modules, tests, or behaviors are likely to be affected.
 - If the requested change is ambiguous, do not guess silently. Explain what is ambiguous, describe the plausible implementation options, and ask the user how they want it handled before proceeding.
