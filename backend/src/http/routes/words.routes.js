@@ -41,7 +41,7 @@ export function createWordsRoutes({ repositories }) {
       const body = await readJson(req);
       const result = await deleteWords(repositories, user.userId, body.wordIds);
       if (result.error) {
-        jsonResponse(res, 400, result);
+        jsonResponse(res, result.status || 400, result);
         return true;
       }
       jsonResponse(res, 200, result);

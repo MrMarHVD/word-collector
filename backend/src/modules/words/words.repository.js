@@ -34,6 +34,15 @@ export function createWordsRepository(db) {
     JOIN languages l ON l.id = c.language_id
     WHERE w.id = ? AND l.user_id = ?
   `);
+  // Documents (materials) owned by the user that still reference any of the
+  // given words via their tokens. Used to block deletion of in-use words.
+  const materialsReferencingWords = db.prepare(`
+    SELECT DISTINCT m.title
+    FROM material_tokens mt
+    JOIN materials m ON m.id = mt.material_id
+    WHERE m.user_id = ? AND mt.word_id = ANY(?::int[])
+    ORDER BY m.title
+  `);
   const insertWord = db.prepare(`
     INSERT INTO words (collection_id, word, translation, lemma, pos, pos_subcategory, reading, pinyin, traditional)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -163,6 +172,12 @@ export function createWordsRepository(db) {
     },
     async wordOwnedByUser(userId, wordId) {
       return Boolean(await wordOwnedByUser.get(wordId, userId));
+    },
+    async listMaterialsReferencingWords(userId, wordIds) {
+      if (!wordIds.length) {
+        return [];
+      }
+      return (await materialsReferencingWords.all(userId, wordIds)).map((row) => row.title);
     },
     listWordsInLanguage(userId, languageId, searchTerm, nativeLanguage = "English") {
       const translationExpression = displayedTranslationExpression();

@@ -36,6 +36,19 @@ export async function deleteWords(repositories, userId, wordIds) {
     return { error: "No words selected." };
   }
 
+  // A word cannot be deleted while it still appears in a document, since its
+  // tokens cascade-delete and would corrupt the reader. Block the whole
+  // operation and tell the user which documents to remove first.
+  const documents = await repositories.words.listMaterialsReferencingWords(userId, ids);
+  if (documents.length) {
+    return {
+      status: 409,
+      error: `These words appear in the following document(s): ${documents.join(", ")}. Delete the document(s) from the reader before deleting the words.`,
+      errorKey: "errors.wordInDocument",
+      details: { documents: documents.join(", "), count: documents.length }
+    };
+  }
+
   let deleted = 0;
   let skipped = 0;
   await repositories.database.transaction(async (tx) => {
