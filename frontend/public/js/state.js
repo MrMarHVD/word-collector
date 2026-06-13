@@ -4,7 +4,7 @@ export const BETA_MAX_MATERIALS_PER_USER = 10;
 export const BETA_MAX_MATERIAL_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 function normalizeDisplayMode(stored) {
-  return stored === "infinite" ? "infinite" : "page";
+  return stored === "page" ? "page" : "infinite";
 }
 
 function normalizeReaderWordsPerPage(stored) {
@@ -65,6 +65,6 @@ export const state = {
   search: "",
   activeTab: localStorage.getItem("wordMarkerActiveTab") || "dashboard",
   theme: localStorage.getItem("wordMarkerTheme") || "system",
-  locale: localStorage.getItem("wordMarkerLocale") || "ja",
+  locale: localStorage.getItem("wordMarkerLocale") || "en",
   messages: {}
 };

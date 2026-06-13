@@ -91,6 +91,17 @@
   .desktop-reader-tabs {
     display: grid;
   }
+
+  /* The sidebar owns the seam between it and the reading panel, so drop the
+     panel's left border to avoid a doubled line. */
+  .reader-panel {
+    border-left: 0;
+  }
+
+  /* With the sidebar hidden, the panel's left edge needs its own outline. */
+  .reader-layout.is-sidebar-collapsed .reader-panel {
+    border-left: 1px solid var(--border-main);
+  }
 }
 
 @media (max-width: 760px) {
@@ -135,7 +146,7 @@
   min-height: 0;
   align-items: center;
   justify-content: center;
-  justify-self: center;
+  justify-self: end;
   align-self: start;
   margin: -20px 0 0;
   padding: 0 8px;
