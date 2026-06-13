@@ -357,6 +357,96 @@ export function bindReaderEvents() {
     await turnReaderPage("next");
   });
 
+  // Page turning by gesture. Desktop: a two-finger horizontal trackpad swipe
+  // produces horizontal wheel deltas. Touch devices: a single-finger horizontal
+  // drag. Both delegate to turnReaderPage and leave vertical scrolling alone.
+  const WHEEL_PAGE_THRESHOLD = 80;
+  const WHEEL_NEW_GESTURE_GAP_MS = 120;
+  const WHEEL_REACCEL_DELTA = 8;
+  const TOUCH_PAGE_THRESHOLD = 50;
+  let wheelAccumX = 0;
+  let wheelLocked = false;
+  let wheelDecaying = false;
+  let lastWheelTime = 0;
+  let lastWheelAbsX = 0;
+
+  elements.readerText.addEventListener("wheel", (event) => {
+    if (state.activeTab !== "reader") {
+      return;
+    }
+    // Only act on horizontal-dominant gestures; vertical scrolling is untouched.
+    if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) {
+      return;
+    }
+    // Stop the browser's own back/forward swipe navigation.
+    event.preventDefault();
+    const absX = Math.abs(event.deltaX);
+    const gap = event.timeStamp - lastWheelTime;
+    // Decide whether this event starts a NEW flick rather than continuing the
+    // momentum of the one that already turned a page. Two tells:
+    //   1. A real pause since the last event (the trackpad went quiet), or
+    //   2. Velocity rising again after it had begun to decay — a single flick's
+    //      momentum only ever slows down, so a speed-up means a fresh flick.
+    if (gap > WHEEL_NEW_GESTURE_GAP_MS) {
+      wheelLocked = false;
+      wheelAccumX = 0;
+      wheelDecaying = false;
+    } else if (wheelLocked) {
+      if (absX < lastWheelAbsX) {
+        wheelDecaying = true;
+      } else if (wheelDecaying && absX > lastWheelAbsX + WHEEL_REACCEL_DELTA) {
+        wheelLocked = false;
+        wheelAccumX = 0;
+        wheelDecaying = false;
+      }
+    }
+    lastWheelTime = event.timeStamp;
+    lastWheelAbsX = absX;
+    // Ignore the remaining momentum of a flick that already turned a page, so one
+    // flick never advances more than a single page.
+    if (wheelLocked) {
+      return;
+    }
+    wheelAccumX += event.deltaX;
+    if (Math.abs(wheelAccumX) >= WHEEL_PAGE_THRESHOLD) {
+      const direction = wheelAccumX > 0 ? "next" : "prev";
+      wheelAccumX = 0;
+      wheelLocked = true;
+      wheelDecaying = false;
+      turnReaderPage(direction);
+    }
+  }, { passive: false });
+
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchTracking = false;
+
+  elements.readerText.addEventListener("touchstart", (event) => {
+    // Only single-finger drags; multi-touch (e.g. pinch) is ignored.
+    touchTracking = event.touches.length === 1;
+    if (touchTracking) {
+      touchStartX = event.touches[0].clientX;
+      touchStartY = event.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  elements.readerText.addEventListener("touchend", (event) => {
+    if (!touchTracking) {
+      return;
+    }
+    touchTracking = false;
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+    // Ignore taps and vertical-dominant drags so word selection and scrolling
+    // keep working.
+    if (Math.abs(deltaX) < TOUCH_PAGE_THRESHOLD || Math.abs(deltaX) <= Math.abs(deltaY)) {
+      return;
+    }
+    // Swipe left advances; swipe right goes back.
+    turnReaderPage(deltaX < 0 ? "next" : "prev");
+  }, { passive: true });
+
   elements.readerText.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-token-id]");
     if (!button) {
