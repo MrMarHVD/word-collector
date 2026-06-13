@@ -121,24 +121,28 @@ function closeReaderWordInfo() {
   elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
 }
 
-async function markCurrentReaderPageKnown() {
+// The still-unknown words on the current page, to be auto-marked known. Must be
+// collected before the page turns, since loadMaterialReader replaces the tokens.
+function collectAutoMarkKnownWordIds() {
   if (!state.readerAutoMarkKnownOnPageTurn) {
-    return false;
+    return [];
   }
-  const wordIds = [...new Set(state.readerTokens.filter((token) => token.wordId && normalizeStatus(token.status || (token.known ? "known" : "unknown")) === "unknown").map((token) => token.wordId))];
-  if (!wordIds.length) {
-    return false;
-  }
-  await Promise.all(
+  return [...new Set(state.readerTokens.filter((token) => token.wordId && normalizeStatus(token.status || (token.known ? "known" : "unknown")) === "unknown").map((token) => token.wordId))];
+}
+
+// Mark the given words known without blocking the page turn. The requests and
+// the dashboard refresh run in the background so the reader stays responsive.
+function markReaderWordsKnownInBackground(wordIds) {
+  Promise.all(
     wordIds.map((wordId) =>
       requestJson(`/api/words/${wordId}`, {
         method: "PATCH",
         body: JSON.stringify({ status: "known" })
       })
     )
-  );
-  state.readerTokens = state.readerTokens.map((token) => (wordIds.includes(token.wordId) ? { ...token, known: true, status: "known" } : token));
-  return true;
+  )
+    .then(() => loadDashboard())
+    .catch(() => {});
 }
 
 async function markReaderWordLearning(wordId) {
@@ -241,12 +245,14 @@ async function turnReaderPage(direction) {
   readerPageTurnInProgress = true;
   try {
     // Auto-marking known applies only when advancing; going back must not mark
-    // the page you are leaving as known.
-    const markedKnown = direction === "next" ? await markCurrentReaderPageKnown() : false;
+    // the page you are leaving as known. Capture the words now, before the
+    // tokens are replaced, then turn the page immediately and mark them in the
+    // background so the user never waits on the network.
+    const wordIdsToMark = direction === "next" ? collectAutoMarkKnownWordIds() : [];
     await loadMaterialReader(nextStart);
     animateReaderPageTurn(direction);
-    if (markedKnown) {
-      await loadDashboard();
+    if (wordIdsToMark.length) {
+      markReaderWordsKnownInBackground(wordIdsToMark);
     }
   } finally {
     readerPageTurnInProgress = false;
