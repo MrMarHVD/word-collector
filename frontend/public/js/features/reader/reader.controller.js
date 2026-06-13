@@ -361,14 +361,11 @@ export function bindReaderEvents() {
   // produces horizontal wheel deltas. Touch devices: a single-finger horizontal
   // drag. Both delegate to turnReaderPage and leave vertical scrolling alone.
   const WHEEL_PAGE_THRESHOLD = 80;
-  const WHEEL_NEW_GESTURE_GAP_MS = 120;
-  const WHEEL_REACCEL_DELTA = 8;
+  const WHEEL_GESTURE_END_MS = 90;
   const TOUCH_PAGE_THRESHOLD = 50;
   let wheelAccumX = 0;
   let wheelLocked = false;
-  let wheelDecaying = false;
   let lastWheelTime = 0;
-  let lastWheelAbsX = 0;
 
   elements.readerText.addEventListener("wheel", (event) => {
     if (state.activeTab !== "reader") {
@@ -380,30 +377,19 @@ export function bindReaderEvents() {
     }
     // Stop the browser's own back/forward swipe navigation.
     event.preventDefault();
-    const absX = Math.abs(event.deltaX);
-    const gap = event.timeStamp - lastWheelTime;
-    // Decide whether this event starts a NEW flick rather than continuing the
-    // momentum of the one that already turned a page. Two tells:
-    //   1. A real pause since the last event (the trackpad went quiet), or
-    //   2. Velocity rising again after it had begun to decay — a single flick's
-    //      momentum only ever slows down, so a speed-up means a fresh flick.
-    if (gap > WHEEL_NEW_GESTURE_GAP_MS) {
+    // A trackpad gives no "fingers lifted" event: momentum keeps firing wheel
+    // events after the fingers leave. We treat one continuous stream of events
+    // as a single gesture, and only consider it finished once the stream has
+    // gone quiet (no events for WHEEL_GESTURE_END_MS). That quiet gap is the
+    // stand-in for the fingers leaving the pad.
+    const gestureEnded = event.timeStamp - lastWheelTime > WHEEL_GESTURE_END_MS;
+    lastWheelTime = event.timeStamp;
+    if (gestureEnded) {
       wheelLocked = false;
       wheelAccumX = 0;
-      wheelDecaying = false;
-    } else if (wheelLocked) {
-      if (absX < lastWheelAbsX) {
-        wheelDecaying = true;
-      } else if (wheelDecaying && absX > lastWheelAbsX + WHEEL_REACCEL_DELTA) {
-        wheelLocked = false;
-        wheelAccumX = 0;
-        wheelDecaying = false;
-      }
     }
-    lastWheelTime = event.timeStamp;
-    lastWheelAbsX = absX;
-    // Ignore the remaining momentum of a flick that already turned a page, so one
-    // flick never advances more than a single page.
+    // Once this gesture has turned a page, every later event in the same stream
+    // (the momentum tail) is ignored, so one gesture turns exactly one page.
     if (wheelLocked) {
       return;
     }
@@ -412,7 +398,6 @@ export function bindReaderEvents() {
       const direction = wheelAccumX > 0 ? "next" : "prev";
       wheelAccumX = 0;
       wheelLocked = true;
-      wheelDecaying = false;
       turnReaderPage(direction);
     }
   }, { passive: false });
