@@ -236,7 +236,8 @@
               </label>
             </div>
             <div id="selectedCollectionStats" class="selected-stats my-3 flex min-h-8 flex-wrap items-baseline gap-2.5 text-sm text-secondary"></div>
-            <div class="word-table-toolbar mb-2 flex justify-end">
+            <div class="word-table-toolbar mb-2 flex items-center justify-end gap-3">
+              <p id="wordActionError" class="word-action-error mr-auto text-sm font-semibold text-danger" role="alert" hidden></p>
               <div class="delete-slot flex justify-center">
                 <button id="deleteSelectedButton" class="delete-toggle danger-button disabled:opacity-50 disabled:cursor-not-allowed" type="button" disabled data-i18n="collections.deleteSelected">削除</button>
               </div>

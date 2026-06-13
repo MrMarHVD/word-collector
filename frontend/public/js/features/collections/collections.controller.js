@@ -23,10 +23,20 @@ function renderDeleteButtonState() {
   elements.deleteSelectedButton.disabled = state.selectedWordIds.size === 0;
 }
 
+// Show or clear the inline error shown beside the delete button in the vocab tab.
+function setWordActionError(message = "") {
+  if (!elements.wordActionError) {
+    return;
+  }
+  elements.wordActionError.textContent = message;
+  elements.wordActionError.hidden = !message;
+}
+
 export async function loadWords() {
   state.selectedWordIds.clear();
   state.selectionAnchorId = null;
   renderDeleteButtonState();
+  setWordActionError();
 
   if (!state.selectedCollectionId) {
     state.words = [];
@@ -109,14 +119,14 @@ function clearCollectionDropHints() {
 }
 
 async function moveSelectedWords(wordIds, destinationId) {
+  setWordActionError();
   try {
     await requestJson("/api/words/move", {
       method: "POST",
       body: JSON.stringify({ wordIds, collectionId: destinationId })
     });
   } catch (error) {
-    elements.emptyState.hidden = false;
-    elements.emptyState.textContent = error.message;
+    setWordActionError(error.message);
     return;
   }
   await loadDashboard();
@@ -132,6 +142,7 @@ export function bindCollectionsEvents() {
       return;
     }
     elements.deleteSelectedButton.disabled = true;
+    setWordActionError();
     try {
       await requestJson("/api/words/delete", {
         method: "POST",
@@ -140,8 +151,7 @@ export function bindCollectionsEvents() {
       await loadDashboard();
     } catch (error) {
       elements.deleteSelectedButton.disabled = false;
-      elements.emptyState.hidden = false;
-      elements.emptyState.textContent = error.message;
+      setWordActionError(error.message);
     }
   });
 

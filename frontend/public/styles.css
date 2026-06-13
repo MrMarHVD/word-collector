@@ -56,6 +56,7 @@
     --color-brand-strong: var(--brand-strong);
     --color-hover: var(--brand-hover-surface);
     --color-focus: var(--focus-ring);
+    --color-danger: var(--danger);
     --shadow-panel: 0 18px 45px var(--shadow-color);
   }
 }
@@ -307,6 +308,9 @@
   .mr-1 {
     margin-right: calc(var(--spacing) * 1);
   }
+  .mr-auto {
+    margin-right: auto;
+  }
   .mb-2 {
     margin-bottom: calc(var(--spacing) * 2);
   }
@@ -327,6 +331,9 @@
   }
   .hidden {
     display: none;
+  }
+  .inline {
+    display: inline;
   }
   .inline-flex {
     display: inline-flex;
@@ -802,6 +809,9 @@
   }
   .text-brand {
     color: var(--color-brand);
+  }
+  .text-danger {
+    color: var(--color-danger);
   }
   .text-label {
     color: var(--color-label);

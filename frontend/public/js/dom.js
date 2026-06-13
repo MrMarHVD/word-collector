@@ -109,6 +109,7 @@ export const elements = {
   wordNextPage: document.querySelector("#wordNextPage"),
   wordPageStatus: document.querySelector("#wordPageStatus"),
   emptyState: document.querySelector("#emptyState"),
+  wordActionError: document.querySelector("#wordActionError"),
   uploadForm: document.querySelector("#uploadForm"),
   collectionName: document.querySelector("#collectionName"),
   csvFile: document.querySelector("#csvFile"),
