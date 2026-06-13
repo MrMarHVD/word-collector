@@ -31,6 +31,7 @@ export async function getDashboard(repositories, userId, languageId) {
     totalWords: Number(totals.totalWords || 0),
     knownWords: Number(totals.knownWords || 0),
     learningWords: Number(totals.learningWords || 0),
+    wantToPracticeWords: Number(totals.wantToPracticeWords || 0),
     unknownWords: Math.max(0, Number(totals.totalWords || 0) - Number(totals.knownWords || 0) - Number(totals.learningWords || 0)),
     collections: collections.map(normalizeCollection),
     allCollections: allCollections.map(normalizeCollection)

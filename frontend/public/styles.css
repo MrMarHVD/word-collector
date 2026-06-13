@@ -603,10 +603,6 @@
     border-top-style: var(--tw-border-style);
     border-top-width: 1px;
   }
-  .border-r-0 {
-    border-right-style: var(--tw-border-style);
-    border-right-width: 0px;
-  }
   .border-b {
     border-bottom-style: var(--tw-border-style);
     border-bottom-width: 1px;
@@ -1939,6 +1935,12 @@ tbody tr:last-child td {
   .desktop-reader-tabs {
     display: grid;
   }
+  .reader-panel {
+    border-left: 0;
+  }
+  .reader-layout.is-sidebar-collapsed .reader-panel {
+    border-left: 1px solid var(--border-main);
+  }
 }
 @media (max-width: 760px) {
   .mobile-reader-tabs {
@@ -1975,7 +1977,7 @@ tbody tr:last-child td {
   min-height: 0;
   align-items: center;
   justify-content: center;
-  justify-self: center;
+  justify-self: end;
   align-self: start;
   margin: -20px 0 0;
   padding: 0 8px;
@@ -2255,6 +2257,55 @@ tbody tr:last-child td {
   margin: 0;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+.reader-practice-toggle {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-main);
+  border-radius: 10px;
+  background: var(--surface-subtle);
+  color: var(--text-label);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.reader-practice-toggle:hover {
+  border-color: var(--brand);
+  @supports (color: color-mix(in lab, red, red)) {
+    border-color: color-mix(in srgb, var(--brand) 24%, transparent);
+  }
+  background: var(--surface-muted);
+}
+.reader-practice-toggle.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.reader-practice-toggle.is-disabled:hover {
+  border-color: var(--border-main);
+  background: var(--surface-subtle);
+}
+.reader-practice-toggle .reader-checkbox {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+.reader-practice-toggle .reader-checkbox::before {
+  width: 6px;
+  height: 10px;
+  margin-top: -2px;
+}
+.reader-practice-toggle span {
+  min-width: 0;
+  white-space: nowrap;
 }
 .disambiguation-button {
   display: inline-flex;

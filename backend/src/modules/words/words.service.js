@@ -98,6 +98,24 @@ export async function setWordsStatus(repositories, userId, wordIds, status) {
   return { updated, skipped, status };
 }
 
+// Set or clear a word's "want to practice" mark. The mark can only be turned on
+// while the word is in the 'learning' status; turning it off is always allowed.
+export async function setWantToPractice(repositories, userId, wordId, wantToPractice) {
+  const id = Number(wordId);
+  if (!Number.isFinite(id)) {
+    return { error: "Word not found.", status: 404 };
+  }
+  const word = await repositories.words.findWordById(userId, id);
+  if (!word) {
+    return { error: "Word not found.", status: 404 };
+  }
+  if (wantToPractice && word.status !== "learning") {
+    return { error: "Only learning words can be marked for practice.", status: 409, errorKey: "errors.practiceMarkRequiresLearning" };
+  }
+  await repositories.words.setWantToPractice(userId, id, wantToPractice);
+  return repositories.words.findWordById(userId, id);
+}
+
 // Move user-owned words into a destination collection. Words that would collide
 // with an existing (word, translation) row in the destination are skipped.
 export async function moveWords(repositories, userId, wordIds, collectionId) {

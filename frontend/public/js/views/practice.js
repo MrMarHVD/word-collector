@@ -64,6 +64,9 @@ export function renderPracticeLanding(activePanel = "practice") {
       <button class="practice-start-button mt-6 min-h-12 w-full rounded-md bg-brand px-4 text-base font-bold text-white hover:bg-brand-strong disabled:opacity-50 disabled:cursor-not-allowed" type="button" data-practice-start ${state.selectedStudyLanguageId ? "" : "disabled"}>
         ${escapeHtml(t("practice.start"))}
       </button>
+      <button class="practice-secondary-button mt-3 min-h-12 w-full rounded-md border border-line bg-panel px-4 text-base font-bold text-brand hover:bg-hover disabled:opacity-50 disabled:cursor-not-allowed" type="button" data-practice-start-marked ${state.selectedStudyLanguageId ? "" : "disabled"}>
+        ${escapeHtml(t("practice.startMarked"))}
+      </button>
       <p id="practiceStatus" class="status mt-3 min-h-5 text-sm text-secondary" role="status"></p>
     </section>
   `);

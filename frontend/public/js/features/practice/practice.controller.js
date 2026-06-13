@@ -49,28 +49,37 @@ export function enterPracticeTab() {
   renderPracticeLanding(session.panel);
 }
 
-async function fetchSession() {
+async function fetchSession(mode) {
   const params = new URLSearchParams();
   if (state.selectedStudyLanguageId) {
     params.set("languageId", state.selectedStudyLanguageId);
   }
+  if (mode) {
+    params.set("mode", mode);
+  }
   return requestJson(`/api/practice/session?${params}`);
 }
 
-async function startSession() {
+async function startSession(mode) {
   if (!state.selectedStudyLanguageId) {
     return;
   }
   setPracticeStatus(t("practice.loading"));
   let data;
   try {
-    data = await fetchSession();
+    data = await fetchSession(mode);
   } catch (error) {
     setPracticeStatus(error.message);
     return;
   }
 
   if (!data.words.length) {
+    // The marked-words flow has its own empty message and keeps the user on the
+    // landing page so they can still start an automatic session.
+    if (mode === "marked") {
+      setPracticeStatus(t("practice.markedEmpty"));
+      return;
+    }
     resetSession();
     renderPracticeEmpty(session.panel);
     return;
@@ -193,6 +202,10 @@ export function bindPracticeEvents() {
     if (panelButton && !session.active) {
       session.panel = panelButton.dataset.practicePanel;
       renderPracticeLanding(session.panel);
+      return;
+    }
+    if (event.target.closest("[data-practice-start-marked]")) {
+      await startSession("marked");
       return;
     }
     if (event.target.closest("[data-practice-start]")) {

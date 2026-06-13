@@ -1,5 +1,6 @@
 import { requestJson } from "../../api.js";
 import { elements } from "../../dom.js";
+import { t } from "../../i18n.js";
 import { state } from "../../state.js";
 import { normalizeStatus } from "../../shared/status.js";
 import { fitReaderTokensToPage, renderReaderSidebar, renderReaderSidebarTabs, renderReaderTokens, renderReaderWordInfo } from "../../views/reader.js";
@@ -158,18 +159,36 @@ async function markReaderWordLearning(wordId) {
 
 function updateReaderWordInfoStatus(status) {
   const toggle = elements.readerWordInfo.querySelector(".status-toggle");
-  if (!toggle) {
-    return;
+  if (toggle) {
+    toggle.querySelectorAll(".status-segment").forEach((segment) => {
+      const active = segment.dataset.status === status;
+      segment.dataset.active = String(active);
+      segment.setAttribute("aria-pressed", String(active));
+    });
+    const statusValue = elements.readerWordInfo.querySelector("dl dd:last-child");
+    const activeSegment = toggle.querySelector(`.status-segment[data-status="${status}"]`);
+    if (statusValue && activeSegment) {
+      statusValue.textContent = activeSegment.textContent;
+    }
   }
-  toggle.querySelectorAll(".status-segment").forEach((segment) => {
-    const active = segment.dataset.status === status;
-    segment.dataset.active = String(active);
-    segment.setAttribute("aria-pressed", String(active));
-  });
-  const statusValue = elements.readerWordInfo.querySelector("dl dd:last-child");
-  const activeSegment = toggle.querySelector(`.status-segment[data-status="${status}"]`);
-  if (statusValue && activeSegment) {
-    statusValue.textContent = activeSegment.textContent;
+  // Keep the practice checkbox in step with the status, so a word auto-marked
+  // "learning" on selection becomes markable without re-rendering the popup.
+  const practice = elements.readerWordInfo.querySelector(".reader-practice-toggle");
+  if (practice) {
+    const checkbox = practice.querySelector("[data-reader-practice-checkbox]");
+    const canPractice = status === "learning";
+    practice.classList.toggle("is-disabled", !canPractice);
+    if (canPractice) {
+      practice.removeAttribute("title");
+    } else {
+      practice.setAttribute("title", t("reader.practiceHint"));
+    }
+    if (checkbox) {
+      checkbox.disabled = !canPractice;
+      if (!canPractice) {
+        checkbox.checked = false;
+      }
+    }
   }
 }
 
@@ -384,6 +403,35 @@ export function bindReaderEvents() {
       await loadDashboard();
     } finally {
       segment.disabled = false;
+    }
+  });
+
+  elements.readerWordInfo.addEventListener("change", async (event) => {
+    const checkbox = event.target.closest("[data-reader-practice-checkbox]");
+    if (!checkbox) {
+      return;
+    }
+    const wordId = Number(checkbox.dataset.readerWordId);
+    const wantToPractice = checkbox.checked;
+    if (!wordId) {
+      return;
+    }
+    checkbox.disabled = true;
+    try {
+      await requestJson(`/api/words/${wordId}/want-to-practice`, {
+        method: "POST",
+        body: JSON.stringify({ wantToPractice })
+      });
+      // Keep the in-memory tokens in sync so reopening the popup is accurate.
+      state.readerTokens = state.readerTokens.map((token) =>
+        token.wordId === wordId ? { ...token, wantToPractice: wantToPractice ? 1 : 0 } : token
+      );
+      await loadDashboard();
+    } catch {
+      // Restore the previous state on failure so the box matches what persisted.
+      checkbox.checked = !wantToPractice;
+    } finally {
+      checkbox.disabled = false;
     }
   });
 

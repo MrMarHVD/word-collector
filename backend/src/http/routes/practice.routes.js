@@ -1,5 +1,5 @@
 import { getLanguage } from "../../modules/languages/languages.service.js";
-import { buildPracticeSession } from "../../modules/practice/practice.service.js";
+import { buildMarkedPracticeSession, buildPracticeSession } from "../../modules/practice/practice.service.js";
 import { jsonResponse } from "../response.js";
 
 export function createPracticeRoutes({ repositories }) {
@@ -16,7 +16,8 @@ export function createPracticeRoutes({ repositories }) {
     }
 
     const profile = await repositories.auth.findUserById(user.userId);
-    const session = await buildPracticeSession(
+    const build = url.searchParams.get("mode") === "marked" ? buildMarkedPracticeSession : buildPracticeSession;
+    const session = await build(
       repositories,
       user.userId,
       languageId,

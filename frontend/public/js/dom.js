@@ -87,6 +87,8 @@ export const elements = {
   learningTotal: document.querySelector("#learningTotal"),
   unknownTotal: document.querySelector("#unknownTotal"),
   collectionCount: document.querySelector("#collectionCount"),
+  wantToPracticeCard: document.querySelector("#wantToPracticeCard"),
+  wantToPracticeTotal: document.querySelector("#wantToPracticeTotal"),
   collectionCharts: document.querySelector("#collectionCharts"),
   collectionsList: document.querySelector("#collectionsList"),
   collectionsSelect: document.querySelector("#collectionsSelect"),

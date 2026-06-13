@@ -486,6 +486,61 @@
   overflow-wrap: anywhere;
 }
 
+/* Practice mark: a full-width row that lines up with the status toggle below it
+   and matches the popup's bordered-surface styling. */
+.reader-practice-toggle {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-main);
+  border-radius: 10px;
+  background: var(--surface-subtle);
+  color: var(--text-label);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.reader-practice-toggle:hover {
+  border-color: color-mix(in srgb, var(--brand) 24%, transparent);
+  background: var(--surface-muted);
+}
+
+.reader-practice-toggle.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.reader-practice-toggle.is-disabled:hover {
+  border-color: var(--border-main);
+  background: var(--surface-subtle);
+}
+
+.reader-practice-toggle .reader-checkbox {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+
+.reader-practice-toggle .reader-checkbox::before {
+  width: 6px;
+  height: 10px;
+  margin-top: -2px;
+}
+
+.reader-practice-toggle span {
+  min-width: 0;
+  white-space: nowrap;
+}
+
 .disambiguation-button {
   display: inline-flex;
   align-items: center;

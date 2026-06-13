@@ -508,6 +508,17 @@ export function renderReaderWordInfo(token, anchor = null) {
   }
   rows.push({ label: t("table.status"), value: t(`word.${status}`) });
 
+  // The practice mark can only be set while the word is learning. Outside that
+  // status the checkbox is disabled and forced off.
+  const canPractice = status === "learning";
+  const practiceChecked = canPractice && Boolean(token.wantToPractice);
+  const practiceToggle = `
+    <label class="reader-practice-toggle${canPractice ? "" : " is-disabled"}"${canPractice ? "" : ` title="${escapeHtml(t("reader.practiceHint"))}"`}>
+      <input class="reader-checkbox" type="checkbox" data-reader-practice-checkbox data-reader-word-id="${token.wordId}" ${practiceChecked ? "checked" : ""} ${canPractice ? "" : "disabled"} />
+      <span>${escapeHtml(t("reader.practice"))}</span>
+    </label>
+  `;
+
   elements.readerWordInfo.hidden = false;
   elements.readerWordInfo.style.visibility = "hidden";
   elements.readerWordInfo.innerHTML = `
@@ -522,6 +533,7 @@ export function renderReaderWordInfo(token, anchor = null) {
     <dl>
       ${rows.map((row) => `<dt>${escapeHtml(row.label)}</dt><dd>${escapeHtml(row.value)}</dd>`).join("")}
     </dl>
+    ${practiceToggle}
     ${renderStatusToggle(token.wordId, status, { dataAttr: "data-reader-word-id" })}
     ${renderDisambiguationTable(token.disambiguationCandidates)}
   `;

@@ -1,5 +1,5 @@
 import { getLanguage } from "../../modules/languages/languages.service.js";
-import { deleteWords, getWords, getWordsInLanguage, moveWords, setWordsStatus } from "../../modules/words/words.service.js";
+import { deleteWords, getWords, getWordsInLanguage, moveWords, setWantToPractice, setWordsStatus } from "../../modules/words/words.service.js";
 import { readJson } from "../request.js";
 import { jsonResponse } from "../response.js";
 
@@ -79,6 +79,19 @@ export function createWordsRoutes({ repositories }) {
       }
       await repositories.words.incrementClickCount(user.userId, id);
       jsonResponse(res, 200, { ok: true });
+      return true;
+    }
+
+    const wantToPracticeMatch = url.pathname.match(/^\/api\/words\/(\d+)\/want-to-practice$/);
+    if (req.method === "POST" && wantToPracticeMatch) {
+      const id = Number(wantToPracticeMatch[1]);
+      const body = await readJson(req);
+      const result = await setWantToPractice(repositories, user.userId, id, Boolean(body.wantToPractice));
+      if (result.error) {
+        jsonResponse(res, result.status || 400, result);
+        return true;
+      }
+      jsonResponse(res, 200, result);
       return true;
     }
 

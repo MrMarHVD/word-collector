@@ -59,3 +59,33 @@ export async function buildPracticeSession(repositories, userId, languageId, lan
     words: selected
   };
 }
+
+// Pick the words for one "marked words" practice session: a random selection of
+// the learning words the user has flagged as want-to-practice, up to the
+// requested count. Unlike the automatic session, click activity is irrelevant —
+// every marked word is a valid candidate.
+export async function buildMarkedPracticeSession(repositories, userId, languageId, languageName, nativeLanguage, requestedCount) {
+  const requested = normalizeWordsPerSession(requestedCount);
+  const marked = await repositories.practice.listWantToPracticeWords(userId, languageId, nativeLanguage);
+
+  const cards = marked.map((word) => ({
+    wordId: word.wordId,
+    word: word.word,
+    translation: word.translation || "",
+    reading: word.reading && word.reading !== word.lemma ? word.reading : "",
+    pinyin: word.pinyin || "",
+    clickCount: word.clickCount
+  }));
+
+  const selected = shuffle(cards).slice(0, requested);
+
+  return {
+    languageId,
+    languageName,
+    requested,
+    validCount: cards.length,
+    insufficient: cards.length < requested,
+    words: selected,
+    mode: "marked"
+  };
+}

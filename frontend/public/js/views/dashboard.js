@@ -6,12 +6,17 @@ import { escapeHtml } from "../shared/html.js";
 // Render summary metrics, collection charts, and collection management controls.
 // Render dashboard totals and collection selectors from state.dashboard.
 export function renderDashboard() {
-  const { totalWords, knownWords, learningWords, unknownWords, collections } = state.dashboard;
+  const { totalWords, knownWords, learningWords, unknownWords, wantToPracticeWords = 0, collections } = state.dashboard;
   elements.knownTotal.textContent = formatCount(knownWords);
   elements.totalWords.textContent = formatCount(totalWords);
   elements.learningTotal.textContent = formatCount(learningWords);
   elements.unknownTotal.textContent = formatCount(unknownWords);
   elements.collectionCount.textContent = formatCount(collections.length);
+  // The want-to-practice metric only appears once the user has marked a word.
+  if (elements.wantToPracticeCard) {
+    elements.wantToPracticeCard.hidden = wantToPracticeWords < 1;
+    elements.wantToPracticeTotal.textContent = formatCount(wantToPracticeWords);
+  }
 
   elements.collectionCharts.innerHTML = collections.length
     ? collections.map(renderChartCard).join("")
