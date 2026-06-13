@@ -7,6 +7,28 @@ function practiceWordsPerSession() {
   return Number(state.user?.practiceWordsPerSession) || 20;
 }
 
+function renderPracticeShell(activePanel, content) {
+  const tab = (id, labelKey) => {
+    const active = activePanel === id;
+    return `
+      <button class="practice-sidebar-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-practice-panel="${id}" aria-current="${active ? "page" : "false"}">
+        ${escapeHtml(t(labelKey))}
+      </button>
+    `;
+  };
+  elements.practiceContent.innerHTML = `
+    <section class="practice-layout grid items-start gap-3.5">
+      <aside class="practice-sidebar rounded-lg border border-line bg-panel p-3.5 shadow-panel">
+        <nav class="practice-sidebar-menu grid gap-1" aria-label="${escapeHtml(t("practice.sidebarLabel"))}">
+          ${tab("practice", "practice.practiceTab")}
+          ${tab("settings", "practice.settingsTab")}
+        </nav>
+      </aside>
+      <div class="practice-main min-w-0">${content}</div>
+    </section>
+  `;
+}
+
 function cardTextSize(text, maxRem = 4.5) {
   const length = [...String(text || "")].reduce((total, char) => total + (/\s/.test(char) ? 0.45 : 1), 0);
   if (length <= 16) return maxRem;
@@ -19,9 +41,13 @@ function cardTextStyle(text, maxRem) {
 }
 
 // Landing page: explain practice and offer to start a session.
-export function renderPracticeLanding() {
+export function renderPracticeLanding(activePanel = "practice") {
   const language = state.selectedStudyLanguageName ? t(`studyLanguage.${state.selectedStudyLanguageName}`, {}, state.selectedStudyLanguageName) : "";
-  elements.practiceContent.innerHTML = `
+  if (activePanel === "settings") {
+    renderPracticeSettings();
+    return;
+  }
+  renderPracticeShell(activePanel, `
     <section class="practice-panel rounded-lg border border-line bg-panel p-6 shadow-panel">
       <h2 class="text-2xl font-bold tracking-tight">${escapeHtml(t("practice.title"))}</h2>
       <p class="mt-2 text-sm text-secondary">${escapeHtml(t("practice.intro"))}</p>
@@ -40,7 +66,27 @@ export function renderPracticeLanding() {
       </button>
       <p id="practiceStatus" class="status mt-3 min-h-5 text-sm text-secondary" role="status"></p>
     </section>
-  `;
+  `);
+}
+
+export function renderPracticeSettings() {
+  renderPracticeShell("settings", `
+    <section class="practice-panel rounded-lg border border-line bg-panel p-6 shadow-panel">
+      <h2 class="text-2xl font-bold tracking-tight">${escapeHtml(t("practice.settingsTitle"))}</h2>
+      <p class="mt-2 text-sm text-secondary">${escapeHtml(t("practice.settingsIntro"))}</p>
+      <form id="practiceSettingsForm" class="mt-5 grid gap-4">
+        <label class="grid gap-1.5 text-sm font-semibold text-label">
+          <span>${escapeHtml(t("settings.practiceWordsPerSession"))}</span>
+          <input id="practiceWordsPerSession" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="number" min="1" max="200" step="1" value="${escapeHtml(String(practiceWordsPerSession()))}" />
+        </label>
+        <p class="hint min-h-5 text-sm text-secondary">${escapeHtml(t("settings.practiceWordsPerSessionHint"))}</p>
+        <button class="min-h-11 rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="submit">
+          ${escapeHtml(t("settings.save"))}
+        </button>
+        <p id="practiceSettingsStatus" class="status min-h-5 text-sm text-secondary" role="status"></p>
+      </form>
+    </section>
+  `);
 }
 
 export function setPracticeStatus(message) {
@@ -51,8 +97,8 @@ export function setPracticeStatus(message) {
 }
 
 // No learning words at all are available to study.
-export function renderPracticeEmpty() {
-  elements.practiceContent.innerHTML = `
+export function renderPracticeEmpty(activePanel = "practice") {
+  renderPracticeShell(activePanel, `
     <section class="practice-panel rounded-lg border border-line bg-panel p-6 shadow-panel text-center">
       <h2 class="text-2xl font-bold tracking-tight">${escapeHtml(t("practice.title"))}</h2>
       <p class="mt-3 text-sm text-secondary">${escapeHtml(t("practice.emptyBody"))}</p>
@@ -60,12 +106,12 @@ export function renderPracticeEmpty() {
         ${escapeHtml(t("practice.back"))}
       </button>
     </section>
-  `;
+  `);
 }
 
 // Fewer valid words than requested: let the user start with what is available.
-export function renderPracticeNotice(session) {
-  elements.practiceContent.innerHTML = `
+export function renderPracticeNotice(session, activePanel = "practice") {
+  renderPracticeShell(activePanel, `
     <section class="practice-panel rounded-lg border border-line bg-panel p-6 shadow-panel text-center">
       <h2 class="text-2xl font-bold tracking-tight">${escapeHtml(t("practice.title"))}</h2>
       <p class="mt-3 text-sm text-secondary">${escapeHtml(t("practice.onlyValid", { count: formatCount(session.validCount) }))}</p>
@@ -78,7 +124,7 @@ export function renderPracticeNotice(session) {
         </button>
       </div>
     </section>
-  `;
+  `);
 }
 
 // One flashcard. `flipped` reveals the translation side and enables the answers.

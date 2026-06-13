@@ -69,7 +69,6 @@ export const elements = {
   changePasswordToggle: document.querySelector("#changePasswordToggle"),
   settingsForm: document.querySelector("#settingsForm"),
   nativeLanguageSelect: document.querySelector("#nativeLanguageSelect"),
-  practiceWordsPerSession: document.querySelector("#practiceWordsPerSession"),
   changePasswordForm: document.querySelector("#changePasswordForm"),
   currentPassword: document.querySelector("#currentPassword"),
   newPassword: document.querySelector("#newPassword"),

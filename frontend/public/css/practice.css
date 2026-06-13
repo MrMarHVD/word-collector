@@ -1,4 +1,28 @@
 .practice-content {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.practice-layout {
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+}
+
+.practice-sidebar {
+  position: sticky;
+  top: 88px;
+}
+
+.practice-sidebar-button {
+  text-align: left;
+}
+
+.practice-sidebar-button[aria-current="page"] {
+  background: var(--surface-panel);
+  color: var(--brand);
+  box-shadow: 0 1px 2px var(--shadow-color), inset 0 0 0 1px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+
+.practice-session {
   max-width: 720px;
   margin: 0 auto;
 }
@@ -97,6 +121,22 @@
 @media (max-width: 760px) {
     .practice-content {
       max-width: none;
+    }
+
+    .practice-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .practice-sidebar {
+      position: static;
+    }
+
+    .practice-sidebar-menu {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .practice-sidebar-button {
+      text-align: center;
     }
   
     .practice-card {

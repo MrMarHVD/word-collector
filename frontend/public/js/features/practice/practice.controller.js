@@ -7,6 +7,7 @@ import {
   renderPracticeEmpty,
   renderPracticeLanding,
   renderPracticeNotice,
+  renderPracticeSettings,
   renderPracticeSummary,
   setPracticeStatus
 } from "../../views/practice.js";
@@ -21,7 +22,8 @@ const session = {
   index: 0,
   flipped: false,
   results: { known: 0, unknown: 0 },
-  statusChanged: false
+  statusChanged: false,
+  panel: "practice"
 };
 
 export function configurePracticeController(options) {
@@ -44,7 +46,7 @@ export function enterPracticeTab() {
     return;
   }
   resetSession();
-  renderPracticeLanding();
+  renderPracticeLanding(session.panel);
 }
 
 async function fetchSession() {
@@ -70,14 +72,14 @@ async function startSession() {
 
   if (!data.words.length) {
     resetSession();
-    renderPracticeEmpty();
+    renderPracticeEmpty(session.panel);
     return;
   }
 
   if (data.insufficient) {
     resetSession();
     session.words = data.words;
-    renderPracticeNotice(data);
+    renderPracticeNotice(data, session.panel);
     return;
   }
 
@@ -139,8 +141,38 @@ function finishSession() {
   }
 }
 
+async function savePracticeSettings(form) {
+  const status = form.querySelector("#practiceSettingsStatus");
+  const input = form.querySelector("#practiceWordsPerSession");
+  const submitButton = form.querySelector("button");
+  status.textContent = t("settings.saving");
+  submitButton.disabled = true;
+  try {
+    const result = await requestJson("/api/settings", {
+      method: "PATCH",
+      body: JSON.stringify({
+        practiceWordsPerSession: input.value
+      })
+    });
+    state.user = result.user;
+    state.nativeLanguageOptions = result.nativeLanguageOptions || state.nativeLanguageOptions;
+    renderPracticeSettings();
+    elements.practiceContent.querySelector("#practiceSettingsStatus").textContent = t("settings.saved");
+  } catch (error) {
+    status.textContent = error.message;
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
 export function bindPracticeEvents() {
   elements.practiceContent.addEventListener("click", async (event) => {
+    const panelButton = event.target.closest("[data-practice-panel]");
+    if (panelButton && !session.active) {
+      session.panel = panelButton.dataset.practicePanel;
+      renderPracticeLanding(session.panel);
+      return;
+    }
     if (event.target.closest("[data-practice-start]")) {
       await startSession();
       return;
@@ -151,7 +183,7 @@ export function bindPracticeEvents() {
     }
     if (event.target.closest("[data-practice-done]")) {
       resetSession();
-      renderPracticeLanding();
+      renderPracticeLanding(session.panel);
       return;
     }
     const answer = event.target.closest("[data-practice-answer]");
@@ -162,6 +194,14 @@ export function bindPracticeEvents() {
     if (event.target.closest("[data-practice-card]")) {
       flipCard();
     }
+  });
+
+  elements.practiceContent.addEventListener("submit", async (event) => {
+    if (event.target.id !== "practiceSettingsForm") {
+      return;
+    }
+    event.preventDefault();
+    await savePracticeSettings(event.target);
   });
 
   document.addEventListener("keydown", async (event) => {
