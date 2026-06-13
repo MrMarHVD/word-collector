@@ -133,6 +133,9 @@ export function renderPracticeCard(session, index, flipped) {
   const total = session.words.length;
   const phonetic = card.reading || card.pinyin || "";
   const translation = card.translation || t("practice.noTranslation");
+  const answered = Boolean(session.answers?.[index]);
+  const canGoPrevious = index > 0;
+  const canGoNext = answered && index + 1 < total;
   elements.practiceContent.innerHTML = `
     <section class="practice-session">
       <div class="practice-session-head mb-4 flex items-center justify-between gap-3">
@@ -141,7 +144,11 @@ export function renderPracticeCard(session, index, flipped) {
         </button>
         <span class="practice-progress text-sm font-semibold text-secondary" role="status">${escapeHtml(t("practice.progress", { current: formatCount(index + 1), total: formatCount(total) }))}</span>
       </div>
-      <div class="practice-card-wrap">
+      <div class="practice-card-stage">
+        <button class="practice-card-side-button practice-card-side-button-prev practice-secondary-button rounded-md border border-line bg-panel text-brand hover:bg-hover disabled:opacity-40 disabled:cursor-not-allowed" type="button" data-practice-previous aria-label="${escapeHtml(t("practice.previous"))}" title="${escapeHtml(t("practice.previous"))}" ${canGoPrevious ? "" : "disabled"}>
+          <span aria-hidden="true">&larr;</span>
+        </button>
+        <div class="practice-card-wrap">
         <div class="practice-card${flipped ? " is-flipped" : ""}" data-practice-card tabindex="0" role="button" aria-label="${escapeHtml(t("practice.flipHint"))}">
           <div class="practice-card-face practice-card-front">
             <span class="practice-card-word" style="${escapeHtml(cardTextStyle(card.word, 4.5))}">${escapeHtml(card.word)}</span>
@@ -152,6 +159,10 @@ export function renderPracticeCard(session, index, flipped) {
             ${phonetic ? `<span class="practice-card-phonetic">${escapeHtml(phonetic)}</span>` : ""}
           </div>
         </div>
+        </div>
+        <button class="practice-card-side-button practice-card-side-button-next practice-secondary-button rounded-md border border-line bg-panel text-brand hover:bg-hover disabled:opacity-40 disabled:cursor-not-allowed" type="button" data-practice-next aria-label="${escapeHtml(t("practice.next"))}" title="${escapeHtml(t("practice.next"))}" ${canGoNext ? "" : "disabled"}>
+          <span aria-hidden="true">&rarr;</span>
+        </button>
       </div>
       <div class="practice-answer mt-6 grid grid-cols-2 gap-3">
         <button class="practice-answer-button is-unknown min-h-12 rounded-md border text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed" type="button" data-practice-answer="unknown" ${flipped ? "" : "disabled"}>

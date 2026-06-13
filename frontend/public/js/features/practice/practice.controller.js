@@ -19,9 +19,9 @@ let loadDashboard = async () => {};
 const session = {
   active: false,
   words: [],
+  answers: [],
   index: 0,
   flipped: false,
-  results: { known: 0, unknown: 0 },
   statusChanged: false,
   panel: "practice"
 };
@@ -33,9 +33,9 @@ export function configurePracticeController(options) {
 function resetSession() {
   session.active = false;
   session.words = [];
+  session.answers = [];
   session.index = 0;
   session.flipped = false;
-  session.results = { known: 0, unknown: 0 };
   session.statusChanged = false;
 }
 
@@ -90,6 +90,7 @@ function beginSession(words) {
   resetSession();
   session.active = true;
   session.words = words;
+  session.answers = new Array(words.length).fill(null);
   renderPracticeCard(session, session.index, session.flipped);
 }
 
@@ -106,8 +107,9 @@ async function answerCard(answer) {
     return;
   }
   const card = session.words[session.index];
-  if (answer === "known") {
-    session.results.known += 1;
+  const previousAnswer = session.answers[session.index];
+  session.answers[session.index] = answer;
+  if (answer === "known" && previousAnswer !== "known") {
     try {
       await requestJson(`/api/words/${card.wordId}`, {
         method: "PATCH",
@@ -118,8 +120,6 @@ async function answerCard(answer) {
       // A failed status write should not stall the session; the word simply
       // stays in its current status and can be reviewed again later.
     }
-  } else {
-    session.results.unknown += 1;
   }
 
   if (session.index + 1 >= session.words.length) {
@@ -127,12 +127,34 @@ async function answerCard(answer) {
     return;
   }
   session.index += 1;
-  session.flipped = false;
+  session.flipped = Boolean(session.answers[session.index]);
+  renderPracticeCard(session, session.index, session.flipped);
+}
+
+function previousCard() {
+  if (!session.active || session.index <= 0) {
+    return;
+  }
+  session.index -= 1;
+  session.flipped = true;
+  renderPracticeCard(session, session.index, session.flipped);
+}
+
+function nextCard() {
+  if (!session.active || !session.answers[session.index] || session.index + 1 >= session.words.length) {
+    return;
+  }
+  session.index += 1;
+  session.flipped = Boolean(session.answers[session.index]);
   renderPracticeCard(session, session.index, session.flipped);
 }
 
 function finishSession() {
-  const results = session.results;
+  const results = session.answers.reduce((totals, answer) => {
+    if (answer === "known") totals.known += 1;
+    if (answer === "unknown") totals.unknown += 1;
+    return totals;
+  }, { known: 0, unknown: 0 });
   const statusChanged = session.statusChanged;
   resetSession();
   renderPracticeSummary(results);
@@ -184,6 +206,14 @@ export function bindPracticeEvents() {
     if (event.target.closest("[data-practice-done]")) {
       resetSession();
       renderPracticeLanding(session.panel);
+      return;
+    }
+    if (event.target.closest("[data-practice-previous]")) {
+      previousCard();
+      return;
+    }
+    if (event.target.closest("[data-practice-next]")) {
+      nextCard();
       return;
     }
     const answer = event.target.closest("[data-practice-answer]");
