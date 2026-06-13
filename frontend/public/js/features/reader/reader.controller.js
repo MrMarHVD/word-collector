@@ -3,6 +3,7 @@ import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
 import { state } from "../../state.js";
 import { normalizeStatus } from "../../shared/status.js";
+import { escapeHtml } from "../../shared/html.js";
 import { fitReaderTokensToPage, renderReaderSidebar, renderReaderSidebarTabs, renderReaderTokens, renderReaderWordInfo } from "../../views/reader.js";
 
 const MIN_READER_PANEL_WIDTH = 360;
@@ -11,10 +12,17 @@ const MAX_READER_SIDEBAR_WIDTH = 340;
 const MAX_READER_SIDEBAR_WIDTH_SMALL = 240;
 const READER_PANEL_BOTTOM_MARGIN = 16;
 const FIT_READER_FETCH_LIMIT = 1000;
+const READER_HOLD_DELAY_MS = 360;
+const READER_HOLD_CANCEL_DISTANCE = 12;
+const READER_MENU_SELECTION_DISTANCE = 54;
+const READER_MENU_RADIUS = 82;
+const READER_MENU_MARGIN = 14;
+const READER_SUPPRESS_CLICK_MS = 300;
 
 let loadDashboard = async () => {};
 let readerPageTurnInProgress = false;
 let highlightOpacityFrame = 0;
+let readerConvenienceMenu = null;
 
 export function configureReaderController(options) {
   loadDashboard = options.loadDashboard;
@@ -119,6 +127,228 @@ function startReaderResize(event, target) {
 function closeReaderWordInfo() {
   renderReaderWordInfo(null);
   elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
+}
+
+function removeReaderConvenienceMenu({ suppressClick = false } = {}) {
+  if (!readerConvenienceMenu) {
+    return;
+  }
+  clearTimeout(readerConvenienceMenu.timer);
+  readerConvenienceMenu.button?.classList.remove("is-selected");
+  readerConvenienceMenu.node?.remove();
+  if (readerConvenienceMenu.active) {
+    document.body.classList.remove("is-reader-convenience-active");
+  }
+  if (readerConvenienceMenu.moveHandler) {
+    document.removeEventListener("pointermove", readerConvenienceMenu.moveHandler);
+  }
+  if (readerConvenienceMenu.upHandler) {
+    document.removeEventListener("pointerup", readerConvenienceMenu.upHandler);
+  }
+  if (readerConvenienceMenu.cancelHandler) {
+    document.removeEventListener("pointercancel", readerConvenienceMenu.cancelHandler);
+  }
+  readerConvenienceMenu = suppressClick ? { suppressClick: true } : null;
+  if (suppressClick) {
+    window.setTimeout(() => {
+      if (readerConvenienceMenu?.suppressClick) {
+        readerConvenienceMenu = null;
+      }
+    }, READER_SUPPRESS_CLICK_MS);
+  }
+}
+
+function readerConvenienceActions(token) {
+  return [
+    { key: "unknown", type: "status", value: "unknown", label: t("word.unknown"), x: 0, y: -1 },
+    { key: "learning", type: "status", value: "learning", label: t("word.learning"), x: -1, y: 0 },
+    { key: "known", type: "status", value: "known", label: t("word.known"), x: 1, y: 0 },
+    {
+      key: "practice",
+      type: "practice",
+      label: t("reader.practice"),
+      checked: Boolean(token.wantToPractice),
+      x: 0,
+      y: 1
+    }
+  ];
+}
+
+function closestReaderConvenienceAction(menu, clientX, clientY) {
+  const dx = clientX - menu.originX;
+  const dy = clientY - menu.originY;
+  if (Math.hypot(dx, dy) < READER_MENU_SELECTION_DISTANCE) {
+    return null;
+  }
+  return menu.actions.reduce((closest, action) => {
+    const actionX = action.x * READER_MENU_RADIUS;
+    const actionY = action.y * READER_MENU_RADIUS;
+    const distance = Math.hypot(dx - actionX, dy - actionY);
+    return !closest || distance < closest.distance ? { action, distance } : closest;
+  }, null)?.action || null;
+}
+
+function updateReaderConvenienceSelection(clientX, clientY) {
+  if (!readerConvenienceMenu?.active) {
+    return;
+  }
+  const selected = closestReaderConvenienceAction(readerConvenienceMenu, clientX, clientY);
+  readerConvenienceMenu.selectedKey = selected?.key || null;
+  readerConvenienceMenu.node.querySelectorAll(".reader-convenience-option").forEach((option) => {
+    const active = option.dataset.action === readerConvenienceMenu.selectedKey;
+    option.classList.toggle("is-selected", active);
+    option.setAttribute("aria-pressed", String(active));
+  });
+  readerConvenienceMenu.node.classList.toggle("has-selection", Boolean(readerConvenienceMenu.selectedKey));
+}
+
+function positionReaderConvenienceMenu(node, clientX, clientY) {
+  node.style.setProperty("--readerMenuX", `${clientX}px`);
+  node.style.setProperty("--readerMenuY", `${clientY}px`);
+  node.style.setProperty("--readerMenuRadius", `${READER_MENU_RADIUS}px`);
+}
+
+function showReaderConvenienceMenu(menu) {
+  const originX = clamp(menu.startX, READER_MENU_RADIUS + READER_MENU_MARGIN, window.innerWidth - READER_MENU_RADIUS - READER_MENU_MARGIN);
+  const originY = clamp(menu.startY, READER_MENU_RADIUS + READER_MENU_MARGIN, window.innerHeight - READER_MENU_RADIUS - READER_MENU_MARGIN);
+  const actions = readerConvenienceActions(menu.token);
+  const node = document.createElement("div");
+  node.className = "reader-convenience-menu";
+  node.setAttribute("role", "menu");
+  positionReaderConvenienceMenu(node, originX, originY);
+  node.innerHTML = `
+    <div class="reader-convenience-scrim"></div>
+    <div class="reader-convenience-center" aria-hidden="true">
+      <span>${escapeHtml(menu.token.surface)}</span>
+    </div>
+    ${actions.map((action) => `
+      <button class="reader-convenience-option reader-convenience-${action.key}" type="button" role="menuitemradio" data-action="${action.key}" aria-pressed="false" style="--optionX:${action.x};--optionY:${action.y};">
+        ${action.type === "practice" ? `<span class="reader-convenience-checkbox${action.checked ? " is-checked" : ""}" aria-hidden="true"></span>` : ""}
+        <span>${escapeHtml(action.label)}</span>
+      </button>
+    `).join("")}
+  `;
+  document.body.append(node);
+  document.body.classList.add("is-reader-convenience-active");
+  closeReaderWordInfo();
+  elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
+  menu.button.classList.add("is-selected");
+  Object.assign(menu, { active: true, actions, node, originX, originY });
+}
+
+function syncReaderWordTokens(wordId, updates) {
+  state.readerTokens = state.readerTokens.map((token) => (token.wordId === wordId ? { ...token, ...updates } : token));
+  elements.readerText.querySelectorAll(`[data-word-id="${wordId}"]`).forEach((entry) => {
+    if (updates.status) {
+      entry.dataset.status = updates.status;
+    }
+  });
+}
+
+async function applyReaderConvenienceAction(menu) {
+  const action = menu.actions.find((entry) => entry.key === menu.selectedKey);
+  const wordId = Number(menu.token.wordId);
+  if (!action || !wordId) {
+    return;
+  }
+  if (action.type === "status") {
+    await requestJson(`/api/words/${wordId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: action.value })
+    });
+    syncReaderWordTokens(wordId, {
+      status: action.value,
+      known: action.value === "known",
+      wantToPractice: action.value === "learning" ? menu.token.wantToPractice : 0
+    });
+  } else {
+    const currentStatus = normalizeStatus(menu.token.status || (menu.token.known ? "known" : "unknown"));
+    if (currentStatus !== "learning") {
+      await requestJson(`/api/words/${wordId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "learning" })
+      });
+    }
+    const wantToPractice = !Boolean(menu.token.wantToPractice);
+    await requestJson(`/api/words/${wordId}/want-to-practice`, {
+      method: "POST",
+      body: JSON.stringify({ wantToPractice })
+    });
+    syncReaderWordTokens(wordId, { status: "learning", known: false, wantToPractice: wantToPractice ? 1 : 0 });
+  }
+  await loadDashboard();
+}
+
+function startReaderConveniencePress(event, button) {
+  if (event.pointerType === "mouse" && event.button !== 0) {
+    return;
+  }
+  const token = state.readerTokens.find((entry) => entry.id === Number(button.dataset.tokenId));
+  if (!token?.wordId) {
+    return;
+  }
+  removeReaderConvenienceMenu();
+  const menu = {
+    active: false,
+    button,
+    token,
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    selectedKey: null
+  };
+
+  menu.moveHandler = (moveEvent) => {
+    if (moveEvent.pointerId !== menu.pointerId) {
+      return;
+    }
+    if (!menu.active) {
+      const distance = Math.hypot(moveEvent.clientX - menu.startX, moveEvent.clientY - menu.startY);
+      if (distance > READER_HOLD_CANCEL_DISTANCE) {
+        removeReaderConvenienceMenu();
+      }
+      return;
+    }
+    moveEvent.preventDefault();
+    updateReaderConvenienceSelection(moveEvent.clientX, moveEvent.clientY);
+  };
+
+  menu.upHandler = async (upEvent) => {
+    if (upEvent.pointerId !== menu.pointerId) {
+      return;
+    }
+    if (!menu.active) {
+      removeReaderConvenienceMenu();
+      return;
+    }
+    upEvent.preventDefault();
+    updateReaderConvenienceSelection(upEvent.clientX, upEvent.clientY);
+    const activeMenu = readerConvenienceMenu;
+    removeReaderConvenienceMenu({ suppressClick: true });
+    try {
+      await applyReaderConvenienceAction(activeMenu);
+    } catch {
+      await loadMaterialReader(state.readerStart);
+    }
+  };
+
+  menu.cancelHandler = (cancelEvent) => {
+    if (cancelEvent.pointerId === menu.pointerId) {
+      removeReaderConvenienceMenu({ suppressClick: menu.active });
+    }
+  };
+
+  menu.timer = window.setTimeout(() => {
+    if (readerConvenienceMenu !== menu) {
+      return;
+    }
+    showReaderConvenienceMenu(menu);
+  }, READER_HOLD_DELAY_MS);
+
+  readerConvenienceMenu = menu;
+  document.addEventListener("pointermove", menu.moveHandler, { passive: false });
+  document.addEventListener("pointerup", menu.upHandler, { passive: false });
+  document.addEventListener("pointercancel", menu.cancelHandler);
 }
 
 // The still-unknown words on the current page, to be auto-marked known. Must be
@@ -416,6 +646,10 @@ export function bindReaderEvents() {
   }, { passive: true });
 
   elements.readerText.addEventListener("touchend", (event) => {
+    if (readerConvenienceMenu?.active || readerConvenienceMenu?.suppressClick) {
+      touchTracking = false;
+      return;
+    }
     if (!touchTracking) {
       return;
     }
@@ -432,7 +666,21 @@ export function bindReaderEvents() {
     turnReaderPage(deltaX < 0 ? "next" : "prev");
   }, { passive: true });
 
+  elements.readerText.addEventListener("pointerdown", (event) => {
+    const button = event.target.closest("[data-token-id]");
+    if (!button) {
+      return;
+    }
+    startReaderConveniencePress(event, button);
+  });
+
   elements.readerText.addEventListener("click", async (event) => {
+    if (readerConvenienceMenu?.suppressClick) {
+      event.preventDefault();
+      event.stopPropagation();
+      removeReaderConvenienceMenu();
+      return;
+    }
     const button = event.target.closest("[data-token-id]");
     if (!button) {
       return;

@@ -456,6 +456,141 @@
   background: var(--reader-token-selected);
 }
 
+.is-reader-convenience-active {
+  user-select: none;
+}
+
+.reader-convenience-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  --readerMenuX: 50vw;
+  --readerMenuY: 50vh;
+  --readerMenuRadius: 82px;
+}
+
+.reader-convenience-scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--surface-page) 28%, transparent);
+  backdrop-filter: blur(1px);
+}
+
+.reader-convenience-center,
+.reader-convenience-option {
+  position: absolute;
+  left: var(--readerMenuX);
+  top: var(--readerMenuY);
+  transform: translate(-50%, -50%);
+}
+
+.reader-convenience-center {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  border: 2px solid color-mix(in srgb, var(--brand) 30%, transparent);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, var(--surface-panel) 0 48%, color-mix(in srgb, var(--brand) 12%, var(--surface-panel)) 49% 100%);
+  box-shadow: 0 18px 45px var(--shadow-color);
+  color: var(--text-label);
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.reader-convenience-center span {
+  max-width: 62px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-convenience-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 98px;
+  min-height: 42px;
+  padding: 0 13px;
+  border: 2px solid var(--border-main);
+  border-radius: 999px;
+  background: var(--surface-panel);
+  box-shadow: 0 14px 32px var(--shadow-color);
+  color: var(--text-main);
+  font-size: 0.8rem;
+  font-weight: 900;
+  line-height: 1;
+  transform:
+    translate(-50%, -50%)
+    translate(calc(var(--optionX) * var(--readerMenuRadius)), calc(var(--optionY) * var(--readerMenuRadius)));
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease,
+    background-color 120ms ease;
+}
+
+.reader-convenience-option.is-selected {
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 9%, var(--surface-panel));
+  box-shadow: 0 0 0 5px var(--focus-ring), 0 18px 38px var(--shadow-color);
+  transform:
+    translate(-50%, -50%)
+    translate(calc(var(--optionX) * var(--readerMenuRadius)), calc(var(--optionY) * var(--readerMenuRadius)))
+    scale(1.05);
+}
+
+.reader-convenience-unknown {
+  border-color: color-mix(in srgb, var(--unknown) 40%, var(--border-main));
+}
+
+.reader-convenience-learning {
+  border-color: color-mix(in srgb, var(--learning) 40%, var(--border-main));
+}
+
+.reader-convenience-known {
+  border-color: color-mix(in srgb, var(--known) 40%, var(--border-main));
+}
+
+.reader-convenience-practice {
+  border-color: color-mix(in srgb, var(--brand) 36%, var(--border-main));
+}
+
+.reader-convenience-checkbox {
+  display: grid;
+  flex: 0 0 17px;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  border: 2px solid var(--border-main);
+  border-radius: 5px;
+  background: var(--surface-panel);
+}
+
+.reader-convenience-checkbox::before {
+  content: "";
+  width: 5px;
+  height: 9px;
+  margin-top: -2px;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  transform: rotate(45deg) scale(0);
+}
+
+.reader-convenience-checkbox.is-checked {
+  border-color: var(--brand);
+  background: var(--brand);
+}
+
+.reader-convenience-checkbox.is-checked::before {
+  transform: rotate(45deg) scale(1);
+}
+
 .reader-word-info {
   top: var(--readerInfoTop, 84px);
   left: var(--readerInfoLeft, 12px);
