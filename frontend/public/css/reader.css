@@ -121,7 +121,7 @@
 }
 
 .reader-panel {
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   min-width: var(--readerPanelMinWidth, 360px);
   min-height: var(--readerPanelMinHeight, 520px);
   width: clamp(var(--readerPanelMinWidth, 360px), var(--readerPanelWidth, 100%), 100%);
@@ -245,7 +245,8 @@
 }
 
 .is-reader-focus .reader-panel {
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding-top: 44px;
   height: 100vh;
   height: 100dvh;
   height: 100svh;
@@ -799,7 +800,7 @@
     }
 
     .reader-layout.is-reader-read-panel .reader-panel {
-      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
       height: 100%;
       min-height: 0;
       max-height: 100%;
@@ -827,7 +828,7 @@
     }
 
     .is-reader-focus .reader-panel {
-      grid-template-rows: minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
       width: 100vw;
       min-width: 0;
       height: 100dvh;
@@ -837,6 +838,7 @@
       max-height: 100svh;
       overflow: hidden;
       border-radius: 0;
+      padding-top: 50px;
       padding-bottom: calc(70px + env(safe-area-inset-bottom));
     }
 
@@ -882,10 +884,16 @@
       font-size: 0.9rem;
     }
 
-    /* The toolbar stacks on mobile, so the corner segment sits over empty space
-       beside the title and needs no extra clearance. */
+    /* The toolbar stacks on mobile, so only the title row sits beside the corner
+       segment. Reserve room on the title block alone (not the whole toolbar, so
+       the controls row still spans full width) so the title ends just before the
+       button begins. */
     .is-reader-active .reader-toolbar {
       padding-right: 0;
+    }
+
+    .is-reader-active .reader-toolbar > div:first-child {
+      padding-right: 84px;
     }
   
     .reader-pagination-controls {
