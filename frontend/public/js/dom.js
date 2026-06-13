@@ -146,6 +146,8 @@ export const elements = {
   readerFontSize: document.querySelector("#readerFontSize"),
   readerWordsPerPage: document.querySelector("#readerWordsPerPage"),
   readerText: document.querySelector("#readerText"),
+  readerProgress: document.querySelector("#readerProgress"),
+  readerProgressBar: document.querySelector("#readerProgressBar"),
   readerPrevPage: document.querySelector("#readerPrevPage"),
   readerNextPage: document.querySelector("#readerNextPage"),
   readerPageStatus: document.querySelector("#readerPageStatus"),

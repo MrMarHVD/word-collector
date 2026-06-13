@@ -1954,7 +1954,7 @@ tbody tr:last-child td {
   pointer-events: none;
 }
 .reader-panel {
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   min-width: var(--readerPanelMinWidth, 360px);
   min-height: var(--readerPanelMinHeight, 520px);
   width: clamp(var(--readerPanelMinWidth, 360px), var(--readerPanelWidth, 100%), 100%);
@@ -2036,7 +2036,7 @@ tbody tr:last-child td {
   justify-content: center;
 }
 .is-reader-focus .reader-panel {
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   height: 100vh;
   max-height: 100vh;
   min-height: 100vh;
@@ -2064,6 +2064,28 @@ tbody tr:last-child td {
   border-bottom: 0;
   border-radius: 999px;
   background: var(--brand);
+}
+.reader-progress {
+  height: 3px;
+  margin-bottom: 8px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+.reader-progress.is-hidden {
+  visibility: hidden;
+}
+.reader-progress-bar {
+  height: 100%;
+  width: var(--readerProgress, 0%);
+  border-radius: inherit;
+  background: var(--brand);
+  transition: width 200ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reader-progress-bar {
+    transition: none;
+  }
 }
 .reader-text {
   min-height: 0;

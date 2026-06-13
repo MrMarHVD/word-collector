@@ -221,7 +221,9 @@ async function turnReaderPage(direction) {
 
   readerPageTurnInProgress = true;
   try {
-    const markedKnown = await markCurrentReaderPageKnown();
+    // Auto-marking known applies only when advancing; going back must not mark
+    // the page you are leaving as known.
+    const markedKnown = direction === "next" ? await markCurrentReaderPageKnown() : false;
     await loadMaterialReader(nextStart);
     animateReaderPageTurn(direction);
     if (markedKnown) {

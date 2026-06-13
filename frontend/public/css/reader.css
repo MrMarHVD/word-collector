@@ -110,7 +110,7 @@
 }
 
 .reader-panel {
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   min-width: var(--readerPanelMinWidth, 360px);
   min-height: var(--readerPanelMinHeight, 520px);
   width: clamp(var(--readerPanelMinWidth, 360px), var(--readerPanelWidth, 100%), 100%);
@@ -213,7 +213,7 @@
 }
 
 .is-reader-focus .reader-panel {
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   height: 100vh;
   max-height: 100vh;
   min-height: 100vh;
@@ -244,6 +244,35 @@
   border-bottom: 0;
   border-radius: 999px;
   background: var(--brand);
+}
+
+/* Thin reading-progress line sitting directly above the reader pane. */
+.reader-progress {
+  height: 3px;
+  margin-bottom: 8px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+
+/* Stays in the grid (preserving the reader pane's flexible row) but is not
+   drawn when there is no material to track. */
+.reader-progress.is-hidden {
+  visibility: hidden;
+}
+
+.reader-progress-bar {
+  height: 100%;
+  width: var(--readerProgress, 0%);
+  border-radius: inherit;
+  background: var(--brand);
+  transition: width 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-progress-bar {
+    transition: none;
+  }
 }
 
 .reader-text {

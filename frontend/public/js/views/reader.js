@@ -328,6 +328,25 @@ function renderReaderTokenMarkup(tokens, languageName) {
   return parts.join("");
 }
 
+// Update the thin progress line above the reader pane. `end` is the position of
+// the last word on the current page, so progress reaches 100% on the final page.
+function renderReaderProgress(material, end) {
+  if (!elements.readerProgress) {
+    return;
+  }
+  const total = Number(material?.wordCount || 0);
+  if (!material || total <= 0) {
+    elements.readerProgress.classList.add("is-hidden");
+    elements.readerProgressBar.style.setProperty("--readerProgress", "0%");
+    elements.readerProgress.setAttribute("aria-valuenow", "0");
+    return;
+  }
+  const percent = Math.max(0, Math.min(100, Math.round((end / total) * 100)));
+  elements.readerProgress.classList.remove("is-hidden");
+  elements.readerProgressBar.style.setProperty("--readerProgress", `${percent}%`);
+  elements.readerProgress.setAttribute("aria-valuenow", String(percent));
+}
+
 function renderReaderPagination(material) {
   const end = Math.min(state.readerStart + state.readerTokens.length, material?.wordCount || 0);
   elements.readerPageStatus.textContent = material
@@ -335,6 +354,7 @@ function renderReaderPagination(material) {
     : "";
   elements.readerPrevPage.disabled = state.readerStart <= 0;
   elements.readerNextPage.disabled = !material || end >= material.wordCount;
+  renderReaderProgress(material, end);
 }
 
 // Render the current reader token page and pagination controls.
@@ -353,6 +373,7 @@ export function renderReaderTokens() {
     elements.readerPrevPage.disabled = true;
     elements.readerNextPage.disabled = true;
     elements.readerWordInfo.hidden = true;
+    renderReaderProgress(null, 0);
     return;
   }
 
@@ -364,6 +385,7 @@ export function renderReaderTokens() {
     elements.readerPrevPage.disabled = true;
     elements.readerNextPage.disabled = true;
     elements.readerWordInfo.hidden = true;
+    renderReaderProgress(null, 0);
     return;
   }
 
