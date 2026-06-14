@@ -1,7 +1,10 @@
+// Displayed translation, in priority order: the user's own override, the shared
+// native-language cache, then the source word or its English gloss.
 function displayedTranslationExpression() {
   return `
     CASE
-      WHEN wt.translation IS NOT NULL AND trim(wt.translation) <> '' THEN wt.translation
+      WHEN uw.translation_override IS NOT NULL AND btrim(uw.translation_override) <> '' THEN uw.translation_override
+      WHEN wt.translation IS NOT NULL AND btrim(wt.translation) <> '' THEN wt.translation
       WHEN lower(?) = lower(l.name) THEN w.word
       WHEN ? = 'English' THEN w.translation
       ELSE ''
@@ -9,49 +12,38 @@ function displayedTranslationExpression() {
   `;
 }
 
+// The lemma key that identifies a global word within its language. Mirrors the
+// unique index created in the migration and the import-resolution key.
+const WORD_KEY = "lower(COALESCE(NULLIF(btrim(w.lemma), ''), w.word))";
+
 export function createWordsRepository(db) {
   const collectionByName = db.prepare(`
     SELECT c.id, c.name, c.language_id AS "languageId", l.name AS "languageName"
     FROM collections c
     JOIN languages l ON l.id = c.language_id
-    WHERE l.user_id = ? AND c.language_id = ? AND lower(c.name) = lower(?)
+    WHERE c.user_id = ? AND c.language_id = ? AND lower(c.name) = lower(?)
   `);
   const collectionById = db.prepare(`
     SELECT c.id, c.name, c.language_id AS "languageId", l.name AS "languageName"
     FROM collections c
     JOIN languages l ON l.id = c.language_id
-    WHERE c.id = ? AND l.user_id = ?
+    WHERE c.id = ? AND c.user_id = ?
   `);
-  const createCollection = db.prepare("INSERT INTO collections (language_id, name) VALUES (?, ?)");
+  const createCollection = db.prepare("INSERT INTO collections (user_id, language_id, name) VALUES (?, ?, ?)");
   const deleteCollection = db.prepare("DELETE FROM collections WHERE id = ?");
   const updateCollectionLanguage = db.prepare("UPDATE collections SET language_id = ? WHERE id = ?");
-  const updateWordCollection = db.prepare("UPDATE words SET collection_id = ? WHERE id = ?");
-  const updateWordCollectionAndTranslation = db.prepare("UPDATE words SET collection_id = ?, translation = ? WHERE id = ?");
-  const wordOwnedByUser = db.prepare(`
-    SELECT w.id
-    FROM words w
-    JOIN collections c ON c.id = w.collection_id
-    JOIN languages l ON l.id = c.language_id
-    WHERE w.id = ? AND l.user_id = ?
-  `);
-  // Documents (materials) owned by the user that still reference any of the
-  // given words via their tokens. Used to block deletion of in-use words.
-  const materialsReferencingWords = db.prepare(`
-    SELECT DISTINCT m.title
-    FROM material_tokens mt
-    JOIN materials m ON m.id = mt.material_id
-    WHERE m.user_id = ? AND mt.word_id = ANY(?::int[])
-    ORDER BY m.title
-  `);
+
+  // Words are global per language. Inserts are idempotent on the lemma key, so a
+  // word another user already imported is reused rather than duplicated.
   const insertWord = db.prepare(`
-    INSERT INTO words (collection_id, word, translation, lemma, pos, pos_subcategory, reading, pinyin, traditional)
+    INSERT INTO words (language_id, word, translation, lemma, pos, pos_subcategory, reading, pinyin, traditional)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(collection_id, word, translation) DO NOTHING
+    ON CONFLICT (language_id, (lower(COALESCE(NULLIF(btrim(lemma), ''), word)))) DO NOTHING
   `);
   const insertWordReturning = db.prepare(`
-    INSERT INTO words (collection_id, word, translation, lemma, pos, pos_subcategory, reading, pinyin, traditional)
+    INSERT INTO words (language_id, word, translation, lemma, pos, pos_subcategory, reading, pinyin, traditional)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(collection_id, word, translation) DO NOTHING
+    ON CONFLICT (language_id, (lower(COALESCE(NULLIF(btrim(lemma), ''), word)))) DO NOTHING
     RETURNING id, word, translation, lemma, pos, pos_subcategory AS "posSubcategory", reading, pinyin, traditional
   `);
   const updateWordMetadata = db.prepare(`
@@ -63,72 +55,123 @@ export function createWordsRepository(db) {
         traditional = COALESCE(NULLIF(traditional, ''), ?)
     WHERE id = ?
   `);
+  // Global lookup of a word by surface or lemma, preferring an exact surface
+  // match. No user scoping: the word table is shared across users.
   const wordInLanguageBySurfaceOrLemma = db.prepare(`
-    SELECT w.id, w.word, w.translation, w.lemma, w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional, c.id AS "collectionId", c.name AS "collectionName"
-    FROM words w
-    JOIN collections c ON c.id = w.collection_id
-    JOIN languages l ON l.id = c.language_id
-    WHERE l.user_id = ? AND l.id = ? AND (lower(w.word) = lower(?) OR lower(COALESCE(w.lemma, w.word)) = lower(?))
-    ORDER BY CASE WHEN lower(c.name) = 'uncollected' THEN 1 ELSE 0 END,
-             CASE WHEN lower(w.word) = lower(?) THEN 0 ELSE 1 END,
-             lower(c.name)
-    LIMIT 1
-  `);
-  // Batched variant of the lookup above: returns every word in the language
-  // matching any of the given surfaces (by word) or lemmas (by lemma). Callers
-  // re-apply the single-row match preference in memory.
-  const wordsInLanguageByTerms = db.prepare(`
-    SELECT w.id, w.word, w.lemma, c.name AS "collectionName"
-    FROM words w
-    JOIN collections c ON c.id = w.collection_id
-    JOIN languages l ON l.id = c.language_id
-    WHERE l.user_id = ? AND l.id = ?
-      AND (lower(w.word) = ANY(ARRAY(SELECT lower(unnest(?::text[]))))
-        OR lower(COALESCE(w.lemma, w.word)) = ANY(ARRAY(SELECT lower(unnest(?::text[])))))
-  `);
-  const wordByCollectionAndLemma = db.prepare(`
     SELECT w.id, w.word, w.translation, w.lemma, w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional
     FROM words w
-    WHERE w.collection_id = ? AND lower(COALESCE(w.lemma, w.word)) = lower(?)
+    WHERE w.language_id = ? AND (lower(w.word) = lower(?) OR ${WORD_KEY} = lower(?))
+    ORDER BY CASE WHEN lower(w.word) = lower(?) THEN 0 ELSE 1 END, w.id
     LIMIT 1
   `);
-  const wordById = db.prepare(`
-    SELECT w.id, w.collection_id AS "collectionId", w.word, w.translation, COALESCE(w.lemma, w.word) AS lemma,
-           w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
-           COALESCE(uws.status, 'unknown') AS status,
-           COALESCE(uws.want_to_practice, 0) AS "wantToPractice"
+  // Batched global lookup used to seed translation candidates.
+  const wordsInLanguageByTerms = db.prepare(`
+    SELECT w.id, w.word, w.lemma
     FROM words w
-    JOIN collections c ON c.id = w.collection_id
-    JOIN languages l ON l.id = c.language_id
-    LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
-    WHERE w.id = ? AND l.user_id = ?
+    WHERE w.language_id = ?
+      AND (lower(w.word) = ANY(ARRAY(SELECT lower(unnest(?::text[]))))
+        OR ${WORD_KEY} = ANY(ARRAY(SELECT lower(unnest(?::text[])))))
   `);
-  // Writes both status (canonical) and known (legacy) so older readers stay
-  // correct. A word that leaves 'learning' also drops its practice mark, since
-  // the flag is only meaningful for learning words.
-  const upsertStatus = db.prepare(`
-    INSERT INTO user_word_status (user_id, word_id, known, status, updated_at)
-    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(user_id, word_id) DO UPDATE SET
-      known = excluded.known,
-      status = excluded.status,
-      want_to_practice = CASE WHEN excluded.status = 'learning' THEN user_word_status.want_to_practice ELSE 0 END,
-      updated_at = CURRENT_TIMESTAMP
+  const wordById = db.prepare(`
+    SELECT w.id, uw.collection_id AS "collectionId", w.word, w.translation, COALESCE(NULLIF(btrim(w.lemma), ''), w.word) AS lemma,
+           w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
+           COALESCE(uw.status, 'unknown') AS status,
+           COALESCE(uw.want_to_practice, 0) AS "wantToPractice"
+    FROM words w
+    JOIN user_words uw ON uw.word_id = w.id AND uw.user_id = ?
+    WHERE w.id = ?
   `);
-  // Sets the practice mark, but only for a word that is currently learning. A
-  // word in any other status leaves no row updated, so the rule is enforced in
-  // the database as well as the service.
+
+  // Membership: add a global word to a user's private list. Idempotent; the
+  // first collection placement wins (re-imports keep the user's organization).
+  const upsertUserWord = db.prepare(`
+    INSERT INTO user_words (user_id, word_id, collection_id)
+    VALUES (?, ?, ?)
+    ON CONFLICT (user_id, word_id) DO NOTHING
+  `);
+  const userWordExists = db.prepare("SELECT 1 FROM user_words WHERE user_id = ? AND word_id = ?");
+  const deleteUserWord = db.prepare("DELETE FROM user_words WHERE user_id = ? AND word_id = ?");
+  const updateUserWordCollection = db.prepare("UPDATE user_words SET collection_id = ?, updated_at = now() WHERE user_id = ? AND word_id = ?");
+  const setTranslationOverride = db.prepare("UPDATE user_words SET translation_override = ?, updated_at = now() WHERE user_id = ? AND word_id = ?");
+
+  // Status writes operate on the membership row, which always exists for a word
+  // the user can act on (it was added when the word entered their list). `known`
+  // is kept for legacy readers. Leaving 'learning' clears the practice mark.
+  const updateStatus = db.prepare(`
+    UPDATE user_words
+    SET known = ?, status = ?,
+        want_to_practice = CASE WHEN ? = 'learning' THEN want_to_practice ELSE 0 END,
+        updated_at = now()
+    WHERE user_id = ? AND word_id = ?
+  `);
   const setWantToPractice = db.prepare(`
-    UPDATE user_word_status
-    SET want_to_practice = ?, updated_at = CURRENT_TIMESTAMP
+    UPDATE user_words
+    SET want_to_practice = ?, updated_at = now()
     WHERE user_id = ? AND word_id = ? AND status = 'learning'
   `);
-  // Records one info-pane open for a word without touching its learning status.
   const incrementClickCount = db.prepare(`
-    INSERT INTO user_word_status (user_id, word_id, known, status, click_count, updated_at)
-    VALUES (?, ?, 0, 'unknown', 1, CURRENT_TIMESTAMP)
-    ON CONFLICT(user_id, word_id) DO UPDATE SET click_count = user_word_status.click_count + 1, updated_at = CURRENT_TIMESTAMP
+    UPDATE user_words SET click_count = click_count + 1, updated_at = now()
+    WHERE user_id = ? AND word_id = ?
   `);
+
+  const materialsReferencingWords = db.prepare(`
+    SELECT DISTINCT m.title
+    FROM material_tokens mt
+    JOIN materials m ON m.id = mt.material_id
+    WHERE m.user_id = ? AND mt.word_id = ANY(?::int[])
+    ORDER BY m.title
+  `);
+
+  // Shared FROM/JOIN tail for the two vocabulary listings. The user's
+  // membership drives ownership; the collection and language come from it.
+  const wordsListFrom = `
+    FROM words w
+    JOIN user_words uw ON uw.word_id = w.id AND uw.user_id = ?
+    JOIN collections c ON c.id = uw.collection_id
+    JOIN languages l ON l.id = w.language_id
+    LEFT JOIN word_translations wt ON wt.word_id = w.id AND wt.native_language = ?`;
+
+  function wordsListColumns(te) {
+    return `w.id, uw.collection_id AS "collectionId", c.name AS "collectionName", l.name AS "languageName",
+      w.word, COALESCE(NULLIF(btrim(w.lemma), ''), w.word) AS lemma, ${te} AS translation,
+      w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
+      COALESCE(uw.status, 'unknown') AS status`;
+  }
+
+  // Run a vocabulary listing scoped either to a whole language or one
+  // collection. Parameters are emitted in textual order of the placeholders.
+  function listWordsScoped(userId, scopeColumn, scopeValue, searchTerm, nativeLanguage) {
+    const te = displayedTranslationExpression();
+    const head = `SELECT ${wordsListColumns(te)} ${wordsListFrom}`;
+    if (searchTerm) {
+      const pattern = `%${searchTerm}%`;
+      return db.prepare(`
+        ${head}
+        WHERE ${scopeColumn} = ?
+          AND (lower(w.word) LIKE lower(?) OR lower(${te}) LIKE lower(?))
+        ORDER BY lower(w.word), lower(${te})
+      `).all(
+        nativeLanguage, nativeLanguage, // SELECT translation expression
+        userId,                          // user_words membership
+        nativeLanguage,                  // word_translations native language
+        scopeValue,                      // scope (language or collection)
+        pattern,                         // word LIKE
+        nativeLanguage, nativeLanguage, pattern, // translation LIKE
+        nativeLanguage, nativeLanguage   // ORDER BY translation expression
+      );
+    }
+    return db.prepare(`
+      ${head}
+      WHERE ${scopeColumn} = ?
+      ORDER BY lower(w.word), lower(${te})
+    `).all(
+      nativeLanguage, nativeLanguage, // SELECT translation expression
+      userId,                          // user_words membership
+      nativeLanguage,                  // word_translations native language
+      scopeValue,                      // scope (language or collection)
+      nativeLanguage, nativeLanguage   // ORDER BY translation expression
+    );
+  }
 
   return {
     findCollectionByName(userId, languageId, name) {
@@ -137,8 +180,8 @@ export function createWordsRepository(db) {
     findCollectionById(collectionId, userId) {
       return collectionById.get(collectionId, userId);
     },
-    createCollection(languageId, name) {
-      return createCollection.run(languageId, name);
+    createCollection(userId, languageId, name) {
+      return createCollection.run(userId, languageId, name);
     },
     deleteCollection(collectionId) {
       return deleteCollection.run(collectionId);
@@ -146,50 +189,50 @@ export function createWordsRepository(db) {
     updateCollectionLanguage(languageId, collectionId) {
       return updateCollectionLanguage.run(languageId, collectionId);
     },
-    insertWord(collectionId, word, translation, lemma, pos = null, posSubcategory = null, reading = null, pinyin = null, traditional = null) {
-      return insertWord.run(collectionId, word, translation, lemma, pos, posSubcategory, reading, pinyin, traditional);
+    insertWord(languageId, word, translation, lemma, pos = null, posSubcategory = null, reading = null, pinyin = null, traditional = null) {
+      return insertWord.run(languageId, word, translation, lemma, pos, posSubcategory, reading, pinyin, traditional);
     },
     // Insert-and-return in one round trip. Returns undefined when the unique
-    // (collection_id, word, translation) constraint suppressed the insert.
-    insertWordReturning(collectionId, word, translation, lemma, pos = null, posSubcategory = null, reading = null, pinyin = null, traditional = null) {
-      return insertWordReturning.get(collectionId, word, translation, lemma, pos, posSubcategory, reading, pinyin, traditional);
+    // lemma key suppressed the insert (the word already exists for the language).
+    insertWordReturning(languageId, word, translation, lemma, pos = null, posSubcategory = null, reading = null, pinyin = null, traditional = null) {
+      return insertWordReturning.get(languageId, word, translation, lemma, pos, posSubcategory, reading, pinyin, traditional);
     },
     updateWordMetadata(wordId, metadata) {
       return updateWordMetadata.run(metadata.pos, metadata.posSubcategory, metadata.reading, metadata.pinyin, metadata.traditional, wordId);
     },
-    findWordInLanguageBySurfaceOrLemma(userId, languageId, surface, lemma) {
-      return wordInLanguageBySurfaceOrLemma.get(userId, languageId, surface, lemma, surface);
+    findWordInLanguage(languageId, surface, lemma) {
+      return wordInLanguageBySurfaceOrLemma.get(languageId, surface, lemma, surface);
     },
-    findWordsInLanguageByTerms(userId, languageId, surfaces, lemmas) {
-      return wordsInLanguageByTerms.all(userId, languageId, surfaces, lemmas);
-    },
-    findWordByCollectionAndLemma(collectionId, lemma) {
-      return wordByCollectionAndLemma.get(collectionId, lemma);
+    findWordsInLanguageByTerms(languageId, surfaces, lemmas) {
+      return wordsInLanguageByTerms.all(languageId, surfaces, lemmas);
     },
     findWordById(userId, wordId) {
-      return wordById.get(userId, wordId, userId);
+      return wordById.get(userId, wordId);
+    },
+    addUserWord(userId, wordId, collectionId) {
+      return upsertUserWord.run(userId, wordId, collectionId);
+    },
+    async userHasWord(userId, wordId) {
+      return Boolean(await userWordExists.get(userId, wordId));
+    },
+    removeUserWord(userId, wordId) {
+      return deleteUserWord.run(userId, wordId);
+    },
+    updateWordCollection(userId, wordId, collectionId) {
+      return updateUserWordCollection.run(collectionId, userId, wordId);
+    },
+    setTranslationOverride(userId, wordId, translation) {
+      return setTranslationOverride.run(translation, userId, wordId);
     },
     upsertStatus(userId, wordId, status) {
       const known = status === "known" ? 1 : 0;
-      return upsertStatus.run(userId, wordId, known, status);
+      return updateStatus.run(known, status, status, userId, wordId);
     },
     setWantToPractice(userId, wordId, wantToPractice) {
       return setWantToPractice.run(wantToPractice ? 1 : 0, userId, wordId);
     },
     incrementClickCount(userId, wordId) {
       return incrementClickCount.run(userId, wordId);
-    },
-    deleteWord(wordId) {
-      return db.prepare("DELETE FROM words WHERE id = ?").run(wordId);
-    },
-    updateWordCollection(wordId, collectionId) {
-      return updateWordCollection.run(collectionId, wordId);
-    },
-    updateWordCollectionAndTranslation(wordId, collectionId, translation) {
-      return updateWordCollectionAndTranslation.run(collectionId, translation, wordId);
-    },
-    async wordOwnedByUser(userId, wordId) {
-      return Boolean(await wordOwnedByUser.get(wordId, userId));
     },
     async listMaterialsReferencingWords(userId, wordIds) {
       if (!wordIds.length) {
@@ -198,64 +241,10 @@ export function createWordsRepository(db) {
       return (await materialsReferencingWords.all(userId, wordIds)).map((row) => row.title);
     },
     listWordsInLanguage(userId, languageId, searchTerm, nativeLanguage = "English") {
-      const translationExpression = displayedTranslationExpression();
-      const selectColumns = `w.id, w.collection_id AS "collectionId", c.name AS "collectionName", l.name AS "languageName", w.word, COALESCE(w.lemma, w.word) AS lemma, ${translationExpression} AS translation,
-        w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
-        COALESCE(uws.status, 'unknown') AS status`;
-      if (searchTerm) {
-        return db.prepare(`
-          SELECT ${selectColumns}
-          FROM words w
-          JOIN collections c ON c.id = w.collection_id
-          JOIN languages l ON l.id = c.language_id
-          LEFT JOIN word_translations wt ON wt.word_id = w.id AND wt.native_language = ?
-          LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
-          WHERE l.user_id = ? AND l.id = ?
-            AND (lower(w.word) LIKE lower(?) OR lower(${translationExpression}) LIKE lower(?))
-          ORDER BY lower(w.word), lower(${translationExpression})
-        `).all(nativeLanguage, nativeLanguage, nativeLanguage, userId, userId, languageId, `%${searchTerm}%`, nativeLanguage, nativeLanguage, `%${searchTerm}%`, nativeLanguage, nativeLanguage);
-      }
-
-      return db.prepare(`
-        SELECT ${selectColumns}
-        FROM words w
-        JOIN collections c ON c.id = w.collection_id
-        JOIN languages l ON l.id = c.language_id
-        LEFT JOIN word_translations wt ON wt.word_id = w.id AND wt.native_language = ?
-        LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
-        WHERE l.user_id = ? AND l.id = ?
-        ORDER BY lower(w.word), lower(${translationExpression})
-      `).all(nativeLanguage, nativeLanguage, nativeLanguage, userId, userId, languageId, nativeLanguage, nativeLanguage);
+      return listWordsScoped(userId, "w.language_id", languageId, searchTerm, nativeLanguage);
     },
     listWords(userId, collectionId, searchTerm, nativeLanguage = "English") {
-      const translationExpression = displayedTranslationExpression();
-      const selectColumns = `w.id, w.collection_id AS "collectionId", l.name AS "languageName", w.word, COALESCE(w.lemma, w.word) AS lemma, ${translationExpression} AS translation,
-        w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
-        COALESCE(uws.status, 'unknown') AS status`;
-      if (searchTerm) {
-        return db.prepare(`
-          SELECT ${selectColumns}
-          FROM words w
-          JOIN collections c ON c.id = w.collection_id
-          JOIN languages l ON l.id = c.language_id
-          LEFT JOIN word_translations wt ON wt.word_id = w.id AND wt.native_language = ?
-          LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
-          WHERE l.user_id = ? AND w.collection_id = ?
-            AND (lower(w.word) LIKE lower(?) OR lower(${translationExpression}) LIKE lower(?))
-          ORDER BY lower(w.word), lower(${translationExpression})
-        `).all(nativeLanguage, nativeLanguage, nativeLanguage, userId, userId, collectionId, `%${searchTerm}%`, nativeLanguage, nativeLanguage, `%${searchTerm}%`, nativeLanguage, nativeLanguage);
-      }
-
-      return db.prepare(`
-        SELECT ${selectColumns}
-        FROM words w
-        JOIN collections c ON c.id = w.collection_id
-        JOIN languages l ON l.id = c.language_id
-        LEFT JOIN word_translations wt ON wt.word_id = w.id AND wt.native_language = ?
-        LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
-        WHERE l.user_id = ? AND w.collection_id = ?
-        ORDER BY lower(w.word), lower(${translationExpression})
-      `).all(nativeLanguage, nativeLanguage, nativeLanguage, userId, userId, collectionId, nativeLanguage, nativeLanguage);
+      return listWordsScoped(userId, "uw.collection_id", collectionId, searchTerm, nativeLanguage);
     }
   };
 }

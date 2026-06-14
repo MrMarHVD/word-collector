@@ -53,11 +53,12 @@ export async function deleteWords(repositories, userId, wordIds) {
   let skipped = 0;
   await repositories.database.transaction(async (tx) => {
     for (const id of ids) {
-      if (!(await tx.words.wordOwnedByUser(userId, id))) {
+      if (!(await tx.words.userHasWord(userId, id))) {
         skipped += 1;
         continue;
       }
-      const result = await tx.words.deleteWord(id);
+      // Remove the user's membership only; the global word stays for others.
+      const result = await tx.words.removeUserWord(userId, id);
       if (result.changes) {
         deleted += 1;
       } else {
@@ -86,7 +87,7 @@ export async function setWordsStatus(repositories, userId, wordIds, status) {
   let skipped = 0;
   await repositories.database.transaction(async (tx) => {
     for (const id of ids) {
-      if (!(await tx.words.wordOwnedByUser(userId, id))) {
+      if (!(await tx.words.userHasWord(userId, id))) {
         skipped += 1;
         continue;
       }
@@ -133,12 +134,12 @@ export async function moveWords(repositories, userId, wordIds, collectionId) {
   let skipped = 0;
   await repositories.database.transaction(async (tx) => {
     for (const id of ids) {
-      if (!(await tx.words.wordOwnedByUser(userId, id))) {
+      if (!(await tx.words.userHasWord(userId, id))) {
         skipped += 1;
         continue;
       }
       try {
-        const result = await tx.words.updateWordCollection(id, destination.id);
+        const result = await tx.words.updateWordCollection(userId, id, destination.id);
         if (result.changes) {
           moved += 1;
         } else {

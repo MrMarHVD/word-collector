@@ -409,18 +409,14 @@ export async function translationForToken(repositories, sourceLanguage, targetLa
   return lookupTranslation(repositories, sourceLanguage, targetLanguage, token.surface);
 }
 
-// Mirror the SQL preference of findWordInLanguageBySurfaceOrLemma: named
-// collections before "Uncollected", exact surface matches before lemma-only
-// matches, then collection name.
+// Mirror the SQL preference of findWordInLanguage: an exact surface match wins
+// over a lemma-only match, then the lower word id for stability.
 function pickPreferredWordMatch(matches, surfaceKey) {
   return [...matches].sort((a, b) => {
-    const aUncollected = String(a.collectionName || "").toLowerCase() === "uncollected" ? 1 : 0;
-    const bUncollected = String(b.collectionName || "").toLowerCase() === "uncollected" ? 1 : 0;
-    if (aUncollected !== bUncollected) return aUncollected - bUncollected;
     const aSurface = String(a.word || "").toLowerCase() === surfaceKey ? 0 : 1;
     const bSurface = String(b.word || "").toLowerCase() === surfaceKey ? 0 : 1;
     if (aSurface !== bSurface) return aSurface - bSurface;
-    return String(a.collectionName || "").toLowerCase().localeCompare(String(b.collectionName || "").toLowerCase());
+    return (a.id || 0) - (b.id || 0);
   })[0];
 }
 
@@ -447,7 +443,7 @@ export async function getTranslationCandidates(repositories, userId, sourceLangu
   const representatives = [...uniqueTokens.values()];
   const surfaces = [...new Set(representatives.map((token) => String(token.surface || "")))];
   const lemmas = [...new Set(representatives.map((token) => String(token.lemma || "")))];
-  const rows = await repositories.words.findWordsInLanguageByTerms(userId, sourceLanguage.id, surfaces, lemmas);
+  const rows = await repositories.words.findWordsInLanguageByTerms(sourceLanguage.id, surfaces, lemmas);
 
   const rowsByWord = new Map();
   const rowsByLemma = new Map();

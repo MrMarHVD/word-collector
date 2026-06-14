@@ -6,23 +6,36 @@ export function createImportsRepository(repositories) {
     findCollectionById(userId, collectionId) {
       return repositories.words.findCollectionById(collectionId, userId);
     },
-    createCollection(languageId, name) {
-      return repositories.words.createCollection(languageId, name);
+    createCollection(userId, languageId, name) {
+      return repositories.words.createCollection(userId, languageId, name);
     },
-    insertWord(collectionId, word, translation) {
-      return repositories.words.insertWord(collectionId, word, translation, word);
+    // Find the global word for this language by its surface/lemma.
+    findWordInLanguage(languageId, surface) {
+      return repositories.words.findWordInLanguage(languageId, surface, surface);
     },
-    findWordByCollectionAndLemma(collectionId, lemma) {
-      return repositories.words.findWordByCollectionAndLemma(collectionId, lemma);
+    // Create the global word (lemma = the imported surface), tolerating a race
+    // where another import created it first.
+    async insertWord(languageId, word, translation) {
+      return (await repositories.words.insertWordReturning(languageId, word, translation, word))
+        || (await repositories.words.findWordInLanguage(languageId, word, word));
     },
-    findExistingWordInLanguage(userId, languageId, surface) {
-      return repositories.words.findWordInLanguageBySurfaceOrLemma(userId, languageId, surface, surface);
+    addUserWord(userId, wordId, collectionId) {
+      return repositories.words.addUserWord(userId, wordId, collectionId);
     },
-    moveAndUpdateWord(wordId, collectionId, translation) {
-      return repositories.words.updateWordCollectionAndTranslation(wordId, collectionId, translation);
+    moveUserWord(userId, wordId, collectionId) {
+      return repositories.words.updateWordCollection(userId, wordId, collectionId);
     },
-    upsertEnglishTranslation(wordId, translation) {
-      return repositories.translations.upsertWordTranslation(wordId, "English", translation);
+    // The imported translation is personal to the user.
+    setTranslationOverride(userId, wordId, translation) {
+      return repositories.words.setTranslationOverride(userId, wordId, translation);
+    },
+    // Seed the shared English cache only when it is still empty, so an import
+    // never overwrites a translation other users already rely on.
+    async seedEnglishTranslation(wordId, translation) {
+      const row = await repositories.translations.findWordTranslation(wordId, "English");
+      if (!(row?.translation || "").trim()) {
+        await repositories.translations.upsertWordTranslation(wordId, "English", translation);
+      }
     }
   };
 }

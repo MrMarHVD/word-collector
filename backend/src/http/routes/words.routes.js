@@ -73,7 +73,7 @@ export function createWordsRoutes({ repositories }) {
     const wordClickMatch = url.pathname.match(/^\/api\/words\/(\d+)\/click$/);
     if (req.method === "POST" && wordClickMatch) {
       const id = Number(wordClickMatch[1]);
-      if (!(await repositories.words.wordOwnedByUser(user.userId, id))) {
+      if (!(await repositories.words.userHasWord(user.userId, id))) {
         jsonResponse(res, 404, { error: "Word not found." });
         return true;
       }

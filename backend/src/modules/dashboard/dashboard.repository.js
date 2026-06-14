@@ -1,5 +1,5 @@
 function collectionFilter(selectedLanguageId) {
-  return selectedLanguageId ? "WHERE l.user_id = ? AND c.language_id = ?" : "WHERE l.user_id = ?";
+  return selectedLanguageId ? "WHERE c.user_id = ? AND c.language_id = ?" : "WHERE c.user_id = ?";
 }
 
 export function createDashboardRepository(db) {
@@ -9,14 +9,12 @@ export function createDashboardRepository(db) {
       const params = selectedLanguageId ? [userId, selectedLanguageId] : [userId];
       return db.prepare(`
         SELECT
-          COUNT(w.id) AS "totalWords",
-          COALESCE(SUM(CASE WHEN uws.status = 'known' THEN 1 ELSE 0 END), 0) AS "knownWords",
-          COALESCE(SUM(CASE WHEN uws.status = 'learning' THEN 1 ELSE 0 END), 0) AS "learningWords",
-          COALESCE(SUM(CASE WHEN uws.want_to_practice = 1 THEN 1 ELSE 0 END), 0) AS "wantToPracticeWords"
+          COUNT(uw.word_id) AS "totalWords",
+          COALESCE(SUM(CASE WHEN uw.status = 'known' THEN 1 ELSE 0 END), 0) AS "knownWords",
+          COALESCE(SUM(CASE WHEN uw.status = 'learning' THEN 1 ELSE 0 END), 0) AS "learningWords",
+          COALESCE(SUM(CASE WHEN uw.want_to_practice = 1 THEN 1 ELSE 0 END), 0) AS "wantToPracticeWords"
         FROM collections c
-        JOIN languages l ON l.id = c.language_id
-        LEFT JOIN words w ON w.collection_id = c.id
-        LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
+        LEFT JOIN user_words uw ON uw.collection_id = c.id AND uw.user_id = ?
         ${filter}
       `).get(userId, ...params);
     },
@@ -29,13 +27,12 @@ export function createDashboardRepository(db) {
           c.name,
           c.language_id AS "languageId",
           l.name AS "languageName",
-          COUNT(w.id) AS "totalWords",
-          COALESCE(SUM(CASE WHEN uws.status = 'known' THEN 1 ELSE 0 END), 0) AS "knownWords",
-          COALESCE(SUM(CASE WHEN uws.status = 'learning' THEN 1 ELSE 0 END), 0) AS "learningWords"
+          COUNT(uw.word_id) AS "totalWords",
+          COALESCE(SUM(CASE WHEN uw.status = 'known' THEN 1 ELSE 0 END), 0) AS "knownWords",
+          COALESCE(SUM(CASE WHEN uw.status = 'learning' THEN 1 ELSE 0 END), 0) AS "learningWords"
         FROM collections c
         JOIN languages l ON l.id = c.language_id
-        LEFT JOIN words w ON w.collection_id = c.id
-        LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
+        LEFT JOIN user_words uw ON uw.collection_id = c.id AND uw.user_id = ?
         ${filter}
         GROUP BY c.id, l.name
         ORDER BY lower(l.name), lower(c.name)
@@ -48,14 +45,13 @@ export function createDashboardRepository(db) {
           c.name,
           c.language_id AS "languageId",
           l.name AS "languageName",
-          COUNT(w.id) AS "totalWords",
-          COALESCE(SUM(CASE WHEN uws.status = 'known' THEN 1 ELSE 0 END), 0) AS "knownWords",
-          COALESCE(SUM(CASE WHEN uws.status = 'learning' THEN 1 ELSE 0 END), 0) AS "learningWords"
+          COUNT(uw.word_id) AS "totalWords",
+          COALESCE(SUM(CASE WHEN uw.status = 'known' THEN 1 ELSE 0 END), 0) AS "knownWords",
+          COALESCE(SUM(CASE WHEN uw.status = 'learning' THEN 1 ELSE 0 END), 0) AS "learningWords"
         FROM collections c
         JOIN languages l ON l.id = c.language_id
-        LEFT JOIN words w ON w.collection_id = c.id
-        LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
-        WHERE l.user_id = ?
+        LEFT JOIN user_words uw ON uw.collection_id = c.id AND uw.user_id = ?
+        WHERE c.user_id = ?
         GROUP BY c.id, l.name
         ORDER BY lower(l.name), lower(c.name)
       `).all(userId, userId);
@@ -89,12 +85,12 @@ export function createDashboardRepository(db) {
           COUNT(mt.id) AS "totalTokens",
           LEAST(m.reader_start, COUNT(mt.id)) AS "readTokens",
           COUNT(DISTINCT mt.word_id) AS "totalWords",
-          COUNT(DISTINCT CASE WHEN uws.status = 'known' THEN mt.word_id END) AS "knownWords",
-          COUNT(DISTINCT CASE WHEN uws.status = 'learning' THEN mt.word_id END) AS "learningWords"
+          COUNT(DISTINCT CASE WHEN uw.status = 'known' THEN mt.word_id END) AS "knownWords",
+          COUNT(DISTINCT CASE WHEN uw.status = 'learning' THEN mt.word_id END) AS "learningWords"
         FROM materials m
         JOIN languages l ON l.id = m.language_id
         LEFT JOIN material_tokens mt ON mt.material_id = m.id
-        LEFT JOIN user_word_status uws ON uws.word_id = mt.word_id AND uws.user_id = ?
+        LEFT JOIN user_words uw ON uw.word_id = mt.word_id AND uw.user_id = ?
         WHERE ${filters.join(" AND ")}
         GROUP BY m.id, l.name
         ORDER BY m.created_at DESC, m.id DESC

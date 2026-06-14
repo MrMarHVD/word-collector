@@ -24,8 +24,8 @@ export function nativeStudyLanguageConflict(studyLanguage, nativeLanguage) {
   return null;
 }
 
-// Languages are user-owned, while the allowed study-language names are fixed.
-// Return all languages available to a user in display order.
+// Languages are global; a user enrols in them via user_languages. The allowed
+// study-language names are fixed. Return all languages a user has in order.
 export function getLanguages(repositories, userId) {
   return repositories.languages.listForUser(userId);
 }

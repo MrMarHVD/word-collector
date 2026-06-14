@@ -64,17 +64,18 @@ export function createMaterialsRepository(db) {
            w.word AS "dictionaryForm",
            w.pos AS "wordPos", w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
            CASE
+             WHEN uw.translation_override IS NOT NULL AND btrim(uw.translation_override) <> '' THEN uw.translation_override
              WHEN wt.translation IS NOT NULL AND trim(wt.translation) <> '' THEN wt.translation
              WHEN lower(?) = lower(?) THEN w.word
              WHEN ? = 'English' OR lower(?) = 'chinese' THEN w.translation
              ELSE ''
            END AS translation,
-           COALESCE(uws.status, 'unknown') AS status,
-           COALESCE(uws.want_to_practice, 0) AS "wantToPractice"
+           COALESCE(uw.status, 'unknown') AS status,
+           COALESCE(uw.want_to_practice, 0) AS "wantToPractice"
     FROM material_tokens mt
     JOIN words w ON w.id = mt.word_id
     LEFT JOIN word_translations wt ON wt.word_id = w.id AND wt.native_language = ?
-    LEFT JOIN user_word_status uws ON uws.word_id = w.id AND uws.user_id = ?
+    LEFT JOIN user_words uw ON uw.word_id = w.id AND uw.user_id = ?
     WHERE mt.material_id = ?
     ORDER BY mt.position
     LIMIT ? OFFSET ?

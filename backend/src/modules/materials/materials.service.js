@@ -14,7 +14,7 @@ const UNCOLLECTED_COLLECTION_NAME = "Uncollected";
 async function getUncollectedCollection(repositories, userId, languageId) {
   let collection = await repositories.words.findCollectionByName(userId, languageId, UNCOLLECTED_COLLECTION_NAME);
   if (!collection) {
-    await repositories.words.createCollection(languageId, UNCOLLECTED_COLLECTION_NAME);
+    await repositories.words.createCollection(userId, languageId, UNCOLLECTED_COLLECTION_NAME);
     collection = await repositories.words.findCollectionByName(userId, languageId, UNCOLLECTED_COLLECTION_NAME);
   }
   return collection;
@@ -37,41 +37,46 @@ async function wordMetadataForToken(repositories, sourceLanguage, token) {
   return { pos: token.pos || "", posSubcategory: "", reading: "", pinyin: "", traditional: "" };
 }
 
-// Return a dictionary word row, creating and translating one when necessary.
+// Resolve the global word for a token, creating and translating one when the
+// language has never seen it, then attach it to the user's private list.
 // `importContext`, when given, caches the Uncollected collection across calls
 // within one import run.
+//
+// Translation reuse: a word another user already imported is shared, and its
+// cached translation is inherited. The dictionary only runs again when the word
+// is new, or exists but has no usable translation for the target language.
 async function getOrCreateDictionaryWord(repositories, userId, language, token, targetNativeLanguage, fallbackTranslation, importContext = null) {
   const metadata = await wordMetadataForToken(repositories, language, token);
   const source = languageKey(language);
   const baseTranslation = source === "English"
     ? token.lemma
     : (await lookupTranslation(repositories, language, "English", token.lemma)) || (await lookupTranslation(repositories, language, "English", token.surface)) || fallbackTranslation;
-  // Reuse a matching user-owned word before creating an uncollected entry.
-  const existing = await repositories.words.findWordInLanguageBySurfaceOrLemma(userId, language.id, token.surface, token.lemma);
-  if (existing) {
-    if (targetNativeLanguage) {
-      // One read answers both "was a translation attempted" (row exists) and
-      // "is it usable" (non-empty and not just the word itself).
-      const storedRow = await repositories.translations.findWordTranslation(existing.id, targetNativeLanguage);
-      const stored = normalizeName(storedRow?.translation || "").toLowerCase();
-      const usable = stored && stored !== token.lemma.toLowerCase() && stored !== token.surface.toLowerCase();
-      if (!usable && (fallbackTranslation || !storedRow)) {
-        await repositories.translations.upsertWordTranslation(existing.id, targetNativeLanguage, fallbackTranslation);
-      }
-    }
-    await repositories.words.updateWordMetadata(existing.id, metadata);
-    return existing;
-  }
 
+  // The user's Uncollected collection backs every membership created here.
   const collection = importContext?.uncollected
     || await getUncollectedCollection(repositories, userId, language.id);
   if (importContext) {
     importContext.uncollected = collection;
   }
-  let word = await repositories.words.findWordByCollectionAndLemma(collection.id, token.lemma);
-  if (!word) {
+
+  // Reuse the global word for this language if it already exists.
+  let word = await repositories.words.findWordInLanguage(language.id, token.surface, token.lemma);
+  if (word) {
+    await repositories.words.updateWordMetadata(word.id, metadata);
+    if (targetNativeLanguage) {
+      // One read answers both "was a translation attempted" (row exists) and
+      // "is it usable" (non-empty and not just the word itself). Inherit when
+      // usable; otherwise rerun the dictionary via the computed fallback.
+      const storedRow = await repositories.translations.findWordTranslation(word.id, targetNativeLanguage);
+      const stored = normalizeName(storedRow?.translation || "").toLowerCase();
+      const usable = stored && stored !== token.lemma.toLowerCase() && stored !== token.surface.toLowerCase();
+      if (!usable && (fallbackTranslation || !storedRow)) {
+        await repositories.translations.upsertWordTranslation(word.id, targetNativeLanguage, fallbackTranslation);
+      }
+    }
+  } else {
     word = await repositories.words.insertWordReturning(
-      collection.id,
+      language.id,
       token.lemma,
       baseTranslation,
       token.lemma,
@@ -80,13 +85,16 @@ async function getOrCreateDictionaryWord(repositories, userId, language, token, 
       metadata.reading || null,
       metadata.pinyin || null,
       metadata.traditional || null
-    ) || await repositories.words.findWordByCollectionAndLemma(collection.id, token.lemma);
-  } else {
-    await repositories.words.updateWordMetadata(word.id, metadata);
+    ) || await repositories.words.findWordInLanguage(language.id, token.surface, token.lemma);
+    if (word && targetNativeLanguage) {
+      await repositories.translations.upsertWordTranslation(word.id, targetNativeLanguage, fallbackTranslation);
+    }
   }
 
-  if (targetNativeLanguage) {
-    await repositories.translations.upsertWordTranslation(word.id, targetNativeLanguage, fallbackTranslation);
+  // Attach the word to the user. Idempotent: an existing membership (and its
+  // collection placement) is preserved on re-import.
+  if (word) {
+    await repositories.words.addUserWord(userId, word.id, collection.id);
   }
   return word;
 }
