@@ -103,11 +103,12 @@ function beginSession(words) {
   renderPracticeCard(session, session.index, session.flipped);
 }
 
+// Toggle the card between its front and back so a turned card can be turned back.
 function flipCard() {
-  if (!session.active || session.flipped) {
+  if (!session.active) {
     return;
   }
-  session.flipped = true;
+  session.flipped = !session.flipped;
   renderPracticeCard(session, session.index, session.flipped);
 }
 
@@ -254,7 +255,7 @@ export function bindPracticeEvents() {
     if (event.target instanceof HTMLElement && event.target.closest("input, textarea, select")) {
       return;
     }
-    if (!session.flipped && (event.key === " " || event.key === "Enter")) {
+    if (event.key === " " || event.key === "Enter") {
       event.preventDefault();
       flipCard();
       return;
