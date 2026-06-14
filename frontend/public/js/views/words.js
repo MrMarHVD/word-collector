@@ -4,6 +4,7 @@ import { formatCount, t } from "../i18n.js";
 import { escapeHtml } from "../shared/html.js";
 import { normalizeStatus, WORD_STATUSES } from "../shared/status.js";
 import { renderDisplayModeButtons } from "./shell.js";
+import { renderTranslationOverrideControls } from "./components/translation-override.js";
 
 function usePagedWordList() {
   return state.wordDisplayMode === "page";
@@ -106,7 +107,7 @@ export function renderWords(words) {
           </div>
         </td>
         <td class="px-3 py-3 align-top text-label" data-label="${escapeHtml(t("table.translation"))}">
-          ${escapeHtml(entry.translation)}
+          ${renderTranslationOverrideControls(entry, { context: "vocab" })}
         </td>
         <td class="px-3 py-3 align-middle word-action-cell" data-label="${escapeHtml(t("reader.disambiguate"))}">
           ${candidates.length > 1 ? `<button class="disambiguation-button secondary-button rounded-md border border-line bg-panel px-3 text-sm font-bold text-brand hover:bg-hover" type="button" data-word-disambiguate="${entry.id}" aria-expanded="${expanded}">

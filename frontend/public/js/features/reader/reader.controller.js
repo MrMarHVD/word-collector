@@ -125,6 +125,9 @@ function startReaderResize(event, target) {
 }
 
 function closeReaderWordInfo() {
+  state.readerWordInfoTokenId = null;
+  state.translationOverrideEditWordId = null;
+  state.translationOverrideEditContext = null;
   renderReaderWordInfo(null);
   elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
 }
@@ -238,11 +241,49 @@ function showReaderConvenienceMenu(menu) {
 
 function syncReaderWordTokens(wordId, updates) {
   state.readerTokens = state.readerTokens.map((token) => (token.wordId === wordId ? { ...token, ...updates } : token));
+  state.readerFetchedTokens = state.readerFetchedTokens.map((token) => (token.wordId === wordId ? { ...token, ...updates } : token));
   elements.readerText.querySelectorAll(`[data-word-id="${wordId}"]`).forEach((entry) => {
     if (updates.status) {
       entry.dataset.status = updates.status;
     }
   });
+}
+
+function rerenderActiveReaderWordInfo(wordId) {
+  const token = state.readerTokens.find((entry) => entry.id === state.readerWordInfoTokenId)
+    || state.readerTokens.find((entry) => entry.wordId === wordId);
+  if (!token) {
+    closeReaderWordInfo();
+    return;
+  }
+  const anchor = elements.readerText.querySelector(`.reader-token.is-selected[data-word-id="${wordId}"]`)
+    || elements.readerText.querySelector(`.reader-token[data-token-id="${token.id}"]`);
+  renderReaderWordInfo(token, anchor);
+}
+
+function beginReaderTranslationOverrideEdit(wordId) {
+  state.translationOverrideEditWordId = wordId;
+  state.translationOverrideEditContext = "reader";
+  rerenderActiveReaderWordInfo(wordId);
+  requestAnimationFrame(() => {
+    elements.readerWordInfo.querySelector(".translation-override-input")?.focus();
+  });
+}
+
+async function saveReaderTranslationOverride(wordId, translationOverride) {
+  const currentToken = state.readerTokens.find((token) => token.wordId === wordId);
+  const updated = await requestJson(`/api/words/${wordId}/translation-override`, {
+    method: "PATCH",
+    body: JSON.stringify({ translationOverride })
+  });
+  state.translationOverrideEditWordId = null;
+  state.translationOverrideEditContext = null;
+  syncReaderWordTokens(wordId, {
+    translation: updated.translation,
+    translationOverride: updated.translationOverride,
+    canonicalTranslation: updated.canonicalTranslation || currentToken?.canonicalTranslation || ""
+  });
+  rerenderActiveReaderWordInfo(wordId);
 }
 
 async function applyReaderConvenienceAction(menu) {
@@ -688,6 +729,7 @@ export function bindReaderEvents() {
     elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
     button.classList.add("is-selected");
     const token = state.readerTokens.find((entry) => entry.id === Number(button.dataset.tokenId));
+    state.readerWordInfoTokenId = token?.id || null;
     renderReaderWordInfo(token, button);
     requestJson(`/api/words/${button.dataset.wordId}/click`, { method: "POST" }).catch(() => {});
     const changed = state.readerAutoMarkLearningOnClick ? await markReaderWordLearning(Number(button.dataset.wordId)) : false;
@@ -698,8 +740,32 @@ export function bindReaderEvents() {
   });
 
   elements.readerWordInfo.addEventListener("click", async (event) => {
+    event.stopPropagation();
     if (event.target.closest("[data-reader-word-info-close]")) {
       closeReaderWordInfo();
+      return;
+    }
+    const translationEdit = event.target.closest("[data-translation-override-edit]");
+    if (translationEdit) {
+      beginReaderTranslationOverrideEdit(Number(translationEdit.dataset.wordId));
+      return;
+    }
+    const translationCancel = event.target.closest("[data-translation-override-cancel]");
+    if (translationCancel) {
+      state.translationOverrideEditWordId = null;
+      state.translationOverrideEditContext = null;
+      rerenderActiveReaderWordInfo(Number(translationCancel.dataset.wordId));
+      return;
+    }
+    const translationClear = event.target.closest("[data-translation-override-clear]");
+    if (translationClear) {
+      const wordId = Number(translationClear.dataset.wordId);
+      translationClear.disabled = true;
+      try {
+        await saveReaderTranslationOverride(wordId, null);
+      } finally {
+        translationClear.disabled = false;
+      }
       return;
     }
     const disambiguate = event.target.closest("[data-disambiguate]");
@@ -732,6 +798,21 @@ export function bindReaderEvents() {
       await loadDashboard();
     } finally {
       segment.disabled = false;
+    }
+  });
+
+  elements.readerWordInfo.addEventListener("submit", async (event) => {
+    const form = event.target.closest("[data-translation-override-form]");
+    if (!form) {
+      return;
+    }
+    event.preventDefault();
+    const button = form.querySelector(".translation-override-save");
+    button.disabled = true;
+    try {
+      await saveReaderTranslationOverride(Number(form.dataset.wordId), new FormData(form).get("translationOverride"));
+    } finally {
+      button.disabled = false;
     }
   });
 

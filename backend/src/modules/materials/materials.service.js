@@ -346,11 +346,12 @@ export async function getMaterialReader(repositories, userId, materialId, start 
       tokens.push(token);
       continue;
     }
-    tokens.push({
-      ...token,
-      translation: (await displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token)) || token.translation,
-      disambiguationCandidates
-    });
+    if (typeof token.translationOverride === "string" && token.translationOverride.trim()) {
+      tokens.push({ ...token, disambiguationCandidates });
+      continue;
+    }
+    const translation = (await displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token)) || token.translation;
+    tokens.push({ ...token, translation, disambiguationCandidates });
   }
   return { material, tokens, start: safeStart, limit: safeLimit, nativeLanguage, translationStatus };
 }

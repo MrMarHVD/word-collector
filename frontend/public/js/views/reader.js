@@ -4,6 +4,7 @@ import { renderStatusToggle } from "./words.js";
 import { formatCount, t } from "../i18n.js";
 import { state } from "../state.js";
 import { escapeHtml } from "../shared/html.js";
+import { hasTranslationOverride, renderTranslationOverrideControls } from "./components/translation-override.js";
 
 const MIN_READER_PANEL_WIDTH = 360;
 const MAX_READER_SIDEBAR_WIDTH = 340;
@@ -443,8 +444,36 @@ function positionReaderWordInfo(anchor) {
   elements.readerWordInfo.style.visibility = "";
 }
 
-function renderDisambiguationTable(candidates) {
-  if (!Array.isArray(candidates) || candidates.length <= 1) {
+function originalTranslationCandidate(token) {
+  if (!hasTranslationOverride(token) || !token.canonicalTranslation) {
+    return null;
+  }
+  return {
+    source: token.dictionaryForm || token.lemma || token.surface || "",
+    translation: token.canonicalTranslation,
+    pos: "",
+    original: true
+  };
+}
+
+function disambiguationEntries(token) {
+  const original = originalTranslationCandidate(token);
+  const originalKey = String(original?.translation || "").toLowerCase();
+  const candidates = (Array.isArray(token.disambiguationCandidates) ? token.disambiguationCandidates : [])
+    .map((candidate) => ({
+      ...candidate,
+      original: Boolean(originalKey && String(candidate.translation || "").toLowerCase() === originalKey)
+    }));
+  const hasOriginalCandidate = candidates.some((candidate) => candidate.original);
+  return [
+    ...candidates,
+    hasOriginalCandidate ? null : original
+  ].filter(Boolean);
+}
+
+function renderDisambiguationTable(token) {
+  const entries = disambiguationEntries(token);
+  if (!entries.length) {
     return "";
   }
   return `
@@ -458,10 +487,10 @@ function renderDisambiguationTable(candidates) {
           </tr>
         </thead>
         <tbody>
-          ${candidates.map((candidate) => {
-            const pos = candidate.pos ? t(`pos.${candidate.pos}`, {}, candidate.pos) : "";
+          ${entries.map((candidate) => {
+            const pos = candidate.original ? t("translation.original") : candidate.pos ? t(`pos.${candidate.pos}`, {}, candidate.pos) : "";
             return `
-              <tr>
+              <tr${candidate.original ? ` class="is-original-translation"` : ""}>
                 <td>${escapeHtml(candidate.source || "")}</td>
                 <td>${escapeHtml(candidate.translation || "")}</td>
                 <td>${escapeHtml(pos)}</td>
@@ -488,7 +517,10 @@ export function renderReaderWordInfo(token, anchor = null) {
   const subcategoryLabel = subcategoryKey ? t(`pos.${subcategoryKey}`, {}, subcategoryKey) : "";
   const subcategorySuffix = subcategoryLabel ? ` (${subcategoryLabel})` : "";
   rows.push({ label: t("reader.dictionaryForm"), value: `${dictionaryForm}${subcategorySuffix}` });
-  rows.push({ label: t("table.translation"), value: token.translation || t("reader.noTranslation") });
+  rows.push({
+    label: t("table.translation"),
+    valueHtml: renderTranslationOverrideControls(token, { context: "reader", compact: true })
+  });
   if (token.reading && token.reading !== dictionaryForm) {
     rows.push({ label: t("reader.reading"), value: token.reading });
   }
@@ -512,6 +544,7 @@ export function renderReaderWordInfo(token, anchor = null) {
   // status the checkbox is disabled and forced off.
   const canPractice = status === "learning";
   const practiceChecked = canPractice && Boolean(token.wantToPractice);
+  const disambiguationEntryCount = disambiguationEntries(token).length;
   const practiceToggle = `
     <label class="reader-practice-toggle${canPractice ? "" : " is-disabled"}"${canPractice ? "" : ` title="${escapeHtml(t("reader.practiceHint"))}"`}>
       <input class="reader-checkbox" type="checkbox" data-reader-practice-checkbox data-reader-word-id="${token.wordId}" ${practiceChecked ? "checked" : ""} ${canPractice ? "" : "disabled"} />
@@ -524,18 +557,18 @@ export function renderReaderWordInfo(token, anchor = null) {
   elements.readerWordInfo.innerHTML = `
     <div class="reader-word-info-head">
       <strong>${escapeHtml(token.surface)}</strong>
-      ${(token.disambiguationCandidates || []).length > 1 ? `<button class="disambiguation-button secondary-button rounded-md border border-line bg-panel px-3 text-sm font-bold text-brand hover:bg-hover" type="button" data-disambiguate aria-expanded="false">
+      ${disambiguationEntryCount > 1 || originalTranslationCandidate(token) ? `<button class="disambiguation-button secondary-button rounded-md border border-line bg-panel px-3 text-sm font-bold text-brand hover:bg-hover" type="button" data-disambiguate aria-expanded="false">
         <span class="disambiguation-button-icon" aria-hidden="true">▾</span>
         <span>${escapeHtml(t("reader.disambiguate"))}</span>
       </button>` : ""}
       <button class="reader-word-info-close" type="button" data-reader-word-info-close aria-label="${escapeHtml(t("reader.closeTranslation"))}">&times;</button>
     </div>
     <dl>
-      ${rows.map((row) => `<dt>${escapeHtml(row.label)}</dt><dd>${escapeHtml(row.value)}</dd>`).join("")}
+      ${rows.map((row) => `<dt>${escapeHtml(row.label)}</dt><dd>${row.valueHtml || escapeHtml(row.value)}</dd>`).join("")}
     </dl>
     ${practiceToggle}
     ${renderStatusToggle(token.wordId, status, { dataAttr: "data-reader-word-id" })}
-    ${renderDisambiguationTable(token.disambiguationCandidates)}
+    ${renderDisambiguationTable(token)}
   `;
   positionReaderWordInfo(anchor);
 }

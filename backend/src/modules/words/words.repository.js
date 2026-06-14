@@ -12,6 +12,10 @@ function displayedTranslationExpression() {
   `;
 }
 
+function canonicalTranslationExpression() {
+  return "w.translation";
+}
+
 // The lemma key that identifies a global word within its language. Mirrors the
 // unique index created in the migration and the import-resolution key.
 const WORD_KEY = "lower(COALESCE(NULLIF(btrim(w.lemma), ''), w.word))";
@@ -73,12 +77,16 @@ export function createWordsRepository(db) {
         OR ${WORD_KEY} = ANY(ARRAY(SELECT lower(unnest(?::text[])))))
   `);
   const wordById = db.prepare(`
-    SELECT w.id, uw.collection_id AS "collectionId", w.word, w.translation, COALESCE(NULLIF(btrim(w.lemma), ''), w.word) AS lemma,
+    SELECT w.id, uw.collection_id AS "collectionId", w.word, ${displayedTranslationExpression()} AS translation,
+           ${canonicalTranslationExpression()} AS "canonicalTranslation", uw.translation_override AS "translationOverride",
+           COALESCE(NULLIF(btrim(w.lemma), ''), w.word) AS lemma,
            w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
            COALESCE(uw.status, 'unknown') AS status,
            COALESCE(uw.want_to_practice, 0) AS "wantToPractice"
     FROM words w
     JOIN user_words uw ON uw.word_id = w.id AND uw.user_id = ?
+    JOIN languages l ON l.id = w.language_id
+    LEFT JOIN word_translations wt ON wt.word_id = w.id AND wt.native_language = ?
     WHERE w.id = ?
   `);
 
@@ -134,6 +142,7 @@ export function createWordsRepository(db) {
   function wordsListColumns(te) {
     return `w.id, uw.collection_id AS "collectionId", c.name AS "collectionName", l.name AS "languageName",
       w.word, COALESCE(NULLIF(btrim(w.lemma), ''), w.word) AS lemma, ${te} AS translation,
+      ${canonicalTranslationExpression()} AS "canonicalTranslation", uw.translation_override AS "translationOverride",
       w.pos, w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
       COALESCE(uw.status, 'unknown') AS status`;
   }
@@ -206,8 +215,8 @@ export function createWordsRepository(db) {
     findWordsInLanguageByTerms(languageId, surfaces, lemmas) {
       return wordsInLanguageByTerms.all(languageId, surfaces, lemmas);
     },
-    findWordById(userId, wordId) {
-      return wordById.get(userId, wordId);
+    findWordById(userId, wordId, nativeLanguage = "English") {
+      return wordById.get(nativeLanguage, nativeLanguage, userId, nativeLanguage, wordId);
     },
     addUserWord(userId, wordId, collectionId) {
       return upsertUserWord.run(userId, wordId, collectionId);

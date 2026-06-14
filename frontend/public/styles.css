@@ -1807,6 +1807,73 @@ tbody tr:last-child td {
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
+.translation-override-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+.translation-override-display.is-compact {
+  width: 100%;
+  justify-content: space-between;
+}
+.translation-override-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-label);
+}
+.translation-override-text.is-overridden {
+  color: var(--text-main);
+  font-weight: 700;
+}
+.translation-override-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+.translation-override-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: min(100%, 360px);
+}
+.translation-override-form.is-compact {
+  width: 100%;
+}
+.translation-override-input {
+  min-width: 0;
+  flex: 1 1 150px;
+  border: 1px solid var(--border-main);
+  border-radius: 8px;
+  background: var(--surface-panel);
+  color: var(--text-main);
+  padding: 7px 9px;
+  font-size: 0.88rem;
+  line-height: 1.25;
+}
+.translation-override-input:focus {
+  outline: none;
+  border-color: var(--brand);
+  @supports (color: color-mix(in lab, red, red)) {
+    border-color: color-mix(in srgb, var(--brand) 55%, transparent);
+  }
+  box-shadow: 0 0 0 3px var(--brand);
+  @supports (color: color-mix(in lab, red, red)) {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 16%, transparent);
+  }
+}
+.translation-override-save {
+  flex: 0 0 auto;
+  width: max-content;
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 0.8rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+.translation-override-cancel, .translation-override-edit, .translation-override-clear {
+  flex: 0 0 auto;
+}
 .collections-mobile-select-wrap {
   display: none;
 }
@@ -2568,6 +2635,43 @@ tbody tr:last-child td {
 }
 .disambiguation-row td {
   background: var(--surface-muted);
+}
+.disambiguation-panel tr.is-original-translation {
+  outline: 1px solid var(--known);
+  @supports (color: color-mix(in lab, red, red)) {
+    outline: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
+  }
+  outline-offset: -1px;
+}
+.disambiguation-panel tr.is-original-translation td {
+  background: var(--known);
+  @supports (color: color-mix(in lab, red, red)) {
+    background: color-mix(in srgb, var(--known) 8%, var(--surface-panel));
+  }
+  border-top: 1px solid var(--known);
+  @supports (color: color-mix(in lab, red, red)) {
+    border-top: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
+  }
+  border-bottom: 1px solid var(--known);
+  @supports (color: color-mix(in lab, red, red)) {
+    border-bottom: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
+  }
+}
+.disambiguation-panel tr.is-original-translation td:first-child {
+  border-left: 1px solid var(--known);
+  @supports (color: color-mix(in lab, red, red)) {
+    border-left: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
+  }
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+.disambiguation-panel tr.is-original-translation td:last-child {
+  border-right: 1px solid var(--known);
+  @supports (color: color-mix(in lab, red, red)) {
+    border-right: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
+  }
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 .reader-resize-handle, .reader-word-info-resize, .reader-panel-resize {
   position: absolute;

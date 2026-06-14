@@ -63,6 +63,8 @@ export function createMaterialsRepository(db) {
            mt.leading_text AS "leadingText", mt.trailing_text AS "trailingText",
            w.word AS "dictionaryForm",
            w.pos AS "wordPos", w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
+           w.translation AS "canonicalTranslation",
+           uw.translation_override AS "translationOverride",
            CASE
              WHEN uw.translation_override IS NOT NULL AND btrim(uw.translation_override) <> '' THEN uw.translation_override
              WHEN wt.translation IS NOT NULL AND trim(wt.translation) <> '' THEN wt.translation
