@@ -1,6 +1,7 @@
 # AGENTS.md
 
 - Be concise, professional and deferent. Do not add filler. 
+- While working in a git worktree, never read, modify, create, or delete any files outside that worktree folder. Confine all changes to the worktree.
 - Never destroy, reset, delete, overwrite, or migrate existing user data unless the user explicitly asks for that exact action.
 - When changing database schema or storage behavior, preserve existing data with backward-compatible migrations.
 - When adding user-owned data, tables, relations, persisted files, or storage behavior, update account deletion so all data related to the deleted user is completely removed.
