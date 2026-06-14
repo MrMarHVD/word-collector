@@ -5,7 +5,7 @@ import { bindStudyLanguageEvents, configureStudyLanguage, renderStudyLanguageSel
 import { elements } from "./dom.js";
 import { bindAuthEvents, configureAuthController, consumeVerificationToken, loadSession, openResetPassword, showOAuthError, showVerificationResult } from "./features/auth/auth.controller.js";
 import { bindCollectionsEvents, configureCollectionsController, loadWords } from "./features/collections/collections.controller.js";
-import { configureDashboardController, loadDashboard } from "./features/dashboard/dashboard.controller.js";
+import { bindDashboardEvents, configureDashboardController, loadDashboard } from "./features/dashboard/dashboard.controller.js";
 import { bindImportEvents, configureImportsController } from "./features/imports/imports.controller.js";
 import { bindMaterialsEvents, configureMaterialsController, loadMaterials } from "./features/materials/materials.controller.js";
 import { bindPracticeEvents, configurePracticeController } from "./features/practice/practice.controller.js";
@@ -133,6 +133,7 @@ bindMobileZoomGuard();
 bindShellEvents();
 bindLocaleEvents();
 bindStudyLanguageEvents();
+bindDashboardEvents();
 bindAuthEvents();
 bindImportEvents();
 bindMaterialsEvents();

@@ -1,3 +1,50 @@
+.local-tabbar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--brand) 18%, var(--border-main));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand) 5%, var(--surface-panel));
+}
+
+.local-tab {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.local-tab:hover,
+.local-tab.is-active {
+  border-color: color-mix(in srgb, var(--brand) 32%, transparent);
+  background: var(--surface-panel);
+  color: var(--brand);
+  box-shadow: 0 8px 22px var(--shadow-color);
+}
+
+.dashboard-documents-panel {
+  min-height: 360px;
+}
+
+.dashboard-documents-pane {
+  max-height: min(62vh, 720px);
+  overflow: auto;
+}
+
+.dashboard-document-search {
+  margin: 0;
+}
+
+.dashboard-document-status:empty {
+  display: none;
+}
+
 .chart-card {
   display: grid;
   grid-template-columns: 74px 1fr;
@@ -18,6 +65,7 @@
 .chart-card strong {
   margin-bottom: 6px;
   color: var(--text-main);
+  overflow-wrap: anywhere;
 }
 
 .chart-card span {
@@ -55,6 +103,17 @@
 }
 
 @media (max-width: 760px) {
+    .local-tabbar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      width: 100%;
+      border-radius: 10px;
+    }
+
+    .local-tab {
+      border-radius: 8px;
+    }
+
     .metrics {
       grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
       gap: 10px;
@@ -62,10 +121,15 @@
   
     .metrics article,
     .collection-panel,
+    .dashboard-documents-panel,
     .browser-panel,
     .settings-panel,
     .practice-panel {
       padding: 16px;
+    }
+
+    .dashboard-documents-pane {
+      max-height: none;
     }
   
     .chart-card {

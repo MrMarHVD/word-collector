@@ -7,6 +7,7 @@
 - When adding user-owned data, tables, relations, persisted files, or storage behavior, update account deletion so all data related to the deleted user is completely removed.
 - Before running commands or code that may alter persisted data, inspect the current data shape and choose the least destructive path.
 - Test changes with temporary data only, and remove only the temporary data you created.
+- Never create commits. Leave all commits to the user.
 - ALWAYS localize user-facing UI text, labels, placeholders, messages, confirmations, and status text. Update `frontend/public/locales.json` for every supported locale and use localization keys in the UI.
 - ALWAYS proofread user-facing text for proper capitalization, punctuation, grammar, and natural product language before finishing.
 - Do not hard-code user-facing UI strings outside the localization layer unless the text is data from the database or user input.

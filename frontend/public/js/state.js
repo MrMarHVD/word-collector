@@ -14,6 +14,10 @@ function normalizeReaderWordsPerPage(stored) {
   return Number(stored) || 250;
 }
 
+function normalizeDashboardStatsTab(stored) {
+  return stored === "documents" ? "documents" : "overview";
+}
+
 // Mutable browser state. Persisted preferences are read once during startup.
 export const state = {
   csrfToken: null,
@@ -26,6 +30,12 @@ export const state = {
   authMode: "login",
   resetToken: null,
   dashboard: null,
+  dashboardStatsTab: normalizeDashboardStatsTab(localStorage.getItem("wordMarkerDashboardStatsTab")),
+  dashboardDocuments: [],
+  dashboardDocumentSearch: "",
+  dashboardDocumentOffset: 0,
+  dashboardDocumentHasMore: true,
+  dashboardDocumentLoading: false,
   selectedStudyLanguageId: null,
   selectedStudyLanguageName: localStorage.getItem("wordMarkerStudyLanguageName") || "",
   selectedCollectionId: "all",
