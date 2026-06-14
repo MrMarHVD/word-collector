@@ -24,6 +24,44 @@ export function renderDashboard() {
 
   renderCollectionsList();
   renderSelectedCollectionStats();
+  renderDashboardStatsTabs();
+  renderDashboardDocuments();
+}
+
+export function renderDashboardStatsTabs() {
+  elements.dashboardStatsTabs.forEach((button) => {
+    const active = button.dataset.dashboardStatsTab === state.dashboardStatsTab;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  if (elements.dashboardOverviewPanel) {
+    elements.dashboardOverviewPanel.hidden = state.dashboardStatsTab !== "overview";
+  }
+  if (elements.dashboardDocumentsPanel) {
+    elements.dashboardDocumentsPanel.hidden = state.dashboardStatsTab !== "documents";
+  }
+  if (elements.dashboardDocumentSearch) {
+    elements.dashboardDocumentSearch.value = state.dashboardDocumentSearch;
+  }
+}
+
+export function renderDashboardDocuments() {
+  if (!elements.dashboardDocumentCharts || !elements.dashboardDocumentStatus) {
+    return;
+  }
+  const documents = state.dashboardDocuments || [];
+  const searching = state.dashboardDocumentSearch.trim().length > 0;
+  elements.dashboardDocumentCharts.innerHTML = documents.length
+    ? documents.map(renderDocumentCard).join("")
+    : "";
+
+  if (!documents.length) {
+    elements.dashboardDocumentStatus.textContent = t(searching ? "dashboard.noDocumentSearchResults" : "dashboard.noDocuments");
+    return;
+  }
+  elements.dashboardDocumentStatus.textContent = state.dashboardDocumentHasMore
+    ? t("dashboard.scrollForMoreDocuments")
+    : t("dashboard.documentCount", { count: formatCount(documents.length) });
 }
 
 // Render the sidebar list of collections, including the "All" entry.
@@ -105,16 +143,39 @@ export function renderSelectedCollectionStats() {
 
 // Render one collection progress chart card.
 function renderChartCard(collection) {
-  const knownPercent = collection.totalWords ? Math.round((collection.knownWords / collection.totalWords) * 100) : 0;
-  const learningPercent = collection.totalWords ? Math.round(((collection.knownWords + collection.learningWords) / collection.totalWords) * 100) : 0;
+  return renderProgressCard({
+    title: collection.name,
+    subtitle: collection.languageName,
+    totalWords: collection.totalWords,
+    knownWords: collection.knownWords,
+    learningWords: collection.learningWords,
+    unknownWords: collection.unknownWords
+  });
+}
+
+function renderDocumentCard(document) {
+  const meta = [document.languageName, String(document.fileType || "").toUpperCase()].filter(Boolean).join(" / ");
+  return renderProgressCard({
+    title: document.title,
+    subtitle: meta,
+    totalWords: document.totalWords,
+    knownWords: document.knownWords,
+    learningWords: document.learningWords,
+    unknownWords: document.unknownWords
+  });
+}
+
+function renderProgressCard(entry) {
+  const knownPercent = entry.totalWords ? Math.round((entry.knownWords / entry.totalWords) * 100) : 0;
+  const learningPercent = entry.totalWords ? Math.round(((entry.knownWords + entry.learningWords) / entry.totalWords) * 100) : 0;
   return `
     <article class="chart-card rounded-lg border border-line bg-panel p-3.5">
       <div class="pie" style="--knownPercent: ${knownPercent}%; --learningPercent: ${learningPercent}%"></div>
       <div>
-        <strong>${escapeHtml(collection.name)}</strong>
-        <span>${escapeHtml(collection.languageName)}</span>
-        <span>${escapeHtml(t("progress.knownOfTotal", { total: formatCount(collection.totalWords), known: formatCount(collection.knownWords) }))}</span>
-        <span>${escapeHtml(t("progress.statusBreakdown", { known: formatCount(collection.knownWords), learning: formatCount(collection.learningWords), unknown: formatCount(collection.unknownWords) }))}</span>
+        <strong>${escapeHtml(entry.title)}</strong>
+        <span>${escapeHtml(entry.subtitle)}</span>
+        <span>${escapeHtml(t("progress.knownOfTotal", { total: formatCount(entry.totalWords), known: formatCount(entry.knownWords) }))}</span>
+        <span>${escapeHtml(t("progress.statusBreakdown", { known: formatCount(entry.knownWords), learning: formatCount(entry.learningWords), unknown: formatCount(entry.unknownWords) }))}</span>
         <span>${escapeHtml(t("progress.complete", { percent: knownPercent }))}</span>
       </div>
     </article>

@@ -1,3 +1,26 @@
+.dashboard-stats-tab:hover,
+.dashboard-stats-tab.is-active {
+  background: var(--surface-panel);
+  color: var(--text-main);
+}
+
+.dashboard-documents-panel {
+  min-height: 360px;
+}
+
+.dashboard-documents-pane {
+  max-height: min(62vh, 720px);
+  overflow: auto;
+}
+
+.dashboard-document-search {
+  margin: 0;
+}
+
+.dashboard-document-status:empty {
+  display: none;
+}
+
 .chart-card {
   display: grid;
   grid-template-columns: 74px 1fr;
@@ -18,6 +41,7 @@
 .chart-card strong {
   margin-bottom: 6px;
   color: var(--text-main);
+  overflow-wrap: anywhere;
 }
 
 .chart-card span {
@@ -62,10 +86,15 @@
   
     .metrics article,
     .collection-panel,
+    .dashboard-documents-panel,
     .browser-panel,
     .settings-panel,
     .practice-panel {
       padding: 16px;
+    }
+
+    .dashboard-documents-pane {
+      max-height: none;
     }
   
     .chart-card {

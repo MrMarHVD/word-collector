@@ -181,34 +181,57 @@
       </section>
 
       <section id="dashboardView" class="tab-view">
-        <section class="metrics mb-4 grid grid-cols-4 gap-3.5 max-md:grid-cols-1" aria-label="Overall progress">
-          <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
-            <span id="totalWords" class="block text-3xl font-black leading-none">0</span>
-            <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.totalWords">単語数</small>
-          </article>
-          <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
-            <span id="learningTotal" class="block text-3xl font-black leading-none">0</span>
-            <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.learningWords">学習中</small>
-          </article>
-          <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
-            <span id="unknownTotal" class="block text-3xl font-black leading-none">0</span>
-            <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.unknownWords">未習得</small>
-          </article>
-          <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
-            <span id="collectionCount" class="block text-3xl font-black leading-none">0</span>
-            <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.collectionCount">コレクション数</small>
-          </article>
-          <article id="wantToPracticeCard" class="rounded-lg border border-line bg-panel p-5 shadow-panel" hidden>
-            <span id="wantToPracticeTotal" class="block text-3xl font-black leading-none text-brand">0</span>
-            <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.wantToPracticeWords">練習したい単語</small>
-          </article>
-        </section>
+        <div class="dashboard-stats-tabs mb-4 grid w-[min(420px,100%)] grid-cols-2 gap-1 rounded-lg border border-line bg-muted p-1" role="tablist" aria-label="Dashboard statistics">
+          <button class="dashboard-stats-tab is-active rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" role="tab" data-dashboard-stats-tab="overview" aria-selected="true" data-i18n="dashboard.overviewTab">Overview</button>
+          <button class="dashboard-stats-tab rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" role="tab" data-dashboard-stats-tab="documents" aria-selected="false" data-i18n="dashboard.documentsTab">Documents</button>
+        </div>
 
-        <section class="collection-panel rounded-lg border border-line bg-panel p-5 shadow-panel">
-          <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
-            <h2 class="text-base font-bold" data-i18n="dashboard.collectionProgress">コレクション別の進捗</h2>
+        <div id="dashboardOverviewPanel" data-dashboard-stats-panel="overview">
+          <section class="metrics mb-4 grid grid-cols-4 gap-3.5 max-md:grid-cols-1" aria-label="Overall progress">
+            <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
+              <span id="totalWords" class="block text-3xl font-black leading-none">0</span>
+              <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.totalWords">単語数</small>
+            </article>
+            <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
+              <span id="learningTotal" class="block text-3xl font-black leading-none">0</span>
+              <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.learningWords">学習中</small>
+            </article>
+            <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
+              <span id="unknownTotal" class="block text-3xl font-black leading-none">0</span>
+              <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.unknownWords">未習得</small>
+            </article>
+            <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
+              <span id="collectionCount" class="block text-3xl font-black leading-none">0</span>
+              <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.collectionCount">コレクション数</small>
+            </article>
+            <article id="wantToPracticeCard" class="rounded-lg border border-line bg-panel p-5 shadow-panel" hidden>
+              <span id="wantToPracticeTotal" class="block text-3xl font-black leading-none text-brand">0</span>
+              <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.wantToPracticeWords">練習したい単語</small>
+            </article>
+          </section>
+
+          <section class="collection-panel rounded-lg border border-line bg-panel p-5 shadow-panel">
+            <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
+              <h2 class="text-base font-bold" data-i18n="dashboard.collectionProgress">コレクション別の進捗</h2>
+            </div>
+            <div id="collectionCharts" class="chart-grid grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3"></div>
+          </section>
+        </div>
+
+        <section id="dashboardDocumentsPanel" class="dashboard-documents-panel rounded-lg border border-line bg-panel p-5 shadow-panel" data-dashboard-stats-panel="documents" hidden>
+          <div class="section-head mb-4 flex min-h-8 items-end justify-between gap-3 max-md:grid">
+            <div>
+              <h2 class="text-base font-bold" data-i18n="dashboard.documentProgress">Progress by document</h2>
+            </div>
+            <label class="dashboard-document-search grid w-[min(340px,100%)] gap-1.5 text-sm font-semibold text-label">
+              <span data-i18n="dashboard.documentSearch">Search</span>
+              <input id="dashboardDocumentSearch" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="search" data-i18n-placeholder="dashboard.documentSearchPlaceholder" placeholder="Search documents" />
+            </label>
           </div>
-          <div id="collectionCharts" class="chart-grid grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3"></div>
+          <div id="dashboardDocumentsPane" class="dashboard-documents-pane rounded-lg border border-line bg-subtle p-3">
+            <div id="dashboardDocumentCharts" class="chart-grid grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3"></div>
+            <p id="dashboardDocumentStatus" class="dashboard-document-status mt-3 min-h-5 text-sm text-secondary" role="status"></p>
+          </div>
         </section>
       </section>
 

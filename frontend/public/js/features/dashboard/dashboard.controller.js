@@ -1,9 +1,12 @@
 import { requestJson } from "../../api.js";
+import { elements } from "../../dom.js";
 import { languageByName, renderStudyLanguageSelect } from "../../app/study-language.js";
 import { cachedSelectedMaterialId, cacheSelectedMaterialId } from "../materials/materials.controller.js";
 import { state } from "../../state.js";
-import { renderDashboard } from "../../views/dashboard.js";
+import { renderDashboard, renderDashboardDocuments, renderDashboardStatsTabs } from "../../views/dashboard.js";
 import { renderMaterialList, renderReaderSidebar, renderReaderSidebarTabs, renderReaderTokens } from "../../views/reader.js";
+
+const DOCUMENT_STATS_PAGE_SIZE = 24;
 
 let loadMaterials = async () => {};
 let loadMaterialReader = async () => {};
@@ -66,6 +69,9 @@ export async function loadDashboard() {
   renderStudyLanguageSelect();
   renderReaderSidebar();
   renderReaderSidebarTabs();
+  if (state.dashboardStatsTab === "documents") {
+    await loadDashboardDocuments(true);
+  }
   await loadMaterials(true);
   await restoreSelectedMaterial();
   await loadWords();
@@ -74,4 +80,66 @@ export async function loadDashboard() {
 export function clearDashboardDependentViews() {
   renderMaterialList();
   renderReaderTokens();
+}
+
+export async function loadDashboardDocuments(reset = false) {
+  if (!state.selectedStudyLanguageId || state.dashboardDocumentLoading) {
+    return;
+  }
+  if (reset) {
+    state.dashboardDocumentOffset = 0;
+    state.dashboardDocumentHasMore = true;
+    state.dashboardDocuments = [];
+  }
+  if (!state.dashboardDocumentHasMore) {
+    renderDashboardDocuments();
+    return;
+  }
+
+  state.dashboardDocumentLoading = true;
+  try {
+    const params = new URLSearchParams({
+      languageId: String(state.selectedStudyLanguageId),
+      limit: String(DOCUMENT_STATS_PAGE_SIZE),
+      offset: String(state.dashboardDocumentOffset)
+    });
+    if (state.dashboardDocumentSearch.trim()) {
+      params.set("search", state.dashboardDocumentSearch.trim());
+    }
+    const result = await requestJson(`/api/dashboard/documents?${params}`);
+    state.dashboardDocuments = state.dashboardDocuments.concat(result.documents || []);
+    state.dashboardDocumentOffset += (result.documents || []).length;
+    state.dashboardDocumentHasMore = (result.documents || []).length === result.pageSize;
+  } finally {
+    state.dashboardDocumentLoading = false;
+    renderDashboardDocuments();
+  }
+}
+
+export function bindDashboardEvents() {
+  elements.dashboardStatsTabs.forEach((button) => {
+    button.addEventListener("click", async () => {
+      state.dashboardStatsTab = button.dataset.dashboardStatsTab;
+      renderDashboardStatsTabs();
+      if (state.dashboardStatsTab === "documents" && !state.dashboardDocuments.length) {
+        await loadDashboardDocuments(true);
+      }
+    });
+  });
+
+  let documentSearchDebounceId = null;
+  elements.dashboardDocumentSearch.addEventListener("input", () => {
+    state.dashboardDocumentSearch = elements.dashboardDocumentSearch.value;
+    window.clearTimeout(documentSearchDebounceId);
+    documentSearchDebounceId = window.setTimeout(() => {
+      loadDashboardDocuments(true).catch(() => {});
+    }, 200);
+  });
+
+  elements.dashboardDocumentsPane.addEventListener("scroll", async () => {
+    const remainingScroll = elements.dashboardDocumentsPane.scrollHeight - elements.dashboardDocumentsPane.scrollTop - elements.dashboardDocumentsPane.clientHeight;
+    if (remainingScroll < 140) {
+      await loadDashboardDocuments(false);
+    }
+  });
 }
