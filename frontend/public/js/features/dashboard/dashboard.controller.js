@@ -4,6 +4,7 @@ import { languageByName, renderStudyLanguageSelect } from "../../app/study-langu
 import { cachedSelectedMaterialId, cacheSelectedMaterialId } from "../materials/materials.controller.js";
 import { state } from "../../state.js";
 import { renderDashboard, renderDashboardDocuments, renderDashboardStatsTabs } from "../../views/dashboard.js";
+import { bindLocalTabs } from "../../views/components/local-tabs.js";
 import { renderMaterialList, renderReaderSidebar, renderReaderSidebarTabs, renderReaderTokens } from "../../views/reader.js";
 
 const DOCUMENT_STATS_PAGE_SIZE = 24;
@@ -117,14 +118,15 @@ export async function loadDashboardDocuments(reset = false) {
 }
 
 export function bindDashboardEvents() {
-  elements.dashboardStatsTabs.forEach((button) => {
-    button.addEventListener("click", async () => {
-      state.dashboardStatsTab = button.dataset.dashboardStatsTab;
-      renderDashboardStatsTabs();
-      if (state.dashboardStatsTab === "documents" && !state.dashboardDocuments.length) {
-        await loadDashboardDocuments(true);
-      }
-    });
+  bindLocalTabs(elements.dashboardStatsTabs, async (tab) => {
+    state.dashboardStatsTab = tab === "documents" ? "documents" : "overview";
+    localStorage.setItem("wordMarkerDashboardStatsTab", state.dashboardStatsTab);
+    renderDashboardStatsTabs();
+    if (state.dashboardStatsTab === "documents" && !state.dashboardDocuments.length) {
+      await loadDashboardDocuments(true);
+    }
+  }, {
+    valueAttribute: "data-dashboard-stats-tab"
   });
 
   let documentSearchDebounceId = null;

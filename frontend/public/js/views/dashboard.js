@@ -2,6 +2,7 @@ import { elements } from "../dom.js";
 import { state } from "../state.js";
 import { formatCount, t } from "../i18n.js";
 import { escapeHtml } from "../shared/html.js";
+import { renderLocalTabs } from "./components/local-tabs.js";
 
 // Render summary metrics, collection charts, and collection management controls.
 // Render dashboard totals and collection selectors from state.dashboard.
@@ -29,11 +30,7 @@ export function renderDashboard() {
 }
 
 export function renderDashboardStatsTabs() {
-  elements.dashboardStatsTabs.forEach((button) => {
-    const active = button.dataset.dashboardStatsTab === state.dashboardStatsTab;
-    button.classList.toggle("is-active", active);
-    button.setAttribute("aria-selected", String(active));
-  });
+  renderLocalTabs(elements.dashboardStatsTabs, state.dashboardStatsTab, { valueAttribute: "data-dashboard-stats-tab" });
   if (elements.dashboardOverviewPanel) {
     elements.dashboardOverviewPanel.hidden = state.dashboardStatsTab !== "overview";
   }
@@ -149,7 +146,8 @@ function renderChartCard(collection) {
     totalWords: collection.totalWords,
     knownWords: collection.knownWords,
     learningWords: collection.learningWords,
-    unknownWords: collection.unknownWords
+    unknownWords: collection.unknownWords,
+    detailText: t("progress.knownOfTotal", { total: formatCount(collection.totalWords), known: formatCount(collection.knownWords) })
   });
 }
 
@@ -161,7 +159,8 @@ function renderDocumentCard(document) {
     totalWords: document.totalWords,
     knownWords: document.knownWords,
     learningWords: document.learningWords,
-    unknownWords: document.unknownWords
+    unknownWords: document.unknownWords,
+    detailText: t("progress.readOfTotal", { total: formatCount(document.totalTokens), read: formatCount(document.readTokens) })
   });
 }
 
@@ -174,7 +173,7 @@ function renderProgressCard(entry) {
       <div>
         <strong>${escapeHtml(entry.title)}</strong>
         <span>${escapeHtml(entry.subtitle)}</span>
-        <span>${escapeHtml(t("progress.knownOfTotal", { total: formatCount(entry.totalWords), known: formatCount(entry.knownWords) }))}</span>
+        <span>${escapeHtml(entry.detailText)}</span>
         <span>${escapeHtml(t("progress.statusBreakdown", { known: formatCount(entry.knownWords), learning: formatCount(entry.learningWords), unknown: formatCount(entry.unknownWords) }))}</span>
         <span>${escapeHtml(t("progress.complete", { percent: knownPercent }))}</span>
       </div>

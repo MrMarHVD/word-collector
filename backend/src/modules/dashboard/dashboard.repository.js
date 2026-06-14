@@ -82,12 +82,15 @@ export function createDashboardRepository(db) {
           m.file_name AS "fileName",
           m.file_type AS "fileType",
           m.word_count AS "importedWordCount",
+          m.reader_start AS "readerStart",
           m.created_at AS "createdAt",
           m.import_status AS "importStatus",
           l.name AS "languageName",
-          COUNT(mt.id) AS "totalWords",
-          COALESCE(SUM(CASE WHEN uws.status = 'known' THEN 1 ELSE 0 END), 0) AS "knownWords",
-          COALESCE(SUM(CASE WHEN uws.status = 'learning' THEN 1 ELSE 0 END), 0) AS "learningWords"
+          COUNT(mt.id) AS "totalTokens",
+          LEAST(m.reader_start, COUNT(mt.id)) AS "readTokens",
+          COUNT(DISTINCT mt.word_id) AS "totalWords",
+          COUNT(DISTINCT CASE WHEN uws.status = 'known' THEN mt.word_id END) AS "knownWords",
+          COUNT(DISTINCT CASE WHEN uws.status = 'learning' THEN mt.word_id END) AS "learningWords"
         FROM materials m
         JOIN languages l ON l.id = m.language_id
         LEFT JOIN material_tokens mt ON mt.material_id = m.id

@@ -17,14 +17,18 @@ function normalizeCollection(collection) {
 }
 
 function normalizeDocument(document) {
-  const totalWords = Number(document.totalWords || document.importedWordCount || 0);
+  const totalWords = Number(document.totalWords || 0);
   const knownWords = Number(document.knownWords || 0);
   const learningWords = Number(document.learningWords || 0);
+  const totalTokens = Number(document.totalTokens || document.importedWordCount || 0);
+  const readTokens = Math.min(Math.max(Number(document.readTokens || 0), 0), totalTokens);
   return {
     ...document,
     totalWords,
     knownWords,
     learningWords,
+    totalTokens,
+    readTokens,
     unknownWords: Math.max(0, totalWords - knownWords - learningWords)
   };
 }
