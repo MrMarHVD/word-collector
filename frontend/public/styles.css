@@ -2428,6 +2428,14 @@ tbody tr:last-child td {
   top: var(--readerInfoTop, 84px);
   left: var(--readerInfoLeft, 12px);
 }
+.reader-word-info:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.reader-word-info:not([hidden]) > :not(.disambiguation-panel) {
+  flex-shrink: 0;
+}
 .reader-word-info-head {
   display: grid;
   grid-template-columns: 1fr auto 30px;
@@ -2547,6 +2555,10 @@ tbody tr:last-child td {
 }
 .disambiguation-panel {
   margin: 10px 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .disambiguation-panel table, .disambiguation-table {
   width: 100%;

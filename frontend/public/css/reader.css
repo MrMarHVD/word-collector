@@ -596,6 +596,20 @@
   left: var(--readerInfoLeft, 12px);
 }
 
+/* Make the popup a flex column so the disambiguation panel can absorb the
+   remaining space and scroll internally while the rest of the pane stays put. */
+.reader-word-info:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Siblings of the disambiguation panel keep their natural height so the
+   status toggle and other controls are never squeezed when the panel opens. */
+.reader-word-info:not([hidden]) > :not(.disambiguation-panel) {
+  flex-shrink: 0;
+}
+
 .reader-word-info-head {
   display: grid;
   grid-template-columns: 1fr auto 30px;
@@ -730,6 +744,10 @@
 
 .disambiguation-panel {
   margin: 10px 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .disambiguation-panel table,
