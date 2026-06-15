@@ -2559,6 +2559,12 @@ tbody tr:last-child td {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  border: 1px solid var(--border-main);
+  border-radius: 10px;
+  background: var(--color-panel);
+}
+.disambiguation-panel tr:last-child td {
+  border-bottom: 0;
 }
 .disambiguation-panel table, .disambiguation-table {
   width: 100%;
