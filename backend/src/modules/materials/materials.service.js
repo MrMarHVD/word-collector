@@ -346,11 +346,17 @@ export async function getMaterialReader(repositories, userId, materialId, start 
       tokens.push(token);
       continue;
     }
-    tokens.push({
-      ...token,
-      translation: (await displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token)) || token.translation,
-      disambiguationCandidates
-    });
+    if (typeof token.translationOverride === "string" && token.translationOverride.trim()) {
+      const sourceWord = String(token.dictionaryForm || token.lemma || token.surface || "").toLowerCase();
+      const currentOriginal = String(token.canonicalTranslation || "");
+      const canonicalTranslation = currentOriginal && currentOriginal.toLowerCase() !== sourceWord
+        ? currentOriginal
+        : disambiguationCandidates[0]?.translation || currentOriginal;
+      tokens.push({ ...token, canonicalTranslation, disambiguationCandidates });
+      continue;
+    }
+    const translation = (await displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token)) || token.translation;
+    tokens.push({ ...token, translation, disambiguationCandidates });
   }
   return { material, tokens, start: safeStart, limit: safeLimit, nativeLanguage, translationStatus };
 }

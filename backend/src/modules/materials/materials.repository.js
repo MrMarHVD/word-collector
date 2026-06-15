@@ -64,6 +64,12 @@ export function createMaterialsRepository(db) {
            w.word AS "dictionaryForm",
            w.pos AS "wordPos", w.pos_subcategory AS "posSubcategory", w.reading, w.pinyin, w.traditional,
            CASE
+             WHEN w.translation IS NOT NULL AND btrim(w.translation) <> '' AND lower(w.translation) <> lower(w.word) THEN w.translation
+             WHEN wt.translation IS NOT NULL AND btrim(wt.translation) <> '' THEN wt.translation
+             ELSE w.translation
+           END AS "canonicalTranslation",
+           uw.translation_override AS "translationOverride",
+           CASE
              WHEN uw.translation_override IS NOT NULL AND btrim(uw.translation_override) <> '' THEN uw.translation_override
              WHEN wt.translation IS NOT NULL AND trim(wt.translation) <> '' THEN wt.translation
              WHEN lower(?) = lower(?) THEN w.word

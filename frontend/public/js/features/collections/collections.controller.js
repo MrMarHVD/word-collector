@@ -132,6 +132,31 @@ async function moveSelectedWords(wordIds, destinationId) {
   await loadDashboard();
 }
 
+function beginTranslationOverrideEdit(wordId) {
+  state.translationOverrideEditWordId = wordId;
+  state.translationOverrideEditContext = "vocab";
+  renderWords(state.words);
+  requestAnimationFrame(() => {
+    elements.wordRows.querySelector(`.translation-override-form[data-word-id="${wordId}"] .translation-override-input`)?.focus();
+  });
+}
+
+async function saveTranslationOverride(wordId, translationOverride) {
+  await requestJson(`/api/words/${wordId}/translation-override`, {
+    method: "PATCH",
+    body: JSON.stringify({ translationOverride })
+  });
+  state.translationOverrideEditWordId = null;
+  state.translationOverrideEditContext = null;
+  await loadWords();
+}
+
+function cancelTranslationOverrideEdit() {
+  state.translationOverrideEditWordId = null;
+  state.translationOverrideEditContext = null;
+  renderWords(state.words);
+}
+
 export function bindCollectionsEvents() {
   elements.deleteSelectedButton.addEventListener("click", async () => {
     if (!state.selectedWordIds.size) {
@@ -187,6 +212,34 @@ export function bindCollectionsEvents() {
   });
 
   elements.wordRows.addEventListener("click", async (event) => {
+    const translationEdit = event.target.closest("[data-translation-override-edit]");
+    if (translationEdit) {
+      beginTranslationOverrideEdit(Number(translationEdit.dataset.wordId));
+      return;
+    }
+
+    const translationCancel = event.target.closest("[data-translation-override-cancel]");
+    if (translationCancel) {
+      cancelTranslationOverrideEdit();
+      return;
+    }
+
+    const translationClear = event.target.closest("[data-translation-override-clear]");
+    if (translationClear) {
+      const wordId = Number(translationClear.dataset.wordId);
+      translationClear.disabled = true;
+      try {
+        await saveTranslationOverride(wordId, null);
+      } finally {
+        translationClear.disabled = false;
+      }
+      return;
+    }
+
+    if (event.target.closest("[data-translation-override-form]")) {
+      return;
+    }
+
     const disambiguate = event.target.closest("[data-word-disambiguate]");
     if (disambiguate) {
       const id = Number(disambiguate.dataset.wordDisambiguate);
@@ -233,6 +286,21 @@ export function bindCollectionsEvents() {
       return;
     }
     handleRowSelection(event, Number(row.dataset.wordId));
+  });
+
+  elements.wordRows.addEventListener("submit", async (event) => {
+    const form = event.target.closest("[data-translation-override-form]");
+    if (!form) {
+      return;
+    }
+    event.preventDefault();
+    const button = form.querySelector(".translation-override-save");
+    button.disabled = true;
+    try {
+      await saveTranslationOverride(Number(form.dataset.wordId), new FormData(form).get("translationOverride"));
+    } finally {
+      button.disabled = false;
+    }
   });
 
   elements.wordRows.addEventListener("dragstart", (event) => {

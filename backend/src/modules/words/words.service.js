@@ -11,6 +11,16 @@ async function withDisambiguation(repositories, nativeLanguage, words) {
       result.push(word);
       continue;
     }
+    const hasOverride = typeof word.translationOverride === "string" && word.translationOverride.trim();
+    if (hasOverride) {
+      const sourceWord = String(word.word || "").toLowerCase();
+      const currentOriginal = String(word.canonicalTranslation || "");
+      const canonicalTranslation = currentOriginal && currentOriginal.toLowerCase() !== sourceWord
+        ? currentOriginal
+        : disambiguationCandidates[0]?.translation || currentOriginal;
+      result.push({ ...word, canonicalTranslation, disambiguationCandidates });
+      continue;
+    }
     const translation = (await displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token)) || word.translation;
     result.push({ ...word, translation, disambiguationCandidates });
   }
@@ -115,6 +125,22 @@ export async function setWantToPractice(repositories, userId, wordId, wantToPrac
   }
   await repositories.words.setWantToPractice(userId, id, wantToPractice);
   return repositories.words.findWordById(userId, id);
+}
+
+// Set or clear a user's private translation override without changing the
+// shared canonical word translation.
+export async function setTranslationOverride(repositories, userId, wordId, translationOverride, nativeLanguage = "English") {
+  const id = Number(wordId);
+  if (!Number.isFinite(id)) {
+    return { error: "Word not found.", status: 404 };
+  }
+  const word = await repositories.words.findWordById(userId, id, nativeLanguage);
+  if (!word) {
+    return { error: "Word not found.", status: 404 };
+  }
+  const normalized = typeof translationOverride === "string" ? translationOverride.trim() : "";
+  await repositories.words.setTranslationOverride(userId, id, normalized || null);
+  return repositories.words.findWordById(userId, id, nativeLanguage);
 }
 
 // Move user-owned words into a destination collection. Words that would collide

@@ -1,5 +1,5 @@
 import { getLanguage } from "../../modules/languages/languages.service.js";
-import { deleteWords, getWords, getWordsInLanguage, moveWords, setWantToPractice, setWordsStatus } from "../../modules/words/words.service.js";
+import { deleteWords, getWords, getWordsInLanguage, moveWords, setTranslationOverride, setWantToPractice, setWordsStatus } from "../../modules/words/words.service.js";
 import { readJson } from "../request.js";
 import { jsonResponse } from "../response.js";
 
@@ -87,6 +87,20 @@ export function createWordsRoutes({ repositories }) {
       const id = Number(wantToPracticeMatch[1]);
       const body = await readJson(req);
       const result = await setWantToPractice(repositories, user.userId, id, Boolean(body.wantToPractice));
+      if (result.error) {
+        jsonResponse(res, result.status || 400, result);
+        return true;
+      }
+      jsonResponse(res, 200, result);
+      return true;
+    }
+
+    const translationOverrideMatch = url.pathname.match(/^\/api\/words\/(\d+)\/translation-override$/);
+    if (req.method === "PATCH" && translationOverrideMatch) {
+      const id = Number(translationOverrideMatch[1]);
+      const body = await readJson(req);
+      const nativeLanguage = (await repositories.auth.findUserById(user.userId))?.nativeLanguage || "English";
+      const result = await setTranslationOverride(repositories, user.userId, id, body.translationOverride, nativeLanguage);
       if (result.error) {
         jsonResponse(res, result.status || 400, result);
         return true;
