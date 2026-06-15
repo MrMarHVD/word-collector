@@ -2432,6 +2432,7 @@ tbody tr:last-child td {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  max-height: min(500px, calc(100vh - 24px));
 }
 .reader-word-info:not([hidden]) > :not(.disambiguation-panel) {
   flex-shrink: 0;
@@ -2555,13 +2556,22 @@ tbody tr:last-child td {
 }
 .disambiguation-panel {
   margin: 10px 0;
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 1 auto;
+  height: 95px;
+  min-height: 95px;
+  max-height: 195px;
   overflow-y: auto;
   overscroll-behavior: contain;
   border: 1px solid var(--border-main);
   border-radius: 10px;
   background: var(--color-panel);
+  resize: vertical;
+}
+.disambiguation-panel thead th {
+  line-height: 14px;
+}
+.disambiguation-panel tbody td {
+  line-height: 16px;
 }
 .disambiguation-panel tr:last-child td {
   border-bottom: 0;
@@ -2583,6 +2593,11 @@ tbody tr:last-child td {
   font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
+}
+.disambiguation-panel thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 .disambiguation-row td {
   background: var(--surface-muted);
