@@ -347,7 +347,12 @@ export async function getMaterialReader(repositories, userId, materialId, start 
       continue;
     }
     if (typeof token.translationOverride === "string" && token.translationOverride.trim()) {
-      tokens.push({ ...token, disambiguationCandidates });
+      const sourceWord = String(token.dictionaryForm || token.lemma || token.surface || "").toLowerCase();
+      const currentOriginal = String(token.canonicalTranslation || "");
+      const canonicalTranslation = currentOriginal && currentOriginal.toLowerCase() !== sourceWord
+        ? currentOriginal
+        : disambiguationCandidates[0]?.translation || currentOriginal;
+      tokens.push({ ...token, canonicalTranslation, disambiguationCandidates });
       continue;
     }
     const translation = (await displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token)) || token.translation;

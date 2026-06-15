@@ -13,7 +13,13 @@ function displayedTranslationExpression() {
 }
 
 function canonicalTranslationExpression() {
-  return "w.translation";
+  return `
+    CASE
+      WHEN w.translation IS NOT NULL AND btrim(w.translation) <> '' AND lower(w.translation) <> lower(w.word) THEN w.translation
+      WHEN wt.translation IS NOT NULL AND btrim(wt.translation) <> '' THEN wt.translation
+      ELSE w.translation
+    END
+  `;
 }
 
 // The lemma key that identifies a global word within its language. Mirrors the

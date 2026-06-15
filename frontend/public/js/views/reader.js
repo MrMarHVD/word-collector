@@ -465,9 +465,11 @@ function disambiguationEntries(token) {
       original: Boolean(originalKey && String(candidate.translation || "").toLowerCase() === originalKey)
     }));
   const hasOriginalCandidate = candidates.some((candidate) => candidate.original);
+  const originalCandidates = candidates.filter((candidate) => candidate.original);
+  const otherCandidates = candidates.filter((candidate) => !candidate.original);
   return [
-    ...candidates,
-    hasOriginalCandidate ? null : original
+    ...(hasOriginalCandidate ? originalCandidates : original ? [original] : []),
+    ...otherCandidates
   ].filter(Boolean);
 }
 

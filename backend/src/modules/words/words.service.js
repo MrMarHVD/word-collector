@@ -13,7 +13,12 @@ async function withDisambiguation(repositories, nativeLanguage, words) {
     }
     const hasOverride = typeof word.translationOverride === "string" && word.translationOverride.trim();
     if (hasOverride) {
-      result.push({ ...word, disambiguationCandidates });
+      const sourceWord = String(word.word || "").toLowerCase();
+      const currentOriginal = String(word.canonicalTranslation || "");
+      const canonicalTranslation = currentOriginal && currentOriginal.toLowerCase() !== sourceWord
+        ? currentOriginal
+        : disambiguationCandidates[0]?.translation || currentOriginal;
+      result.push({ ...word, canonicalTranslation, disambiguationCandidates });
       continue;
     }
     const translation = (await displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token)) || word.translation;
