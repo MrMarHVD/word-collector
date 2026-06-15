@@ -22,6 +22,7 @@
 - If the requested change is ambiguous, do not guess silently. Explain what is ambiguous, describe the plausible implementation options, and ask the user how they want it handled before proceeding.
 - If the user’s proposal or question appears to rely on an incorrect assumption about the codebase’s current logic, architecture, state, or behavior, point that out clearly before making changes. Explain the mismatch and suggest a corrected interpretation or implementation path.
 - When you have implemented a change, always describe to the user what you changed and in what way. Divide the codebase into conceptual components (like services, routers, repos) and outline what relevant change occurred in a given component on a conceptual level.
+- After implementing any change that affects the UI, always exercise the new or modified feature end-to-end in a real browser (navigate to the running dev server, log in if needed, drive the affected flow, and inspect snapshots/screenshots and the browser console). Prefer the Playwright MCP tools, but any other browser-control tool available in the current environment may be used instead — for example a built-in browser tool provided by the Claude or Codex apps, or another equivalent MCP browser integration. If the feature does not behave as intended or any regression appears, iterate on the implementation and re-test until it works correctly. Do not report a UI change as complete without this verification.
 
 
 ## Code Structure
