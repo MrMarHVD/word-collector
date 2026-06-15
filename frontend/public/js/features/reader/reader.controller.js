@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Reader feature controller — orchestrates all interactive
+ * behaviour of the document reader: loading token pages from the API,
+ * pointer/touch/keyboard page-turning gestures, drag-to-resize for the sidebar
+ * and main panel, the radial convenience status menu (long-press / hold),
+ * word-info popup lifecycle, focus mode, auto-mark-known-on-page-turn,
+ * auto-mark-learning-on-click, translation override editing, practice
+ * checkbox handling, and disambiguation toggling.
+ */
+
 import { requestJson } from "../../api.js";
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
@@ -24,6 +34,15 @@ let readerPageTurnInProgress = false;
 let highlightOpacityFrame = 0;
 let readerConvenienceMenu = null;
 
+/**
+ * Injects dependencies that the reader controller needs but cannot import
+ * directly (to avoid circular module dependencies).
+ *
+ * @param {{ loadDashboard: function(): Promise<void> }} options
+ * @param {function(): Promise<void>} options.loadDashboard - Application-level
+ *   function to reload dashboard data after a word status or practice-flag
+ *   change.
+ */
 export function configureReaderController(options) {
   loadDashboard = options.loadDashboard;
 }
@@ -36,6 +55,34 @@ async function saveMaterialReaderStart(materialId, start) {
   state.materials = state.materials.map((material) => (material.id === materialId ? { ...material, readerStart: start } : material));
 }
 
+/**
+ * Fetches and renders a page of tokens for the currently selected material.
+ * Clears state and re-renders an empty reader when no material is selected.
+ *
+ * When `state.readerWordsPerPage` is `"fit"`, a large token limit is requested
+ * so {@link fitReaderTokensToPage} can binary-search for the visible count.
+ *
+ * After a successful fetch, the resolved start offset is written back to the
+ * server (via PATCH `/api/materials/:id`) unless `persist` is `false`, which
+ * is used during background polling and material restoration to avoid spurious
+ * writes.
+ *
+ * @param {number|null} [start=null] - The zero-based token offset to load. A
+ *   `null` value lets the server use the material's persisted position.
+ * @param {{ persist?: boolean }} [options]
+ * @param {boolean} [options.persist=true] - When `false`, the resolved start
+ *   position is not written back to the server.
+ *
+ * @returns {Promise<void>}
+ *
+ * @sideeffects
+ * - Mutates `state.currentMaterial`, `state.readerStart`,
+ *   `state.readerFetchedTokens`, `state.readerTokens`, and `state.materials`.
+ * - Calls {@link renderReaderTokens}, {@link fitReaderTokensToPage}, and
+ *   {@link renderReaderSidebarTabs}.
+ * - Makes GET `/api/materials/:id?limit=…&start=…` and optionally
+ *   PATCH `/api/materials/:id` API calls.
+ */
 export async function loadMaterialReader(start = null, { persist = true } = {}) {
   if (!state.selectedMaterialId) {
     state.currentMaterial = null;
@@ -530,6 +577,40 @@ async function turnReaderPage(direction) {
   }
 }
 
+/**
+ * Attaches all DOM event listeners for the reader feature. Must be called once
+ * during application bootstrap, after the DOM is ready.
+ *
+ * Registered interactions include:
+ * - Sidebar collapse / expand toggle and the "open sidebar" floating button.
+ * - Drag-to-resize for the sidebar, reader panel, and word-info panel.
+ * - Focus mode entry and exit (toggle buttons + Escape key).
+ * - Sidebar tab switching (documents / settings / read on mobile).
+ * - Auto-mark-known, auto-mark-learning, show-word-spaces, highlight-opacity,
+ *   font-size, and words-per-page setting changes (persisted to localStorage).
+ * - Prev / next page buttons, horizontal trackpad wheel gesture (debounced),
+ *   and single-finger horizontal touch swipe.
+ * - Long-press / hold on token buttons to reveal the radial convenience menu.
+ * - Click on token buttons to show the word-info popup and optionally
+ *   auto-mark the word as learning.
+ * - Word-info popup: close, translation-override edit/submit/cancel/clear,
+ *   disambiguation panel toggle, status segment change, practice checkbox.
+ * - Click-outside to close the word-info popup.
+ * - Arrow-key keyboard shortcuts for page turning (reader tab only).
+ * - Window resize to reflow the reader layout.
+ *
+ * @sideeffects
+ * - Adds event listeners on `elements.readerSidebarToggle`,
+ *   `elements.readerSidebarOpen`, `elements.readerSidebarResize`,
+ *   `elements.readerPanelResize`, `elements.readerFocusToggles`,
+ *   `elements.readerFocusExit`, `elements.readerSidebarTabs`,
+ *   `elements.readerAutoMarkKnown`, `elements.readerAutoMarkLearning`,
+ *   `elements.readerShowWordSpaces`, `elements.readerHighlightOpacity`,
+ *   `elements.readerFontSize`, `elements.readerWordsPerPage`,
+ *   `elements.readerPrevPage`, `elements.readerNextPage`,
+ *   `elements.readerText`, `elements.readerWordInfo`, and `document` /
+ *   `window`.
+ */
 export function bindReaderEvents() {
   elements.readerSidebarToggle.addEventListener("click", () => {
     state.readerSidebarCollapsed = !state.readerSidebarCollapsed;

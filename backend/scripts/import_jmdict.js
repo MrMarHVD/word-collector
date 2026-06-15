@@ -1,3 +1,29 @@
+/**
+ * @file import_jmdict.js
+ * @description Builds Japanese-English and English-Japanese lookup indexes from the
+ * JMdict XML dictionary (gzip-compressed). Populates two tables:
+ *  - `jmdict_entries`       — one row per (expression, gloss); the primary
+ *    Japanese→English lookup used by the text reader.
+ *  - `jmdict_english_index` — reverse lookup keyed on individual English words
+ *    extracted from gloss text; used when the user's native language is English.
+ *
+ * Both tables are cleared and rebuilt within a single transaction.
+ *
+ * Source format: gzip-compressed JMdict XML (`JMdict_e.gz`). Each `<entry>`
+ * element may contain multiple kanji forms (`<keb>`), readings (`<reb>`), and
+ * senses (`<sense>` / `<gloss>`). Priority tags (`ke_pri`, `re_pri`) are scored
+ * to rank common-use entries above rare ones.
+ *
+ * CLI usage:
+ * ```
+ * node backend/scripts/import_jmdict.js [gzPath]
+ * ```
+ * Optional first argument overrides the default path:
+ * `<ROOT>/data/dictionaries/JMdict_e.gz`.
+ *
+ * Exits with a JSON summary `{ entries, rows }` printed to stdout.
+ * Requires `DATABASE_URL` (or equivalent db config) to be set in the environment.
+ */
 import { createGunzip } from "node:zlib";
 import { createReadStream } from "node:fs";
 import { join } from "node:path";
@@ -7,7 +33,12 @@ import { ROOT } from "../src/config.js";
 // Build local Japanese-English and English-Japanese lookup indexes from JMdict.
 const sourcePath = process.argv[2] || join(ROOT, "data", "dictionaries", "JMdict_e.gz");
 
-// Read and decompress a gzipped JMdict XML file.
+/**
+ * Read and decompress a gzipped JMdict XML file.
+ *
+ * @param {string} path - Absolute path to a `.gz` file.
+ * @returns {Promise<string>} Decompressed UTF-8 XML content.
+ */
 function readGzip(path) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -19,12 +50,24 @@ function readGzip(path) {
   });
 }
 
-// Extract decoded XML tag values from one dictionary entry.
+/**
+ * Extract decoded text values of all occurrences of a given XML tag within
+ * a single JMdict entry string.
+ *
+ * @param {string} entry - Raw XML text of one `<entry>` block.
+ * @param {string} tag   - XML tag name to match (e.g. `"keb"`, `"reb"`, `"gloss"`).
+ * @returns {string[]} Trimmed, XML-decoded inner text of every matching element.
+ */
 function values(entry, tag) {
   return [...entry.matchAll(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, "g"))].map((match) => decodeXml(match[1].trim()));
 }
 
-// Decode the XML entities used in JMdict text fields.
+/**
+ * Decode the XML entities used in JMdict text fields.
+ *
+ * @param {string} value - Raw XML text value.
+ * @returns {string} Value with `&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;` replaced.
+ */
 function decodeXml(value) {
   return value
     .replaceAll("&amp;", "&")
@@ -45,7 +88,14 @@ const PRIORITY_WEIGHTS = {
   gai2: 25
 };
 
-// Score JMdict priority tags instead of collapsing them to a boolean.
+/**
+ * Derive a numeric priority score for a JMdict entry from its priority tags.
+ * Higher values indicate more common vocabulary. Tags are mapped via
+ * `PRIORITY_WEIGHTS`; the maximum score across all tags is returned.
+ *
+ * @param {string} entry - Raw XML text of one `<entry>` block.
+ * @returns {number} Priority score (0 = no priority tags).
+ */
 function priorityFor(entry) {
   return [...entry.matchAll(/<(?:ke_pri|re_pri)>([^<]+)<\/(?:ke_pri|re_pri)>/g)]
     .map((match) => PRIORITY_WEIGHTS[match[1]] || 0)
@@ -54,6 +104,13 @@ function priorityFor(entry) {
 
 const xml = await readGzip(sourcePath);
 
+/**
+ * Map a raw JMdict POS entity code to a canonical POS tag string.
+ * Strips `&` and `;` delimiters before matching.
+ *
+ * @param {unknown} code - Raw POS code from a `<pos>` element (e.g. `"&n;"`, `"&v5u;"`).
+ * @returns {"noun"|"verb"|"adjective"|"adverb"|""} Canonical POS string.
+ */
 function posForCode(code) {
   const clean = String(code || "").replaceAll("&", "").replaceAll(";", "");
   if (clean === "n" || clean.startsWith("n-")) return "noun";
@@ -63,6 +120,13 @@ function posForCode(code) {
   return "";
 }
 
+/**
+ * Derive the primary canonical POS tag for a single JMdict `<sense>` block.
+ * Returns the first non-empty POS code found.
+ *
+ * @param {string} sense - Raw XML text of one `<sense>` block.
+ * @returns {"noun"|"verb"|"adjective"|"adverb"|""} Canonical POS string.
+ */
 function posForSense(sense) {
   const values = [...sense.matchAll(/<pos>([\s\S]*?)<\/pos>/g)]
     .map((match) => posForCode(match[1].trim()))
@@ -70,6 +134,13 @@ function posForSense(sense) {
   return values[0] || "";
 }
 
+/**
+ * Parse all `<sense>` blocks from a JMdict entry into structured objects.
+ *
+ * @param {string} entry - Raw XML text of one `<entry>` block.
+ * @returns {{ glosses: string[], pos: string }[]} Array of sense objects, each
+ *   containing the list of English glosses and the primary POS tag.
+ */
 function senses(entry) {
   return [...entry.matchAll(/<sense>([\s\S]*?)<\/sense>/g)].map((match) => ({
     glosses: values(match[1], "gloss").filter(Boolean),
@@ -77,7 +148,14 @@ function senses(entry) {
   }));
 }
 
-// Produce reverse-lookup English keys from gloss text.
+/**
+ * Produce reverse-lookup English index keys from a list of gloss strings.
+ * Only single lowercase words (matching `[a-z][a-z'-]{1,60}`) are indexed because
+ * the English reader tokenises to individual words.
+ *
+ * @param {string[]} glosses - English gloss strings from one or more senses.
+ * @returns {string[]} Unique indexable English tokens.
+ */
 function englishKeys(glosses) {
   // English reader tokens are single words, so only index single-word glosses.
   const keys = new Set();

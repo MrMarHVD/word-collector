@@ -1,3 +1,32 @@
+/**
+ * @file import_wikdict_romance_en.js
+ * @description Imports WikDict Romance-language→English dictionaries from StarDict zip
+ * archives into the corresponding database tables. Currently supports Spanish and French.
+ * The target table is cleared and rebuilt within a single transaction.
+ *
+ * For each language:
+ *  - Headword rows are inserted into the language-specific main table
+ *    (`wikdict_spanish_english` or `wikdict_french_english`).
+ *  - Inflected-form aliases (from the `.syn` file) are inserted into the
+ *    corresponding alias table (`wikdict_spanish_english_aliases` or
+ *    `wikdict_french_english_aliases`), where supported.
+ *  - Per-language `preferredTranslations` reorder ambiguous entries.
+ *  - `BAD_TRANSLATIONS` suppresses known incorrect or misleading translations.
+ *  - `customTranslations` (French only) injects entries not present in the source data.
+ *
+ * CLI usage:
+ * ```
+ * node backend/scripts/import_wikdict_romance_en.js spanish|french [zipPath]
+ * ```
+ * The first argument selects the language. The optional second argument overrides
+ * the default zip path (see `IMPORTS` for defaults).
+ *
+ * Database side effects:
+ *  - Truncates and rebuilds the selected language table and its alias table.
+ *
+ * Exits with a JSON summary `{ language, entries, rows, aliases }` printed to stdout.
+ * Requires `DATABASE_URL` (or equivalent db config) to be set in the environment.
+ */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import JSZip from "jszip";
@@ -46,6 +75,12 @@ if (!config) {
 }
 const sourcePath = process.argv[3] || config.sourcePath;
 
+/**
+ * Decode HTML entities in a StarDict entry field.
+ *
+ * @param {unknown} value - Raw value from the dictionary entry.
+ * @returns {string} Value with common HTML entities replaced by their characters.
+ */
 function decodeHtml(value) {
   return String(value || "")
     .replace(/&lt;/g, "<")
@@ -56,10 +91,25 @@ function decodeHtml(value) {
     .replace(/&amp;/g, "&");
 }
 
+/**
+ * Strip all HTML tags from a value and normalise whitespace.
+ *
+ * @param {unknown} value - Raw HTML string.
+ * @returns {string} Plain text with collapsed whitespace.
+ */
 function stripTags(value) {
   return decodeHtml(String(value || "").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Map a grammar label string to a canonical POS tag. Includes preposition,
+ * conjunction, and pronoun in addition to the base set, as Romance-language
+ * entries use these more frequently.
+ *
+ * @param {unknown} value - Grammar label text from the dictionary entry.
+ * @returns {"noun"|"verb"|"adjective"|"adverb"|"preposition"|"conjunction"|"pronoun"|""}
+ *   Canonical POS string, or empty string for unrecognised labels.
+ */
 function posForLabel(value) {
   const clean = String(value || "").toLowerCase();
   if (clean.includes("noun")) return "noun";
@@ -72,6 +122,12 @@ function posForLabel(value) {
   return "";
 }
 
+/**
+ * Parse a StarDict `.idx` binary buffer into an array of entry descriptors.
+ *
+ * @param {Buffer} idxBuffer - Contents of a StarDict `.idx` file.
+ * @returns {{ word: string, dataOffset: number, size: number }[]} Parsed entries.
+ */
 function readIdxEntries(idxBuffer) {
   const entries = [];
   let offset = 0;
@@ -87,6 +143,16 @@ function readIdxEntries(idxBuffer) {
   return entries;
 }
 
+/**
+ * Parse a StarDict `.syn` synonyms buffer into alias records that map inflected
+ * forms to their headword entry in the `.idx` table.
+ *
+ * @param {Buffer} synBuffer - Contents of a StarDict `.syn` file.
+ * @param {{ word: string }[]} idxEntries - The previously parsed index entries,
+ *   used to resolve index offsets to headword strings.
+ * @returns {{ word: string, headword: string }[]} Alias pairs where `word` is the
+ *   inflected form and `headword` is the canonical entry word.
+ */
 function readSynEntries(synBuffer, idxEntries) {
   const entries = [];
   let offset = 0;
@@ -104,6 +170,14 @@ function readSynEntries(synBuffer, idxEntries) {
   return entries;
 }
 
+/**
+ * Extract English translation strings from a Romance-language StarDict HTML entry.
+ * Filters out non-ASCII, pure POS labels, IPA notation (starting with "/"), and
+ * entries longer than 120 characters.
+ *
+ * @param {string} html - HTML content of a single StarDict entry.
+ * @returns {string[]} Deduplicated list of English translation strings.
+ */
 function extractTranslations(html) {
   const translations = [];
   const seen = new Set();
@@ -121,6 +195,12 @@ function extractTranslations(html) {
   return translations;
 }
 
+/**
+ * Extract a plain-text definition from a StarDict HTML entry, truncated to 500 chars.
+ *
+ * @param {string} html - HTML content of a single StarDict entry.
+ * @returns {string} Plain-text definition.
+ */
 function extractDefinition(html) {
   const afterGrammar = html.replace(/^[\s\S]*?<font[^>]*class="grammar"[\s\S]*?<\/font>\s*<\/div>/i, "");
   const withoutLists = afterGrammar.replace(/<ol[\s\S]*$/i, "");
@@ -128,6 +208,13 @@ function extractDefinition(html) {
   return text.slice(0, 500);
 }
 
+/**
+ * Extract the part-of-speech tag from a StarDict HTML entry's grammar annotation.
+ *
+ * @param {string} html - HTML content of a single StarDict entry.
+ * @returns {"noun"|"verb"|"adjective"|"adverb"|"preposition"|"conjunction"|"pronoun"|""}
+ *   Canonical POS string.
+ */
 function extractPos(html) {
   const match = html.match(/<font[^>]*class="grammar"[^>]*>([\s\S]*?)<\/font>/i);
   return posForLabel(stripTags(match?.[1] || ""));

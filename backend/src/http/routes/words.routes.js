@@ -1,8 +1,78 @@
+/**
+ * @fileoverview Route handlers for word-level read and mutation operations.
+ *
+ * Words are the core entities that users collect while reading materials. Routes
+ * here cover listing words (scoped to a language or a collection), bulk status
+ * and deletion operations, per-word click tracking, "want to practice" flagging,
+ * custom translation overrides, and individual status updates.
+ */
+
 import { getLanguage } from "../../modules/languages/languages.service.js";
 import { deleteWords, getWords, getWordsInLanguage, moveWords, setTranslationOverride, setWantToPractice, setWordsStatus } from "../../modules/words/words.service.js";
 import { readJson } from "../request.js";
 import { jsonResponse } from "../response.js";
 
+/**
+ * Creates route handlers for all word-related endpoints.
+ *
+ * **GET /api/languages/:id/words?[search=]**
+ * Returns all words in a language, optionally filtered by a search string.
+ * Translations are rendered in the user's native language.
+ * - Response 200: `{ language, words: Word[] }`
+ * - Response 404: language not found.
+ *
+ * **GET /api/collections/:id/words?[search=]**
+ * Returns all words in a specific collection, optionally filtered.
+ * - Response 200: `{ collection, words: Word[] }`
+ * - Response 404: collection not found or not owned by the user.
+ *
+ * **POST /api/words/delete**
+ * Bulk-deletes words by ID. Only words owned by the user are deleted.
+ * - Body: `{ wordIds: number[] }`
+ * - Response 200: deletion result from the service.
+ * - Response 400: validation error.
+ *
+ * **POST /api/words/status**
+ * Sets the learning status of multiple words in one call.
+ * - Body: `{ wordIds: number[], status: "unknown"|"learning"|"known" }`
+ * - Response 200: update result from the service.
+ * - Response 400: invalid status or ownership error.
+ *
+ * **POST /api/words/move**
+ * Moves multiple words to a different collection.
+ * - Body: `{ wordIds: number[], collectionId: number }`
+ * - Response 200: move result from the service.
+ * - Response 400: validation or ownership error.
+ *
+ * **POST /api/words/:id/click**
+ * Increments the click counter for a word (tracks reader engagement).
+ * - Response 200: `{ ok: true }`
+ * - Response 404: word not found or not owned by the user.
+ *
+ * **POST /api/words/:id/want-to-practice**
+ * Toggles the "want to practice" flag on a word.
+ * - Body: `{ wantToPractice: boolean }`
+ * - Response 200: updated word state from the service.
+ * - Response 400/404: validation or ownership error.
+ *
+ * **PATCH /api/words/:id/translation-override**
+ * Sets or clears a user-provided translation override for a word.
+ * - Body: `{ translationOverride: string|null }`
+ * - Response 200: updated word from the service.
+ * - Response 400/404: validation or ownership error.
+ *
+ * **PATCH /api/words/:id**
+ * Updates the learning status of a single word. Accepts either
+ * `{ status: "unknown"|"learning"|"known" }` or the legacy
+ * `{ known: boolean }` shape for backwards compatibility.
+ * - Response 200: updated word record.
+ * - Response 400: invalid status value.
+ * - Response 404: word not found or not owned by the user.
+ *
+ * @param {Object} deps
+ * @param {import("../../db/repositories.js").Repositories} deps.repositories
+ * @returns {(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, url: URL, user: import("../../auth/session.js").SessionUser) => Promise<boolean>}
+ */
 export function createWordsRoutes({ repositories }) {
   return async function handleWordsRoutes(req, res, url, user) {
     const languageWordsMatch = url.pathname.match(/^\/api\/languages\/(\d+)\/words$/);

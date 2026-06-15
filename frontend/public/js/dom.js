@@ -1,3 +1,14 @@
+/**
+ * @fileoverview Cached DOM element references shared across view and controller modules.
+ *
+ * All elements are queried once at module load time and stored on the exported
+ * `elements` object. Importing modules receive a stable reference to the same
+ * node; they must not re-query or replace entries on this object.
+ *
+ * Elements that do not exist in the current HTML (e.g. feature-gated markup) will
+ * be `null`; callers are responsible for null-guarding before accessing properties.
+ */
+
 // Cached DOM references shared by view and controller modules.
 export const elements = {
   html: document.documentElement,

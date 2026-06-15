@@ -1,3 +1,16 @@
+/**
+ * @fileoverview Tokenizer service. Splits source-language text into token
+ * objects with surface form, lemma, part-of-speech, reading, and inter-token
+ * gap text. Language dispatch:
+ * - Japanese: Kuromoji morphological analyzer (loaded lazily and cached).
+ * - English: regex word extraction + wink-lemmatizer lemmatization.
+ * - Chinese: `Intl.Segmenter` with `"word"` granularity + simple aspect-suffix stripping.
+ * - Other: Unicode letter/number regex with lowercase lemma.
+ *
+ * `tokenizeBlocksForLanguage` extends the flat output with `blockIndex` and
+ * `blockType` fields for EPUB structured-block imports.
+ */
+
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import lemmatizer from "wink-lemmatizer";
@@ -144,7 +157,16 @@ function attachGaps(tokens, sourceText) {
   return tokens;
 }
 
-// Tokenize text into surface forms and lemmas for the selected study language.
+/**
+ * Tokenize `text` into an ordered array of token objects for the given study
+ * language. Each token carries: `position`, `surface`, `normalized`, `lemma`,
+ * `pos`, `posSubcategory`, `reading`, `conjugationForm`, `paragraphIndex`,
+ * `sentenceIndex`, `leadingText`, and `trailingText`.
+ *
+ * @param {string} text - Raw source text.
+ * @param {string} languageName - e.g. `"Japanese"`, `"English"`, `"Chinese"`.
+ * @returns {Promise<object[]>} Flat ordered token array.
+ */
 export async function tokenizeForLanguage(text, languageName) {
   const normalizedLanguageName = languageName.toLowerCase();
   let tokens;
@@ -234,8 +256,17 @@ export async function tokenizeForLanguage(text, languageName) {
   return attachGaps(tokens, text);
 }
 
-// Tokenize a structured block array, tagging every token with its block context
-// while keeping `position` as a global flat index for downstream consumers.
+/**
+ * Tokenize an array of structured blocks (from EPUB extraction) and return a
+ * single flat token array where each token is additionally tagged with
+ * `blockIndex` (0-based block position) and `blockType` (e.g. `"paragraph"`,
+ * `"heading-1"`). The `position` field is a global monotonically increasing
+ * index across all blocks.
+ *
+ * @param {Array<{ type: string, text: string }>} blocks
+ * @param {string} languageName
+ * @returns {Promise<object[]>}
+ */
 export async function tokenizeBlocksForLanguage(blocks, languageName) {
   const all = [];
   let position = 0;

@@ -1,8 +1,30 @@
-// Phase 4 — auth hardening. Adds email verification state and a hashed-token
-// table for email-verification and password-reset links. The `sessions` table
-// already exists in the baseline schema and is activated by this phase's code.
-// Additive and non-destructive: existing data is preserved.
+/**
+ * @file 1748000000002_auth-hardening.js
+ * @description Phase 4 — auth hardening. Additive, non-destructive migration that
+ * introduces email verification state and a single-use token table used by
+ * email-verification and password-reset flows.
+ *
+ * Schema changes:
+ *  - `users.email_verified` (BOOLEAN NOT NULL DEFAULT false) — tracks whether the
+ *    account email has been confirmed via a verification link.
+ *  - `auth_tokens` table — stores the SHA-256 hash of each single-use token
+ *    (`id`), its `type` (verification | passwordReset), `expires_at`, and
+ *    `used_at`. Raw token values are never persisted, limiting exposure from a
+ *    database leak.
+ *  - Indexes on `auth_tokens(user_id, type)`, `sessions(user_id)`, and
+ *    `sessions(expires_at)` for efficient per-user revocation and expiry sweeps.
+ *
+ * Data backfill: all pre-existing users are marked `email_verified = true`
+ * immediately after the column is added, so users who registered before this
+ * feature are never nagged by the verification banner.
+ */
 
+/**
+ * Apply auth-hardening changes: add `email_verified`, backfill existing users,
+ * create `auth_tokens`, and add session lookup indexes.
+ *
+ * @param {import('node-postgres-migrate').MigrationBuilder} pgm - Migration builder instance.
+ */
 export const up = (pgm) => {
   pgm.sql(`
     ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT false;
@@ -32,6 +54,12 @@ export const up = (pgm) => {
   `);
 };
 
+/**
+ * Revert auth-hardening changes: drop the session indexes, `auth_tokens` table,
+ * and the `email_verified` column.
+ *
+ * @param {import('node-postgres-migrate').MigrationBuilder} pgm - Migration builder instance.
+ */
 export const down = (pgm) => {
   pgm.sql(`
     DROP INDEX IF EXISTS idx_sessions_expires;

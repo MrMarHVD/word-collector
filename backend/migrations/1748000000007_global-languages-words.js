@@ -1,33 +1,56 @@
-// Make languages and words global, with per-user overlays.
-//
-// Before this migration a "language" row belonged to a single user, every
-// collection hung off that per-user language, and every word row belonged to
-// one user's collection. The same word imported by two users existed as two
-// independent rows with two translations.
-//
-// After this migration:
-//   - `languages` is global (unique name); `user_languages` records which
-//     languages each user has enrolled in.
-//   - `collections` are owned directly by a user (`user_id`) and point at a
-//     global language.
-//   - `words` are global per language (unique on the lemma key); the old
-//     per-user `words.collection_id`/`words.translation` ownership is gone.
-//   - `user_words` is each user's private subset of the global words, carrying
-//     their collection placement and learning state (status, known,
-//     click_count, want_to_practice) plus an optional per-user
-//     `translation_override`. It replaces `user_word_status`.
-//   - `word_translations` becomes the genuinely shared translation cache.
-//
-// Existing data is unified, never dropped: words that match across users are
-// collapsed onto one global row (keeping each user's learning state as a
-// user_words row), and material tokens are remapped onto the surviving word.
-// Shared words are re-translated against the current dictionary logic by a
-// separate one-shot script (scripts/backfill_global_translations.js); this
-// migration carries the best existing translation forward in the meantime.
-//
-// The word identity key matches the application's import-resolution key:
-//   lower(COALESCE(NULLIF(btrim(lemma), ''), word))   (per language)
+/**
+ * @file 1748000000007_global-languages-words.js
+ * @description Restructures the core vocabulary model from per-user ownership to a
+ * global shared model with per-user overlays.
+ *
+ * Before this migration, every `language`, `collection`, and `word` row was owned
+ * by a single user. The same vocabulary item imported by two users produced two
+ * independent rows with potentially different translations.
+ *
+ * After this migration:
+ *  - `languages` is global (unique by name); `user_languages` (new) records each
+ *    user's enrolment in a language.
+ *  - `collections` are owned directly by a `user_id` and point at a global language.
+ *  - `words` are global per language, keyed on the normalised lemma expression
+ *    `lower(COALESCE(NULLIF(btrim(lemma), ''), word))`. The old per-user
+ *    `collection_id` and `translation` columns are removed.
+ *  - `user_words` (new) replaces `user_word_status` and carries each user's private
+ *    subset of global words: their collection placement, learning state (status,
+ *    known, click_count, want_to_practice), and an optional `translation_override`.
+ *  - `word_translations` becomes the shared cross-user translation cache.
+ *
+ * Data migration steps (in order):
+ *  A. Create `user_languages`; deduplicate `languages` to one row per name; repoint
+ *     `collections` and `materials` at the surviving global language rows.
+ *  B. Capture `collections.user_id` from the language link before it is dropped.
+ *  C. Add `words.language_id`; collapse duplicate word rows across users by keeping
+ *     the lowest-id row per (language, normalised-lemma) group, merging the richest
+ *     metadata from all duplicates onto the surviving row.
+ *  D. Create `user_words` and populate it from `user_word_status`, reconciling users
+ *     who had the same word in multiple collections (most-progressed status wins;
+ *     non-"Uncollected" collection preferred; clicks are summed).
+ *  E. Remap `word_translations` and `material_tokens` onto the surviving global word ids.
+ *  F. Delete the duplicate (non-surviving) word rows.
+ *  G. Apply final constraints: `words_language_lemma_key` unique index,
+ *     `collections_user_language_name_key`, and supporting lookup indexes.
+ *     Drop the now-superseded `user_word_status` table.
+ *
+ * Shared words that were consolidated in this migration should be re-translated by
+ * running `scripts/backfill_global_translations.js` immediately after applying this
+ * migration. This migration carries the best pre-existing translation forward as a
+ * placeholder until then.
+ *
+ * @see {@link ../../scripts/backfill_global_translations.js} for the follow-up backfill.
+ */
 
+/**
+ * Apply the global-languages-words restructure. Unifies per-user vocabulary data
+ * into shared global rows, creates `user_languages` and `user_words`, and drops
+ * the legacy `user_word_status` table. See the file-level JSDoc for the full
+ * sequence of steps.
+ *
+ * @param {import('node-postgres-migrate').MigrationBuilder} pgm - Migration builder instance.
+ */
 export const up = (pgm) => {
   pgm.sql(`
     -------------------------------------------------------------------------
@@ -232,9 +255,13 @@ export const up = (pgm) => {
   `);
 };
 
-// This migration unifies duplicate word rows across users and is therefore
-// not losslessly reversible. Refuse to run down rather than silently destroy
-// the per-user data the up path consolidated.
+/**
+ * This migration unifies duplicate word rows across users and is not losslessly
+ * reversible. Running `down` throws unconditionally to prevent silent data loss.
+ * Restore from a backup if a rollback is required.
+ *
+ * @throws {Error} Always — this migration is irreversible.
+ */
 export const down = () => {
   throw new Error(
     "1748000000007_global-languages-words is irreversible: it unifies per-user " +

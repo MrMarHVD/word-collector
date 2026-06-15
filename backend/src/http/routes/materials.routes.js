@@ -1,8 +1,52 @@
+/**
+ * @fileoverview Route handlers for the `/api/materials` resource.
+ *
+ * Materials are documents (e.g. PDFs, text files) that a user uploads to a
+ * study language. The reader endpoint streams paginated sentences/paragraphs
+ * from a processed material so the frontend can display them word-by-word.
+ */
+
 import { getMaterialReader, getMaterials, startMaterialImport, updateMaterial } from "../../modules/materials/materials.service.js";
 import { readJson, readMultipart } from "../request.js";
 import { jsonResponse } from "../response.js";
 import { BETA_MAX_MATERIAL_UPLOAD_BYTES } from "../../config.js";
 
+/**
+ * Creates the route handler for `/api/materials` and `/api/materials/:id`.
+ *
+ * **GET /api/materials?languageId=&[offset=]&[search=]**
+ * Lists materials for a language, paginated (page size 50).
+ * - Response 200: `{ materials: Material[], pageSize: 50 }`
+ * - Response 404: language not found or not owned by the user.
+ *
+ * **POST /api/materials** _(multipart/form-data)_
+ * Uploads a new document file and begins background import processing.
+ * - Body fields: `languageId` (string-encoded number), `file` (binary file part).
+ * - Response 201: import result from `startMaterialImport`.
+ * - Response 400: service-level validation error.
+ * - Response 413: file exceeds the beta upload limit (`BETA_MAX_MATERIAL_UPLOAD_BYTES`).
+ *
+ * **GET /api/materials/:id?[start=]&[limit=]**
+ * Returns a paginated reader view of a material's processed content.
+ * - Response 200: reader payload from `getMaterialReader`.
+ * - Response 404: material not found or not owned by the user.
+ *
+ * **PATCH /api/materials/:id**
+ * Updates mutable fields on a material (e.g. title).
+ * - Body: partial material fields accepted by `updateMaterial`.
+ * - Response 200: `{ material: Material }`
+ * - Response 400: validation error.
+ * - Response 404: material not found.
+ *
+ * **DELETE /api/materials/:id**
+ * Permanently deletes a material and its associated data.
+ * - Response 200: `{ deleted: true, id: number }`
+ * - Response 404: material not found or not owned by the user.
+ *
+ * @param {Object} deps
+ * @param {import("../../db/repositories.js").Repositories} deps.repositories
+ * @returns {(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, url: URL, user: import("../../auth/session.js").SessionUser) => Promise<boolean>}
+ */
 export function createMaterialsRoutes({ repositories }) {
   return async function handleMaterialsRoutes(req, res, url, user) {
     if (req.method === "GET" && url.pathname === "/api/materials") {

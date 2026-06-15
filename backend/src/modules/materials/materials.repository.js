@@ -1,3 +1,17 @@
+/**
+ * @fileoverview Materials repository. SQL persistence for uploaded documents
+ * and their token streams. Tables: `materials`, `material_tokens`, `languages`.
+ * Tracks import progress fields (`import_status`, `import_total`,
+ * `import_processed`) and serves the paginated reader token query with
+ * per-user word-status and translation resolution.
+ */
+
+/**
+ * Build the materials repository bound to the given database executor.
+ *
+ * @param {object} db - Prepared-statement executor.
+ * @returns {object} Repository with material and token persistence/retrieval methods.
+ */
 export function createMaterialsRepository(db) {
   const createMaterial = db.prepare(`
     INSERT INTO materials (user_id, language_id, title, file_name, file_type, raw_text, word_count)
@@ -88,24 +102,86 @@ export function createMaterialsRepository(db) {
   `);
 
   return {
+    /**
+     * Insert a new material row with raw text and word count (synchronous import path).
+     * Inserts into: `materials`.
+     * @param {number} userId
+     * @param {number} languageId
+     * @param {string} title
+     * @param {string} fileName
+     * @param {string} fileType
+     * @param {string} rawText
+     * @param {number} wordCount
+     * @returns {object} SQLite run result (contains `lastInsertRowid`).
+     */
     createMaterial(userId, languageId, title, fileName, fileType, rawText, wordCount) {
       return createMaterial.run(userId, languageId, title, fileName, fileType, rawText, wordCount);
     },
+    /**
+     * Insert a placeholder material row with `import_status = 'processing'`
+     * before the worker thread begins extraction.
+     * Inserts into: `materials`.
+     * @param {number} userId
+     * @param {number} languageId
+     * @param {string} title
+     * @param {string} fileName
+     * @param {string} fileType
+     * @returns {object} SQLite run result (contains `lastInsertRowid`).
+     */
     createProcessingMaterial(userId, languageId, title, fileName, fileType) {
       return createProcessingMaterial.run(userId, languageId, title, fileName, fileType);
     },
+    /**
+     * Update the material row with extracted text, word count, file type, and
+     * total import count once extraction is complete.
+     * Updates: `materials`.
+     * @param {number} materialId
+     * @param {string} rawText
+     * @param {number} wordCount
+     * @param {string} fileType
+     * @param {number} importTotal
+     * @returns {object} SQLite run result.
+     */
     updateImportMeta(materialId, rawText, wordCount, fileType, importTotal) {
       return updateMaterialImportMeta.run(rawText, wordCount, fileType, importTotal, materialId);
     },
+    /**
+     * Update the running count of tokens persisted so far (for polling).
+     * Updates: `materials`.
+     * @param {number} materialId
+     * @param {number} processed
+     * @returns {object} SQLite run result.
+     */
     setImportProcessed(materialId, processed) {
       return updateMaterialImportProcessed.run(processed, materialId);
     },
+    /**
+     * Mark the import as complete and clear any previous error.
+     * Updates: `materials`.
+     * @param {number} materialId
+     * @returns {object} SQLite run result.
+     */
     markImportReady(materialId) {
       return markMaterialImportReady.run(materialId);
     },
+    /**
+     * Mark the import as failed and store the error message.
+     * Updates: `materials`.
+     * @param {number} materialId
+     * @param {string} error
+     * @returns {object} SQLite run result.
+     */
     markImportFailed(materialId, error) {
       return markMaterialImportFailed.run(error, materialId);
     },
+    /**
+     * Insert a single token row for a material.
+     * Inserts into: `material_tokens`.
+     * @param {number} materialId
+     * @param {object} token - Token object with position, surface, normalized, lemma, pos, etc.
+     * @param {number} wordId - Global word id linked to this token.
+     * @returns {object} SQLite run result.
+     */
     insertMaterialToken(materialId, token, wordId) {
       return insertMaterialToken.run(
         materialId,
@@ -124,8 +200,14 @@ export function createMaterialsRepository(db) {
         token.trailingText ?? null
       );
     },
-    // Insert a batch of tokens in one multi-row statement. `entries` is an
-    // array of { token, wordId } in position order.
+    /**
+     * Insert a batch of token rows in a single multi-row statement. No-ops
+     * when `entries` is empty.
+     * Inserts into: `material_tokens`.
+     * @param {number} materialId
+     * @param {Array<{ token: object, wordId: number }>} entries - Token/wordId pairs in position order.
+     * @returns {object} SQLite run result.
+     */
     insertMaterialTokens(materialId, entries) {
       if (!entries.length) {
         return { changes: 0 };
@@ -156,18 +238,59 @@ export function createMaterialsRepository(db) {
       `);
       return statement.run(...params);
     },
+    /**
+     * Find a material by id, scoped to the owning user.
+     * Queries: `materials` JOIN `languages`.
+     * @param {number} materialId
+     * @param {number} userId
+     * @returns {object|undefined}
+     */
     findById(materialId, userId) {
       return materialById.get(materialId, userId);
     },
+    /**
+     * Update the reader bookmark position for a material.
+     * Updates: `materials`.
+     * @param {number} readerStart - Token position offset.
+     * @param {number} materialId
+     * @param {number} userId
+     * @returns {object} SQLite run result.
+     */
     updateReaderStart(readerStart, materialId, userId) {
       return updateMaterialReaderStart.run(readerStart, materialId, userId);
     },
+    /**
+     * Rename a material.
+     * Updates: `materials`.
+     * @param {string} title
+     * @param {number} materialId
+     * @param {number} userId
+     * @returns {object} SQLite run result.
+     */
     updateTitle(title, materialId, userId) {
       return updateMaterialTitle.run(title, materialId, userId);
     },
+    /**
+     * Hard-delete a material and its token rows (via cascade).
+     * Deletes from: `materials`.
+     * @param {number} materialId
+     * @param {number} userId
+     * @returns {object} SQLite run result.
+     */
     deleteById(materialId, userId) {
       return deleteMaterial.run(materialId, userId);
     },
+    /**
+     * Return a paginated list of materials for a user and language, optionally
+     * filtered by title substring.
+     * Queries: `materials`.
+     * @param {number} userId
+     * @param {number} languageId
+     * @param {number} pageSize
+     * @param {number} offset
+     * @param {string} [search=""]
+     * @returns {object[]}
+     */
     listByUserAndLanguage(userId, languageId, pageSize, offset, search = "") {
       const term = search.trim();
       if (!term) {
@@ -176,18 +299,57 @@ export function createMaterialsRepository(db) {
       const pattern = `%${term.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
       return materialsByUserLanguageSearch.all(userId, languageId, pattern, pageSize, offset);
     },
+    /**
+     * List all materials across all languages for a user (used by the
+     * translation backfill scan).
+     * Queries: `materials` JOIN `languages`.
+     * @param {number} userId
+     * @returns {object[]}
+     */
     listByUser(userId) {
       return materialsByUser.all(userId);
     },
+    /**
+     * Return the total number of materials the user owns.
+     * Queries: `materials`.
+     * @param {number} userId
+     * @returns {number}
+     */
     countByUser(userId) {
       return countMaterialsByUser.get(userId)?.count || 0;
     },
+    /**
+     * Return the number of materials currently being imported for a user.
+     * Queries: `materials`.
+     * @param {number} userId
+     * @returns {number}
+     */
     countProcessingByUser(userId) {
       return countProcessingMaterialsByUser.get(userId)?.count || 0;
     },
+    /**
+     * Return the total number of in-progress imports across all users
+     * (used for the global capacity limit).
+     * Queries: `materials`.
+     * @returns {number}
+     */
     countProcessingGlobal() {
       return countProcessingMaterialsGlobal.get()?.count || 0;
     },
+    /**
+     * Return a paginated, ordered slice of token rows for the reader view.
+     * Each row includes the word's dictionary form, part-of-speech, reading,
+     * pinyin, canonical translation, user's translation override, and status.
+     * Translation preference: user override → native-language cache → source word.
+     * Queries: `material_tokens` JOIN `words` LEFT JOIN `word_translations`
+     * LEFT JOIN `user_words`.
+     * @param {object} material - Material row with `id`, `languageName`.
+     * @param {string} nativeLanguage
+     * @param {number} safeLimit
+     * @param {number} safeStart - Token position offset.
+     * @param {number} userId
+     * @returns {object[]}
+     */
     listReaderTokens(material, nativeLanguage, safeLimit, safeStart, userId) {
       return readerTokens.all(nativeLanguage, material.languageName, nativeLanguage, material.languageName, nativeLanguage, userId, material.id, safeLimit, safeStart);
     }

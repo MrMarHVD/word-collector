@@ -1,19 +1,35 @@
+/**
+ * @file backfill_global_translations.js
+ * @description One-off follow-up script for migration `1748000000007_global-languages-words`.
+ * For every word now shared by two or more users, regenerates its translation using the
+ * current dictionary lookup logic so all affected users see a single, consistent,
+ * up-to-date translation. The migration itself carries only the best pre-existing
+ * translation forward as a placeholder.
+ *
+ * Words belonging to a single user are left untouched: there is nobody to reconcile
+ * with, and the owner's stored translation is preserved as-is.
+ *
+ * The script is idempotent: re-running it recomputes and upserts the same values.
+ * It is read-mostly — no rows are deleted and no user-owned data is altered.
+ *
+ * Prerequisites: run `npm run migrate:up` first; this script requires the schema
+ * introduced by migration 007 (`user_words`, global `languages`, etc.).
+ *
+ * CLI usage:
+ * ```
+ * npm run backfill:global-translations
+ * ```
+ *
+ * Database side effects:
+ *  - Upserts rows in `word_translations` for all target native languages for each
+ *    shared word.
+ *  - Updates `words.translation` (the English base gloss) for shared non-English words.
+ *
+ * Exits with a summary line reporting how many words were re-translated.
+ */
 import { db, pool } from "../src/db/index.js";
 import { createRepositories } from "../src/modules/index.js";
 import { displayTranslationForToken, languageKey, translationTargetsForLanguage } from "../src/modules/translations/translations.service.js";
-
-// One-off backfill to run once, immediately after the global-languages-words
-// migration. For every word that is now shared by two or more users, regenerate
-// its translation against the current dictionary logic so all of those users
-// see one consistent, up-to-date translation (the migration only carries the
-// best pre-existing translation forward as a placeholder).
-//
-// Words used by a single user are left untouched: there is no one to reconcile
-// with, and their owner's translation is preserved as-is.
-//
-// Idempotent and read-mostly: re-running it simply recomputes the same values.
-// Run migrations first (`npm run migrate:up`); this assumes the new schema.
-// Usage: npm run backfill:global-translations
 
 const repositories = createRepositories(db);
 

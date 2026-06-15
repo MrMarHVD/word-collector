@@ -1,9 +1,30 @@
+/**
+ * @fileoverview Dashboard repository. Aggregation queries that power the
+ * Dashboard view: per-user totals and per-collection word-status breakdowns,
+ * optionally filtered by language. Tables: `collections`, `user_words`,
+ * `languages`, `materials`, `material_tokens`.
+ */
+
 function collectionFilter(selectedLanguageId) {
   return selectedLanguageId ? "WHERE c.user_id = ? AND c.language_id = ?" : "WHERE c.user_id = ?";
 }
 
+/**
+ * Build the dashboard repository bound to the given database executor.
+ *
+ * @param {object} db - Prepared-statement executor.
+ * @returns {object} Repository with aggregation methods for dashboard data.
+ */
 export function createDashboardRepository(db) {
   return {
+    /**
+     * Return aggregate word-status counts across all of the user's collections,
+     * optionally narrowed to a single language.
+     * Queries: `collections` LEFT JOIN `user_words`.
+     * @param {number} userId
+     * @param {number|null} selectedLanguageId
+     * @returns {object} Row with `totalWords`, `knownWords`, `learningWords`, `wantToPracticeWords`.
+     */
     getTotals(userId, selectedLanguageId) {
       const filter = collectionFilter(selectedLanguageId);
       const params = selectedLanguageId ? [userId, selectedLanguageId] : [userId];
@@ -18,6 +39,16 @@ export function createDashboardRepository(db) {
         ${filter}
       `).get(userId, ...params);
     },
+    /**
+     * List the user's collections with per-collection word-status counts,
+     * optionally filtered to a single language. Ordered alphabetically by
+     * language name then collection name.
+     * Queries: `collections` JOIN `languages` LEFT JOIN `user_words`.
+     * @param {number} userId
+     * @param {number|null} selectedLanguageId
+     * @returns {object[]} Rows with `id`, `name`, `languageId`, `languageName`,
+     *   `totalWords`, `knownWords`, `learningWords`.
+     */
     listCollections(userId, selectedLanguageId) {
       const filter = collectionFilter(selectedLanguageId);
       const params = selectedLanguageId ? [userId, selectedLanguageId] : [userId];
@@ -38,6 +69,13 @@ export function createDashboardRepository(db) {
         ORDER BY lower(l.name), lower(c.name)
       `).all(userId, ...params);
     },
+    /**
+     * List every collection the user owns, with word-status counts, across all
+     * languages. Used to populate the "move to collection" picker.
+     * Queries: `collections` JOIN `languages` LEFT JOIN `user_words`.
+     * @param {number} userId
+     * @returns {object[]}
+     */
     listAllCollections(userId) {
       return db.prepare(`
         SELECT
@@ -56,6 +94,19 @@ export function createDashboardRepository(db) {
         ORDER BY lower(l.name), lower(c.name)
       `).all(userId, userId);
     },
+    /**
+     * Return a paginated list of the user's materials with per-document reading
+     * progress and word-status counts. Supports optional language and title/filename
+     * search filters.
+     * Queries: `materials` JOIN `languages` LEFT JOIN `material_tokens` LEFT JOIN `user_words`.
+     * @param {number} userId
+     * @param {number|null} selectedLanguageId
+     * @param {string} search - Substring matched against title and filename.
+     * @param {number} pageSize
+     * @param {number} offset
+     * @returns {object[]} Rows with material metadata, `totalTokens`, `readTokens`,
+     *   `totalWords`, `knownWords`, `learningWords`.
+     */
     listDocumentStats(userId, selectedLanguageId, search, pageSize, offset) {
       const params = [userId];
       const filters = ["m.user_id = ?"];

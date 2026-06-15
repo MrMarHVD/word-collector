@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Reader view — renders the immersive document reader, including
+ * the resizable panel and sidebar layout, the imported materials list with
+ * per-material import and translation progress indicators, the paginated token
+ * stream (supporting both legacy flat and structured EPUB block formats), and
+ * the floating word-info popup with status toggle, translation-override
+ * controls, phonetic details, disambiguation table, and practice checkbox.
+ */
+
 import { elements } from "../dom.js";
 import { normalizeStatus } from "../shared/status.js";
 import { renderStatusToggle } from "./words.js";
@@ -24,8 +33,27 @@ function readerSidebarColumnWidth() {
   return Math.max(minimumWidth, Math.min(state.readerSidebarWidth, maximumWidth));
 }
 
-// Apply persisted reader layout dimensions through CSS custom properties.
-// Render reader panel dimensions and sidebar collapsed state.
+/**
+ * Recalculates and applies all reader layout dimensions as CSS custom
+ * properties on `elements.readerLayout`. Handles focus mode, responsive
+ * breakpoints (≤ 760 px), and sidebar collapsed state.
+ *
+ * Persists the resolved panel dimensions back to `state.readerPanelWidth`,
+ * `state.readerPanelHeight`, and `state.readerFocusPanelWidth` so subsequent
+ * resize calculations start from the last stable size.
+ *
+ * @sideeffects
+ * - Sets `--readerViewportWidth`, `--readerViewportOffset`,
+ *   `--readerSidebarWidth`, `--readerInfoWidth`, `--readerPanelMinWidth`,
+ *   `--readerPanelMaxHeight`, `--readerPanelMinHeight`, `--readerPanelWidth`,
+ *   `--readerPanelHeight`, `--readerPanelOffset`, and
+ *   `--readerSidebarOpenTop` CSS properties.
+ * - Toggles `is-sidebar-collapsed` on `elements.readerLayout`.
+ * - Sets `aria-expanded` on `elements.readerSidebarToggle`.
+ * - Shows or hides `elements.readerSidebarOpen` and `elements.readerFocusExit`.
+ * - Updates text and `aria-pressed` on all `elements.readerFocusToggles`.
+ * - Toggles `is-reader-focus` on `document.body`.
+ */
 export function renderReaderSidebar() {
   const focusMode = state.activeTab === "reader" && state.readerFocusMode;
   const mobileLayout = window.matchMedia("(max-width: 760px)").matches;
@@ -82,6 +110,27 @@ function isWordSpacingLanguage(name) {
   return lower === "japanese" || lower === "chinese" || name === "日本語" || name === "中文";
 }
 
+/**
+ * Synchronises the reader sidebar tab bar and shows the correct sidebar panel.
+ * On mobile (≤ 760 px) all four tabs ("documents", "read", "settings") are
+ * respected; on desktop only "documents" and "settings" are used, collapsing
+ * "read" into the documents panel.
+ *
+ * Also refreshes the "auto-mark known on page turn", "auto-mark learning on
+ * click", "show word spaces" checkboxes and the highlight opacity slider.
+ * Hides the word-spacing row for languages that use natural character spacing.
+ *
+ * @sideeffects
+ * - Toggles `is-active` and `aria-selected` on sidebar tab buttons.
+ * - Sets `hidden` on sidebar panels based on the active tab.
+ * - Toggles `is-reader-read-panel` and `is-reader-side-panel` on
+ *   `elements.readerLayout`.
+ * - Shows or hides `elements.readerSidebar` and `elements.readerPanel`.
+ * - Synchronises `elements.readerAutoMarkKnown.checked`,
+ *   `elements.readerAutoMarkLearning.checked`,
+ *   `elements.readerShowWordSpaces.checked`, and
+ *   `elements.readerHighlightOpacity.value`.
+ */
 export function renderReaderSidebarTabs() {
   const mobileLayout = window.matchMedia("(max-width: 760px)").matches;
   const activeTab = state.readerSidebarTab;
@@ -140,7 +189,18 @@ function materialProgressMarkup(material) {
   `;
 }
 
-// Render the imported material list and active material state.
+/**
+ * Renders the sidebar list of imported materials from `state.materials`.
+ * Each material row shows a title button (or an inline rename form when
+ * `state.materialRenameId` matches), status metadata, rename and delete
+ * action buttons, and a translation-progress bar when the material is being
+ * processed. The active material is highlighted with `is-active`. Disabled
+ * buttons are shown for materials still importing or translating.
+ *
+ * @sideeffects
+ * - Replaces `elements.materialList.innerHTML` with material row markup or an
+ *   empty-state message.
+ */
 export function renderMaterialList() {
   const searching = state.materialSearch.trim().length > 0;
   elements.materialList.innerHTML = state.materials.length
@@ -196,10 +256,27 @@ export function renderMaterialList() {
     : `<p class="empty">${escapeHtml(t(searching ? "reader.noSearchMatches" : "reader.noMaterials"))}</p>`;
 }
 
-// Show import progress for the work currently being imported. The worker
-// translates each token into the user's native language as it persists it, so
-// processed/total tokens measures the time until the work can be opened.
-// Clears itself once the tracked work is ready.
+/**
+ * Updates the global import progress bar above the material list. The bar
+ * tracks the material identified by `state.importingMaterialId` as it moves
+ * through extraction, tokenisation, and translation phases:
+ *
+ * - **Extraction / tokenisation** (before the material row exists): indeterminate
+ *   pulse at full width.
+ * - **Processing** (material row present, `importStatus === "processing"`):
+ *   determinate bar based on `importProcessed / importTotal`, or indeterminate
+ *   when totals are unavailable.
+ * - **Failed**: full-width bar without animation, showing the error message.
+ * - **Ready**: clears `state.importingMaterialId` and hides the bar.
+ *
+ * @sideeffects
+ * - Sets `state.importingMaterialId` to `null` when the tracked material
+ *   becomes ready.
+ * - Sets `elements.materialImportProgress.hidden`.
+ * - Adjusts `elements.materialImportProgressBar` width, animation class, and
+ *   `aria-valuenow`.
+ * - Updates `elements.materialImportProgressLabel.textContent`.
+ */
 export function renderImportProgress() {
   const tracked = state.importingMaterialId
     ? state.materials.find((material) => material.id === state.importingMaterialId)
@@ -358,7 +435,28 @@ function renderReaderPagination(material) {
   renderReaderProgress(material, end);
 }
 
-// Render the current reader token page and pagination controls.
+/**
+ * Renders the current page of reader tokens into `elements.readerText`, along
+ * with the title, metadata, font size, highlight opacity, and pagination
+ * controls. Shows appropriate placeholder text when no material is selected or
+ * when the selected material is still being translated.
+ *
+ * Delegates block-structured markup rendering (EPUB headings, paragraphs,
+ * list items, blockquotes) to the internal `renderReaderTokenMarkup` helper and
+ * pagination state to `renderReaderPagination`.
+ *
+ * @sideeffects
+ * - Sets `--readerFontSize` and `--readerHighlightOpacity` CSS properties on
+ *   `elements.readerText`.
+ * - Updates `elements.readerFontSize.value` and
+ *   `elements.readerWordsPerPage.value`.
+ * - Replaces `elements.readerText.innerHTML`.
+ * - Updates `elements.readerTitle.textContent` and
+ *   `elements.readerMeta.textContent`.
+ * - Updates pagination controls and the reading progress bar via
+ *   `renderReaderPagination`.
+ * - Shows or hides `elements.readerWordInfo`.
+ */
 export function renderReaderTokens() {
   // Reader pages are rendered as token buttons so each word can expose details.
   elements.readerText.style.setProperty("--readerFontSize", `${state.readerFontSize}px`);
@@ -397,6 +495,25 @@ export function renderReaderTokens() {
   renderReaderPagination(material);
 }
 
+/**
+ * Binary-searches for the largest number of tokens from `tokens` that fit
+ * within the visible reader panel height without overflow. Only runs when
+ * `state.readerWordsPerPage` is `"fit"` and the current material is ready.
+ *
+ * After finding the best count it stores the trimmed slice in
+ * `state.readerTokens`, re-renders the text, resets scroll, and updates
+ * pagination.
+ *
+ * @param {Array<object>} [tokens=state.readerFetchedTokens] - The full token
+ *   array fetched for the current page. Defaults to the cached fetch result.
+ *
+ * @sideeffects
+ * - Mutates `state.readerTokens`.
+ * - Replaces `elements.readerText.innerHTML` during binary-search probes and
+ *   again with the final render.
+ * - Resets `elements.readerText.scrollTop` to `0`.
+ * - Calls `renderReaderPagination` with the resolved material.
+ */
 export function fitReaderTokensToPage(tokens = state.readerFetchedTokens) {
   const material = state.currentMaterial;
   if (state.readerWordsPerPage !== "fit" || !material?.translationStatus?.ready || !tokens.length) {
@@ -505,7 +622,31 @@ function renderDisambiguationTable(token) {
   `;
 }
 
-// Render details and status actions for a selected reader token.
+/**
+ * Renders the floating word-info popup for a selected reader token, or hides
+ * it when `token` is `null`.
+ *
+ * The popup contains the surface form, dictionary form, part-of-speech label
+ * with conjugation form, reading / pinyin / traditional form rows (when
+ * present), the current status in a three-segment toggle, a translation
+ * override display, a practice checkbox (only enabled for "learning" words),
+ * and an optional disambiguation table toggled by a button.
+ *
+ * The popup is initially rendered off-screen (`visibility: hidden`) and
+ * positioned relative to `anchor` via `positionReaderWordInfo` before being
+ * made visible, preventing layout flash.
+ *
+ * @param {object|null} token - The token to display, or `null` to close the
+ *   popup.
+ * @param {Element|null} [anchor=null] - The token button element to position
+ *   the popup beside.
+ *
+ * @sideeffects
+ * - Sets `elements.readerWordInfo.hidden` and `elements.readerWordInfo.style.visibility`.
+ * - Replaces `elements.readerWordInfo.innerHTML`.
+ * - Calls `positionReaderWordInfo` to compute and apply `--readerInfoLeft` and
+ *   `--readerInfoTop` CSS properties.
+ */
 export function renderReaderWordInfo(token, anchor = null) {
   if (!token) {
     elements.readerWordInfo.hidden = true;

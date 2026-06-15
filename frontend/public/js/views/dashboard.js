@@ -1,11 +1,36 @@
+/**
+ * @fileoverview Dashboard view — renders the overview and documents stats tabs,
+ * collection progress charts, the sidebar collection list, and the selected-
+ * collection detail panel. Reads exclusively from `state.dashboard` and related
+ * state properties; all API calls are handled by the dashboard controller.
+ */
+
 import { elements } from "../dom.js";
 import { state } from "../state.js";
 import { formatCount, t } from "../i18n.js";
 import { escapeHtml } from "../shared/html.js";
 import { renderLocalTabs } from "./components/local-tabs.js";
 
-// Render summary metrics, collection charts, and collection management controls.
-// Render dashboard totals and collection selectors from state.dashboard.
+/**
+ * Renders the complete dashboard from `state.dashboard`. Updates summary
+ * metric counters, populates the collection chart grid, and delegates to
+ * helper functions for the collections sidebar, stats tabs, and documents
+ * panel.
+ *
+ * The "want to practice" card is hidden when its count is zero so it only
+ * appears after the user has marked at least one word.
+ *
+ * @sideeffects
+ * - Updates `elements.knownTotal`, `elements.totalWords`,
+ *   `elements.learningTotal`, `elements.unknownTotal`, and
+ *   `elements.collectionCount` text content.
+ * - Conditionally shows/hides and updates `elements.wantToPracticeCard` and
+ *   `elements.wantToPracticeTotal`.
+ * - Replaces `elements.collectionCharts.innerHTML` with chart cards or an
+ *   empty-state message.
+ * - Calls {@link renderCollectionsList}, {@link renderSelectedCollectionStats},
+ *   {@link renderDashboardStatsTabs}, and {@link renderDashboardDocuments}.
+ */
 export function renderDashboard() {
   const { totalWords, knownWords, learningWords, unknownWords, wantToPracticeWords = 0, collections } = state.dashboard;
   elements.knownTotal.textContent = formatCount(knownWords);
@@ -29,6 +54,17 @@ export function renderDashboard() {
   renderDashboardDocuments();
 }
 
+/**
+ * Synchronises the dashboard stats tab bar and shows the correct panel
+ * ("overview" or "documents") based on `state.dashboardStatsTab`. Also
+ * restores the document search input value.
+ *
+ * @sideeffects
+ * - Calls {@link renderLocalTabs} on `elements.dashboardStatsTabs`.
+ * - Sets `hidden` on `elements.dashboardOverviewPanel` and
+ *   `elements.dashboardDocumentsPanel`.
+ * - Restores `elements.dashboardDocumentSearch.value` from state.
+ */
 export function renderDashboardStatsTabs() {
   renderLocalTabs(elements.dashboardStatsTabs, state.dashboardStatsTab, { valueAttribute: "data-dashboard-stats-tab" });
   if (elements.dashboardOverviewPanel) {
@@ -42,6 +78,17 @@ export function renderDashboardStatsTabs() {
   }
 }
 
+/**
+ * Renders the documents stats panel with per-document progress chart cards.
+ * Shows an empty/no-results message when `state.dashboardDocuments` is empty,
+ * and a scroll-for-more hint when there are additional pages to load.
+ *
+ * No-ops early when the required DOM elements are absent.
+ *
+ * @sideeffects
+ * - Replaces `elements.dashboardDocumentCharts.innerHTML`.
+ * - Updates `elements.dashboardDocumentStatus.textContent`.
+ */
 export function renderDashboardDocuments() {
   if (!elements.dashboardDocumentCharts || !elements.dashboardDocumentStatus) {
     return;
@@ -61,7 +108,18 @@ export function renderDashboardDocuments() {
     : t("dashboard.documentCount", { count: formatCount(documents.length) });
 }
 
-// Render the sidebar list of collections, including the "All" entry.
+/**
+ * Renders the sidebar collection list, including a top-level "All" entry. Also
+ * populates `elements.collectionsSelect` (the mobile dropdown) when present.
+ * The active collection is highlighted with `is-active` and `aria-pressed`.
+ *
+ * No-ops early when `elements.collectionsList` is absent from the DOM.
+ *
+ * @sideeffects
+ * - Replaces `elements.collectionsSelect.innerHTML` when the select element
+ *   exists, and synchronises its value.
+ * - Replaces `elements.collectionsList.innerHTML` with button markup.
+ */
 export function renderCollectionsList() {
   if (!elements.collectionsList) {
     return;
@@ -95,7 +153,16 @@ export function renderCollectionsList() {
   elements.collectionsList.innerHTML = allButton + buttons;
 }
 
-// Return the currently selected collection from dashboard state.
+/**
+ * Returns the currently selected collection object from `state.dashboard`,
+ * or `null` when the "All" pseudo-collection is active or the collection is
+ * not found.
+ *
+ * Checks `allCollections` first (full list), falling back to `collections`
+ * (filtered list) to handle partial dashboard loads.
+ *
+ * @returns {object|null} The matching collection object, or `null`.
+ */
 export function getSelectedCollection() {
   if (state.selectedCollectionId === "all") {
     return null;
@@ -104,7 +171,16 @@ export function getSelectedCollection() {
   return allCollections.find((entry) => entry.id === state.selectedCollectionId);
 }
 
-// Render progress metadata for the selected collection or the "all" view.
+/**
+ * Renders progress statistics for the currently selected collection into
+ * `elements.selectedCollectionStats`. When the "All" pseudo-collection is
+ * active, aggregates are drawn from the top-level dashboard totals. When a
+ * specific collection is selected, its individual totals are used. Clears the
+ * element when no matching collection is found.
+ *
+ * @sideeffects
+ * - Replaces `elements.selectedCollectionStats.innerHTML`.
+ */
 export function renderSelectedCollectionStats() {
   if (state.selectedCollectionId === "all") {
     const totalWords = Number(state.dashboard?.totalWords || 0);

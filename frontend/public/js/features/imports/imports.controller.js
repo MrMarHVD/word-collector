@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Imports feature controller — manages the CSV word-list upload
+ * modal. Handles target selection (new collection vs. existing collection),
+ * populates the existing-collection dropdown from dashboard state, parses the
+ * uploaded CSV client-side before submitting, and navigates to the collections
+ * tab on successful import.
+ */
+
 import { requestJson } from "../../api.js";
 import { navigateToTab } from "../../app/router.js";
 import { parseCsv } from "../../csv.js";
@@ -8,6 +16,14 @@ import { state } from "../../state.js";
 
 let loadDashboard = async () => {};
 
+/**
+ * Injects dependencies that the imports controller needs but cannot import
+ * directly (to avoid circular module dependencies).
+ *
+ * @param {{ loadDashboard: function(): Promise<void> }} options
+ * @param {function(): Promise<void>} options.loadDashboard - Reloads dashboard
+ *   data after a successful import so collection counts are up to date.
+ */
 export function configureImportsController(options) {
   loadDashboard = options.loadDashboard;
 }
@@ -56,6 +72,30 @@ function closeUploadModal() {
   elements.uploadStatus.textContent = "";
 }
 
+/**
+ * Attaches all DOM event listeners for the CSV import feature. Must be called
+ * once during application bootstrap.
+ *
+ * Registered interactions include:
+ * - Upload-open button showing the modal.
+ * - Modal close button and backdrop click hiding the modal.
+ * - Escape key closing the modal when it is open.
+ * - Upload-target toggle buttons switching between "new collection" and
+ *   "existing collection" modes (the "existing" option is disabled when no
+ *   collections exist).
+ * - Upload form submission: reads and parses the selected CSV file via
+ *   `parseCsv`, validates the target collection selection, then POSTs to
+ *   `/api/import`. On success, selects the resulting collection, resets the
+ *   search input, navigates to the collections tab, and reloads the dashboard.
+ *
+ * @sideeffects
+ * - Adds event listeners on `elements.uploadOpenButton`,
+ *   `elements.uploadModalClose`, `elements.uploadModal`,
+ *   `elements.uploadTargetButtons`, `elements.uploadForm`, and `document`
+ *   (for Escape key).
+ * - On successful import: mutates `state.selectedCollectionId` and
+ *   `state.search`, and updates `elements.searchInput.value`.
+ */
 export function bindImportEvents() {
   elements.uploadOpenButton.addEventListener("click", openUploadModal);
   elements.uploadModalClose.addEventListener("click", closeUploadModal);

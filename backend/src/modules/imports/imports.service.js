@@ -1,8 +1,31 @@
+/**
+ * @fileoverview Imports service. Business logic for CSV word imports. Resolves
+ * or creates the target collection, upserts global words atomically, attaches
+ * them to the user's private list, persists the user's translation override,
+ * and seeds the shared English translation cache. Coordinates with: imports
+ * repository, languages service, database repository (transaction).
+ */
+
 import { normalizeName } from "../../shared/normalize.js";
 import { getLanguage } from "../languages/languages.service.js";
 
-// CSV import targets either an existing collection (by id) or creates one by name.
-// Validate imported rows and write them to a user-owned collection atomically.
+/**
+ * Import a list of word/translation pairs from a CSV upload into a user's
+ * collection. Either an existing `collectionId` or a `collectionName`
+ * (plus `languageId`) must be supplied.
+ *
+ * The entire import runs inside a transaction. For each row: the shared global
+ * word is reused or created, the user's membership is created or moved to the
+ * target collection, the user's translation override is stored, and the shared
+ * English translation cache is seeded when empty.
+ *
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {{ collectionName?: string, collectionId?: number, languageId?: number,
+ *   words: Array<{ word: string, translation: string }> }} params
+ * @returns {Promise<{ collection: object, parsed: number, inserted: number, skipped: number }
+ *   | { error: string }>}
+ */
 export async function importWords(repositories, userId, { collectionName, collectionId, languageId, words }) {
   const cleanWords = Array.isArray(words)
     ? words

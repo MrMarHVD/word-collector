@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Material import worker thread entry point. Opened by
+ * `materials.service.js` via `new Worker(...)` when a document upload begins.
+ * Runs `runMaterialImport` with the data passed through `workerData`, posts
+ * `{ ok: true }` or `{ error: message }` to the parent, and closes the
+ * Postgres connection pool so the worker process can exit cleanly.
+ */
+
 import { parentPort, workerData } from "node:worker_threads";
 import { db, pool } from "../../db/index.js";
 import { createRepositories } from "../index.js";

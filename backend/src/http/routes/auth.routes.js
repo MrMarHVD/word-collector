@@ -1,3 +1,16 @@
+/**
+ * @fileoverview Public authentication route handlers.
+ *
+ * Handles all unauthenticated auth flows: session bootstrap, credential login,
+ * registration, logout, Google OAuth, email verification, and password reset.
+ * All credential-checking and email-triggering endpoints are protected by
+ * per-IP rate limiters created at factory time.
+ *
+ * These routes run before session validation in the API dispatcher, so they
+ * must not assume a valid session exists (except where they explicitly fetch
+ * one via `getAuthenticatedUser`).
+ */
+
 import { NATIVE_LANGUAGE_OPTIONS, STUDY_LANGUAGE_OPTIONS } from "../../config.js";
 import {
   clearGoogleOAuthStateCookie,
@@ -37,6 +50,86 @@ function publicUser(user) {
   };
 }
 
+/**
+ * Creates the route handler for all public `/api/auth/*` endpoints.
+ *
+ * **GET /api/auth/me**
+ * Returns the current session state including the CSRF token, user profile
+ * (or `null` for unauthenticated requests), language configuration, and
+ * available OAuth providers. This is the primary bootstrap call made by the
+ * frontend on load.
+ * - Response 200: `{ csrfToken, user|null, languages, predefinedLanguages,
+ *   studyLanguageOptions, nativeLanguageOptions, authProviders }`
+ *
+ * **GET /api/auth/google/start**
+ * Initiates Google OAuth by redirecting to Google's authorization endpoint.
+ * Sets a signed state cookie to prevent CSRF during the callback.
+ * - Response 302: redirect to Google.
+ * - Redirects to app with `oauth_error=google_not_configured` if OAuth is disabled.
+ *
+ * **GET /api/auth/google/callback**
+ * Handles the OAuth redirect from Google. Verifies the state parameter, exchanges
+ * the authorization code for tokens, and creates or signs in the matching account.
+ * Always redirects back to the SPA — errors are communicated via `oauth_error`
+ * query parameters so the user can be shown a friendly message.
+ * - Response 302: redirect to app with `oauth=success` or `oauth_error=<reason>`.
+ *
+ * **POST /api/auth/login**
+ * Authenticates with email/password credentials. Rate-limited to 10 attempts
+ * per 15 minutes per IP.
+ * - Body: `{ email: string, password: string }`
+ * - Response 200: `{ csrfToken, user }`
+ * - Response 401/429: authentication failure or rate limit exceeded.
+ *
+ * **POST /api/auth/register**
+ * Creates a new account and immediately opens a session. Sends a verification
+ * email in the background (failures are swallowed to avoid blocking the response).
+ * Rate-limited to 5 attempts per hour per IP.
+ * - Body: `{ email: string, password: string, confirmPassword: string }`
+ * - Response 201: `{ csrfToken, user }`
+ * - Response 400/429: validation error or rate limit exceeded.
+ *
+ * **POST /api/auth/logout**
+ * Destroys the current session and clears the auth cookie.
+ * - Response 200: `{ loggedOut: true }`
+ *
+ * **POST /api/auth/resend-verification**
+ * Re-sends the email verification message to the currently signed-in user.
+ * Always responds 200 even when the user is already verified (to avoid
+ * leaking verification state). Rate-limited to 5 per hour per IP.
+ * - Response 200: `{ sent: true }`
+ * - Response 401: not authenticated.
+ * - Response 429: rate limit exceeded.
+ *
+ * **POST /api/auth/verify-email**
+ * Consumes a single-use email verification token.
+ * - Body: `{ token: string }`
+ * - Response 200: `{ verified: true }`
+ * - Response 400/410: invalid or expired token.
+ *
+ * **POST /api/auth/request-password-reset**
+ * Sends a password-reset email. Always responds 200 regardless of whether
+ * the email address is registered, to prevent account enumeration.
+ * Rate-limited to 5 per hour per IP.
+ * - Body: `{ email: string }`
+ * - Response 200: `{ requested: true }`
+ *
+ * **POST /api/auth/reset-password**
+ * Validates the reset token and replaces the user's password. On success,
+ * all existing sessions are revoked so other devices are logged out.
+ * - Body: `{ token: string, password: string, confirmPassword: string }`
+ * - Response 200: `{ reset: true }`
+ * - Response 400/410: invalid token or password validation failure.
+ *
+ * @param {Object} deps
+ * @param {import("../../db/repositories.js").Repositories} deps.repositories
+ * @param {import("../../shared/email.js").EmailService} deps.emailService
+ * @param {(req: import("node:http").IncomingMessage) => Promise<import("../../auth/session.js").SessionUser|null>} deps.getAuthenticatedUser
+ * @param {(req: import("node:http").IncomingMessage) => string} deps.createCsrfTokenForRequest
+ * @param {(res: import("node:http").ServerResponse, user: {id: number}) => Promise<{csrfToken: string}>} deps.createSessionForUser
+ * @param {(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse) => Promise<void>} deps.destroyCurrentSession
+ * @returns {(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, url: URL) => Promise<boolean>}
+ */
 export function createAuthRoutes({
   repositories,
   emailService,

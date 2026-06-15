@@ -1,3 +1,18 @@
+/**
+ * @fileoverview Study language selection, rendering, and event binding.
+ *
+ * Manages the active study language for the current session — the language the
+ * user is learning. Responsibilities include:
+ *   - Rendering the flag-button row and the "add language" dropdown in the study
+ *     language bar.
+ *   - Rendering the welcome-screen language picker for users who have no active
+ *     study language set.
+ *   - Activating a language in `state`, persisting it to `localStorage`, and
+ *     triggering a dashboard reload when the selection changes.
+ *   - Enrolling new study languages via `POST /api/languages`.
+ *   - Synchronising the selected language across browser tabs via `storage` events.
+ */
+
 import { requestJson } from "../api.js";
 import { navigateToTab } from "./router.js";
 import { elements } from "../dom.js";
@@ -10,10 +25,27 @@ import { flagSvg } from "./flags.js";
 
 let reloadDashboard = async () => {};
 
+/**
+ * Inject cross-feature callbacks required by this module.
+ *
+ * Must be called once during application bootstrap before any interaction
+ * events can fire.
+ *
+ * @param {{ reloadDashboard: () => Promise<void> }} options
+ * @returns {void}
+ */
 export function configureStudyLanguage(options) {
   reloadDashboard = options.reloadDashboard;
 }
 
+/**
+ * Return the localised display name for a study language.
+ *
+ * Looks up the `studyLanguage.<language>` translation key.
+ *
+ * @param {string} language - Language name as stored in the database (e.g. `"Japanese"`).
+ * @returns {string} Localised label.
+ */
 export function studyLanguageLabel(language) {
   return t(`studyLanguage.${language}`);
 }
@@ -32,6 +64,12 @@ function unavailableStudyLanguageReason(name) {
   return "";
 }
 
+/**
+ * Return the user's enrolled study languages in canonical order, excluding any
+ * that are unavailable for the user's native language.
+ *
+ * @returns {Array<{id: number, name: string}>} Available language objects.
+ */
 // User-enrolled languages in the canonical study-language order.
 export function availableStudyLanguages() {
   return state.studyLanguageOptions
@@ -55,14 +93,35 @@ function addableStudyLanguageOptions() {
   return studyLanguageDropdownOptions().filter((option) => !option.enrolled && !option.reason);
 }
 
+/**
+ * Find a language object by name using a case-insensitive match.
+ *
+ * @param {Array<{id: number, name: string}>} languages - Language list to search.
+ * @param {string} name - Language name to look up.
+ * @returns {{id: number, name: string}|undefined} Matching language, or `undefined`.
+ */
 export function languageByName(languages, name) {
   return languages.find((language) => language.name.toLowerCase() === name.toLowerCase());
 }
 
+/**
+ * Return the first available study language when sorted alphabetically by
+ * localised display name, or `null` if none are available.
+ *
+ * @returns {{id: number, name: string}|null}
+ */
 export function firstAvailableStudyLanguageAlphabetically() {
   return [...availableStudyLanguages()].sort((left, right) => studyLanguageLabel(left.name).localeCompare(studyLanguageLabel(right.name)))[0] || null;
 }
 
+/**
+ * Re-render the flag-button row for enrolled languages and refresh the
+ * "add language" dropdown in the study language bar.
+ *
+ * No-ops when `elements.studyLanguageButtons` is absent from the DOM.
+ *
+ * @returns {void}
+ */
 // Render the flag button row and keep the add-button dropdown in sync.
 export function renderStudyLanguageSelect() {
   if (!elements.studyLanguageButtons) {
@@ -156,6 +215,19 @@ function toggleDropdown() {
   elements.studyLanguageAddButton.setAttribute("aria-expanded", String(open));
 }
 
+/**
+ * Activate a study language by name and optionally persist and reload.
+ *
+ * When `languageName` is falsy the selection is cleared. Returns `false` without
+ * making changes if the name is unknown, matches the user's native language, or
+ * is not in the user's enrolled languages list.
+ *
+ * @param {string|null} languageName - Language name to activate, or falsy to clear.
+ * @param {{ persist?: boolean, reload?: boolean }} [options]
+ *   - `persist` (default `true`) — write the selection to `localStorage`.
+ *   - `reload` (default `true`) — trigger a dashboard reload after switching.
+ * @returns {Promise<boolean>} `true` if the language was successfully set or cleared.
+ */
 export async function setStudyLanguage(languageName, { persist = true, reload = true } = {}) {
   if (!languageName) {
     state.selectedStudyLanguageName = "";
@@ -216,6 +288,17 @@ async function addStudyLanguage(name) {
   }
 }
 
+/**
+ * Attach all study language interaction event listeners.
+ *
+ * Handles: flag-button clicks, add-language button toggle, dropdown item
+ * selection, welcome-screen language picker, outside-click dismissal,
+ * Escape key dismissal, and cross-tab `storage` synchronisation.
+ *
+ * Should be called once during application bootstrap.
+ *
+ * @returns {void}
+ */
 export function bindStudyLanguageEvents() {
   elements.studyLanguageButtons.addEventListener("click", async (event) => {
     const button = event.target.closest(".study-language-button");

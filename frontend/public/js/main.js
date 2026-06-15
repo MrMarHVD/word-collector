@@ -1,3 +1,17 @@
+/**
+ * @fileoverview Application entry point for the Word Marker SPA.
+ *
+ * Orchestrates startup by:
+ *   1. Wiring inter-feature dependencies via each feature controller's `configure*` call.
+ *   2. Binding all global DOM event listeners (shell UI, mobile zoom guard, theme, locale).
+ *   3. Loading the i18n message catalogue and applying the active locale.
+ *   4. Starting the client-side router.
+ *   5. Handling one-time deep-link tokens from email verification and password-reset
+ *      flows (read from URL query parameters, then stripped from browser history).
+ *
+ * This module uses top-level `await` and must be loaded as `type="module"`.
+ */
+
 import { setUnauthorizedHandler } from "./api.js";
 import { applyLocale, bindLocaleEvents, configureLocale } from "./app/locale.js";
 import { navigateToTab, resolveInitialTab, startRouter } from "./app/router.js";
@@ -19,6 +33,15 @@ import { renderDisplayModeButtons, resetWordWindow, showView } from "./views/she
 import { renderWords } from "./views/words.js";
 import { state } from "./state.js";
 
+/**
+ * Suppress pinch-zoom and multi-touch scroll gestures on mobile layouts
+ * (viewport ≤ 760 px or coarse pointer) to prevent accidental page scaling.
+ *
+ * Attaches non-passive listeners for `gesturestart`, `gesturechange`,
+ * `gestureend`, and multi-touch `touchmove` events on `document`.
+ *
+ * @returns {void}
+ */
 function bindMobileZoomGuard() {
   function isMobileLayout() {
     return window.matchMedia("(max-width: 760px), (pointer: coarse)").matches;
@@ -40,6 +63,14 @@ function bindMobileZoomGuard() {
   }, { passive: false });
 }
 
+/**
+ * Attach event listeners for the application shell UI — tab navigation, the
+ * brand/home button, the account settings dropdown, theme buttons, word display
+ * mode buttons, and the click/keyboard/resize handlers that close the account
+ * dropdown when focus moves away from it.
+ *
+ * @returns {void}
+ */
 function bindShellEvents() {
   function closeAccountDropdown() {
     elements.accountDropdown.hidden = accountMenuUsesDropdown();

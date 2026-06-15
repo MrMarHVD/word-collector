@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Words (vocabulary table) view — renders the collection word
+ * table with drag handles, phonetic and POS badges, translation-override
+ * controls, disambiguation expansion rows, and a three-segment status toggle
+ * per row. Supports both paged and infinite-scroll display modes driven by
+ * `state.wordDisplayMode`.
+ */
+
 import { elements } from "../dom.js";
 import { state, WORD_PAGE_SIZE, WORDS_PER_PAGE } from "../state.js";
 import { formatCount, t } from "../i18n.js";
@@ -10,7 +18,24 @@ function usePagedWordList() {
   return state.wordDisplayMode === "page";
 }
 
-// Render the three-segment unknown/learning/known toggle for one word row.
+/**
+ * Returns the HTML string for a three-segment status toggle (unknown /
+ * learning / known) for a single word. The currently active segment is
+ * indicated with `data-active="true"` and `aria-pressed="true"`.
+ *
+ * Used both inside the vocabulary table rows and in the reader word-info popup.
+ *
+ * @param {number|string} wordId - The word identifier, written into the
+ *   container element via `dataAttr`.
+ * @param {string} currentStatus - The word's current status string. Normalised
+ *   via `normalizeStatus` before comparison.
+ * @param {{ dataAttr?: string }} [options] - Optional configuration.
+ * @param {string} [options.dataAttr="data-word-id"] - The `data-*` attribute
+ *   name to place on the toggle container, used by event handlers to resolve
+ *   the word ID.
+ *
+ * @returns {string} An HTML string for the status toggle `<div>`.
+ */
 export function renderStatusToggle(wordId, currentStatus, { dataAttr = "data-word-id" } = {}) {
   const active = normalizeStatus(currentStatus);
   const segments = WORD_STATUSES
@@ -57,8 +82,35 @@ function renderDisambiguationRows(entry) {
   `;
 }
 
-// Render either the paged view or a windowed list for infinite scrolling.
-// Render collection word rows, empty states, and pagination controls.
+/**
+ * Renders the collection word table. Switches between paged mode
+ * (`state.wordDisplayMode === "page"`) and infinite-scroll windowed mode
+ * based on `state.wordDisplayMode` and `state.visibleWordCount`.
+ *
+ * Each row includes a drag handle, the word with phonetic annotations and POS
+ * badges, the translation-override cell, an optional disambiguation button,
+ * and the status toggle. An expansion row with a disambiguation candidate table
+ * is injected immediately below the row when
+ * `state.expandedDisambiguationWordId` matches.
+ *
+ * Shows the empty state when `words` is empty: either a no-search-results
+ * message (when collections exist) or the first-use empty prompt.
+ *
+ * In paged mode, shows or hides `elements.wordPagination` with page-counter
+ * text and disabled states for the prev/next buttons.
+ *
+ * @param {Array<object>} words - The full filtered word list to render.
+ *
+ * @sideeffects
+ * - Calls {@link renderDisplayModeButtons}.
+ * - Mutates `state.wordsPage` when the current page index exceeds the total.
+ * - Replaces `elements.wordRows.innerHTML`.
+ * - Sets `elements.tableWrap.classList` scroll hint.
+ * - Shows or hides `elements.emptyState`, updates its text.
+ * - Shows or hides `elements.wordPagination`; updates
+ *   `elements.wordPageStatus`, `elements.wordPrevPage.disabled`, and
+ *   `elements.wordNextPage.disabled` in paged mode.
+ */
 export function renderWords(words) {
   renderDisplayModeButtons();
   const pageMode = usePagedWordList();
@@ -148,7 +200,19 @@ export function renderWords(words) {
   }
 }
 
-// Extend the visible word window when the table scroll nears the bottom.
+/**
+ * Appends the next batch of words to the visible window when the user scrolls
+ * close to the bottom of the word table in infinite-scroll mode. Does nothing
+ * in paged mode or when all words are already visible.
+ *
+ * Triggers when the remaining scrollable distance in `elements.tableWrap` is
+ * ≤ 120 px.
+ *
+ * @sideeffects
+ * - Increments `state.visibleWordCount` by `WORD_PAGE_SIZE`, capped at
+ *   `state.words.length`.
+ * - Calls {@link renderWords} with `state.words` to update the DOM.
+ */
 export function loadMoreWordsIfNeeded() {
   if (usePagedWordList() || state.visibleWordCount >= state.words.length) {
     return;

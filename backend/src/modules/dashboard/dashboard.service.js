@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Dashboard service. Assembles the full dashboard payload by
+ * composing dashboard repository aggregations with language data. Coordinates
+ * with: dashboard repository, languages repository/service.
+ */
+
 import { STUDY_LANGUAGE_OPTIONS } from "../../config.js";
 import { getLanguages } from "../languages/languages.service.js";
 
@@ -33,7 +39,18 @@ function normalizeDocument(document) {
   };
 }
 
-// Build the dashboard payload for the selected language or all user collections.
+/**
+ * Build the full dashboard payload for the overview tab. Fetches aggregate
+ * totals, per-collection breakdowns, the enrolled and predefined language
+ * lists, and the supported study-language options. Collection rows are
+ * normalised so numeric fields are never null.
+ * Coordinates with: dashboard repository, languages repository/service.
+ *
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {number|string|null} languageId - Filters to a single language when provided.
+ * @returns {Promise<object>} Dashboard payload ready for the browser view.
+ */
 export async function getDashboard(repositories, userId, languageId) {
   const selectedLanguageId = Number(languageId) || null;
   const totals = await repositories.dashboard.getTotals(userId, selectedLanguageId);
@@ -55,7 +72,16 @@ export async function getDashboard(repositories, userId, languageId) {
   };
 }
 
-// Return per-document progress stats for the Dashboard Documents tab.
+/**
+ * Return a normalised, paginated list of the user's materials for the
+ * Dashboard Documents tab. Page size is clamped to [1, 50].
+ * Coordinates with: dashboard repository.
+ *
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {{ languageId?: number, search?: string, limit?: number, offset?: number }} [options]
+ * @returns {Promise<{ documents: object[], pageSize: number, offset: number }>}
+ */
 export async function getDashboardDocuments(repositories, userId, { languageId, search = "", limit = 24, offset = 0 } = {}) {
   const selectedLanguageId = Number(languageId) || null;
   const pageSize = Math.min(Math.max(Number(limit) || 24, 1), 50);

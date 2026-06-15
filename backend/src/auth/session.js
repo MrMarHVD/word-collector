@@ -1,3 +1,17 @@
+/**
+ * @fileoverview Server-side session management.
+ *
+ * Sessions are opaque and stored in the `sessions` database table.  The browser
+ * receives only a random token via `HttpOnly` cookie; its SHA-256 hash is the
+ * server-side identifier.  This design allows any session (or all sessions for a
+ * user) to be invalidated server-side without changing the user's password, and
+ * means a database leak never exposes a usable credential.
+ *
+ * {@link createSessionHelpers} wires the low-level cookie utilities together with
+ * the auth repository so route handlers can authenticate requests with a single
+ * `await requireUser(req, res)` call.
+ */
+
 import { AUTH_COOKIE, IS_PRODUCTION, JWT_TTL_SECONDS } from "../config.js";
 import { jsonResponse } from "../http/response.js";
 import { createCsrfToken, verifyCsrfToken } from "./csrf.js";
@@ -20,7 +34,13 @@ function cookieAttributes(maxAgeSeconds) {
   return parts.join("; ");
 }
 
-// Parse the Cookie header into decoded key-value pairs.
+/**
+ * Parses the `Cookie` request header into a plain object of decoded key-value
+ * pairs.  Both keys and values are URI-decoded.
+ *
+ * @param {import("node:http").IncomingMessage} req
+ * @returns {Record<string, string>}
+ */
 export function parseCookies(req) {
   return Object.fromEntries(
     String(req.headers.cookie || "")
@@ -34,12 +54,23 @@ export function parseCookies(req) {
   );
 }
 
-// Attach the session cookie to a response.
+/**
+ * Writes the session token as an `HttpOnly` auth cookie on the response.
+ * The cookie lifetime matches `SESSION_TTL_SECONDS`.  `Secure` is added only in
+ * production where TLS is terminated upstream.
+ *
+ * @param {import("node:http").ServerResponse} res
+ * @param {string} token - The raw (plaintext) session token to set.
+ */
 export function setAuthCookie(res, token) {
   appendSetCookie(res, `${AUTH_COOKIE}=${encodeURIComponent(token)}; ${cookieAttributes(SESSION_TTL_SECONDS)}`);
 }
 
-// Expire the session cookie on the client.
+/**
+ * Instructs the browser to delete the auth cookie by setting `Max-Age=0`.
+ *
+ * @param {import("node:http").ServerResponse} res
+ */
 export function clearAuthCookie(res) {
   appendSetCookie(res, `${AUTH_COOKIE}=; ${cookieAttributes(0)}`);
 }
@@ -55,7 +86,23 @@ function appendSetCookie(res, cookie) {
   }
 }
 
-// Build request authentication helpers around the user/session repository.
+/**
+ * Creates a set of request-scoped authentication helpers bound to the given
+ * auth repository.  All session lookups go through this object so route
+ * handlers never touch cookies or hashing directly.
+ *
+ * @param {object} authRepository - Repository with session and user queries
+ *   (`findSessionUser`, `createSession`, `deleteSession`, `deleteUserSessions`).
+ * @returns {{
+ *   getAuthenticatedUser: (req: import("node:http").IncomingMessage) => Promise<{userId: number, email: string, emailVerified: boolean, hasPassword: boolean, sessionId: string} | null>,
+ *   createCsrfTokenForRequest: (req: import("node:http").IncomingMessage) => string,
+ *   verifyCsrfTokenForRequest: (req: import("node:http").IncomingMessage) => boolean,
+ *   requireUser: (req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse) => Promise<{userId: number, email: string, emailVerified: boolean, hasPassword: boolean, sessionId: string} | null>,
+ *   createSessionForUser: (res: import("node:http").ServerResponse, user: {id: number}) => Promise<{sessionId: string, csrfToken: string}>,
+ *   destroyCurrentSession: (req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse) => Promise<void>,
+ *   destroyAllUserSessions: (userId: number) => Promise<void>
+ * }}
+ */
 export function createSessionHelpers(authRepository) {
   // Resolve the session token from the cookie to its stored hash.
   function sessionIdFromRequest(req) {

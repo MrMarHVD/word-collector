@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Practice repository. Queries the `words` and `user_words`
+ * tables to fetch the learning words that seed a practice session. Translation
+ * priority mirrors the vocabulary list: user override → native-language cache
+ * → source word / English gloss. Tables: `words`, `user_words`, `languages`,
+ * `word_translations`.
+ */
+
 // Displayed translation mirrors the vocabulary list: prefer the user's own
 // override, then their native-language translation, then the source word or its
 // English gloss.
@@ -13,10 +21,26 @@ function displayedTranslationExpression() {
   `;
 }
 
+/**
+ * Build the practice repository bound to the given database executor.
+ *
+ * @param {object} db - Prepared-statement executor.
+ * @returns {object} Repository with learning-word query methods.
+ */
 export function createPracticeRepository(db) {
   return {
-    // Every word the user is currently learning in a language, ordered by how
-    // many times its info pane has been opened (most-clicked first).
+    /**
+     * Return all words the user is currently learning in a language, ordered
+     * by `click_count` descending then alphabetically. Click count drives
+     * session word selection in the service layer.
+     * Queries: `words` JOIN `user_words` JOIN `languages`
+     * LEFT JOIN `word_translations`.
+     * @param {number} userId
+     * @param {number} languageId
+     * @param {string} [nativeLanguage="English"]
+     * @returns {object[]} Rows with `wordId`, `word`, `lemma`, `translation`,
+     *   `reading`, `pinyin`, `clickCount`.
+     */
     listLearningWords(userId, languageId, nativeLanguage = "English") {
       const translationExpression = displayedTranslationExpression();
       return db.prepare(`
@@ -36,8 +60,16 @@ export function createPracticeRepository(db) {
         ORDER BY uw.click_count DESC, lower(w.word)
       `).all(nativeLanguage, nativeLanguage, userId, nativeLanguage, languageId);
     },
-    // Learning words the user has explicitly marked as "want to practice". These
-    // are chosen by the user rather than inferred from click activity.
+    /**
+     * Return the subset of learning words the user has explicitly flagged with
+     * `want_to_practice = 1`, ordered alphabetically.
+     * Queries: `words` JOIN `user_words` JOIN `languages`
+     * LEFT JOIN `word_translations`.
+     * @param {number} userId
+     * @param {number} languageId
+     * @param {string} [nativeLanguage="English"]
+     * @returns {object[]}
+     */
     listWantToPracticeWords(userId, languageId, nativeLanguage = "English") {
       const translationExpression = displayedTranslationExpression();
       return db.prepare(`

@@ -1,3 +1,14 @@
+/**
+ * @fileoverview Dictionaries repository. Read-only lookups against static
+ * dictionary tables populated by `scripts/`. Results are memoized for the
+ * process lifetime in a bounded FIFO cache (max 50 000 entries) because the
+ * data never changes at runtime. Tables: `wikdict_english_japanese`,
+ * `wikdict_english_chinese`, `wikdict_spanish_english`,
+ * `wikdict_spanish_english_aliases`, `wikdict_french_english`,
+ * `wikdict_french_english_aliases`, `jmdict_english_index`, `jmdict_entries`,
+ * `cedict_english_index`.
+ */
+
 // Dictionary tables are static reference data populated by scripts/, so
 // lookups can be memoized for the life of the process. The cache is module
 // level and therefore shared across repository instances, including the
@@ -28,6 +39,13 @@ function withDictionaryCache(methods) {
   return wrapped;
 }
 
+/**
+ * Build the dictionaries repository. All returned methods are wrapped in the
+ * process-level cache so repeated lookups for the same term are free.
+ *
+ * @param {object} db - Prepared-statement executor.
+ * @returns {object} Repository with dictionary lookup methods.
+ */
 export function createDictionariesRepository(db) {
   const wikdictEnglishJapanese = db.prepare(`
     SELECT japanese, pos
@@ -225,21 +243,62 @@ export function createDictionariesRepository(db) {
   `);
 
   return withDictionaryCache({
+    /**
+     * Return the top WikDict English→Japanese result for `term`.
+     * Queries: `wikdict_english_japanese`.
+     * @param {string} term - English word.
+     * @returns {object|undefined} Row with `japanese`, `pos`.
+     */
     findWikdictEnglishJapanese(term) {
       return wikdictEnglishJapanese.get(term);
     },
+    /**
+     * Return up to `limit` WikDict English→Japanese results for `term`.
+     * Queries: `wikdict_english_japanese`.
+     * @param {string} term
+     * @param {number} [limit=5] - Clamped to [1, 50].
+     * @returns {object[]}
+     */
     listWikdictEnglishJapanese(term, limit = 5) {
       return wikdictEnglishJapaneseTranslations.all(term, Math.max(1, Math.min(Number(limit) || 5, 50)));
     },
+    /**
+     * Return the top WikDict English→Chinese result for `term`.
+     * Queries: `wikdict_english_chinese`.
+     * @param {string} term
+     * @returns {object|undefined} Row with `chinese`, `pos`.
+     */
     findWikdictEnglishChinese(term) {
       return wikdictEnglishChinese.get(term);
     },
+    /**
+     * Return up to `limit` WikDict English→Chinese results for `term`.
+     * Queries: `wikdict_english_chinese`.
+     * @param {string} term
+     * @param {number} [limit=5]
+     * @returns {object[]}
+     */
     listWikdictEnglishChinese(term, limit = 5) {
       return wikdictEnglishChineseTranslations.all(term, Math.max(1, Math.min(Number(limit) || 5, 50)));
     },
+    /**
+     * Return the top WikDict Spanish→English result for `term`. Falls back to
+     * the alias table when no direct match exists.
+     * Queries: `wikdict_spanish_english`, `wikdict_spanish_english_aliases`.
+     * @param {string} term
+     * @returns {Promise<object|undefined>}
+     */
     async findWikdictSpanishEnglish(term) {
       return (await wikdictSpanishEnglish.get(term)) || (await wikdictSpanishEnglishViaAlias.get(term));
     },
+    /**
+     * Return up to `limit` WikDict Spanish→English results. Falls back to the
+     * alias table when the direct table returns no rows.
+     * Queries: `wikdict_spanish_english`, `wikdict_spanish_english_aliases`.
+     * @param {string} term
+     * @param {number} [limit=5]
+     * @returns {Promise<object[]>}
+     */
     async listWikdictSpanishEnglish(term, limit = 5) {
       const safeLimit = Math.max(1, Math.min(Number(limit) || 5, 50));
       const direct = await wikdictSpanishEnglishTranslations.all(term, safeLimit);
@@ -248,9 +307,24 @@ export function createDictionariesRepository(db) {
       }
       return wikdictSpanishEnglishTranslationsViaAlias.all(term, safeLimit);
     },
+    /**
+     * Return the top WikDict French→English result for `term`. Falls back to
+     * the alias table when no direct match exists.
+     * Queries: `wikdict_french_english`, `wikdict_french_english_aliases`.
+     * @param {string} term
+     * @returns {Promise<object|undefined>}
+     */
     async findWikdictFrenchEnglish(term) {
       return (await wikdictFrenchEnglish.get(term)) || (await wikdictFrenchEnglishViaAlias.get(term));
     },
+    /**
+     * Return up to `limit` WikDict French→English results. Falls back to the
+     * alias table when the direct table returns no rows.
+     * Queries: `wikdict_french_english`, `wikdict_french_english_aliases`.
+     * @param {string} term
+     * @param {number} [limit=5]
+     * @returns {Promise<object[]>}
+     */
     async listWikdictFrenchEnglish(term, limit = 5) {
       const safeLimit = Math.max(1, Math.min(Number(limit) || 5, 50));
       const direct = await wikdictFrenchEnglishTranslations.all(term, safeLimit);
@@ -259,33 +333,96 @@ export function createDictionariesRepository(db) {
       }
       return wikdictFrenchEnglishTranslationsViaAlias.all(term, safeLimit);
     },
+    /**
+     * Look up a JMdict English gloss for a Japanese expression (kanji/kana form).
+     * Queries: `jmdict_entries`.
+     * @param {string} term
+     * @returns {object|undefined} Row with `gloss`.
+     */
     findJapaneseEnglishByExpression(term) {
       return japaneseEnglishByExpression.get(term);
     },
+    /**
+     * Look up a JMdict English gloss for a Japanese reading (hiragana/katakana).
+     * Queries: `jmdict_entries`.
+     * @param {string} term
+     * @returns {object|undefined} Row with `gloss`.
+     */
     findJapaneseEnglishByReading(term) {
       return japaneseEnglishByReading.get(term);
     },
+    /**
+     * Return the best-ranked JMdict Japanese expression for an English term.
+     * Queries: `jmdict_english_index`.
+     * @param {string} term
+     * @returns {object|undefined} Row with `expression`, `pos`, `priority`.
+     */
     findEnglishJapanese(term) {
       return englishJapanese.get(term, term, `${term};%`);
     },
+    /**
+     * Return up to `limit` ranked JMdict Japanese expressions for an English term.
+     * Queries: `jmdict_english_index`.
+     * @param {string} term
+     * @param {number} [limit=50]
+     * @returns {object[]}
+     */
     listEnglishJapanese(term, limit = 50) {
       return englishJapaneseTranslations.all(term, term, `${term};%`, Math.max(1, Math.min(Number(limit) || 50, 50)));
     },
+    /**
+     * Return the best-ranked CEDICT Chinese simplified form for an English term.
+     * Classifier and parenthetical metadata in definitions influence ranking.
+     * Queries: `cedict_english_index`.
+     * @param {string} term
+     * @returns {object|undefined} Row with `simplified`, `pos`.
+     */
     findEnglishChinese(term) {
       return englishChinese.get(term, `${term};%cl:%`, `${term} (%cl:%`, `${term};%`, term);
     },
+    /**
+     * Return up to `limit` ranked CEDICT Chinese entries for an English term.
+     * Queries: `cedict_english_index`.
+     * @param {string} term
+     * @param {number} [limit=50]
+     * @returns {object[]}
+     */
     listEnglishChinese(term, limit = 50) {
       return englishChineseTranslations.all(term, `${term};%cl:%`, `${term} (%cl:%`, `${term};%`, term, Math.max(1, Math.min(Number(limit) || 50, 50)));
     },
+    /**
+     * Return the best-ranked CEDICT English gloss for a Chinese term (simplified or traditional).
+     * Queries: `cedict_english_index`.
+     * @param {string} term
+     * @returns {object|undefined} Row with `definitions`.
+     */
     findChineseEnglish(term) {
       return chineseEnglish.get(term, term);
     },
+    /**
+     * Return CEDICT metadata (definitions, pinyin, traditional, simplified) for a Chinese term.
+     * Queries: `cedict_english_index`.
+     * @param {string} term
+     * @returns {object|undefined}
+     */
     findChineseDetails(term) {
       return chineseDetails.get(term, term);
     },
+    /**
+     * Return JMdict metadata (gloss, reading, expression) for a Japanese expression.
+     * Queries: `jmdict_entries`.
+     * @param {string} term
+     * @returns {object|undefined}
+     */
     findJapaneseDetailsByExpression(term) {
       return japaneseDetailsByExpression.get(term);
     },
+    /**
+     * Return JMdict metadata (gloss, reading) for a Japanese reading form.
+     * Queries: `jmdict_entries`.
+     * @param {string} term
+     * @returns {object|undefined}
+     */
     findJapaneseDetailsByReading(term) {
       return japaneseDetailsByReading.get(term);
     }

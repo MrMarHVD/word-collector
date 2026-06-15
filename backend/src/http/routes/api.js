@@ -1,3 +1,19 @@
+/**
+ * @fileoverview Top-level API request dispatcher.
+ *
+ * Wires together all domain-specific route factories into two ordered chains:
+ *   - **Public routes** — handled before session validation (auth endpoints).
+ *   - **Authenticated routes** — only reached after a valid session is confirmed.
+ *
+ * CSRF validation is enforced here for every unsafe method (POST, PATCH, DELETE)
+ * before any route logic runs, so individual route handlers do not need to
+ * repeat the check.
+ *
+ * Route handlers follow a middleware-like convention: each returns `true` if it
+ * handled the request (response already written) or `false` to pass to the next
+ * handler. A 404 is sent if no handler claims the request.
+ */
+
 import { createSessionHelpers } from "../../auth/session.js";
 import { jsonResponse } from "../response.js";
 import { createAuthRoutes } from "./auth.routes.js";
@@ -12,6 +28,18 @@ import { createWordsRoutes } from "./words.routes.js";
 
 const UNSAFE_METHODS = new Set(["POST", "PATCH", "DELETE"]);
 
+/**
+ * Creates the single async request handler that dispatches all `/api/*` requests.
+ *
+ * @param {Object} deps - Application-level dependencies.
+ * @param {import("../../db/repositories.js").Repositories} deps.repositories - Repository bundle
+ *   providing data-access methods for every domain.
+ * @param {import("../../shared/email.js").EmailService} deps.emailService - Email delivery service
+ *   used by auth routes for verification and password-reset emails.
+ * @returns {(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, url: URL) => Promise<void>}
+ *   Async handler. Writes the complete response (including 403 CSRF errors,
+ *   401 authentication failures, domain-specific responses, and a 404 fallback).
+ */
 export function createApiHandler({ repositories, emailService }) {
   const session = createSessionHelpers(repositories.auth);
   const publicRoutes = [createAuthRoutes({ repositories, emailService, ...session })];

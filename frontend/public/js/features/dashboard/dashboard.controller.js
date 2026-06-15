@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Dashboard feature controller — fetches and orchestrates the
+ * dashboard data, coordinates initial state for the materials and word lists,
+ * restores the previously selected material from cache, and manages the
+ * documents stats tab with its paginated document list and search.
+ */
+
 import { requestJson } from "../../api.js";
 import { elements } from "../../dom.js";
 import { languageByName, renderStudyLanguageSelect } from "../../app/study-language.js";
@@ -13,6 +20,18 @@ let loadMaterials = async () => {};
 let loadMaterialReader = async () => {};
 let loadWords = async () => {};
 
+/**
+ * Injects dependencies that the dashboard controller needs but cannot import
+ * directly (to avoid circular module dependencies).
+ *
+ * @param {{ loadMaterials: function(boolean=): Promise<void>, loadMaterialReader: function(number|null, object=): Promise<void>, loadWords: function(): Promise<void> }} options
+ * @param {function(boolean=): Promise<void>} options.loadMaterials - Reloads
+ *   the material list after a dashboard refresh.
+ * @param {function(number|null, object=): Promise<void>} options.loadMaterialReader
+ *   - Fetches reader tokens when restoring the previously selected material.
+ * @param {function(): Promise<void>} options.loadWords - Reloads the
+ *   vocabulary word list after a dashboard refresh.
+ */
 export function configureDashboardController(options) {
   loadMaterials = options.loadMaterials;
   loadMaterialReader = options.loadMaterialReader;
@@ -44,6 +63,33 @@ async function restoreSelectedMaterial() {
   }
 }
 
+/**
+ * Fetches summary metrics and collection data from `GET /api/dashboard` and
+ * fully re-renders the dashboard, reader sidebar, and collections panel.
+ *
+ * After loading, also:
+ * - Corrects the selected study language in state when the server returns an
+ *   updated language list.
+ * - Falls back `state.selectedCollectionId` to `"all"` when the previously
+ *   selected collection no longer exists.
+ * - Loads the documents stats page when the documents tab is currently active.
+ * - Reloads the material list and attempts to restore the previously selected
+ *   material from cache.
+ * - Reloads the vocabulary word list.
+ *
+ * @returns {Promise<void>}
+ *
+ * @sideeffects
+ * - Mutates `state.dashboard`, `state.predefinedLanguages`,
+ *   `state.studyLanguageOptions`, `state.languages`,
+ *   `state.selectedStudyLanguageName`, `state.selectedStudyLanguageId`, and
+ *   `state.selectedCollectionId`.
+ * - Calls GET `/api/dashboard?languageId=…`.
+ * - Calls {@link renderDashboard}, {@link renderStudyLanguageSelect},
+ *   {@link renderReaderSidebar}, {@link renderReaderSidebarTabs},
+ *   `loadMaterials`, `loadWords`, and optionally
+ *   {@link loadDashboardDocuments}.
+ */
 export async function loadDashboard() {
   const params = new URLSearchParams();
   if (state.selectedStudyLanguageId) {
@@ -78,11 +124,38 @@ export async function loadDashboard() {
   await loadWords();
 }
 
+/**
+ * Clears the material list and reader token panels without refetching data.
+ * Used during study-language switches to wipe stale content before the new
+ * language's data has loaded.
+ *
+ * @sideeffects
+ * - Calls {@link renderMaterialList} and {@link renderReaderTokens}.
+ */
 export function clearDashboardDependentViews() {
   renderMaterialList();
   renderReaderTokens();
 }
 
+/**
+ * Fetches a page of per-document progress data for the documents stats tab.
+ * Skips when no study language is active or a request is already in flight.
+ *
+ * When `reset` is `true` the offset is cleared and the existing document list
+ * is discarded before fetching from the beginning. Subsequent calls with
+ * `reset = false` append the next page.
+ *
+ * @param {boolean} [reset=false] - When `true`, discards the current document
+ *   list and fetches from offset 0.
+ *
+ * @returns {Promise<void>}
+ *
+ * @sideeffects
+ * - Mutates `state.dashboardDocuments`, `state.dashboardDocumentOffset`,
+ *   `state.dashboardDocumentHasMore`, and `state.dashboardDocumentLoading`.
+ * - Calls GET `/api/dashboard/documents?languageId=…&limit=…&offset=…&search=…`.
+ * - Calls {@link renderDashboardDocuments}.
+ */
 export async function loadDashboardDocuments(reset = false) {
   if (!state.selectedStudyLanguageId || state.dashboardDocumentLoading) {
     return;
@@ -117,6 +190,24 @@ export async function loadDashboardDocuments(reset = false) {
   }
 }
 
+/**
+ * Attaches all DOM event listeners for the dashboard feature. Must be called
+ * once during application bootstrap.
+ *
+ * Registered interactions include:
+ * - Dashboard stats tab switching (overview / documents) via
+ *   {@link bindLocalTabs}. Triggers a document load on first switch to the
+ *   documents tab.
+ * - Document search input with 200 ms debounce triggering a reset load.
+ * - Documents pane scroll triggering paginated load when near the bottom
+ *   (remaining scroll ≤ 140 px).
+ *
+ * @sideeffects
+ * - Adds event listeners on `elements.dashboardStatsTabs`,
+ *   `elements.dashboardDocumentSearch`, and `elements.dashboardDocumentsPane`.
+ * - Writes `state.dashboardStatsTab` and `"wordMarkerDashboardStatsTab"` to
+ *   localStorage on tab change.
+ */
 export function bindDashboardEvents() {
   bindLocalTabs(elements.dashboardStatsTabs, async (tab) => {
     state.dashboardStatsTab = tab === "documents" ? "documents" : "overview";

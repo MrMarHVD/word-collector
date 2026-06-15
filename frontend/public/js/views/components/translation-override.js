@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Translation override component — renders the inline
+ * display/edit UI for a word's translation. In display mode it shows the
+ * current translation (highlighted when an override is active) with edit and
+ * clear icon buttons. In edit mode it replaces the display with an inline form
+ * containing a text input and save/cancel controls. Supports both the vocab
+ * table context (`"vocab"`) and the reader word-info popup context
+ * (`"reader"`).
+ */
+
 import { t } from "../../i18n.js";
 import { escapeHtml } from "../../shared/html.js";
 import { state } from "../../state.js";
@@ -23,6 +33,32 @@ function clearIcon() {
   `;
 }
 
+/**
+ * Returns the HTML string for the translation display or inline edit form for
+ * a single word entry.
+ *
+ * When the word identified by `entry.wordId` (or `entry.id`) matches
+ * `state.translationOverrideEditWordId` **and** `context` matches
+ * `state.translationOverrideEditContext`, the edit form is rendered. Otherwise
+ * the display view is rendered, showing:
+ * - The current translation (either the override or the canonical value), with
+ *   an `is-overridden` class applied when an override is present.
+ * - An edit icon button (`data-translation-override-edit`).
+ * - A clear icon button (`data-translation-override-clear`) only when an
+ *   override is present.
+ *
+ * @param {{ id?: number, wordId?: number, translation?: string, translationOverride?: string }} entry
+ *   The word or token object. Accepts both vocab-table entries (using `id`)
+ *   and reader token objects (using `wordId`).
+ * @param {{ context: string, compact?: boolean }} [options]
+ * @param {string} options.context - The UI context (`"vocab"` or `"reader"`).
+ *   Must match `state.translationOverrideEditContext` for the form to render.
+ * @param {boolean} [options.compact=false] - When `true`, appends the
+ *   `is-compact` modifier class for the narrower reader popup layout.
+ *
+ * @returns {string} An HTML string for the translation override display or
+ *   edit form.
+ */
 export function renderTranslationOverrideControls(entry, { context, compact = false } = {}) {
   const editing = state.translationOverrideEditWordId === entry.wordId || state.translationOverrideEditWordId === entry.id;
   const activeContext = state.translationOverrideEditContext === context;
@@ -55,6 +91,13 @@ export function renderTranslationOverrideControls(entry, { context, compact = fa
   `;
 }
 
+/**
+ * Returns `true` when `entry` has a non-empty `translationOverride` string,
+ * indicating that the user has customised the canonical translation.
+ *
+ * @param {{ translationOverride?: string }} entry - A word or token object.
+ * @returns {boolean}
+ */
 export function hasTranslationOverride(entry) {
   return hasOverride(entry);
 }

@@ -1,14 +1,27 @@
+/**
+ * @file send_test_email.js
+ * @description Developer utility that sends a single transactional email end-to-end
+ * to verify the email pipeline (config → transport → Resend) and the localised
+ * email templates. With `RESEND_API_KEY` set the script sends a real message via
+ * Resend; without it the console transport logs the rendered email instead.
+ *
+ * Environment variables:
+ *  - `TEST_EMAIL_TO`     (required) — recipient address.
+ *  - `TEST_EMAIL_LOCALE` (optional) — locale source for template rendering.
+ *    Accepts a native-language name or BCP-47-style code recognised by the email
+ *    service (e.g. `English`, `Japanese`, `Chinese`, `ja`, `zh`). Default: `English`.
+ *  - `TEST_EMAIL_TYPE`   (optional) — template to send. One of:
+ *    `verification`, `passwordReset`, `receipt`, `dunning`. Default: `verification`.
+ *
+ * CLI usage:
+ * ```
+ * TEST_EMAIL_TO=you@example.com npm run email:test -w backend
+ * ```
+ *
+ * External side effects: delivers a real email via Resend when `RESEND_API_KEY` is set.
+ * Exits with code 1 if `TEST_EMAIL_TO` is not set or if the send fails.
+ */
 import { createEmailServiceFromConfig } from "../src/modules/email/index.js";
-
-// Sends a single transactional email end-to-end to verify the email pipeline
-// (config -> transport -> Resend) and localized templates. With RESEND_API_KEY
-// set it sends a real message; otherwise the console transport just logs it.
-//
-// Usage:
-//   TEST_EMAIL_TO=you@example.com npm run email:test -w backend
-// Optional:
-//   TEST_EMAIL_LOCALE=ja|zh|English|Japanese|Chinese   (default: English)
-//   TEST_EMAIL_TYPE=verification|passwordReset|receipt|dunning (default: verification)
 const to = String(process.env.TEST_EMAIL_TO || "").trim();
 const nativeLanguage = process.env.TEST_EMAIL_LOCALE || "English";
 const type = process.env.TEST_EMAIL_TYPE || "verification";

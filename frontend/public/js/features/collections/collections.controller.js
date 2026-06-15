@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Collections feature controller — manages the vocabulary word
+ * table for the selected collection. Handles word loading, collection
+ * switching, search, word-status updates (single and multi-select), row
+ * selection (click, Shift+click, Cmd/Ctrl+click), drag-and-drop word moves
+ * between collections, translation-override editing, disambiguation expansion,
+ * and bulk word deletion.
+ */
+
 import { requestJson } from "../../api.js";
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
@@ -8,6 +17,14 @@ import { loadMoreWordsIfNeeded, renderWords } from "../../views/words.js";
 
 let loadDashboard = async () => {};
 
+/**
+ * Injects dependencies that the collections controller needs but cannot import
+ * directly (to avoid circular module dependencies).
+ *
+ * @param {{ loadDashboard: function(): Promise<void> }} options
+ * @param {function(): Promise<void>} options.loadDashboard - Reloads dashboard
+ *   data after word status changes, bulk deletion, or drag-and-drop moves.
+ */
 export function configureCollectionsController(options) {
   loadDashboard = options.loadDashboard;
 }
@@ -32,6 +49,26 @@ function setWordActionError(message = "") {
   elements.wordActionError.hidden = !message;
 }
 
+/**
+ * Fetches all words for the currently selected collection (or all words for
+ * the active study language when the "All" pseudo-collection is selected) and
+ * re-renders the word table.
+ *
+ * Clears the word table and shows an empty state when no collection is
+ * selected or when the "All" collection is selected without an active study
+ * language. Applies `state.search` as a server-side filter.
+ *
+ * @returns {Promise<void>}
+ *
+ * @sideeffects
+ * - Clears `state.selectedWordIds` and `state.selectionAnchorId`.
+ * - Calls GET `/api/languages/:id/words?search=…` or
+ *   GET `/api/collections/:id/words?search=…`.
+ * - Mutates `state.words`.
+ * - Calls {@link renderWords}, and updates `elements.wordRows.innerHTML`,
+ *   `elements.wordPagination`, and `elements.emptyState` for the no-collection
+ *   edge case.
+ */
 export async function loadWords() {
   state.selectedWordIds.clear();
   state.selectionAnchorId = null;
@@ -157,6 +194,39 @@ function cancelTranslationOverrideEdit() {
   renderWords(state.words);
 }
 
+/**
+ * Attaches all DOM event listeners for the collections feature. Must be called
+ * once during application bootstrap.
+ *
+ * Registered interactions include:
+ * - Bulk-delete button: confirms, then POSTs to `/api/words/delete`.
+ * - Collection sidebar button clicks switching the active collection.
+ * - Collections select (mobile dropdown) switching the active collection.
+ * - Search input re-loading words on each keystroke.
+ * - Table scroll triggering {@link loadMoreWordsIfNeeded} for infinite-scroll
+ *   mode.
+ * - Prev / next page buttons in paged mode.
+ * - Word-row clicks (delegated on `elements.wordRows`):
+ *   - Translation-override edit / cancel / clear / form submit.
+ *   - Disambiguation toggle (expands inline candidate table).
+ *   - Status-segment clicks: applies to the clicked word, or to the entire
+ *     multi-selection when the word is part of one.
+ *   - Row checkbox selection with Shift (range), Cmd/Ctrl (toggle), and plain
+ *     click (single-select).
+ * - Drag-and-drop from word rows to collection buttons:
+ *   - `dragstart` encodes the selected word IDs as
+ *     `"application/x-word-marker-words"` and disables drag on mobile.
+ *   - `dragover` / `dragleave` provide drop-target highlighting on collection
+ *     buttons.
+ *   - `drop` moves the dragged words to the target collection via
+ *     POST `/api/words/move`.
+ *
+ * @sideeffects
+ * - Adds event listeners on `elements.deleteSelectedButton`,
+ *   `elements.collectionsList`, `elements.collectionsSelect`,
+ *   `elements.searchInput`, `elements.tableWrap`, `elements.wordPrevPage`,
+ *   `elements.wordNextPage`, and `elements.wordRows`.
+ */
 export function bindCollectionsEvents() {
   elements.deleteSelectedButton.addEventListener("click", async () => {
     if (!state.selectedWordIds.size) {

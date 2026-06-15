@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Text extraction service. Converts uploaded PDF, EPUB, and
+ * plain-text files into plain text or structured block arrays. PDF extraction
+ * uses pdfjs-dist; EPUB extraction parses the OPF spine and walks each XHTML
+ * document with a lightweight custom parser (no external HTML parser
+ * dependency). Structured blocks carry a `type` (paragraph, heading-N, etc.)
+ * that the reader uses for typography.
+ */
+
 import { appendFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import JSZip from "jszip";
@@ -26,8 +35,14 @@ function epubLog(event, data) {
   }
 }
 
-// Convert supported document formats into plain text or structured blocks.
-// Detect the uploaded file type and extract text with the matching parser.
+/**
+ * Detect the uploaded file type and extract its content as either a flat text
+ * string (PDF, TXT) or a structured block array (EPUB).
+ *
+ * @param {{ filename: string, type: string, buffer: Buffer }} file
+ * @returns {Promise<{ fileType: "pdf"|"epub"|"txt", text?: string, blocks?: object[] }>}
+ * @throws {Error} When the file type is not supported.
+ */
 export async function extractTextFromUpload(file) {
   const filename = file.filename || "Untitled";
   const lowerName = filename.toLowerCase();

@@ -1,5 +1,22 @@
-// Request body helpers used by API routes.
-// Read and parse a bounded JSON request body.
+/**
+ * @fileoverview Request-body reading helpers for API route handlers.
+ *
+ * All helpers enforce an upper-bound on body size to prevent memory exhaustion
+ * from oversized requests. Parsing is intentionally dependency-free — the server
+ * uses Node's built-in `http` module, so no framework body-parser is available.
+ */
+
+/**
+ * Reads and JSON-parses the full request body, enforcing a 2 MB limit.
+ *
+ * An empty body returns `{}` rather than throwing a parse error, which avoids
+ * requiring callers to send a `{}` payload for endpoints that make body fields
+ * optional.
+ *
+ * @param {import("node:http").IncomingMessage} req - The incoming HTTP request.
+ * @returns {Promise<Record<string, unknown>>} Parsed JSON object.
+ * @throws {Error} If the body exceeds 2 MB or contains invalid JSON.
+ */
 export async function readJson(req) {
   let raw = "";
   for await (const chunk of req) {
@@ -11,7 +28,18 @@ export async function readJson(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
-// Read a request body into a Buffer while enforcing a maximum size.
+/**
+ * Streams the full request body into a single `Buffer` up to `maxBytes`.
+ *
+ * Used as the low-level primitive by `readMultipart` for file uploads. Callers
+ * that need raw binary content (e.g. file parsing before MIME detection) can
+ * call this directly.
+ *
+ * @param {import("node:http").IncomingMessage} req - The incoming HTTP request.
+ * @param {number} [maxBytes=40_000_000] - Maximum allowed body size in bytes (default 40 MB).
+ * @returns {Promise<Buffer>} Complete body as a single concatenated buffer.
+ * @throws {Error} If the body exceeds `maxBytes`.
+ */
 export async function readBuffer(req, maxBytes = 40_000_000) {
   const chunks = [];
   let size = 0;
@@ -25,7 +53,32 @@ export async function readBuffer(req, maxBytes = 40_000_000) {
   return Buffer.concat(chunks);
 }
 
-// Parse multipart form data into field strings and uploaded file buffers.
+/**
+ * @typedef {Object} MultipartFile
+ * @property {string} filename - Original filename from the `Content-Disposition` header.
+ * @property {string} type - MIME type from `Content-Type`, or `"application/octet-stream"` if absent.
+ * @property {Buffer} buffer - Raw file bytes.
+ */
+
+/**
+ * @typedef {Object} MultipartResult
+ * @property {Record<string, string>} fields - Non-file form fields keyed by field name.
+ * @property {Record<string, MultipartFile>} files - File parts keyed by field name.
+ */
+
+/**
+ * Parses a `multipart/form-data` request body into plain fields and file buffers.
+ *
+ * The parser handles the simple `FormData` shape emitted by the browser's fetch
+ * API for material uploads. Nested or repeated field names are not supported
+ * — the last value wins for duplicates.
+ *
+ * @param {import("node:http").IncomingMessage} req - The incoming HTTP request. Must have a
+ *   `Content-Type` header containing a `boundary` parameter.
+ * @param {number} [maxBytes=40_000_000] - Maximum total body size in bytes (default 40 MB).
+ * @returns {Promise<MultipartResult>} Parsed fields and files.
+ * @throws {Error} If the `boundary` parameter is missing, or the body exceeds `maxBytes`.
+ */
 export async function readMultipart(req, maxBytes = 40_000_000) {
   const contentType = req.headers["content-type"] || "";
   const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);

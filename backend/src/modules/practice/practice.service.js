@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Practice service. Builds flashcard session payloads from a
+ * user's learning words. Two session modes are supported: automatic (driven by
+ * click activity) and marked (user-flagged words only).
+ */
+
 const MIN_WORDS_PER_SESSION = 1;
 const MAX_WORDS_PER_SESSION = 200;
 const DEFAULT_WORDS_PER_SESSION = 20;
@@ -12,6 +18,12 @@ function shuffle(items) {
   return result;
 }
 
+/**
+ * Clamp and coerce a raw "words per session" value to the allowed range
+ * [1, 200]. Returns the default (20) when the value is non-numeric.
+ * @param {number|string} value
+ * @returns {number}
+ */
 export function normalizeWordsPerSession(value) {
   const number = Math.trunc(Number(value));
   if (!Number.isFinite(number)) {
@@ -20,13 +32,22 @@ export function normalizeWordsPerSession(value) {
   return Math.min(MAX_WORDS_PER_SESSION, Math.max(MIN_WORDS_PER_SESSION, number));
 }
 
-// Pick the words for one practice session in a language.
-//   1. Learning words clicked more than once, most-clicked first.
-//   2. If short of the requested count, top up with a random set of learning
-//      words clicked exactly once.
-// A learning word never opened (click_count 0) is not a valid practice word, so
-// when fewer than the requested count are valid the caller is told how many
-// (validCount) were available.
+/**
+ * Build a practice session for one language. Selection algorithm:
+ * 1. Multi-clicked learning words (`click_count > 1`), most-clicked first.
+ * 2. Top up to `requestedCount` with a random subset of single-clicked words.
+ * Words that have never been opened (`click_count = 0`) are excluded.
+ * `insufficient` is `true` when fewer valid words exist than requested.
+ *
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {number} languageId
+ * @param {string} languageName
+ * @param {string} nativeLanguage
+ * @param {number} requestedCount
+ * @returns {Promise<{ languageId: number, languageName: string, requested: number,
+ *   validCount: number, insufficient: boolean, words: object[] }>}
+ */
 export async function buildPracticeSession(repositories, userId, languageId, languageName, nativeLanguage, requestedCount) {
   const requested = normalizeWordsPerSession(requestedCount);
   const learning = await repositories.practice.listLearningWords(userId, languageId, nativeLanguage);
@@ -60,10 +81,20 @@ export async function buildPracticeSession(repositories, userId, languageId, lan
   };
 }
 
-// Pick the words for one "marked words" practice session: a random selection of
-// the learning words the user has flagged as want-to-practice, up to the
-// requested count. Unlike the automatic session, click activity is irrelevant —
-// every marked word is a valid candidate.
+/**
+ * Build a "marked words" practice session. Every learning word flagged with
+ * `want_to_practice = 1` is a valid candidate; a random subset of size
+ * `requestedCount` is returned. Click activity is not considered.
+ *
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {number} languageId
+ * @param {string} languageName
+ * @param {string} nativeLanguage
+ * @param {number} requestedCount
+ * @returns {Promise<{ languageId: number, languageName: string, requested: number,
+ *   validCount: number, insufficient: boolean, words: object[], mode: "marked" }>}
+ */
 export async function buildMarkedPracticeSession(repositories, userId, languageId, languageName, nativeLanguage, requestedCount) {
   const requested = normalizeWordsPerSession(requestedCount);
   const marked = await repositories.practice.listWantToPracticeWords(userId, languageId, nativeLanguage);

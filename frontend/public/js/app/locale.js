@@ -1,3 +1,16 @@
+/**
+ * @fileoverview Locale application and event binding for the Word Marker SPA.
+ *
+ * Applies the active locale from `state.locale` to every part of the UI:
+ *   - Sets `document.documentElement.lang` and the page `<title>`.
+ *   - Translates all static elements annotated with `data-i18n`, `data-i18n-placeholder`,
+ *     `data-i18n-title`, and `data-i18n-aria-label` attributes.
+ *   - Re-renders all dynamic views (auth, onboarding, settings, study language,
+ *     dashboard, reader, word list) so their text reflects the new locale.
+ *
+ * Locale changes are persisted to `localStorage` under `wordMarkerLocale`.
+ */
+
 import { elements } from "../dom.js";
 import { t } from "../i18n.js";
 import { state } from "../state.js";
@@ -12,11 +25,28 @@ import { renderWords } from "../views/words.js";
 let renderSettings = () => {};
 let renderStudyLanguageSelect = () => {};
 
+/**
+ * Inject cross-feature render callbacks required by this module.
+ *
+ * Must be called once during application bootstrap before {@link applyLocale}
+ * or {@link bindLocaleEvents} are invoked.
+ *
+ * @param {{ renderSettings: () => void, renderStudyLanguageSelect: () => void }} options
+ * @returns {void}
+ */
 export function configureLocale(options) {
   renderSettings = options.renderSettings;
   renderStudyLanguageSelect = options.renderStudyLanguageSelect;
 }
 
+/**
+ * Apply the currently active locale to the entire UI.
+ *
+ * Updates `document.documentElement.lang`, the page title, all i18n-annotated
+ * DOM nodes, and every dynamic view. Safe to call any time the locale changes.
+ *
+ * @returns {void}
+ */
 export function applyLocale() {
   elements.html.lang = state.locale;
   elements.title.textContent = `${t("brand")} - ${t("app.title")}`;
@@ -51,6 +81,14 @@ export function applyLocale() {
   }
 }
 
+/**
+ * Attach the `change` listener to the locale `<select>` element.
+ *
+ * Persists the selected locale to `localStorage` and calls {@link applyLocale}
+ * to re-render the entire UI. Should be called once during application bootstrap.
+ *
+ * @returns {void}
+ */
 export function bindLocaleEvents() {
   elements.localeSelect.addEventListener("change", () => {
     state.locale = elements.localeSelect.value;

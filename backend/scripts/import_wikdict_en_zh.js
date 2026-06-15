@@ -1,3 +1,27 @@
+/**
+ * @file import_wikdict_en_zh.js
+ * @description Imports the WikDict English→Chinese dictionary from a StarDict zip
+ * archive into the `wikdict_english_chinese` table. The entire table is cleared and
+ * rebuilt within a single transaction so the data is always consistent.
+ *
+ * Source format: StarDict zip containing `stardict.idx` (binary index) and
+ * `stardict.dict` (HTML entry data). Expected default location:
+ * `<ROOT>/data/dictionaries/wikdict-en-zh.zip`.
+ *
+ * Database side effects:
+ *  - Truncates `wikdict_english_chinese` and replaces all rows.
+ *  - Each row: (english, chinese, pos, rank, definition). `rank` reflects the
+ *    ordinal position of the translation within the entry (lower = more prominent).
+ *
+ * CLI usage:
+ * ```
+ * node backend/scripts/import_wikdict_en_zh.js [zipPath]
+ * ```
+ * Optional first argument overrides the default zip path.
+ *
+ * Exits with a JSON summary `{ entries, rows }` printed to stdout.
+ * Requires `DATABASE_URL` (or equivalent db config) to be set in the environment.
+ */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import JSZip from "jszip";
@@ -6,6 +30,12 @@ import { ROOT } from "../src/config.js";
 
 const sourcePath = process.argv[2] || join(ROOT, "data", "dictionaries", "wikdict-en-zh.zip");
 
+/**
+ * Decode HTML entities in a StarDict entry field.
+ *
+ * @param {unknown} value - Raw value from the dictionary entry.
+ * @returns {string} Value with common HTML entities replaced by their characters.
+ */
 function decodeHtml(value) {
   return String(value || "")
     .replace(/&lt;/g, "<")
@@ -16,10 +46,23 @@ function decodeHtml(value) {
     .replace(/&amp;/g, "&");
 }
 
+/**
+ * Strip all HTML tags from a value and normalise whitespace.
+ *
+ * @param {unknown} value - Raw HTML string.
+ * @returns {string} Plain text with collapsed whitespace.
+ */
 function stripTags(value) {
   return decodeHtml(String(value || "").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Map a grammar label string to a canonical POS tag.
+ *
+ * @param {unknown} value - Grammar label text from the dictionary entry.
+ * @returns {"noun"|"verb"|"adjective"|"adverb"|""} Canonical POS string, or empty
+ *   string if the label does not match a known category.
+ */
 function posForLabel(value) {
   const clean = String(value || "").toLowerCase();
   if (clean.includes("noun")) return "noun";
@@ -29,6 +72,12 @@ function posForLabel(value) {
   return "";
 }
 
+/**
+ * Parse a StarDict `.idx` binary buffer into an array of entry descriptors.
+ *
+ * @param {Buffer} idxBuffer - Contents of a StarDict `.idx` file.
+ * @returns {{ word: string, dataOffset: number, size: number }[]} Parsed entries.
+ */
 function readIdxEntries(idxBuffer) {
   const entries = [];
   let offset = 0;
@@ -44,6 +93,14 @@ function readIdxEntries(idxBuffer) {
   return entries;
 }
 
+/**
+ * Extract Chinese translation strings from a StarDict HTML entry.
+ * Only values containing at least one CJK unified ideograph (U+3400\u2013U+9FFF)
+ * are returned.
+ *
+ * @param {string} html - HTML content of a single StarDict entry.
+ * @returns {string[]} Deduplicated list of Chinese translation strings.
+ */
 function extractTranslations(html) {
   const translations = [];
   const seen = new Set();
@@ -56,6 +113,12 @@ function extractTranslations(html) {
   return translations;
 }
 
+/**
+ * Extract a plain-text definition from a StarDict HTML entry, truncated to 500 chars.
+ *
+ * @param {string} html - HTML content of a single StarDict entry.
+ * @returns {string} Plain-text definition.
+ */
 function extractDefinition(html) {
   const afterGrammar = html.replace(/^[\s\S]*?<font[^>]*class="grammar"[\s\S]*?<\/font>\s*<\/div>/i, "");
   const withoutLists = afterGrammar.replace(/<ol[\s\S]*$/i, "");
@@ -63,6 +126,12 @@ function extractDefinition(html) {
   return text.slice(0, 500);
 }
 
+/**
+ * Extract the part-of-speech tag from a StarDict HTML entry's grammar annotation.
+ *
+ * @param {string} html - HTML content of a single StarDict entry.
+ * @returns {"noun"|"verb"|"adjective"|"adverb"|""} Canonical POS string.
+ */
 function extractPos(html) {
   const match = html.match(/<font[^>]*class="grammar"[^>]*>([\s\S]*?)<\/font>/i);
   return posForLabel(stripTags(match?.[1] || ""));

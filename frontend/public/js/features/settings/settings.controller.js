@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Settings feature controller — manages the settings panel tabs
+ * (account details, native language, change password, and account deletion).
+ * Handles form submissions for password change, account deletion (with email-
+ * address confirmation), and general settings (native language). Orchestrates
+ * cleanup after deletion and falls back the study language when the current
+ * selection is no longer available after a settings save.
+ */
+
 import { requestJson } from "../../api.js";
 import { availableStudyLanguages, firstAvailableStudyLanguageAlphabetically, setStudyLanguage, studyLanguageLabel } from "../../app/study-language.js";
 import { elements } from "../../dom.js";
@@ -9,6 +18,15 @@ import { showView } from "../../views/shell.js";
 
 let reloadDashboard = async () => {};
 
+/**
+ * Injects dependencies that the settings controller needs but cannot import
+ * directly (to avoid circular module dependencies).
+ *
+ * @param {{ reloadDashboard: function(): Promise<void> }} options
+ * @param {function(): Promise<void>} options.reloadDashboard - Application-
+ *   level function to reload dashboard data after a settings save that may
+ *   have changed the active study language.
+ */
 export function configureSettingsController(options) {
   reloadDashboard = options.reloadDashboard;
 }
@@ -69,6 +87,17 @@ function clearDeletedAccountState() {
   localStorage.removeItem("wordMarkerStudyLanguageName");
 }
 
+/**
+ * Synchronises the settings sidebar tab buttons and panel visibility with
+ * `state.settingsTab`. The active tab button receives `is-active` and
+ * `aria-current="page"`; inactive tabs are set to `aria-current="false"`.
+ *
+ * @sideeffects
+ * - Toggles `is-active` and sets `aria-current` on each
+ *   `elements.settingsMenuButtons` entry.
+ * - Sets `hidden` on each `elements.settingsPanels` entry so only the active
+ *   panel is visible.
+ */
 export function renderSettingsTabs() {
   elements.settingsMenuButtons.forEach((button) => {
     const active = button.dataset.settingsTab === state.settingsTab;
@@ -80,6 +109,24 @@ export function renderSettingsTabs() {
   });
 }
 
+/**
+ * Performs a full re-render of the settings panel. Populates the native
+ * language dropdown, renders the account details table, resets the account-
+ * deletion form and status, and hides the password-change form. Also hides the
+ * change-password section entirely when the user has no password auth method.
+ *
+ * No-ops early for the native language dropdown when the element is absent
+ * (e.g. in stripped-down views).
+ *
+ * @sideeffects
+ * - Calls {@link renderSettingsTabs}.
+ * - Replaces `elements.nativeLanguageSelect.innerHTML`.
+ * - Replaces `elements.accountDetails.innerHTML` (via internal helper).
+ * - Resets `elements.deleteAccountForm` and clears `elements.deleteAccountStatus`.
+ * - Sets `hidden` and `aria-expanded` on the delete-account and change-password
+ *   toggle sections.
+ * - Conditionally shows or hides `elements.changePasswordSection`.
+ */
 export function renderSettings() {
   renderSettingsTabs();
   if (!elements.nativeLanguageSelect) {
@@ -105,6 +152,27 @@ export function renderSettings() {
   }
 }
 
+/**
+ * Attaches all DOM event listeners for the settings panel. Must be called once
+ * during application bootstrap.
+ *
+ * Registered interactions include:
+ * - Settings tab navigation via `elements.settingsMenu`.
+ * - Change-password accordion toggle and form submission. POSTs to
+ *   `/api/settings/password`; shows inline status feedback.
+ * - Account-deletion accordion toggle, confirmation input validation, and
+ *   form submission. DELETEs `/api/settings/account`; on success clears all
+ *   user state and navigates to the welcome view.
+ * - General settings form submission (native language). PATCHes `/api/settings`;
+ *   falls back the study language when the current selection is no longer
+ *   available after the save.
+ *
+ * @sideeffects
+ * - Adds event listeners on `elements.settingsMenu`,
+ *   `elements.changePasswordToggle`, `elements.changePasswordForm`,
+ *   `elements.deleteAccountToggle`, `elements.deleteAccountConfirmation`,
+ *   `elements.deleteAccountForm`, and `elements.settingsForm`.
+ */
 export function bindSettingsEvents() {
   elements.settingsMenu.addEventListener("click", (event) => {
     const button = event.target.closest("[data-settings-tab]");

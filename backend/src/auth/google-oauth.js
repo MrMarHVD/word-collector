@@ -1,3 +1,20 @@
+/**
+ * @fileoverview Google OAuth 2.0 sign-in helpers.
+ *
+ * Implements the server-side leg of the OAuth Authorization Code flow for Google
+ * sign-in.  The module handles state-token creation and verification (CSRF
+ * protection for the redirect), the authorization URL, code exchange, and ID
+ * token verification via Google's tokeninfo endpoint.
+ *
+ * State tokens are short-lived (10 min), HMAC-signed with `JWT_SECRET`, and
+ * stored as `HttpOnly` cookies scoped to `/api/auth/google` so they cannot be
+ * read by client-side JavaScript or replayed against unrelated paths.
+ *
+ * Google OAuth is only active when both `GOOGLE_OAUTH_CLIENT_ID` and
+ * `GOOGLE_OAUTH_CLIENT_SECRET` are configured; callers should gate on
+ * {@link googleOAuthConfigured} before exposing the sign-in route.
+ */
+
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import {
   APP_URL,
@@ -76,10 +93,27 @@ function appRedirect(params = {}) {
   return url.toString();
 }
 
+/**
+ * Returns `true` when both Google OAuth credentials are present in the
+ * environment, indicating the sign-in flow can be offered to users.
+ *
+ * @returns {boolean}
+ */
 export function googleOAuthConfigured() {
   return Boolean(GOOGLE_OAUTH_CLIENT_ID && GOOGLE_OAUTH_CLIENT_SECRET);
 }
 
+/**
+ * Generates the Google authorization URL that the browser should be redirected
+ * to when the user clicks "Sign in with Google".
+ *
+ * A signed, time-limited state token is minted and written as an `HttpOnly`
+ * cookie (`word_collector_google_oauth_state`) so it can be verified on return.
+ * The cookie is scoped to `/api/auth/google` to minimise exposure.
+ *
+ * @param {import("node:http").ServerResponse} res - Response object used to set the state cookie.
+ * @returns {string} The fully-qualified Google authorization URL.
+ */
 export function googleOAuthStartUrl(res) {
   const state = createStateToken();
   appendSetCookie(res, `${GOOGLE_STATE_COOKIE}=${encodeURIComponent(state)}; ${stateCookieAttributes(STATE_TTL_SECONDS)}`);
@@ -94,10 +128,27 @@ export function googleOAuthStartUrl(res) {
   return url.toString();
 }
 
+/**
+ * Expires the OAuth state cookie on the client by setting `Max-Age=0`.
+ * Should be called on both successful and failed callback handling so the
+ * one-time cookie is never left in the browser.
+ *
+ * @param {import("node:http").ServerResponse} res
+ */
 export function clearGoogleOAuthStateCookie(res) {
   appendSetCookie(res, `${GOOGLE_STATE_COOKIE}=; ${stateCookieAttributes(0)}`);
 }
 
+/**
+ * Verifies the OAuth `state` parameter returned by Google against the state
+ * cookie stored in the browser.  Both the cookie/parameter equality check and
+ * the HMAC signature + expiry of the state token must pass for this to return
+ * `true`, preventing CSRF attacks on the callback endpoint.
+ *
+ * @param {import("node:http").IncomingMessage} req - Incoming callback request (used to read the state cookie).
+ * @param {string} state - The `state` query parameter from the Google redirect.
+ * @returns {boolean}
+ */
 export function verifyGoogleOAuthState(req, state) {
   const cookieValue = String(req.headers.cookie || "")
     .split(";")
@@ -108,6 +159,16 @@ export function verifyGoogleOAuthState(req, state) {
   return safeEqual(cookieState, state) && verifyStateToken(state);
 }
 
+/**
+ * Exchanges a Google authorization code for tokens by calling Google's token
+ * endpoint.  The `fetchImpl` parameter is injectable for testing.
+ *
+ * @param {string} code - The authorization code from the Google callback.
+ * @param {typeof fetch} [fetchImpl] - Fetch implementation (defaults to global `fetch`).
+ * @returns {Promise<{id_token: string, access_token: string, [key: string]: unknown}>}
+ *   The raw token response from Google.
+ * @throws {Error} When the HTTP request fails or Google returns an error response.
+ */
 export async function exchangeGoogleOAuthCode(code, fetchImpl = fetch) {
   const body = new URLSearchParams({
     client_id: GOOGLE_OAUTH_CLIENT_ID,
@@ -128,6 +189,18 @@ export async function exchangeGoogleOAuthCode(code, fetchImpl = fetch) {
   return payload;
 }
 
+/**
+ * Verifies a Google ID token by calling Google's tokeninfo endpoint and
+ * checking the `aud` claim matches this application's client ID.
+ *
+ * Using the tokeninfo endpoint (rather than local JWKS verification) keeps the
+ * implementation dependency-free and avoids key-rotation concerns.
+ *
+ * @param {string} idToken - The `id_token` from the token exchange response.
+ * @param {typeof fetch} [fetchImpl] - Fetch implementation (defaults to global `fetch`).
+ * @returns {Promise<{providerUserId: string, email: string, emailVerified: boolean, displayName: string}>}
+ * @throws {Error} When the token is invalid, expired, or the audience does not match.
+ */
 export async function verifyGoogleIdToken(idToken, fetchImpl = fetch) {
   const response = await fetchImpl(`${GOOGLE_TOKENINFO_URL}?id_token=${encodeURIComponent(idToken)}`);
   const payload = await response.json();
@@ -145,6 +218,14 @@ export async function verifyGoogleIdToken(idToken, fetchImpl = fetch) {
   };
 }
 
+/**
+ * Issues a `302` redirect to the configured `APP_URL`, optionally appending
+ * query parameters (e.g. `error` on failure or a post-login destination).
+ * Parameters with falsy values are omitted from the URL.
+ *
+ * @param {import("node:http").ServerResponse} res
+ * @param {Record<string, string>} [params] - Query parameters to append to `APP_URL`.
+ */
 export function redirectToApp(res, params = {}) {
   res.statusCode = 302;
   res.setHeader("location", appRedirect(params));

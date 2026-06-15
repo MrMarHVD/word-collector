@@ -1,3 +1,17 @@
+/**
+ * @fileoverview PostgreSQL connection pool and query executor.
+ *
+ * Exports a singleton `pool` (one per process) and a default `db` executor
+ * built on top of it.  {@link makeExecutor} wraps any `pg`-compatible queryable
+ * (pool or checked-out client) with a `prepare`/`transaction` API that mirrors
+ * the `node:sqlite` call sites used when the app ran on SQLite, translating `?`
+ * placeholders to Postgres-style positional `$1, $2, …` parameters on the fly.
+ *
+ * Repositories call `db.prepare(sql).get(…)`, `.all(…)`, or `.run(…)` for
+ * single-connection queries, and `db.transaction(async (tx) => { … })` to wrap
+ * multiple statements in an atomic BEGIN/COMMIT block.
+ */
+
 import pg from "pg";
 import { DATABASE_URL } from "../config.js";
 
@@ -12,10 +26,26 @@ function toPositional(sql) {
   return sql.replace(/\?/g, () => `$${++index}`);
 }
 
-// An executor wraps a queryable (the pool or a checked-out client) and exposes a
-// prepared-statement-like API matching the old node:sqlite call sites, plus a
-// transaction helper. `prepare(sql)` is synchronous; the returned methods are
-// async because the pg driver is.
+/**
+ * Creates an executor that wraps a `pg` queryable with a prepared-statement-like
+ * interface and a transaction helper.
+ *
+ * `prepare(sql)` translates `?` placeholders to positional Postgres parameters
+ * and returns an object with three async methods:
+ * - `get(...params)` — runs the query and returns the first row or `undefined`.
+ * - `all(...params)` — runs the query and returns all rows as an array.
+ * - `run(...params)` — runs the query and returns `{ changes, lastInsertRowid }`.
+ *   `lastInsertRowid` is populated only when the statement uses `RETURNING id`.
+ *
+ * `transaction(work)` checks out a client from the pool, wraps `work` in
+ * BEGIN/COMMIT/ROLLBACK, and releases the client.  When the executor is already
+ * bound to a transaction client (i.e. called recursively), `work` is called
+ * directly without opening a nested transaction.
+ *
+ * @param {pg.Pool | pg.PoolClient} queryable - A pg pool or checked-out client.
+ * @param {{ client?: pg.PoolClient | null }} [options]
+ * @returns {{ prepare: (sql: string) => { get: (...params: unknown[]) => Promise<unknown>, all: (...params: unknown[]) => Promise<unknown[]>, run: (...params: unknown[]) => Promise<{changes: number, lastInsertRowid: number|undefined}> }, transaction: (work: (executor: ReturnType<typeof makeExecutor>) => Promise<unknown>) => Promise<unknown> }}
+ */
 export function makeExecutor(queryable, { client = null } = {}) {
   const executor = {
     prepare(sql) {
