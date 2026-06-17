@@ -13,9 +13,42 @@ import { t } from "../../i18n.js";
 import { state } from "../../state.js";
 import { renderCollectionsList, renderSelectedCollectionStats } from "../../views/dashboard.js";
 import { resetWordWindow } from "../../views/shell.js";
+import { createCollapsibleSidebar } from "../../views/components/sidebar.js";
 import { loadMoreWordsIfNeeded, renderWords } from "../../views/words.js";
 
 let loadDashboard = async () => {};
+
+/** Shared collapsible-sidebar controller for the collections sidebar. */
+let collectionsSidebar = null;
+
+/**
+ * Positions the floating reopen button level with the collections sidebar head.
+ *
+ * The button is fixed to the viewport, so its `top` is derived from the live
+ * sidebar position (which shifts with the email-verification banner and the
+ * header). Matches how the reader positions its own open button. No-op until
+ * the sidebar controller has been created.
+ *
+ * @sideeffects Sets the `--collectionsSidebarOpenTop` custom property on
+ *   `elements.collectionsSidebarOpen`.
+ */
+function positionCollectionsSidebarOpen() {
+  if (!elements.collectionsWorkspace || !elements.collectionsSidebarOpen) {
+    return;
+  }
+  const top = Math.round(elements.collectionsWorkspace.getBoundingClientRect().top + 14);
+  elements.collectionsSidebarOpen.style.setProperty("--collectionsSidebarOpenTop", `${top}px`);
+}
+
+/**
+ * Re-aligns the collections reopen button after a layout change (e.g. when the
+ * vocab tab becomes visible). Only relevant while the sidebar is collapsed.
+ *
+ * @returns {void}
+ */
+export function refreshCollectionsSidebar() {
+  positionCollectionsSidebarOpen();
+}
 
 /**
  * Injects dependencies that the collections controller needs but cannot import
@@ -222,12 +255,35 @@ function cancelTranslationOverrideEdit() {
  *     POST `/api/words/move`.
  *
  * @sideeffects
+ * - Instantiates the shared collapsible-sidebar controller for the collections
+ *   sidebar (minimise / reopen buttons, persisted via
+ *   `wordMarkerCollectionsSidebarCollapsed`).
  * - Adds event listeners on `elements.deleteSelectedButton`,
  *   `elements.collectionsList`, `elements.collectionsSelect`,
  *   `elements.searchInput`, `elements.tableWrap`, `elements.wordPrevPage`,
  *   `elements.wordNextPage`, and `elements.wordRows`.
  */
 export function bindCollectionsEvents() {
+  collectionsSidebar = createCollapsibleSidebar({
+    layout: elements.collectionsWorkspace,
+    toggleButton: elements.collectionsSidebarToggle,
+    openButton: elements.collectionsSidebarOpen,
+    collapsed: state.collectionsSidebarCollapsed,
+    storageKey: "wordMarkerCollectionsSidebarCollapsed",
+    onChange: (collapsed) => {
+      state.collectionsSidebarCollapsed = collapsed;
+      if (collapsed) {
+        positionCollectionsSidebarOpen();
+      }
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    if (collectionsSidebar?.isCollapsed()) {
+      positionCollectionsSidebarOpen();
+    }
+  });
+
   elements.deleteSelectedButton.addEventListener("click", async () => {
     if (!state.selectedWordIds.size) {
       return;

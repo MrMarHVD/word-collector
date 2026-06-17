@@ -11,6 +11,26 @@
   box-shadow: inset 0 0 0 2px var(--brand);
 }
 
+/* Collapsible collections sidebar — the vocab pane's instance of the shared
+   sidebar shell. Collapsing slides the sidebar out (handled by the shell) and
+   drops its grid column so the word list reclaims the width. */
+.collections-workspace {
+  transition: grid-template-columns 220ms ease;
+}
+
+.collections-workspace.is-sidebar-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr);
+  column-gap: 0;
+}
+
+/* The floating reopen button is fixed to the viewport's left gutter, vertically
+   aligned with the sidebar head. Its top is computed in the collections
+   controller so it tracks layout shifts (e.g. the email-verification banner),
+   mirroring how the reader positions its own open button. */
+.collections-sidebar-open {
+  top: var(--collectionsSidebarOpenTop, 120px);
+}
+
 .word-drag-cell {
   width: 28px;
   cursor: grab;
@@ -356,6 +376,32 @@ tbody tr:last-child td {
 
   .collections-sidebar {
     position: static;
+  }
+
+  /* On mobile the sidebar stacks above the word list, so collapse it to zero
+     height and float the reopen control as a bottom-right pill (matching the
+     reader pane's mobile behaviour). */
+  .collections-workspace.is-sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .collections-workspace.is-sidebar-collapsed .collections-sidebar {
+    max-height: 0;
+    margin: 0;
+    padding-block: 0;
+    border-width: 0;
+    overflow: hidden;
+  }
+
+  .collections-sidebar-open {
+    position: fixed;
+    top: auto;
+    right: 10px;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    left: auto;
+    width: 48px;
+    border-left: 1px solid var(--border-main);
+    border-radius: 999px;
   }
 
   .word-table-toolbar {

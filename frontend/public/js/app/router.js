@@ -15,6 +15,7 @@
  */
 
 import { enterPracticeTab } from "../features/practice/practice.controller.js";
+import { refreshCollectionsSidebar } from "../features/collections/collections.controller.js";
 import { renderReaderSidebar } from "../views/reader.js";
 import { setActiveTab, showView } from "../views/shell.js";
 import { state } from "../state.js";
@@ -59,10 +60,15 @@ function renderReaderSidebarAfterLayout() {
   requestAnimationFrame(() => requestAnimationFrame(renderReaderSidebar));
 }
 
+function refreshCollectionsSidebarAfterLayout() {
+  requestAnimationFrame(() => requestAnimationFrame(refreshCollectionsSidebar));
+}
+
 /**
  * Activate a tab and run its associated side effects without changing the URL.
  *
  * Side effects: the reader sidebar is re-rendered after layout for `"reader"`;
+ * the collections reopen button is re-aligned after layout for `"collections"`;
  * `enterPracticeTab` is called for `"practice"`.
  *
  * @param {string} tabName - Internal tab identifier.
@@ -73,6 +79,8 @@ export function activateTab(tabName) {
   setActiveTab(tabName);
   if (tabName === "reader") {
     renderReaderSidebarAfterLayout();
+  } else if (tabName === "collections") {
+    refreshCollectionsSidebarAfterLayout();
   } else if (tabName === "practice") {
     enterPracticeTab();
   }

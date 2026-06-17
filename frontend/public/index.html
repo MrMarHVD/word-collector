@@ -236,8 +236,22 @@
       </section>
 
       <section id="collectionsView" class="tab-view" hidden>
-        <section class="workspace grid grid-cols-[minmax(220px,260px)_1fr] items-start gap-3.5 max-md:grid-cols-1">
-          <aside class="collections-sidebar rounded-lg border border-line bg-panel p-3.5 shadow-panel">
+        <button id="collectionsSidebarOpen" class="collections-sidebar-open secondary-button fixed left-0 top-[120px] z-[9] grid min-h-[52px] w-[42px] place-items-center rounded-r-lg border border-l-0 border-line bg-panel text-brand shadow-panel" type="button" hidden>
+          <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[1.8]">
+            <path d="M4 5h16M4 12h16M4 19h16" />
+          </svg>
+          <span class="visually-hidden" data-i18n="collections.openSidebar">Open sidebar</span>
+        </button>
+        <section class="workspace collections-workspace app-sidebar-layout grid grid-cols-[minmax(220px,260px)_1fr] items-start gap-3.5 max-md:grid-cols-1">
+          <aside class="collections-sidebar app-sidebar rounded-lg border border-line bg-panel p-3.5 shadow-panel">
+            <div class="app-sidebar-head">
+              <button id="collectionsSidebarToggle" class="secondary-button icon-button grid h-[42px] w-[42px] place-items-center rounded-md border border-line bg-panel text-brand hover:bg-hover" type="button" aria-expanded="true">
+                <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[1.8]">
+                  <path d="M15 6l-6 6 6 6" />
+                </svg>
+                <span class="visually-hidden" data-i18n="collections.toggleSidebar">Toggle sidebar</span>
+              </button>
+            </div>
             <button id="uploadOpenButton" class="collections-sidebar-upload mb-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="button" data-i18n="collections.upload">アップロード</button>
             <label class="collections-mobile-select-wrap grid gap-1.5 text-sm font-semibold text-label">
               <span data-i18n="collections.collection">コレクション</span>
@@ -305,9 +319,9 @@
           </svg>
           <span class="visually-hidden" data-i18n="reader.openSidebar">Open sidebar</span>
         </button>
-        <section class="reader-layout relative grid items-start">
-          <aside class="reader-sidebar sticky top-[88px] z-[8] h-[calc(100vh-88px)] overflow-auto rounded-l-lg border border-line bg-panel p-3.5 shadow-panel">
-            <div class="reader-sidebar-head mb-3 flex justify-end">
+        <section class="reader-layout app-sidebar-layout relative grid items-start">
+          <aside class="reader-sidebar app-sidebar sticky top-[88px] z-[8] h-[calc(100vh-88px)] overflow-auto rounded-l-lg border border-line bg-panel p-3.5 shadow-panel">
+            <div class="reader-sidebar-head app-sidebar-head mb-3 flex justify-end">
               <button id="readerSidebarToggle" class="secondary-button icon-button grid h-[42px] w-[42px] place-items-center rounded-md border border-line bg-panel text-brand hover:bg-hover" type="button" aria-expanded="true">
                 <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[1.8]">
                   <path d="M15 6l-6 6 6 6" />

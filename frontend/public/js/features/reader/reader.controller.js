@@ -15,6 +15,7 @@ import { state } from "../../state.js";
 import { normalizeStatus } from "../../shared/status.js";
 import { escapeHtml } from "../../shared/html.js";
 import { fitReaderTokensToPage, renderReaderSidebar, renderReaderSidebarTabs, renderReaderTokens, renderReaderWordInfo } from "../../views/reader.js";
+import { createCollapsibleSidebar } from "../../views/components/sidebar.js";
 
 const MIN_READER_PANEL_WIDTH = 360;
 const MIN_READER_PANEL_HEIGHT = 520;
@@ -600,8 +601,11 @@ async function turnReaderPage(direction) {
  * - Window resize to reflow the reader layout.
  *
  * @sideeffects
- * - Adds event listeners on `elements.readerSidebarToggle`,
- *   `elements.readerSidebarOpen`, `elements.readerSidebarResize`,
+ * - Instantiates the shared collapsible-sidebar controller for the reader
+ *   sidebar (wires `elements.readerSidebarToggle` and
+ *   `elements.readerSidebarOpen`; the reader renders layout/aria/open-button
+ *   itself via {@link renderReaderSidebar}).
+ * - Adds event listeners on `elements.readerSidebarResize`,
  *   `elements.readerPanelResize`, `elements.readerFocusToggles`,
  *   `elements.readerFocusExit`, `elements.readerSidebarTabs`,
  *   `elements.readerAutoMarkKnown`, `elements.readerAutoMarkLearning`,
@@ -612,16 +616,23 @@ async function turnReaderPage(direction) {
  *   `window`.
  */
 export function bindReaderEvents() {
-  elements.readerSidebarToggle.addEventListener("click", () => {
-    state.readerSidebarCollapsed = !state.readerSidebarCollapsed;
-    localStorage.setItem("wordMarkerReaderSidebarCollapsed", String(state.readerSidebarCollapsed));
-    renderReaderLayout();
-  });
-
-  elements.readerSidebarOpen.addEventListener("click", () => {
-    state.readerSidebarCollapsed = false;
-    localStorage.setItem("wordMarkerReaderSidebarCollapsed", String(state.readerSidebarCollapsed));
-    renderReaderLayout();
+  // Reader collapse / reopen runs through the shared collapsible-sidebar
+  // controller. The reader computes its own layout sizing, aria, and
+  // open-button visibility inside renderReaderSidebar (they depend on focus
+  // mode and the active mobile tab), so those aspects are managed externally
+  // and the controller only owns the collapsed state, persistence, and click
+  // wiring, re-rendering the reader layout on change.
+  const readerSidebar = createCollapsibleSidebar({
+    layout: elements.readerLayout,
+    toggleButton: elements.readerSidebarToggle,
+    openButton: elements.readerSidebarOpen,
+    collapsed: state.readerSidebarCollapsed,
+    storageKey: "wordMarkerReaderSidebarCollapsed",
+    manage: { layoutClass: false, aria: false, openButton: false },
+    onChange: (collapsed) => {
+      state.readerSidebarCollapsed = collapsed;
+      renderReaderLayout();
+    }
   });
 
   elements.readerSidebarResize.addEventListener("pointerdown", (event) => startReaderResize(event, "sidebar"));
@@ -652,8 +663,7 @@ export function bindReaderEvents() {
       }
       state.readerSidebarTab = button.dataset.readerSidebarTab;
       if (state.readerSidebarTab !== "read") {
-        state.readerSidebarCollapsed = false;
-        localStorage.setItem("wordMarkerReaderSidebarCollapsed", "false");
+        readerSidebar.setCollapsed(false);
       }
       renderReaderSidebarTabs();
       renderReaderLayout();
