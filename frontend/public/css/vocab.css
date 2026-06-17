@@ -52,8 +52,51 @@
 }
 
 .table-wrap.is-scrollable {
-  max-height: min(62vh, 680px);
+  /*
+   * Size the scrollable word list to the space left below the page controls so
+   * the whole vocab view fits within the viewport and the list scrolls
+   * internally instead of growing the page. Clamped to keep a usable minimum on
+   * short screens and a sensible cap on tall ones.
+   */
+  max-height: clamp(240px, calc(100vh - 490px), 680px);
   overflow: auto;
+}
+
+/*
+ * Desktop: compact the vocabulary table so the full word list fits within a
+ * normal screen height without scrolling. Slightly reduces the table font size
+ * and trims the vertical height of each row and its subcomponents. Mobile keeps
+ * its own card layout via the max-width media queries below.
+ */
+@media (min-width: 761px) {
+  .table-wrap table {
+    font-size: 0.9rem;
+  }
+
+  .table-wrap .word-row > td {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .table-wrap .word-row .word-cell {
+    gap: 2px;
+  }
+
+  .table-wrap .word-cell-main {
+    font-size: 0.95rem;
+  }
+
+  .table-wrap .word-cell-phonetic {
+    font-size: 0.78rem;
+  }
+
+  .table-wrap .status-toggle {
+    padding: 2px;
+  }
+
+  .table-wrap .status-segment {
+    min-height: 28px;
+  }
 }
 
 tbody td {
