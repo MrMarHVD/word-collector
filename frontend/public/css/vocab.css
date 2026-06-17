@@ -19,7 +19,14 @@
 }
 
 .collections-workspace.is-sidebar-collapsed {
-  grid-template-columns: 0 minmax(0, 1fr);
+  /* Reserve a left gutter wide enough to keep the fixed reopen widget (pinned
+     to the viewport's left edge, 42px wide) clear of the word list with a
+     small gap. The shell is centred at min(1180px, 100vw - 32px), so on wide
+     viewports its own margin already clears the widget and the gutter
+     collapses to zero; on narrow viewports it grows to fill the shortfall. */
+  grid-template-columns:
+    max(0px, calc(42px + 14px - (100vw - min(1180px, 100vw - 32px)) / 2))
+    minmax(0, 1fr);
   column-gap: 0;
 }
 

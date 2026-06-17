@@ -1652,7 +1652,7 @@ button:disabled {
   transition: grid-template-columns 220ms ease;
 }
 .collections-workspace.is-sidebar-collapsed {
-  grid-template-columns: 0 minmax(0, 1fr);
+  grid-template-columns: max(0px, calc(42px + 14px - (100vw - min(1180px, 100vw - 32px)) / 2)) minmax(0, 1fr);
   column-gap: 0;
 }
 .collections-sidebar-open {
