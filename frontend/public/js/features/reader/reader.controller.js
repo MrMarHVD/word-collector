@@ -1,9 +1,21 @@
+/**
+ * @fileoverview Reader feature controller — orchestrates all interactive
+ * behaviour of the document reader: loading token pages from the API,
+ * pointer/touch/keyboard page-turning gestures, drag-to-resize for the sidebar
+ * and main panel, the radial convenience status menu (long-press / hold),
+ * word-info popup lifecycle, focus mode, auto-mark-known-on-page-turn,
+ * auto-mark-learning-on-click, translation override editing, practice
+ * checkbox handling, and disambiguation toggling.
+ */
+
 import { requestJson } from "../../api.js";
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
 import { state } from "../../state.js";
 import { normalizeStatus } from "../../shared/status.js";
+import { escapeHtml } from "../../shared/html.js";
 import { fitReaderTokensToPage, renderReaderSidebar, renderReaderSidebarTabs, renderReaderTokens, renderReaderWordInfo } from "../../views/reader.js";
+import { createCollapsibleSidebar } from "../../views/components/sidebar.js";
 
 const MIN_READER_PANEL_WIDTH = 360;
 const MIN_READER_PANEL_HEIGHT = 520;
@@ -11,11 +23,27 @@ const MAX_READER_SIDEBAR_WIDTH = 340;
 const MAX_READER_SIDEBAR_WIDTH_SMALL = 240;
 const READER_PANEL_BOTTOM_MARGIN = 16;
 const FIT_READER_FETCH_LIMIT = 1000;
+const READER_HOLD_DELAY_MS = 360;
+const READER_HOLD_CANCEL_DISTANCE = 12;
+const READER_MENU_SELECTION_DISTANCE = 54;
+const READER_MENU_RADIUS = 82;
+const READER_MENU_MARGIN = 14;
+const READER_SUPPRESS_CLICK_MS = 300;
 
 let loadDashboard = async () => {};
 let readerPageTurnInProgress = false;
 let highlightOpacityFrame = 0;
+let readerConvenienceMenu = null;
 
+/**
+ * Injects dependencies that the reader controller needs but cannot import
+ * directly (to avoid circular module dependencies).
+ *
+ * @param {{ loadDashboard: function(): Promise<void> }} options
+ * @param {function(): Promise<void>} options.loadDashboard - Application-level
+ *   function to reload dashboard data after a word status or practice-flag
+ *   change.
+ */
 export function configureReaderController(options) {
   loadDashboard = options.loadDashboard;
 }
@@ -28,6 +56,34 @@ async function saveMaterialReaderStart(materialId, start) {
   state.materials = state.materials.map((material) => (material.id === materialId ? { ...material, readerStart: start } : material));
 }
 
+/**
+ * Fetches and renders a page of tokens for the currently selected material.
+ * Clears state and re-renders an empty reader when no material is selected.
+ *
+ * When `state.readerWordsPerPage` is `"fit"`, a large token limit is requested
+ * so {@link fitReaderTokensToPage} can binary-search for the visible count.
+ *
+ * After a successful fetch, the resolved start offset is written back to the
+ * server (via PATCH `/api/materials/:id`) unless `persist` is `false`, which
+ * is used during background polling and material restoration to avoid spurious
+ * writes.
+ *
+ * @param {number|null} [start=null] - The zero-based token offset to load. A
+ *   `null` value lets the server use the material's persisted position.
+ * @param {{ persist?: boolean }} [options]
+ * @param {boolean} [options.persist=true] - When `false`, the resolved start
+ *   position is not written back to the server.
+ *
+ * @returns {Promise<void>}
+ *
+ * @sideeffects
+ * - Mutates `state.currentMaterial`, `state.readerStart`,
+ *   `state.readerFetchedTokens`, `state.readerTokens`, and `state.materials`.
+ * - Calls {@link renderReaderTokens}, {@link fitReaderTokensToPage}, and
+ *   {@link renderReaderSidebarTabs}.
+ * - Makes GET `/api/materials/:id?limit=…&start=…` and optionally
+ *   PATCH `/api/materials/:id` API calls.
+ */
 export async function loadMaterialReader(start = null, { persist = true } = {}) {
   if (!state.selectedMaterialId) {
     state.currentMaterial = null;
@@ -117,8 +173,271 @@ function startReaderResize(event, target) {
 }
 
 function closeReaderWordInfo() {
+  state.readerWordInfoTokenId = null;
+  state.translationOverrideEditWordId = null;
+  state.translationOverrideEditContext = null;
   renderReaderWordInfo(null);
   elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
+}
+
+function removeReaderConvenienceMenu({ suppressClick = false } = {}) {
+  if (!readerConvenienceMenu) {
+    return;
+  }
+  clearTimeout(readerConvenienceMenu.timer);
+  readerConvenienceMenu.button?.classList.remove("is-selected");
+  readerConvenienceMenu.node?.remove();
+  if (readerConvenienceMenu.active) {
+    document.body.classList.remove("is-reader-convenience-active");
+  }
+  if (readerConvenienceMenu.moveHandler) {
+    document.removeEventListener("pointermove", readerConvenienceMenu.moveHandler);
+  }
+  if (readerConvenienceMenu.upHandler) {
+    document.removeEventListener("pointerup", readerConvenienceMenu.upHandler);
+  }
+  if (readerConvenienceMenu.cancelHandler) {
+    document.removeEventListener("pointercancel", readerConvenienceMenu.cancelHandler);
+  }
+  readerConvenienceMenu = suppressClick ? { suppressClick: true } : null;
+  if (suppressClick) {
+    window.setTimeout(() => {
+      if (readerConvenienceMenu?.suppressClick) {
+        readerConvenienceMenu = null;
+      }
+    }, READER_SUPPRESS_CLICK_MS);
+  }
+}
+
+function readerConvenienceActions(token) {
+  return [
+    { key: "unknown", type: "status", value: "unknown", label: t("word.unknown"), x: 0, y: -1 },
+    { key: "learning", type: "status", value: "learning", label: t("word.learning"), x: -1, y: 0 },
+    { key: "known", type: "status", value: "known", label: t("word.known"), x: 1, y: 0 },
+    {
+      key: "practice",
+      type: "practice",
+      label: t("reader.practice"),
+      checked: Boolean(token.wantToPractice),
+      x: 0,
+      y: 1
+    }
+  ];
+}
+
+function closestReaderConvenienceAction(menu, clientX, clientY) {
+  const dx = clientX - menu.originX;
+  const dy = clientY - menu.originY;
+  if (Math.hypot(dx, dy) < READER_MENU_SELECTION_DISTANCE) {
+    return null;
+  }
+  return menu.actions.reduce((closest, action) => {
+    const actionX = action.x * READER_MENU_RADIUS;
+    const actionY = action.y * READER_MENU_RADIUS;
+    const distance = Math.hypot(dx - actionX, dy - actionY);
+    return !closest || distance < closest.distance ? { action, distance } : closest;
+  }, null)?.action || null;
+}
+
+function updateReaderConvenienceSelection(clientX, clientY) {
+  if (!readerConvenienceMenu?.active) {
+    return;
+  }
+  const selected = closestReaderConvenienceAction(readerConvenienceMenu, clientX, clientY);
+  readerConvenienceMenu.selectedKey = selected?.key || null;
+  readerConvenienceMenu.node.querySelectorAll(".reader-convenience-option").forEach((option) => {
+    const active = option.dataset.action === readerConvenienceMenu.selectedKey;
+    option.classList.toggle("is-selected", active);
+    option.setAttribute("aria-pressed", String(active));
+  });
+  readerConvenienceMenu.node.classList.toggle("has-selection", Boolean(readerConvenienceMenu.selectedKey));
+}
+
+function positionReaderConvenienceMenu(node, clientX, clientY) {
+  node.style.setProperty("--readerMenuX", `${clientX}px`);
+  node.style.setProperty("--readerMenuY", `${clientY}px`);
+  node.style.setProperty("--readerMenuRadius", `${READER_MENU_RADIUS}px`);
+}
+
+function showReaderConvenienceMenu(menu) {
+  const originX = clamp(menu.startX, READER_MENU_RADIUS + READER_MENU_MARGIN, window.innerWidth - READER_MENU_RADIUS - READER_MENU_MARGIN);
+  const originY = clamp(menu.startY, READER_MENU_RADIUS + READER_MENU_MARGIN, window.innerHeight - READER_MENU_RADIUS - READER_MENU_MARGIN);
+  const actions = readerConvenienceActions(menu.token);
+  const node = document.createElement("div");
+  node.className = "reader-convenience-menu";
+  node.setAttribute("role", "menu");
+  positionReaderConvenienceMenu(node, originX, originY);
+  node.innerHTML = `
+    <div class="reader-convenience-scrim"></div>
+    <div class="reader-convenience-center" aria-hidden="true">
+      <span>${escapeHtml(menu.token.surface)}</span>
+    </div>
+    ${actions.map((action) => `
+      <button class="reader-convenience-option reader-convenience-${action.key}" type="button" role="menuitemradio" data-action="${action.key}" aria-pressed="false" style="--optionX:${action.x};--optionY:${action.y};">
+        ${action.type === "practice" ? `<span class="reader-convenience-checkbox${action.checked ? " is-checked" : ""}" aria-hidden="true"></span>` : ""}
+        <span>${escapeHtml(action.label)}</span>
+      </button>
+    `).join("")}
+  `;
+  document.body.append(node);
+  document.body.classList.add("is-reader-convenience-active");
+  closeReaderWordInfo();
+  elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
+  menu.button.classList.add("is-selected");
+  Object.assign(menu, { active: true, actions, node, originX, originY });
+}
+
+function syncReaderWordTokens(wordId, updates) {
+  state.readerTokens = state.readerTokens.map((token) => (token.wordId === wordId ? { ...token, ...updates } : token));
+  state.readerFetchedTokens = state.readerFetchedTokens.map((token) => (token.wordId === wordId ? { ...token, ...updates } : token));
+  elements.readerText.querySelectorAll(`[data-word-id="${wordId}"]`).forEach((entry) => {
+    if (updates.status) {
+      entry.dataset.status = updates.status;
+    }
+  });
+}
+
+function rerenderActiveReaderWordInfo(wordId) {
+  const token = state.readerTokens.find((entry) => entry.id === state.readerWordInfoTokenId)
+    || state.readerTokens.find((entry) => entry.wordId === wordId);
+  if (!token) {
+    closeReaderWordInfo();
+    return;
+  }
+  const anchor = elements.readerText.querySelector(`.reader-token.is-selected[data-word-id="${wordId}"]`)
+    || elements.readerText.querySelector(`.reader-token[data-token-id="${token.id}"]`);
+  renderReaderWordInfo(token, anchor);
+}
+
+function beginReaderTranslationOverrideEdit(wordId) {
+  state.translationOverrideEditWordId = wordId;
+  state.translationOverrideEditContext = "reader";
+  rerenderActiveReaderWordInfo(wordId);
+  requestAnimationFrame(() => {
+    elements.readerWordInfo.querySelector(".translation-override-input")?.focus();
+  });
+}
+
+async function saveReaderTranslationOverride(wordId, translationOverride) {
+  const currentToken = state.readerTokens.find((token) => token.wordId === wordId);
+  const updated = await requestJson(`/api/words/${wordId}/translation-override`, {
+    method: "PATCH",
+    body: JSON.stringify({ translationOverride })
+  });
+  state.translationOverrideEditWordId = null;
+  state.translationOverrideEditContext = null;
+  syncReaderWordTokens(wordId, {
+    translation: updated.translation,
+    translationOverride: updated.translationOverride,
+    canonicalTranslation: updated.canonicalTranslation || currentToken?.canonicalTranslation || ""
+  });
+  rerenderActiveReaderWordInfo(wordId);
+}
+
+async function applyReaderConvenienceAction(menu) {
+  const action = menu.actions.find((entry) => entry.key === menu.selectedKey);
+  const wordId = Number(menu.token.wordId);
+  if (!action || !wordId) {
+    return;
+  }
+  if (action.type === "status") {
+    await requestJson(`/api/words/${wordId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: action.value })
+    });
+    syncReaderWordTokens(wordId, {
+      status: action.value,
+      known: action.value === "known",
+      wantToPractice: action.value === "learning" ? menu.token.wantToPractice : 0
+    });
+  } else {
+    const currentStatus = normalizeStatus(menu.token.status || (menu.token.known ? "known" : "unknown"));
+    if (currentStatus !== "learning") {
+      await requestJson(`/api/words/${wordId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "learning" })
+      });
+    }
+    const wantToPractice = !Boolean(menu.token.wantToPractice);
+    await requestJson(`/api/words/${wordId}/want-to-practice`, {
+      method: "POST",
+      body: JSON.stringify({ wantToPractice })
+    });
+    syncReaderWordTokens(wordId, { status: "learning", known: false, wantToPractice: wantToPractice ? 1 : 0 });
+  }
+  await loadDashboard();
+}
+
+function startReaderConveniencePress(event, button) {
+  if (event.pointerType === "mouse" && event.button !== 0) {
+    return;
+  }
+  const token = state.readerTokens.find((entry) => entry.id === Number(button.dataset.tokenId));
+  if (!token?.wordId) {
+    return;
+  }
+  removeReaderConvenienceMenu();
+  const menu = {
+    active: false,
+    button,
+    token,
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    selectedKey: null
+  };
+
+  menu.moveHandler = (moveEvent) => {
+    if (moveEvent.pointerId !== menu.pointerId) {
+      return;
+    }
+    if (!menu.active) {
+      const distance = Math.hypot(moveEvent.clientX - menu.startX, moveEvent.clientY - menu.startY);
+      if (distance > READER_HOLD_CANCEL_DISTANCE) {
+        removeReaderConvenienceMenu();
+      }
+      return;
+    }
+    moveEvent.preventDefault();
+    updateReaderConvenienceSelection(moveEvent.clientX, moveEvent.clientY);
+  };
+
+  menu.upHandler = async (upEvent) => {
+    if (upEvent.pointerId !== menu.pointerId) {
+      return;
+    }
+    if (!menu.active) {
+      removeReaderConvenienceMenu();
+      return;
+    }
+    upEvent.preventDefault();
+    updateReaderConvenienceSelection(upEvent.clientX, upEvent.clientY);
+    const activeMenu = readerConvenienceMenu;
+    removeReaderConvenienceMenu({ suppressClick: true });
+    try {
+      await applyReaderConvenienceAction(activeMenu);
+    } catch {
+      await loadMaterialReader(state.readerStart);
+    }
+  };
+
+  menu.cancelHandler = (cancelEvent) => {
+    if (cancelEvent.pointerId === menu.pointerId) {
+      removeReaderConvenienceMenu({ suppressClick: menu.active });
+    }
+  };
+
+  menu.timer = window.setTimeout(() => {
+    if (readerConvenienceMenu !== menu) {
+      return;
+    }
+    showReaderConvenienceMenu(menu);
+  }, READER_HOLD_DELAY_MS);
+
+  readerConvenienceMenu = menu;
+  document.addEventListener("pointermove", menu.moveHandler, { passive: false });
+  document.addEventListener("pointerup", menu.upHandler, { passive: false });
+  document.addEventListener("pointercancel", menu.cancelHandler);
 }
 
 // The still-unknown words on the current page, to be auto-marked known. Must be
@@ -259,17 +578,61 @@ async function turnReaderPage(direction) {
   }
 }
 
+/**
+ * Attaches all DOM event listeners for the reader feature. Must be called once
+ * during application bootstrap, after the DOM is ready.
+ *
+ * Registered interactions include:
+ * - Sidebar collapse / expand toggle and the "open sidebar" floating button.
+ * - Drag-to-resize for the sidebar, reader panel, and word-info panel.
+ * - Focus mode entry and exit (toggle buttons + Escape key).
+ * - Sidebar tab switching (documents / settings / read on mobile).
+ * - Auto-mark-known, auto-mark-learning, show-word-spaces, highlight-opacity,
+ *   font-size, and words-per-page setting changes (persisted to localStorage).
+ * - Prev / next page buttons, horizontal trackpad wheel gesture (debounced),
+ *   and single-finger horizontal touch swipe.
+ * - Long-press / hold on token buttons to reveal the radial convenience menu.
+ * - Click on token buttons to show the word-info popup and optionally
+ *   auto-mark the word as learning.
+ * - Word-info popup: close, translation-override edit/submit/cancel/clear,
+ *   disambiguation panel toggle, status segment change, practice checkbox.
+ * - Click-outside to close the word-info popup.
+ * - Arrow-key keyboard shortcuts for page turning (reader tab only).
+ * - Window resize to reflow the reader layout.
+ *
+ * @sideeffects
+ * - Instantiates the shared collapsible-sidebar controller for the reader
+ *   sidebar (wires `elements.readerSidebarToggle` and
+ *   `elements.readerSidebarOpen`; the reader renders layout/aria/open-button
+ *   itself via {@link renderReaderSidebar}).
+ * - Adds event listeners on `elements.readerSidebarResize`,
+ *   `elements.readerPanelResize`, `elements.readerFocusToggles`,
+ *   `elements.readerFocusExit`, `elements.readerSidebarTabs`,
+ *   `elements.readerAutoMarkKnown`, `elements.readerAutoMarkLearning`,
+ *   `elements.readerShowWordSpaces`, `elements.readerHighlightOpacity`,
+ *   `elements.readerFontSize`, `elements.readerWordsPerPage`,
+ *   `elements.readerPrevPage`, `elements.readerNextPage`,
+ *   `elements.readerText`, `elements.readerWordInfo`, and `document` /
+ *   `window`.
+ */
 export function bindReaderEvents() {
-  elements.readerSidebarToggle.addEventListener("click", () => {
-    state.readerSidebarCollapsed = !state.readerSidebarCollapsed;
-    localStorage.setItem("wordMarkerReaderSidebarCollapsed", String(state.readerSidebarCollapsed));
-    renderReaderLayout();
-  });
-
-  elements.readerSidebarOpen.addEventListener("click", () => {
-    state.readerSidebarCollapsed = false;
-    localStorage.setItem("wordMarkerReaderSidebarCollapsed", String(state.readerSidebarCollapsed));
-    renderReaderLayout();
+  // Reader collapse / reopen runs through the shared collapsible-sidebar
+  // controller. The reader computes its own layout sizing, aria, and
+  // open-button visibility inside renderReaderSidebar (they depend on focus
+  // mode and the active mobile tab), so those aspects are managed externally
+  // and the controller only owns the collapsed state, persistence, and click
+  // wiring, re-rendering the reader layout on change.
+  const readerSidebar = createCollapsibleSidebar({
+    layout: elements.readerLayout,
+    toggleButton: elements.readerSidebarToggle,
+    openButton: elements.readerSidebarOpen,
+    collapsed: state.readerSidebarCollapsed,
+    storageKey: "wordMarkerReaderSidebarCollapsed",
+    manage: { layoutClass: false, aria: false, openButton: false },
+    onChange: (collapsed) => {
+      state.readerSidebarCollapsed = collapsed;
+      renderReaderLayout();
+    }
   });
 
   elements.readerSidebarResize.addEventListener("pointerdown", (event) => startReaderResize(event, "sidebar"));
@@ -300,8 +663,7 @@ export function bindReaderEvents() {
       }
       state.readerSidebarTab = button.dataset.readerSidebarTab;
       if (state.readerSidebarTab !== "read") {
-        state.readerSidebarCollapsed = false;
-        localStorage.setItem("wordMarkerReaderSidebarCollapsed", "false");
+        readerSidebar.setCollapsed(false);
       }
       renderReaderSidebarTabs();
       renderReaderLayout();
@@ -357,7 +719,100 @@ export function bindReaderEvents() {
     await turnReaderPage("next");
   });
 
+  // Page turning by gesture. Desktop: a two-finger horizontal trackpad swipe
+  // produces horizontal wheel deltas. Touch devices: a single-finger horizontal
+  // drag. Both delegate to turnReaderPage and leave vertical scrolling alone.
+  const WHEEL_PAGE_THRESHOLD = 80;
+  const WHEEL_GESTURE_END_MS = 90;
+  const TOUCH_PAGE_THRESHOLD = 50;
+  let wheelAccumX = 0;
+  let wheelLocked = false;
+  let lastWheelTime = 0;
+
+  elements.readerText.addEventListener("wheel", (event) => {
+    if (state.activeTab !== "reader") {
+      return;
+    }
+    // Only act on horizontal-dominant gestures; vertical scrolling is untouched.
+    if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) {
+      return;
+    }
+    // Stop the browser's own back/forward swipe navigation.
+    event.preventDefault();
+    // A trackpad gives no "fingers lifted" event: momentum keeps firing wheel
+    // events after the fingers leave. We treat one continuous stream of events
+    // as a single gesture, and only consider it finished once the stream has
+    // gone quiet (no events for WHEEL_GESTURE_END_MS). That quiet gap is the
+    // stand-in for the fingers leaving the pad.
+    const gestureEnded = event.timeStamp - lastWheelTime > WHEEL_GESTURE_END_MS;
+    lastWheelTime = event.timeStamp;
+    if (gestureEnded) {
+      wheelLocked = false;
+      wheelAccumX = 0;
+    }
+    // Once this gesture has turned a page, every later event in the same stream
+    // (the momentum tail) is ignored, so one gesture turns exactly one page.
+    if (wheelLocked) {
+      return;
+    }
+    wheelAccumX += event.deltaX;
+    if (Math.abs(wheelAccumX) >= WHEEL_PAGE_THRESHOLD) {
+      const direction = wheelAccumX > 0 ? "next" : "prev";
+      wheelAccumX = 0;
+      wheelLocked = true;
+      turnReaderPage(direction);
+    }
+  }, { passive: false });
+
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchTracking = false;
+
+  elements.readerText.addEventListener("touchstart", (event) => {
+    // Only single-finger drags; multi-touch (e.g. pinch) is ignored.
+    touchTracking = event.touches.length === 1;
+    if (touchTracking) {
+      touchStartX = event.touches[0].clientX;
+      touchStartY = event.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  elements.readerText.addEventListener("touchend", (event) => {
+    if (readerConvenienceMenu?.active || readerConvenienceMenu?.suppressClick) {
+      touchTracking = false;
+      return;
+    }
+    if (!touchTracking) {
+      return;
+    }
+    touchTracking = false;
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+    // Ignore taps and vertical-dominant drags so word selection and scrolling
+    // keep working.
+    if (Math.abs(deltaX) < TOUCH_PAGE_THRESHOLD || Math.abs(deltaX) <= Math.abs(deltaY)) {
+      return;
+    }
+    // Swipe left advances; swipe right goes back.
+    turnReaderPage(deltaX < 0 ? "next" : "prev");
+  }, { passive: true });
+
+  elements.readerText.addEventListener("pointerdown", (event) => {
+    const button = event.target.closest("[data-token-id]");
+    if (!button) {
+      return;
+    }
+    startReaderConveniencePress(event, button);
+  });
+
   elements.readerText.addEventListener("click", async (event) => {
+    if (readerConvenienceMenu?.suppressClick) {
+      event.preventDefault();
+      event.stopPropagation();
+      removeReaderConvenienceMenu();
+      return;
+    }
     const button = event.target.closest("[data-token-id]");
     if (!button) {
       return;
@@ -365,6 +820,7 @@ export function bindReaderEvents() {
     elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
     button.classList.add("is-selected");
     const token = state.readerTokens.find((entry) => entry.id === Number(button.dataset.tokenId));
+    state.readerWordInfoTokenId = token?.id || null;
     renderReaderWordInfo(token, button);
     requestJson(`/api/words/${button.dataset.wordId}/click`, { method: "POST" }).catch(() => {});
     const changed = state.readerAutoMarkLearningOnClick ? await markReaderWordLearning(Number(button.dataset.wordId)) : false;
@@ -375,8 +831,32 @@ export function bindReaderEvents() {
   });
 
   elements.readerWordInfo.addEventListener("click", async (event) => {
+    event.stopPropagation();
     if (event.target.closest("[data-reader-word-info-close]")) {
       closeReaderWordInfo();
+      return;
+    }
+    const translationEdit = event.target.closest("[data-translation-override-edit]");
+    if (translationEdit) {
+      beginReaderTranslationOverrideEdit(Number(translationEdit.dataset.wordId));
+      return;
+    }
+    const translationCancel = event.target.closest("[data-translation-override-cancel]");
+    if (translationCancel) {
+      state.translationOverrideEditWordId = null;
+      state.translationOverrideEditContext = null;
+      rerenderActiveReaderWordInfo(Number(translationCancel.dataset.wordId));
+      return;
+    }
+    const translationClear = event.target.closest("[data-translation-override-clear]");
+    if (translationClear) {
+      const wordId = Number(translationClear.dataset.wordId);
+      translationClear.disabled = true;
+      try {
+        await saveReaderTranslationOverride(wordId, null);
+      } finally {
+        translationClear.disabled = false;
+      }
       return;
     }
     const disambiguate = event.target.closest("[data-disambiguate]");
@@ -409,6 +889,21 @@ export function bindReaderEvents() {
       await loadDashboard();
     } finally {
       segment.disabled = false;
+    }
+  });
+
+  elements.readerWordInfo.addEventListener("submit", async (event) => {
+    const form = event.target.closest("[data-translation-override-form]");
+    if (!form) {
+      return;
+    }
+    event.preventDefault();
+    const button = form.querySelector(".translation-override-save");
+    button.disabled = true;
+    try {
+      await saveReaderTranslationOverride(Number(form.dataset.wordId), new FormData(form).get("translationOverride"));
+    } finally {
+      button.disabled = false;
     }
   });
 

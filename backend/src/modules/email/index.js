@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Email module entry point. Re-exports the service and transport
+ * factories and provides `createEmailServiceFromConfig`, which selects the
+ * transport based on runtime environment variables (Resend → Brevo → console
+ * fallback) and wires everything together.
+ */
+
 import { APP_URL, BREVO_SMTP_HOST, BREVO_SMTP_PASS, BREVO_SMTP_PORT, BREVO_SMTP_USER, EMAIL_FROM, EMAIL_REPLY_TO, RESEND_API_KEY } from "../../config.js";
 import { createEmailService } from "./email.service.js";
 import { createBrevoTransport, createConsoleTransport, createResendTransport } from "./email.transport.js";
@@ -5,8 +12,14 @@ import { createBrevoTransport, createConsoleTransport, createResendTransport } f
 export { createEmailService } from "./email.service.js";
 export { createBrevoTransport, createConsoleTransport, createResendTransport } from "./email.transport.js";
 
-// Build the email service from runtime config. Resend takes priority, then
-// Brevo SMTP, then console fallback for dev/CI.
+/**
+ * Build the email service from runtime configuration. Transport selection
+ * priority: Resend (when `RESEND_API_KEY` is set) → Brevo SMTP (when host,
+ * user, and password are set) → console fallback (logs instead of sending).
+ *
+ * @param {{ logger?: object }} [options]
+ * @returns {ReturnType<import("./email.service.js").createEmailService>}
+ */
 export function createEmailServiceFromConfig({ logger = console } = {}) {
   let transport;
   if (RESEND_API_KEY) {

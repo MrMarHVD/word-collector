@@ -1,3 +1,19 @@
+/**
+ * @fileoverview Translations service. Routing, lookup, disambiguation, and
+ * background-backfill logic for the word translation pipeline.
+ *
+ * Translation routes are a static table of (source, target) language pairs
+ * each pointing to a dictionary lookup function. `translationForToken` and
+ * `displayTranslationForToken` resolve the best translation for a single
+ * reader token. `getTranslationCandidates` batch-resolves translations for
+ * all tokens in an import run. `backfillMaterialTranslations` and
+ * `backfillUserTranslations` fill missing translations in the background so
+ * switching native language stays fast.
+ *
+ * Coordinates with: dictionaries service, translations repository,
+ * words repository, materials repository, database repository (transaction).
+ */
+
 import { normalizeName } from "../../shared/normalize.js";
 import { lookupChineseEnglish, lookupChineseJapanese, lookupChineseJapaneseEntries, lookupEnglishChinese, lookupEnglishChineseEntries, lookupEnglishJapanese, lookupEnglishJapaneseEntries, lookupFrenchEnglish, lookupFrenchEnglishEntries, lookupJapaneseChinese, lookupJapaneseChineseEntries, lookupJapaneseEnglish, lookupSpanishEnglish, lookupSpanishEnglishEntries } from "../dictionaries/dictionaries.service.js";
 import lemmatizer from "wink-lemmatizer";
@@ -16,6 +32,13 @@ export const TRANSLATION_ROUTES = [
   { source: "French", target: "English", lookup: lookupFrenchEnglish }
 ];
 
+/**
+ * Normalise a language name or object to one of the canonical string keys used
+ * in translation route matching (`"English"`, `"Japanese"`, `"Chinese"`,
+ * `"Spanish"`, `"French"`), or `""` when the input is not recognised.
+ * @param {string|{ name: string }|null} language
+ * @returns {string}
+ */
 export function languageKey(language) {
   if (!language) return "";
   const name = typeof language === "string" ? language : language.name;
@@ -28,17 +51,39 @@ export function languageKey(language) {
   return "";
 }
 
+/**
+ * Find the translation route object for a (source, target) pair, or `null`
+ * when no route exists.
+ * @param {string|object} sourceLanguage
+ * @param {string|object} targetLanguage
+ * @returns {{ source: string, target: string, lookup: function }|null}
+ */
 export function translationRoute(sourceLanguage, targetLanguage) {
   const source = languageKey(sourceLanguage);
   const target = languageKey(targetLanguage);
   return TRANSLATION_ROUTES.find((route) => route.source === source && route.target === target) || null;
 }
 
+/**
+ * Return the distinct target language keys for all routes whose source matches
+ * the given language.
+ * @param {string|object} sourceLanguage
+ * @returns {string[]}
+ */
 export function translationTargetsForLanguage(sourceLanguage) {
   const source = languageKey(sourceLanguage);
   return [...new Set(TRANSLATION_ROUTES.filter((route) => route.source === source).map((route) => route.target))];
 }
 
+/**
+ * Look up a single translation using the matching route's dictionary function.
+ * Returns `""` when no route exists for the language pair.
+ * @param {object} repositories
+ * @param {string|object} sourceLanguage
+ * @param {string|object} targetLanguage
+ * @param {string} term
+ * @returns {Promise<string>}
+ */
 export async function lookupTranslation(repositories, sourceLanguage, targetLanguage, term) {
   const route = translationRoute(sourceLanguage, targetLanguage);
   return route ? normalizeName(await route.lookup(repositories.dictionaries, term)) : "";
@@ -353,6 +398,16 @@ function candidateSourceTerms(sourceLanguage, token) {
   return uniqueTerms(baseTerms);
 }
 
+/**
+ * Return the full ranked list of translation candidates for a token, used to
+ * populate the disambiguation pane in the reader. Each candidate includes
+ * `source`, `translation`, and `pos`. Returns `[]` when no route exists.
+ * @param {object} repositories
+ * @param {string|object} sourceLanguage
+ * @param {string|object} targetLanguage
+ * @param {object} token - Token with `surface`, `lemma`/`word`, and `pos`.
+ * @returns {Promise<Array<{ source: string, translation: string, pos: string }>>}
+ */
 export async function translationDisambiguationCandidates(repositories, sourceLanguage, targetLanguage, token) {
   if (!translationRoute(sourceLanguage, targetLanguage)) {
     return [];
@@ -371,6 +426,16 @@ export async function translationDisambiguationCandidates(repositories, sourceLa
   return rankTranslationCandidates(sourceLanguage, targetLanguage, token, candidates);
 }
 
+/**
+ * Resolve the best single display translation for a token. Uses the first
+ * disambiguation candidate when available; otherwise falls back to a direct
+ * dictionary lookup on the lemma, then the surface.
+ * @param {object} repositories
+ * @param {string|object} sourceLanguage
+ * @param {string|object} targetLanguage
+ * @param {object} token
+ * @returns {Promise<string>}
+ */
 export async function displayTranslationForToken(repositories, sourceLanguage, targetLanguage, token) {
   const candidates = await translationDisambiguationCandidates(repositories, sourceLanguage, targetLanguage, token);
   if (candidates.length) {
@@ -380,26 +445,73 @@ export async function displayTranslationForToken(repositories, sourceLanguage, t
     || (await lookupTranslation(repositories, sourceLanguage, targetLanguage, token.surface || token.word));
 }
 
+/**
+ * Return the best supported target language for translating from `sourceLanguage`
+ * into the user's `nativeLanguage`. Falls back to English when the direct route
+ * is unavailable; returns `""` when no route at all exists.
+ * @param {string|object} sourceLanguage
+ * @param {string} nativeLanguage
+ * @returns {string}
+ */
 export function supportedTargetNativeLanguage(sourceLanguage, nativeLanguage) {
   if (translationRoute(sourceLanguage, nativeLanguage)) return nativeLanguage;
   if (translationRoute(sourceLanguage, "English")) return "English";
   return "";
 }
 
+/**
+ * Return the normalised stored translation for a word in the given language,
+ * or `""` when none is stored.
+ * @param {object} repositories
+ * @param {number} wordId
+ * @param {string} nativeLanguage
+ * @returns {Promise<string>}
+ */
 export async function getStoredTranslation(repositories, wordId, nativeLanguage) {
   return normalizeName((await repositories.translations.findWordTranslation(wordId, nativeLanguage))?.translation || "");
 }
 
+/**
+ * Return `true` when a `word_translations` row exists for the given word/language
+ * pair, regardless of whether the stored value is empty. Distinguishes "translation
+ * attempted and empty" from "never attempted".
+ * @param {object} repositories
+ * @param {number} wordId
+ * @param {string} nativeLanguage
+ * @returns {Promise<boolean>}
+ */
 export async function hasTranslationAttempt(repositories, wordId, nativeLanguage) {
   return Boolean(await repositories.translations.findWordTranslation(wordId, nativeLanguage));
 }
 
+/**
+ * Return `true` when the stored translation is non-empty and differs from both
+ * the token's lemma and surface (i.e. it is genuinely useful, not just an echo
+ * of the source word).
+ * @param {object} repositories
+ * @param {number} wordId
+ * @param {string} nativeLanguage
+ * @param {{ lemma: string, surface: string }} token
+ * @returns {Promise<boolean>}
+ */
 export async function hasUsableStoredTranslation(repositories, wordId, nativeLanguage, token) {
   const stored = await getStoredTranslation(repositories, wordId, nativeLanguage);
   if (!stored) return false;
   return stored.toLowerCase() !== token.lemma.toLowerCase() && stored.toLowerCase() !== token.surface.toLowerCase();
 }
 
+/**
+ * Resolve the translation to store for a token during import. Uses the
+ * disambiguation candidate list when available; otherwise checks the
+ * pre-computed `translations` map (keyed by lemma), then falls back to a live
+ * dictionary lookup on the surface.
+ * @param {object} repositories
+ * @param {string|object} sourceLanguage
+ * @param {string|object} targetLanguage
+ * @param {object} token
+ * @param {Map<string, string>} [translations] - Pre-fetched lemma→translation map.
+ * @returns {Promise<string>}
+ */
 export async function translationForToken(repositories, sourceLanguage, targetLanguage, token, translations = new Map()) {
   if ((await translationDisambiguationCandidates(repositories, sourceLanguage, targetLanguage, token)).length) {
     return displayTranslationForToken(repositories, sourceLanguage, targetLanguage, token);
@@ -409,21 +521,30 @@ export async function translationForToken(repositories, sourceLanguage, targetLa
   return lookupTranslation(repositories, sourceLanguage, targetLanguage, token.surface);
 }
 
-// Mirror the SQL preference of findWordInLanguageBySurfaceOrLemma: named
-// collections before "Uncollected", exact surface matches before lemma-only
-// matches, then collection name.
+// Mirror the SQL preference of findWordInLanguage: an exact surface match wins
+// over a lemma-only match, then the lower word id for stability.
 function pickPreferredWordMatch(matches, surfaceKey) {
   return [...matches].sort((a, b) => {
-    const aUncollected = String(a.collectionName || "").toLowerCase() === "uncollected" ? 1 : 0;
-    const bUncollected = String(b.collectionName || "").toLowerCase() === "uncollected" ? 1 : 0;
-    if (aUncollected !== bUncollected) return aUncollected - bUncollected;
     const aSurface = String(a.word || "").toLowerCase() === surfaceKey ? 0 : 1;
     const bSurface = String(b.word || "").toLowerCase() === surfaceKey ? 0 : 1;
     if (aSurface !== bSurface) return aSurface - bSurface;
-    return String(a.collectionName || "").toLowerCase().localeCompare(String(b.collectionName || "").toLowerCase());
+    return (a.id || 0) - (b.id || 0);
   })[0];
 }
 
+/**
+ * Batch-resolve the best stored or looked-up translation for each unique lemma
+ * in `tokens`. Uses two batched DB queries (words + translations) rather than
+ * a per-token lookup; existing usable translations are re-used, reducing
+ * dictionary calls proportional to new vocabulary. Returns a `Map<lemma, translation>`.
+ * Returns an empty Map when no route exists for the language pair.
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {object} sourceLanguage
+ * @param {string} targetLanguage
+ * @param {object[]} tokens
+ * @returns {Promise<Map<string, string>>}
+ */
 export async function getTranslationCandidates(repositories, userId, sourceLanguage, targetLanguage, tokens) {
   if (!translationRoute(sourceLanguage, targetLanguage)) {
     return new Map();
@@ -447,7 +568,7 @@ export async function getTranslationCandidates(repositories, userId, sourceLangu
   const representatives = [...uniqueTokens.values()];
   const surfaces = [...new Set(representatives.map((token) => String(token.surface || "")))];
   const lemmas = [...new Set(representatives.map((token) => String(token.lemma || "")))];
-  const rows = await repositories.words.findWordsInLanguageByTerms(userId, sourceLanguage.id, surfaces, lemmas);
+  const rows = await repositories.words.findWordsInLanguageByTerms(sourceLanguage.id, surfaces, lemmas);
 
   const rowsByWord = new Map();
   const rowsByLemma = new Map();
@@ -486,6 +607,15 @@ export async function getTranslationCandidates(repositories, userId, sourceLangu
   return resolved;
 }
 
+/**
+ * Schedule a translation backfill for a material on the next event loop tick
+ * (via `setTimeout(..., 0)`) so it does not block the current request.
+ * Errors are logged and swallowed.
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {number} materialId
+ * @param {string} activeTargetLanguage - Language to skip (already being filled).
+ */
 export function scheduleMaterialTranslationBackfill(repositories, userId, materialId, activeTargetLanguage) {
   setTimeout(() => {
     backfillMaterialTranslations(repositories, userId, materialId, activeTargetLanguage).catch((error) => {
@@ -494,6 +624,16 @@ export function scheduleMaterialTranslationBackfill(repositories, userId, materi
   }, 0);
 }
 
+/**
+ * Fill missing or stale translations for all supported target languages of a
+ * material, skipping `activeTargetLanguage` (already written during import).
+ * Runs in a single transaction; no-ops when the material does not exist.
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {number} materialId
+ * @param {string} [activeTargetLanguage=""]
+ * @returns {Promise<{ updated: number }>}
+ */
 export async function backfillMaterialTranslations(repositories, userId, materialId, activeTargetLanguage = "") {
   const material = await repositories.materials.findById(Number(materialId), userId);
   if (!material) {
@@ -539,6 +679,15 @@ async function backfillMaterialTranslationTargets(repositories, material, source
   return { updated };
 }
 
+/**
+ * Fill missing translations in `targetLanguage` for every material belonging
+ * to `userId`. Used when the user changes their native language so that all
+ * existing materials get translations for the new language.
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {string} targetLanguage
+ * @returns {Promise<{ updated: number }>}
+ */
 export async function backfillUserTranslations(repositories, userId, targetLanguage) {
   const target = languageKey(targetLanguage);
   if (!target) {
@@ -556,6 +705,17 @@ export async function backfillUserTranslations(repositories, userId, targetLangu
   return { updated };
 }
 
+/**
+ * Return the translation completion status for a material in the given target
+ * language. A material whose source language equals the target is always
+ * considered ready (no translation needed). Otherwise computes `totalWords`,
+ * `completedWords`, `missingWords`, and `ready`.
+ * @param {object} repositories
+ * @param {object} material - Material row with `languageName`.
+ * @param {string} targetLanguage
+ * @returns {Promise<{ targetLanguage: string, ready: boolean, totalWords: number,
+ *   completedWords: number, missingWords: number }>}
+ */
 export async function materialTranslationStatus(repositories, material, targetLanguage) {
   const target = languageKey(targetLanguage);
   if (!material || !target) {

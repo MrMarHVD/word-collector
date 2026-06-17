@@ -1,8 +1,31 @@
+/**
+ * @fileoverview Imports service. Business logic for CSV word imports. Resolves
+ * or creates the target collection, upserts global words atomically, attaches
+ * them to the user's private list, persists the user's translation override,
+ * and seeds the shared English translation cache. Coordinates with: imports
+ * repository, languages service, database repository (transaction).
+ */
+
 import { normalizeName } from "../../shared/normalize.js";
 import { getLanguage } from "../languages/languages.service.js";
 
-// CSV import targets either an existing collection (by id) or creates one by name.
-// Validate imported rows and write them to a user-owned collection atomically.
+/**
+ * Import a list of word/translation pairs from a CSV upload into a user's
+ * collection. Either an existing `collectionId` or a `collectionName`
+ * (plus `languageId`) must be supplied.
+ *
+ * The entire import runs inside a transaction. For each row: the shared global
+ * word is reused or created, the user's membership is created or moved to the
+ * target collection, the user's translation override is stored, and the shared
+ * English translation cache is seeded when empty.
+ *
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {{ collectionName?: string, collectionId?: number, languageId?: number,
+ *   words: Array<{ word: string, translation: string }> }} params
+ * @returns {Promise<{ collection: object, parsed: number, inserted: number, skipped: number }
+ *   | { error: string }>}
+ */
 export async function importWords(repositories, userId, { collectionName, collectionId, languageId, words }) {
   const cleanWords = Array.isArray(words)
     ? words
@@ -34,7 +57,7 @@ export async function importWords(repositories, userId, { collectionName, collec
     }
     collection = await repositories.imports.findCollectionByName(userId, language.id, name);
     if (!collection) {
-      await repositories.imports.createCollection(language.id, name);
+      await repositories.imports.createCollection(userId, language.id, name);
       collection = await repositories.imports.findCollectionByName(userId, language.id, name);
     }
   }
@@ -44,30 +67,29 @@ export async function importWords(repositories, userId, { collectionName, collec
   await repositories.database.transaction(async (tx) => {
     // Keep each upload atomic so partial imports do not leave mixed results.
     for (const row of cleanWords) {
-      // If the word already exists anywhere in this language, move it to the
-      // target collection and update its translation to the imported value.
-      const existing = await tx.imports.findExistingWordInLanguage(userId, collection.languageId, row.word);
-      if (existing) {
-        try {
-          await tx.imports.moveAndUpdateWord(existing.id, collection.id, row.translation);
-          await tx.imports.upsertEnglishTranslation(existing.id, row.translation);
-          inserted += 1;
-        } catch {
-          skipped += 1;
-        }
+      // Reuse the shared global word for this language, creating it if the
+      // language has never seen it.
+      let word = await tx.imports.findWordInLanguage(collection.languageId, row.word);
+      if (!word) {
+        word = await tx.imports.insertWord(collection.languageId, row.word, row.translation);
+      }
+      if (!word) {
+        skipped += 1;
         continue;
       }
 
-      const result = await tx.imports.insertWord(collection.id, row.word, row.translation);
-      if (result.changes) {
-        const word = await tx.imports.findWordByCollectionAndLemma(collection.id, row.word);
-        if (word) {
-          await tx.imports.upsertEnglishTranslation(word.id, row.translation);
-        }
-        inserted += 1;
-      } else {
-        skipped += 1;
+      // Add the word to the user's list in the target collection, or move it
+      // there if they already had it elsewhere.
+      const added = await tx.imports.addUserWord(userId, word.id, collection.id);
+      if (!added.changes) {
+        await tx.imports.moveUserWord(userId, word.id, collection.id);
       }
+
+      // The imported translation is the user's own; also seed the shared
+      // English cache when empty so future imports of this word inherit it.
+      await tx.imports.setTranslationOverride(userId, word.id, row.translation);
+      await tx.imports.seedEnglishTranslation(word.id, row.translation);
+      inserted += 1;
     }
   });
 

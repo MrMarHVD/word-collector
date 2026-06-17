@@ -1,7 +1,21 @@
+/**
+ * @fileoverview Dictionaries service. Language-pair translation lookups that
+ * combine JMdict, CEDICT, and WikDict indexes. Provides both single-result
+ * "find" helpers and multi-result "entries" helpers used to populate
+ * disambiguation candidates. Also contains Pinyin tone-mark conversion and
+ * Chinese/Japanese metadata lookups. Pivot lookups (Japanese→Chinese,
+ * Chinese→Japanese) route through English as an intermediary.
+ */
+
 import { normalizeName } from "../../shared/normalize.js";
 
-// Dictionary lookups use local JMdict and CEDICT indexes populated by scripts/.
-// Look up an English gloss for a Japanese expression or reading.
+/**
+ * Look up the best English gloss for a Japanese expression or reading.
+ * Tries expression match first, then reading match.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @returns {Promise<string>} English gloss, or empty string when not found.
+ */
 export async function lookupJapaneseEnglish(dictionariesRepository, term) {
   const clean = normalizeName(term);
   if (!clean) {
@@ -17,11 +31,23 @@ export async function lookupJapaneseEnglish(dictionariesRepository, term) {
   return reading?.gloss || "";
 }
 
-// Look up a Japanese expression from an English dictionary key.
+/**
+ * Return the top-ranked Japanese expression for an English term.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @returns {Promise<string>} Japanese expression, or empty string.
+ */
 export async function lookupEnglishJapanese(dictionariesRepository, term) {
   return (await lookupEnglishJapaneseEntries(dictionariesRepository, term, 1))[0]?.translation || "";
 }
 
+/**
+ * Return up to `limit` deduped English→Japanese entries from WikDict.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @param {number} [limit=50]
+ * @returns {Promise<Array<{ source: string, translation: string, pos: string }>>}
+ */
 export async function lookupEnglishJapaneseEntries(dictionariesRepository, term, limit = 50) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
@@ -37,6 +63,12 @@ export async function lookupEnglishJapaneseEntries(dictionariesRepository, term,
   return dedupeDictionaryEntries(wikdict).slice(0, safeLimit);
 }
 
+/**
+ * Return the distinct parts-of-speech found in the English→Japanese entry list.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @returns {Promise<string[]>}
+ */
 export async function lookupEnglishJapaneseCategories(dictionariesRepository, term) {
   return [...new Set((await lookupEnglishJapaneseEntries(dictionariesRepository, term, 50)).map((entry) => entry.pos).filter(Boolean))];
 }
@@ -56,11 +88,24 @@ function dedupeDictionaryEntries(entries) {
   return result;
 }
 
-// Look up a simplified Chinese expression from an English dictionary key.
+/**
+ * Return the top-ranked simplified Chinese expression for an English term.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @returns {Promise<string>}
+ */
 export async function lookupEnglishChinese(dictionariesRepository, term) {
   return (await lookupEnglishChineseEntries(dictionariesRepository, term, 1))[0]?.translation || "";
 }
 
+/**
+ * Return up to `limit` deduped English→Chinese entries, preferring WikDict
+ * over CEDICT when both have results.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @param {number} [limit=50]
+ * @returns {Promise<Array<{ source: string, translation: string, pos: string }>>}
+ */
 export async function lookupEnglishChineseEntries(dictionariesRepository, term, limit = 50) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
@@ -82,10 +127,23 @@ export async function lookupEnglishChineseEntries(dictionariesRepository, term, 
   })));
 }
 
+/**
+ * Return the top-ranked English translation for a Spanish term.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @returns {Promise<string>}
+ */
 export async function lookupSpanishEnglish(dictionariesRepository, term) {
   return (await lookupSpanishEnglishEntries(dictionariesRepository, term, 1))[0]?.translation || "";
 }
 
+/**
+ * Return up to `limit` deduped Spanish→English entries from WikDict.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @param {number} [limit=50]
+ * @returns {Promise<Array<{ source: string, translation: string, pos: string }>>}
+ */
 export async function lookupSpanishEnglishEntries(dictionariesRepository, term, limit = 50) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
@@ -98,10 +156,23 @@ export async function lookupSpanishEnglishEntries(dictionariesRepository, term, 
   })));
 }
 
+/**
+ * Return the top-ranked English translation for a French term.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @returns {Promise<string>}
+ */
 export async function lookupFrenchEnglish(dictionariesRepository, term) {
   return (await lookupFrenchEnglishEntries(dictionariesRepository, term, 1))[0]?.translation || "";
 }
 
+/**
+ * Return up to `limit` deduped French→English entries from WikDict.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @param {number} [limit=50]
+ * @returns {Promise<Array<{ source: string, translation: string, pos: string }>>}
+ */
 export async function lookupFrenchEnglishEntries(dictionariesRepository, term, limit = 50) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
@@ -114,6 +185,14 @@ export async function lookupFrenchEnglishEntries(dictionariesRepository, term, l
   })));
 }
 
+/**
+ * Return a part-of-speech tag for an English term by querying WikDict's
+ * English→Japanese and English→Chinese indexes. Returns the first non-empty
+ * `pos` found across the three dictionary sources.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @returns {Promise<string>}
+ */
 export async function lookupEnglishPos(dictionariesRepository, term) {
   const clean = normalizeName(term).toLowerCase();
   if (!clean) {
@@ -192,7 +271,13 @@ function applyPinyinToneToSyllable(syllable, tone) {
   return head + replacement + tail;
 }
 
-// Convert CEDICT numeric pinyin (e.g. "Zhong1 guo2") to tone-mark form ("Zhōngguó").
+/**
+ * Convert CEDICT numeric pinyin (e.g. `"Zhong1 guo2"`) to Unicode tone-mark
+ * form (`"Zhōngguó"`). Tone numbers 1–4 apply the appropriate diacritic;
+ * 0 or 5 produces a neutral/tone-less syllable.
+ * @param {string} pinyin
+ * @returns {string}
+ */
 export function pinyinToToneMarks(pinyin) {
   if (!pinyin) return "";
   const parts = String(pinyin).split(/\s+/).filter(Boolean);
@@ -207,7 +292,13 @@ export function pinyinToToneMarks(pinyin) {
   return syllables.join("");
 }
 
-// Look up an English gloss for a Chinese simplified or traditional form.
+/**
+ * Return a cleaned English gloss for a Chinese simplified or traditional form.
+ * Classifier (`CL:…`) and parenthetical metadata are stripped from CEDICT definitions.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @returns {Promise<string>}
+ */
 export async function lookupChineseEnglish(dictionariesRepository, term) {
   const clean = normalizeName(term);
   if (!clean) {
@@ -253,7 +344,14 @@ async function entriesForEnglishKey(lookupEntries, dictionariesRepository, key, 
   ];
 }
 
-// Look up Chinese metadata (translation, pinyin, traditional) for a term.
+/**
+ * Return Chinese metadata (cleaned English gloss, tone-marked pinyin, traditional
+ * form) for a simplified or traditional Chinese term. `traditional` is empty
+ * when identical to the simplified form.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @returns {Promise<{ translation: string, pinyin: string, traditional: string }>}
+ */
 export async function lookupChineseDetails(dictionariesRepository, term) {
   const clean = normalizeName(term);
   if (!clean) {
@@ -270,7 +368,13 @@ export async function lookupChineseDetails(dictionariesRepository, term) {
   };
 }
 
-// Look up Japanese metadata (translation, reading) for an expression or reading.
+/**
+ * Return Japanese metadata (English gloss, hiragana reading) for an expression
+ * or reading form. Falls back from expression match to reading match.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @returns {Promise<{ translation: string, reading: string }>}
+ */
 export async function lookupJapaneseDetails(dictionariesRepository, term) {
   const clean = normalizeName(term);
   if (!clean) {
@@ -287,11 +391,26 @@ export async function lookupJapaneseDetails(dictionariesRepository, term) {
   return { translation: "", reading: "" };
 }
 
-// Translate a Japanese term to Chinese through the English dictionary index.
+/**
+ * Return the top-ranked Chinese translation for a Japanese term, routed through
+ * the English dictionary index.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @returns {Promise<string>}
+ */
 export async function lookupJapaneseChinese(dictionariesRepository, term) {
   return (await lookupJapaneseChineseEntries(dictionariesRepository, term, 1))[0]?.translation || "";
 }
 
+/**
+ * Return up to `limit` deduped Japanese→Chinese entries routed through
+ * the English index. Each English gloss candidate from the Japanese lookup
+ * is used as a key into the English→Chinese lookup.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @param {number} [limit=50]
+ * @returns {Promise<Array<{ source: string, translation: string, pos: string }>>}
+ */
 export async function lookupJapaneseChineseEntries(dictionariesRepository, term, limit = 50) {
   const clean = normalizeName(term);
   const english = await lookupJapaneseEnglish(dictionariesRepository, clean);
@@ -305,11 +424,25 @@ export async function lookupJapaneseChineseEntries(dictionariesRepository, term,
   return dedupeDictionaryEntries(entries);
 }
 
-// Translate a Chinese term to Japanese through the English dictionary index.
+/**
+ * Return the top-ranked Japanese translation for a Chinese term, routed through
+ * the English dictionary index.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @returns {Promise<string>}
+ */
 export async function lookupChineseJapanese(dictionariesRepository, term) {
   return (await lookupChineseJapaneseEntries(dictionariesRepository, term, 1))[0]?.translation || "";
 }
 
+/**
+ * Return up to `limit` deduped Chinese→Japanese entries routed through the
+ * English index.
+ * @param {object} dictionariesRepository
+ * @param {string} term
+ * @param {number} [limit=50]
+ * @returns {Promise<Array<{ source: string, translation: string, pos: string }>>}
+ */
 export async function lookupChineseJapaneseEntries(dictionariesRepository, term, limit = 50) {
   const clean = normalizeName(term);
   const english = await lookupChineseEnglish(dictionariesRepository, clean);

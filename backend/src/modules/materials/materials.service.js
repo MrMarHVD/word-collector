@@ -1,3 +1,15 @@
+/**
+ * @fileoverview Materials service. Business logic for document import and the
+ * reader view. Import is split across two entry points: `startMaterialImport`
+ * runs on the HTTP server thread (validates limits, creates the placeholder
+ * row, spawns the worker) and `runMaterialImport` runs inside the worker
+ * (extraction, tokenization, translation, token persistence).
+ *
+ * Coordinates with: materials repository, languages repository, words
+ * repository, translations service, dictionaries service, text-extraction
+ * service, tokenizer service, database repository (transaction).
+ */
+
 import { Worker } from "node:worker_threads";
 import { BETA_MAX_ACTIVE_IMPORTS_GLOBAL, BETA_MAX_ACTIVE_IMPORTS_PER_USER, BETA_MAX_MATERIALS_PER_USER, BETA_MAX_MATERIAL_UPLOAD_BYTES, READER_WORK_PAGE_SIZE } from "../../config.js";
 import { normalizeName } from "../../shared/normalize.js";
@@ -14,7 +26,7 @@ const UNCOLLECTED_COLLECTION_NAME = "Uncollected";
 async function getUncollectedCollection(repositories, userId, languageId) {
   let collection = await repositories.words.findCollectionByName(userId, languageId, UNCOLLECTED_COLLECTION_NAME);
   if (!collection) {
-    await repositories.words.createCollection(languageId, UNCOLLECTED_COLLECTION_NAME);
+    await repositories.words.createCollection(userId, languageId, UNCOLLECTED_COLLECTION_NAME);
     collection = await repositories.words.findCollectionByName(userId, languageId, UNCOLLECTED_COLLECTION_NAME);
   }
   return collection;
@@ -37,41 +49,46 @@ async function wordMetadataForToken(repositories, sourceLanguage, token) {
   return { pos: token.pos || "", posSubcategory: "", reading: "", pinyin: "", traditional: "" };
 }
 
-// Return a dictionary word row, creating and translating one when necessary.
+// Resolve the global word for a token, creating and translating one when the
+// language has never seen it, then attach it to the user's private list.
 // `importContext`, when given, caches the Uncollected collection across calls
 // within one import run.
+//
+// Translation reuse: a word another user already imported is shared, and its
+// cached translation is inherited. The dictionary only runs again when the word
+// is new, or exists but has no usable translation for the target language.
 async function getOrCreateDictionaryWord(repositories, userId, language, token, targetNativeLanguage, fallbackTranslation, importContext = null) {
   const metadata = await wordMetadataForToken(repositories, language, token);
   const source = languageKey(language);
   const baseTranslation = source === "English"
     ? token.lemma
     : (await lookupTranslation(repositories, language, "English", token.lemma)) || (await lookupTranslation(repositories, language, "English", token.surface)) || fallbackTranslation;
-  // Reuse a matching user-owned word before creating an uncollected entry.
-  const existing = await repositories.words.findWordInLanguageBySurfaceOrLemma(userId, language.id, token.surface, token.lemma);
-  if (existing) {
-    if (targetNativeLanguage) {
-      // One read answers both "was a translation attempted" (row exists) and
-      // "is it usable" (non-empty and not just the word itself).
-      const storedRow = await repositories.translations.findWordTranslation(existing.id, targetNativeLanguage);
-      const stored = normalizeName(storedRow?.translation || "").toLowerCase();
-      const usable = stored && stored !== token.lemma.toLowerCase() && stored !== token.surface.toLowerCase();
-      if (!usable && (fallbackTranslation || !storedRow)) {
-        await repositories.translations.upsertWordTranslation(existing.id, targetNativeLanguage, fallbackTranslation);
-      }
-    }
-    await repositories.words.updateWordMetadata(existing.id, metadata);
-    return existing;
-  }
 
+  // The user's Uncollected collection backs every membership created here.
   const collection = importContext?.uncollected
     || await getUncollectedCollection(repositories, userId, language.id);
   if (importContext) {
     importContext.uncollected = collection;
   }
-  let word = await repositories.words.findWordByCollectionAndLemma(collection.id, token.lemma);
-  if (!word) {
+
+  // Reuse the global word for this language if it already exists.
+  let word = await repositories.words.findWordInLanguage(language.id, token.surface, token.lemma);
+  if (word) {
+    await repositories.words.updateWordMetadata(word.id, metadata);
+    if (targetNativeLanguage) {
+      // One read answers both "was a translation attempted" (row exists) and
+      // "is it usable" (non-empty and not just the word itself). Inherit when
+      // usable; otherwise rerun the dictionary via the computed fallback.
+      const storedRow = await repositories.translations.findWordTranslation(word.id, targetNativeLanguage);
+      const stored = normalizeName(storedRow?.translation || "").toLowerCase();
+      const usable = stored && stored !== token.lemma.toLowerCase() && stored !== token.surface.toLowerCase();
+      if (!usable && (fallbackTranslation || !storedRow)) {
+        await repositories.translations.upsertWordTranslation(word.id, targetNativeLanguage, fallbackTranslation);
+      }
+    }
+  } else {
     word = await repositories.words.insertWordReturning(
-      collection.id,
+      language.id,
       token.lemma,
       baseTranslation,
       token.lemma,
@@ -80,13 +97,16 @@ async function getOrCreateDictionaryWord(repositories, userId, language, token, 
       metadata.reading || null,
       metadata.pinyin || null,
       metadata.traditional || null
-    ) || await repositories.words.findWordByCollectionAndLemma(collection.id, token.lemma);
-  } else {
-    await repositories.words.updateWordMetadata(word.id, metadata);
+    ) || await repositories.words.findWordInLanguage(language.id, token.surface, token.lemma);
+    if (word && targetNativeLanguage) {
+      await repositories.translations.upsertWordTranslation(word.id, targetNativeLanguage, fallbackTranslation);
+    }
   }
 
-  if (targetNativeLanguage) {
-    await repositories.translations.upsertWordTranslation(word.id, targetNativeLanguage, fallbackTranslation);
+  // Attach the word to the user. Idempotent: an existing membership (and its
+  // collection placement) is preserved on re-import.
+  if (word) {
+    await repositories.words.addUserWord(userId, word.id, collection.id);
   }
   return word;
 }
@@ -118,10 +138,19 @@ function formatMegabytes(bytes) {
   return Math.round(bytes / 1024 / 1024);
 }
 
-// Create the material row and hand the heavy work (extraction, tokenization,
-// translation, token persistence) to a worker thread so the HTTP server stays
-// responsive and the client can poll import progress. Returns immediately with
-// the row in its 'processing' state.
+/**
+ * Initiate a document import. Validates beta limits (file size, material count,
+ * concurrent import count), creates the material row in `processing` state,
+ * and spawns a worker thread to handle extraction/tokenization asynchronously.
+ * Returns immediately with the freshly created material row so the client can
+ * poll progress.
+ *
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {number|string} languageId
+ * @param {{ buffer: Buffer, filename: string }} file
+ * @returns {Promise<{ material: object }|{ error: string, errorKey?: string, status?: number, details?: object }>}
+ */
 export async function startMaterialImport(repositories, userId, languageId, file) {
   const language = await repositories.languages.findById(Number(languageId), userId);
   if (!language) {
@@ -209,8 +238,18 @@ export async function startMaterialImport(repositories, userId, languageId, file
   return { material: await repositories.materials.findById(materialId, userId) };
 }
 
-// Extract, tokenize, and persist an imported document for an existing material
-// row, updating progress as it goes. Runs inside the import worker thread.
+/**
+ * Execute the full import pipeline for a document. Intended to run inside a
+ * dedicated worker thread. Extracts text, tokenizes it, resolves translation
+ * candidates, persists tokens in batches of 200 (committing progress between
+ * batches), marks the material ready, then runs a background translation backfill.
+ *
+ * @param {object} repositories
+ * @param {{ materialId: number, userId: number, languageId: number, fileName: string,
+ *   fileBytes: ArrayBuffer }} workerData
+ * @returns {Promise<void>}
+ * @throws {Error} When the language is missing, the file yields no text, or no tokens.
+ */
 export async function runMaterialImport(repositories, { materialId, userId, languageId, fileName, fileBytes }) {
   const language = await repositories.languages.findById(Number(languageId), userId);
   if (!language) {
@@ -288,7 +327,19 @@ export async function runMaterialImport(repositories, { materialId, userId, lang
   }
 }
 
-// Return a page of imported materials for one language.
+/**
+ * Return a page of the user's materials for a language, each annotated with
+ * its translation status. Materials still processing are returned with a
+ * placeholder status rather than a real computation. Materials whose
+ * translations are incomplete are scheduled for a background backfill.
+ *
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {number} languageId
+ * @param {number} [offset=0]
+ * @param {string} [search=""]
+ * @returns {Promise<object[]>}
+ */
 export async function getMaterials(repositories, userId, languageId, offset = 0, search = "") {
   const nativeLanguage = (await repositories.auth.findUserById(userId))?.nativeLanguage || "English";
   const materials = await repositories.materials.listByUserAndLanguage(userId, Number(languageId), READER_WORK_PAGE_SIZE, Number(offset) || 0, search || "");
@@ -309,7 +360,21 @@ export async function getMaterials(repositories, userId, languageId, offset = 0,
   return result;
 }
 
-// Return material metadata and a bounded page of token rows for the reader.
+/**
+ * Return material metadata and a bounded page of annotated token rows for
+ * the reader view. Tokens include disambiguation candidates where available.
+ * Returns an empty token list for materials still importing or awaiting translation.
+ * `start` defaults to the stored reader bookmark when `null`/`undefined`.
+ *
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {number} materialId
+ * @param {number|null} [start=0] - Token position offset; defaults to stored bookmark.
+ * @param {number} [limit=250] - Clamped to [50, 1000].
+ * @returns {Promise<{ material: object, tokens: object[], start: number, limit: number,
+ *   nativeLanguage: string, translationStatus: object }|null>}
+ *   Returns `null` when the material does not exist or does not belong to the user.
+ */
 export async function getMaterialReader(repositories, userId, materialId, start = 0, limit = 250) {
   const material = await repositories.materials.findById(Number(materialId), userId);
   if (!material) {
@@ -338,15 +403,30 @@ export async function getMaterialReader(repositories, userId, materialId, start 
       tokens.push(token);
       continue;
     }
-    tokens.push({
-      ...token,
-      translation: (await displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token)) || token.translation,
-      disambiguationCandidates
-    });
+    if (typeof token.translationOverride === "string" && token.translationOverride.trim()) {
+      const sourceWord = String(token.dictionaryForm || token.lemma || token.surface || "").toLowerCase();
+      const currentOriginal = String(token.canonicalTranslation || "");
+      const canonicalTranslation = currentOriginal && currentOriginal.toLowerCase() !== sourceWord
+        ? currentOriginal
+        : disambiguationCandidates[0]?.translation || currentOriginal;
+      tokens.push({ ...token, canonicalTranslation, disambiguationCandidates });
+      continue;
+    }
+    const translation = (await displayTranslationForToken(repositories, sourceLanguage, nativeLanguage, token)) || token.translation;
+    tokens.push({ ...token, translation, disambiguationCandidates });
   }
   return { material, tokens, start: safeStart, limit: safeLimit, nativeLanguage, translationStatus };
 }
 
+/**
+ * Persist the reader bookmark position for a material. The value is clamped
+ * to [0, wordCount - 1].
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {number} materialId
+ * @param {number} [start=0]
+ * @returns {Promise<object|null>} Updated material row, or `null` when not found.
+ */
 export async function updateMaterialReaderStart(repositories, userId, materialId, start = 0) {
   const material = await repositories.materials.findById(Number(materialId), userId);
   if (!material) {
@@ -357,6 +437,18 @@ export async function updateMaterialReaderStart(repositories, userId, materialId
   return repositories.materials.findById(material.id, userId);
 }
 
+/**
+ * Apply one or more updates to a material. Supported fields: `readerStart`
+ * (clamped to [0, wordCount - 1]) and `title` (trimmed; required when present).
+ * Returns an error descriptor when a field is invalid; returns `null` when the
+ * material does not exist or does not belong to the user.
+ *
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {number} materialId
+ * @param {{ readerStart?: number, title?: string }} [updates={}]
+ * @returns {Promise<object|null|{ error: string, errorKey: string }>}
+ */
 export async function updateMaterial(repositories, userId, materialId, updates = {}) {
   const requestedUpdates = updates && typeof updates === "object" ? updates : {};
   const material = await repositories.materials.findById(Number(materialId), userId);

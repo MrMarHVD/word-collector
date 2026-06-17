@@ -1,3 +1,23 @@
+/**
+ * @fileoverview Lightweight parser for the two-column word-import text format.
+ *
+ * Accepts plain text where each non-empty line represents one word–translation
+ * pair. Supported delimiters (tried in order): comma (`,`), semicolon (`;`),
+ * tab (`\t`), and a single whitespace gap between the first token and the rest
+ * of the line. Lines that cannot be parsed into a word and a translation are
+ * silently dropped.
+ */
+
+/**
+ * Parse a multi-line text string into an array of word–translation pairs.
+ *
+ * Each line is split on the first detected delimiter. Recognised delimiters are
+ * `,`, `;`, `\t`, and whitespace (first word vs. remainder). Lines that yield
+ * either an empty word or an empty translation after trimming are excluded.
+ *
+ * @param {string} text - Raw text content from a CSV, TSV, or plain-text file.
+ * @returns {Array<{word: string, translation: string}>} Parsed entries; may be empty.
+ */
 // Small CSV parser for the two-column word import format.
 // Parse word and translation rows from CSV, semicolon, tab, or whitespace text.
 export function parseCsv(text) {

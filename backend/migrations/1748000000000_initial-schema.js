@@ -1,7 +1,40 @@
-// Baseline schema, translated from the original node:sqlite migrations to
-// Postgres. Subsequent schema changes should be added as new migration files
-// rather than edited into this one.
+/**
+ * @file 1748000000000_initial-schema.js
+ * @description Baseline Postgres schema for the word-marker application, translated
+ * from the original node:sqlite migrations. All subsequent schema changes must be
+ * added as new, sequentially-numbered migration files rather than modifying this one.
+ *
+ * Tables created:
+ *  - `users`               — accounts with email, password hash/salt, and preferences.
+ *  - `sessions`            — server-side session tokens (UUID), cascade-deleted with the user.
+ *  - `predefined_languages` — the fixed catalogue of study languages shown during onboarding.
+ *  - `languages`           — per-user enrolled languages (superseded to global by migration 007).
+ *  - `collections`         — named word-lists scoped to a language (e.g. "Uncollected").
+ *  - `words`               — vocabulary entries with optional linguistic metadata (lemma, POS,
+ *                            reading, pinyin, traditional form).
+ *  - `user_word_status`    — per-user learning state overlay (known/learning/unknown, click
+ *                            count); replaced by `user_words` in migration 007.
+ *  - `word_translations`   — per-word translations keyed by the user's native language.
+ *  - `materials`           — uploaded or pasted reading materials with import state tracking.
+ *  - `material_tokens`     — tokenised positions within a material, each linked to a word row.
+ *  - `jmdict_entries`      — Japanese dictionary headwords with glosses and reading.
+ *  - `jmdict_english_index` — reverse English-to-Japanese lookup derived from JMdict.
+ *  - `cedict_english_index` — English-to-Chinese lookup derived from CC-CEDICT.
+ *  - `wikdict_english_japanese` — English→Japanese entries from WikDict StarDict data.
+ *  - `wikdict_english_chinese`  — English→Chinese entries from WikDict StarDict data.
+ *  - `wikdict_spanish_english`  — Spanish→English entries from WikDict.
+ *  - `wikdict_spanish_english_aliases` — inflected-form aliases pointing at Spanish headwords.
+ *  - `wikdict_french_english`  — French→English entries from WikDict.
+ *  - `wikdict_french_english_aliases` — inflected-form aliases pointing at French headwords.
+ *
+ * No data backfill is performed; this migration only creates the initial structure.
+ */
 
+/**
+ * Apply the baseline schema: create all tables, constraints, and indexes.
+ *
+ * @param {import('node-postgres-migrate').MigrationBuilder} pgm - Migration builder instance.
+ */
 export const up = (pgm) => {
   pgm.sql(`
     CREATE TABLE users (
@@ -216,6 +249,12 @@ export const up = (pgm) => {
   `);
 };
 
+/**
+ * Roll back the baseline schema: drop all tables in reverse dependency order.
+ * This is destructive — all application data is permanently removed.
+ *
+ * @param {import('node-postgres-migrate').MigrationBuilder} pgm - Migration builder instance.
+ */
 export const down = (pgm) => {
   pgm.sql(`
     DROP TABLE IF EXISTS wikdict_french_english_aliases;

@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Auth service. Business logic for user registration, login,
+ * email verification, password reset/change, OAuth sign-in, and account
+ * deletion. Coordinates with the auth repository and, for account deletion,
+ * the database repository's transaction helper.
+ */
+
 import { hashPassword, verifyPassword } from "../../auth/password.js";
 import { generateToken, hashToken } from "../../auth/tokens.js";
 import { normalizeName } from "../../shared/normalize.js";
@@ -41,6 +48,15 @@ function isTokenUsable(row) {
   return new Date(row.expiresAt).getTime() > Date.now();
 }
 
+/**
+ * Build the auth context payload returned after sign-in and on session refresh.
+ * Fetches the user profile, enrolled languages, and the predefined language list.
+ * Coordinates with: auth repository, languages repository.
+ *
+ * @param {object} repositories - The wired repository map.
+ * @param {number} userId
+ * @returns {Promise<{ user: object, languages: object[], predefinedLanguages: object[], needsOnboarding: boolean }>}
+ */
 export async function getAuthContext(repositories, userId) {
   const languages = await repositories.languages.listForUser(userId);
   const profile = await repositories.auth.findUserById(userId);
@@ -62,6 +78,15 @@ export async function getAuthContext(repositories, userId) {
   };
 }
 
+/**
+ * Verify email/password credentials and return the matching user row.
+ *
+ * @param {object} repositories
+ * @param {string} emailInput
+ * @param {string} passwordInput
+ * @returns {Promise<{ user: object }|{ error: string, errorKey: string, status: number }>}
+ *   Returns `{ user }` on success, or an error descriptor with HTTP status 401 on failure.
+ */
 export async function loginUser(repositories, emailInput, passwordInput) {
   const email = normalizeName(emailInput).toLowerCase();
   const user = await repositories.auth.findUserByEmail(email);
@@ -71,6 +96,17 @@ export async function loginUser(repositories, emailInput, passwordInput) {
   return { user };
 }
 
+/**
+ * Create a new password-based user account after validating email format,
+ * password policy, confirmation match, and uniqueness.
+ *
+ * @param {object} repositories
+ * @param {string} emailInput
+ * @param {string} passwordInput
+ * @param {string} confirmPasswordInput
+ * @returns {Promise<{ user: object }|{ error: string, errorKey: string, status: number }>}
+ *   Returns `{ user }` on success. Status 400 for validation failures; 409 when email exists.
+ */
 export async function registerUser(repositories, emailInput, passwordInput, confirmPasswordInput) {
   const email = normalizeName(emailInput).toLowerCase();
   const password = String(passwordInput || "");
@@ -94,8 +130,15 @@ export async function registerUser(repositories, emailInput, passwordInput, conf
   return { user };
 }
 
-// Issue a fresh email-verification token, superseding any outstanding ones, and
-// return the raw token for emailing. The raw value is never persisted.
+/**
+ * Issue a fresh email-verification token, superseding any outstanding ones.
+ * Returns the raw token to be included in the verification email link; the raw
+ * value is never stored — only its SHA-256 hash is persisted.
+ *
+ * @param {object} repositories
+ * @param {number} userId
+ * @returns {Promise<string>} Raw token (24h TTL).
+ */
 export async function createVerificationToken(repositories, userId) {
   await repositories.auth.deleteUserTokensOfType(userId, TOKEN_TYPES.VERIFICATION);
   const { raw, hash } = generateToken();
@@ -103,8 +146,14 @@ export async function createVerificationToken(repositories, userId) {
   return raw;
 }
 
-// Consume a verification token and mark the user verified. Idempotent-ish: an
-// already-verified user re-clicking a stale link gets a clear error.
+/**
+ * Consume an email-verification token and mark the associated account verified.
+ * The token is stamped used on success so it cannot be replayed.
+ *
+ * @param {object} repositories
+ * @param {string} rawToken - The raw token from the email link.
+ * @returns {Promise<{ userId: number }|{ error: string, errorKey: string, status: 400 }>}
+ */
 export async function verifyEmail(repositories, rawToken) {
   const id = hashToken(String(rawToken || ""));
   const row = await repositories.auth.findAuthToken(id, TOKEN_TYPES.VERIFICATION);
@@ -116,8 +165,18 @@ export async function verifyEmail(repositories, rawToken) {
   return { userId: row.userId };
 }
 
-// Begin a password reset. Always resolves without revealing whether the email
-// exists (no account enumeration); callers send mail only when `user` is set.
+/**
+ * Begin a password-reset flow by issuing a reset token. Always resolves
+ * without revealing whether the email exists (no account enumeration).
+ * Callers should send the reset email only when the returned `user` is set.
+ * Only accounts that already have a password can receive a reset token.
+ *
+ * @param {object} repositories
+ * @param {string} emailInput
+ * @returns {Promise<{ user: object|null, raw?: string }>}
+ *   `raw` is the raw token (1h TTL); `user` is null when the email is unknown
+ *   or is OAuth-only.
+ */
 export async function createPasswordReset(repositories, emailInput) {
   const email = normalizeName(emailInput).toLowerCase();
   const user = await repositories.auth.findUserByEmail(email);
@@ -130,8 +189,16 @@ export async function createPasswordReset(repositories, emailInput) {
   return { user, raw };
 }
 
-// Consume a reset token and set a new password. Revokes every existing session
-// for the account so a leaked cookie cannot survive a reset.
+/**
+ * Consume a password-reset token and set the new password. All existing
+ * sessions for the account are revoked so a leaked cookie cannot survive the reset.
+ *
+ * @param {object} repositories
+ * @param {string} rawToken - Raw reset token from the email link.
+ * @param {string} passwordInput
+ * @param {string} confirmPasswordInput
+ * @returns {Promise<{ userId: number }|{ error: string, errorKey: string, status: number }>}
+ */
 export async function resetPassword(repositories, rawToken, passwordInput, confirmPasswordInput) {
   const password = String(passwordInput || "");
   const confirmPassword = String(confirmPasswordInput || "");
@@ -154,8 +221,18 @@ export async function resetPassword(repositories, rawToken, passwordInput, confi
   return { userId: row.userId };
 }
 
-// Change the password for a signed-in user after verifying their current one.
-// Caller is responsible for revoking other sessions and reissuing the current.
+/**
+ * Change the password for an already-authenticated user. Verifies the current
+ * password before accepting the new one. The caller is responsible for
+ * revoking other sessions and reissuing the active one.
+ *
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {string} currentInput - Current password for verification.
+ * @param {string} nextInput - New password.
+ * @param {string} confirmInput - Must match `nextInput`.
+ * @returns {Promise<{ userId: number }|{ error: string, errorKey: string, status: number }>}
+ */
 export async function changePassword(repositories, userId, currentInput, nextInput, confirmInput) {
   const current = String(currentInput || "");
   const next = String(nextInput || "");
@@ -176,6 +253,17 @@ export async function changePassword(repositories, userId, currentInput, nextInp
   return { userId };
 }
 
+/**
+ * Permanently delete a user account and all associated private data. Requires
+ * the user to type their email address as confirmation. Shared catalogue data
+ * (global words, translations, languages) is preserved for other users.
+ * Runs inside a transaction via the database repository.
+ *
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {string} confirmationInput - Must equal the user's email address.
+ * @returns {Promise<{ deleted: true }|{ error: string, errorKey: string, status: number }>}
+ */
 export async function deleteAccount(repositories, userId, confirmationInput) {
   const profile = await repositories.auth.findUserById(userId);
   if (!profile) {
@@ -193,6 +281,18 @@ export async function deleteAccount(repositories, userId, confirmationInput) {
   return { deleted: true };
 }
 
+/**
+ * Sign in or register using a verified OAuth profile. Handles four cases:
+ * (1) existing OAuth account link → return the linked user;
+ * (2) no OAuth link but email matches an existing verified account → link and return;
+ * (3) no OAuth link and email matches an unverified password account → clear the
+ *   unproven password (pre-hijack defence), verify, link, and return;
+ * (4) no match at all → create a new OAuth-only user, link, and return.
+ *
+ * @param {object} repositories
+ * @param {{ providerUserId: string, email: string, emailVerified: boolean, displayName?: string }} profile
+ * @returns {Promise<{ user: object }|{ error: string, errorKey: string, status: number }>}
+ */
 export async function loginWithOAuthProfile(repositories, profile) {
   const provider = "google";
   const providerUserId = String(profile.providerUserId || "");

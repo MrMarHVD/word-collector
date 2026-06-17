@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Inline SVG flag icons for the supported study languages.
+ *
+ * Each flag is a simplified, self-contained SVG string that can be injected
+ * directly via `innerHTML`. Icons are keyed by lower-cased language name
+ * (`"japanese"`, `"english"`, `"chinese"`, `"spanish"`, `"french"`).
+ * Unsupported languages return an empty string so callers need not guard.
+ */
+
 // Simplified country flag SVGs for the supported study languages.
 // Returned as static markup so they can be injected via innerHTML.
 const FLAGS = {
@@ -46,6 +55,16 @@ const FLAGS = {
   `
 };
 
+/**
+ * Return the inline SVG markup for a language's flag icon.
+ *
+ * The lookup is case-insensitive. Returns an empty string for any language
+ * name that does not have a registered flag, so the result is always safe to
+ * set as `innerHTML`.
+ *
+ * @param {string} languageName - Language name as stored in the database (e.g. `"Japanese"`).
+ * @returns {string} Inline SVG string, or `""` if the language has no flag.
+ */
 export function flagSvg(languageName) {
   const key = String(languageName || "").toLowerCase();
   return FLAGS[key] || "";

@@ -1,3 +1,12 @@
+/**
+ * @fileoverview HTTP security-header middleware.
+ *
+ * Applies a strict baseline of browser-security headers to every outgoing
+ * response. HSTS is omitted in non-production environments because local dev
+ * runs over plain HTTP and a pinned header would make the browser refuse
+ * subsequent plain-HTTP requests to localhost.
+ */
+
 import { HSTS_MAX_AGE_SECONDS, IS_PRODUCTION } from "../config.js";
 
 // Content Security Policy. The frontend is served as static assets from this
@@ -17,9 +26,23 @@ const CONTENT_SECURITY_POLICY = [
   "form-action 'self'"
 ].join("; ");
 
-// Apply baseline security headers to every response. HSTS is production-only
-// because dev runs over plain HTTP and the header would otherwise pin browsers
-// to HTTPS for localhost.
+/**
+ * Applies baseline HTTP security headers to a response.
+ *
+ * Headers applied unconditionally:
+ * - `Content-Security-Policy` – tight policy derived from `CONTENT_SECURITY_POLICY`
+ * - `X-Content-Type-Options: nosniff` – prevents MIME-type sniffing
+ * - `X-Frame-Options: DENY` – disallows embedding in any frame
+ * - `Referrer-Policy: no-referrer` – suppresses the Referer header on navigation
+ * - `Cross-Origin-Opener-Policy: same-origin` – isolates the browsing context
+ *
+ * In production only:
+ * - `Strict-Transport-Security` – enforces HTTPS for `HSTS_MAX_AGE_SECONDS`
+ *   including subdomains. Omitted in development to avoid pinning localhost to HTTPS.
+ *
+ * @param {import("node:http").ServerResponse} res - The outgoing HTTP response.
+ * @returns {void}
+ */
 export function applySecurityHeaders(res) {
   res.setHeader("content-security-policy", CONTENT_SECURITY_POLICY);
   res.setHeader("x-content-type-options", "nosniff");

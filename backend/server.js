@@ -1,3 +1,14 @@
+/**
+ * @fileoverview Server bootstrap and dependency wiring.
+ *
+ * Initialises Sentry, builds the repository and service graph, and starts the
+ * HTTP server.  All inbound traffic is handled by a single request listener that
+ * applies security headers, enforces CORS, dispatches `/api/*` paths to the API
+ * handler, responds to health-check probes, and falls back to static asset
+ * serving for every other path.  Graceful shutdown drains in-flight connections,
+ * closes the database pool, and flushes Sentry before the process exits.
+ */
+
 import { createServer } from "node:http";
 import { CORS_ORIGIN, IS_PRODUCTION, PORT } from "./src/config.js";
 import { db, pool } from "./src/db/index.js";
@@ -19,6 +30,14 @@ const repositories = createRepositories(db);
 const emailService = createEmailServiceFromConfig();
 const handleApi = createApiHandler({ repositories, emailService });
 
+/**
+ * Applies CORS response headers when the request `Origin` exactly matches the
+ * single allowed origin.  The origin is echoed rather than wildcarded so that
+ * `Access-Control-Allow-Credentials: true` is safe to set.
+ *
+ * @param {import("node:http").IncomingMessage} req
+ * @param {import("node:http").ServerResponse} res
+ */
 function applyCors(req, res) {
   const origin = req.headers.origin;
   if (!origin || origin !== CORS_ORIGIN) return;
@@ -30,8 +49,16 @@ function applyCors(req, res) {
   res.setHeader("vary", "Origin");
 }
 
-// Liveness/readiness probe for the reverse proxy and uptime monitoring. A cheap
-// query confirms the database connection is actually usable, not just the process.
+/**
+ * Handles `/health` and `/api/health` liveness/readiness probes.
+ *
+ * Runs a cheap `SELECT 1` to verify the database connection is usable, not just
+ * that the process is alive.  Returns `200 { status: "ok" }` on success or
+ * `503 { status: "unavailable" }` when the database is unreachable.
+ *
+ * @param {import("node:http").ServerResponse} res
+ * @returns {Promise<void>}
+ */
 async function handleHealth(res) {
   try {
     await pool.query("SELECT 1");
@@ -90,6 +117,17 @@ server.listen(PORT, () => {
 // Graceful shutdown: stop accepting connections, drain in-flight requests, then
 // release the database pool and flush Sentry so nothing is lost on deploy/restart.
 let shuttingDown = false;
+/**
+ * Gracefully shuts down the server in response to a POSIX signal.
+ *
+ * Stops accepting new connections, waits for in-flight requests to complete,
+ * then closes the database pool and flushes Sentry.  A 10-second hard timeout
+ * forces a process exit if connections do not drain in time.  The `shuttingDown`
+ * guard prevents concurrent invocations when both SIGTERM and SIGINT arrive.
+ *
+ * @param {string} signal - The signal name that triggered the shutdown (e.g. `"SIGTERM"`).
+ * @returns {Promise<void>}
+ */
 async function shutdown(signal) {
   if (shuttingDown) {
     return;

@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Practice view — renders every state of the flashcard practice
+ * feature: the landing page, the per-card practice screen (both front and
+ * flipped sides), the settings panel, the notice shown when fewer words are
+ * available than requested, the empty state, and the end-of-session results
+ * summary. All rendering targets `elements.practiceContent`.
+ */
+
 import { elements } from "../dom.js";
 import { formatCount, t } from "../i18n.js";
 import { escapeHtml } from "../shared/html.js";
@@ -40,7 +48,22 @@ function cardTextStyle(text, maxRem) {
   return `--practice-card-text-size:${cardTextSize(text, maxRem).toFixed(2)}rem`;
 }
 
-// Landing page: explain practice and offer to start a session.
+/**
+ * Renders the practice landing page inside the two-panel shell layout. When
+ * `activePanel` is `"settings"` it delegates immediately to
+ * {@link renderPracticeSettings} instead.
+ *
+ * The landing page shows the active study language, the configured words-per-
+ * session count, and buttons to start a full session or a marked-words-only
+ * session. Both start buttons are disabled when no study language is selected.
+ *
+ * @param {"practice"|"settings"} [activePanel="practice"] - Which sidebar tab
+ *   to mark as active.
+ *
+ * @sideeffects
+ * - Replaces `elements.practiceContent.innerHTML` with the complete layout
+ *   markup, including a `#practiceStatus` live region.
+ */
 export function renderPracticeLanding(activePanel = "practice") {
   const language = state.selectedStudyLanguageName ? t(`studyLanguage.${state.selectedStudyLanguageName}`, {}, state.selectedStudyLanguageName) : "";
   if (activePanel === "settings") {
@@ -72,6 +95,15 @@ export function renderPracticeLanding(activePanel = "practice") {
   `);
 }
 
+/**
+ * Renders the practice settings panel (words-per-session form) inside the
+ * two-panel shell layout with the settings sidebar tab active.
+ *
+ * @sideeffects
+ * - Replaces `elements.practiceContent.innerHTML` with the settings form
+ *   markup, including a `#practiceSettingsStatus` live region. The form is
+ *   handled by the practice controller.
+ */
 export function renderPracticeSettings() {
   renderPracticeShell("settings", `
     <section class="practice-panel rounded-lg border border-line bg-panel p-6 shadow-panel">
@@ -92,6 +124,18 @@ export function renderPracticeSettings() {
   `);
 }
 
+/**
+ * Updates the status live region on the practice landing page.
+ * Does nothing when the `#practiceStatus` element is not present in the DOM
+ * (e.g. while the card or summary screen is rendered).
+ *
+ * @param {string} message - The status text to display, or an empty string to
+ *   clear it.
+ *
+ * @sideeffects
+ * - Sets `textContent` on the `#practiceStatus` element inside
+ *   `elements.practiceContent`, if found.
+ */
 export function setPracticeStatus(message) {
   const status = elements.practiceContent.querySelector("#practiceStatus");
   if (status) {
@@ -99,7 +143,16 @@ export function setPracticeStatus(message) {
   }
 }
 
-// No learning words at all are available to study.
+/**
+ * Renders the empty state shown when there are no learning words available to
+ * practice. Provides a button to return to the landing page.
+ *
+ * @param {"practice"|"settings"} [activePanel="practice"] - Which sidebar tab
+ *   to mark as active.
+ *
+ * @sideeffects
+ * - Replaces `elements.practiceContent.innerHTML`.
+ */
 export function renderPracticeEmpty(activePanel = "practice") {
   renderPracticeShell(activePanel, `
     <section class="practice-panel rounded-lg border border-line bg-panel p-6 shadow-panel text-center">
@@ -112,7 +165,20 @@ export function renderPracticeEmpty(activePanel = "practice") {
   `);
 }
 
-// Fewer valid words than requested: let the user start with what is available.
+/**
+ * Renders the "fewer words than requested" notice screen. This is shown when
+ * the server returns a session with fewer valid words than the configured
+ * words-per-session count. The user can start with the reduced set or go back.
+ *
+ * @param {{ validCount: number, words: Array<object> }} session - Session data
+ *   from the server. `validCount` is the total number of eligible words;
+ *   `words` is the subset that will be used.
+ * @param {"practice"|"settings"} [activePanel="practice"] - Which sidebar tab
+ *   to mark as active.
+ *
+ * @sideeffects
+ * - Replaces `elements.practiceContent.innerHTML`.
+ */
 export function renderPracticeNotice(session, activePanel = "practice") {
   renderPracticeShell(activePanel, `
     <section class="practice-panel rounded-lg border border-line bg-panel p-6 shadow-panel text-center">
@@ -130,7 +196,25 @@ export function renderPracticeNotice(session, activePanel = "practice") {
   `);
 }
 
-// One flashcard. `flipped` reveals the translation side and enables the answers.
+/**
+ * Renders a single practice flashcard for the word at `session.words[index]`.
+ *
+ * When `flipped` is `false` the front face (the word) is shown and the answer
+ * buttons are disabled. When `flipped` is `true` the back face (translation and
+ * phonetic reading) is revealed and the answer buttons become enabled.
+ *
+ * Navigation arrows are disabled at the session boundaries or when the next
+ * card has not been answered yet.
+ *
+ * @param {{ words: Array<{word: string, translation?: string, reading?: string, pinyin?: string}>, answers?: Array<string|null> }} session
+ *   The active practice session object.
+ * @param {number} index - Zero-based index of the card to show.
+ * @param {boolean} flipped - Whether to show the translation (back) side.
+ *
+ * @sideeffects
+ * - Replaces `elements.practiceContent.innerHTML` with the full session layout,
+ *   replacing any previously rendered practice screen.
+ */
 export function renderPracticeCard(session, index, flipped) {
   const card = session.words[index];
   const total = session.words.length;
@@ -179,7 +263,17 @@ export function renderPracticeCard(session, index, flipped) {
   `;
 }
 
-// End-of-session results.
+/**
+ * Renders the end-of-session results summary with known and learning (unknown)
+ * word counts, plus buttons to start another session or return to the landing
+ * page.
+ *
+ * @param {{ known: number, unknown: number }} results - Aggregated session
+ *   outcomes. `unknown` represents words the user marked as "don't know".
+ *
+ * @sideeffects
+ * - Replaces `elements.practiceContent.innerHTML`.
+ */
 export function renderPracticeSummary(results) {
   const total = results.known + results.unknown;
   elements.practiceContent.innerHTML = `

@@ -121,7 +121,7 @@
 }
 
 .reader-panel {
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   min-width: var(--readerPanelMinWidth, 360px);
   min-height: var(--readerPanelMinHeight, 520px);
   width: clamp(var(--readerPanelMinWidth, 360px), var(--readerPanelWidth, 100%), 100%);
@@ -139,21 +139,36 @@
   display: none;
 }
 
+/* The focus / exit-focus controls are anchored into the panel's top-right
+   corner rather than sitting inside the padding, forming a small segment whose
+   outer corner is clipped to the panel's rounded edge (the panel is
+   position: relative and overflow: hidden). */
 .reader-focus-command,
 .reader-focus-exit {
-  width: 64px;
-  height: 32px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 6;
+  width: 66px;
+  height: 30px;
   min-height: 0;
   align-items: center;
   justify-content: center;
-  justify-self: end;
-  align-self: start;
-  margin: -20px 0 0;
+  margin: 0;
   padding: 0 8px;
-  border-radius: 6px;
+  border: 0;
+  border-bottom: 1px solid var(--border-main);
+  border-left: 1px solid var(--border-main);
+  border-radius: 0 0 0 10px;
+  box-shadow: none;
   font-size: 0.82rem;
   font-weight: 800;
   line-height: 1;
+}
+
+/* Keep the toolbar controls clear of the corner segment so they never overlap. */
+.is-reader-active .reader-toolbar {
+  padding-right: 76px;
 }
 
 .is-reader-active .reader-focus-command {
@@ -230,7 +245,8 @@
 }
 
 .is-reader-focus .reader-panel {
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding-top: 44px;
   height: 100vh;
   height: 100dvh;
   height: 100svh;
@@ -440,9 +456,160 @@
   background: var(--reader-token-selected);
 }
 
+.is-reader-convenience-active {
+  user-select: none;
+}
+
+.reader-convenience-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  --readerMenuX: 50vw;
+  --readerMenuY: 50vh;
+  --readerMenuRadius: 82px;
+}
+
+.reader-convenience-scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--surface-page) 28%, transparent);
+  backdrop-filter: blur(1px);
+}
+
+.reader-convenience-center,
+.reader-convenience-option {
+  position: absolute;
+  left: var(--readerMenuX);
+  top: var(--readerMenuY);
+  transform: translate(-50%, -50%);
+}
+
+.reader-convenience-center {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  border: 2px solid color-mix(in srgb, var(--brand) 30%, transparent);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, var(--surface-panel) 0 48%, color-mix(in srgb, var(--brand) 12%, var(--surface-panel)) 49% 100%);
+  box-shadow: 0 18px 45px var(--shadow-color);
+  color: var(--text-label);
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.reader-convenience-center span {
+  max-width: 62px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-convenience-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 98px;
+  min-height: 42px;
+  padding: 0 13px;
+  border: 2px solid var(--border-main);
+  border-radius: 999px;
+  background: var(--surface-panel);
+  box-shadow: 0 14px 32px var(--shadow-color);
+  color: var(--text-main);
+  font-size: 0.8rem;
+  font-weight: 900;
+  line-height: 1;
+  transform:
+    translate(-50%, -50%)
+    translate(calc(var(--optionX) * var(--readerMenuRadius)), calc(var(--optionY) * var(--readerMenuRadius)));
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease,
+    background-color 120ms ease;
+}
+
+.reader-convenience-option.is-selected {
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 9%, var(--surface-panel));
+  box-shadow: 0 0 0 5px var(--focus-ring), 0 18px 38px var(--shadow-color);
+  transform:
+    translate(-50%, -50%)
+    translate(calc(var(--optionX) * var(--readerMenuRadius)), calc(var(--optionY) * var(--readerMenuRadius)))
+    scale(1.05);
+}
+
+.reader-convenience-unknown {
+  border-color: color-mix(in srgb, var(--unknown) 40%, var(--border-main));
+}
+
+.reader-convenience-learning {
+  border-color: color-mix(in srgb, var(--learning) 40%, var(--border-main));
+}
+
+.reader-convenience-known {
+  border-color: color-mix(in srgb, var(--known) 40%, var(--border-main));
+}
+
+.reader-convenience-practice {
+  border-color: color-mix(in srgb, var(--brand) 36%, var(--border-main));
+}
+
+.reader-convenience-checkbox {
+  display: grid;
+  flex: 0 0 17px;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  border: 2px solid var(--border-main);
+  border-radius: 5px;
+  background: var(--surface-panel);
+}
+
+.reader-convenience-checkbox::before {
+  content: "";
+  width: 5px;
+  height: 9px;
+  margin-top: -2px;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  transform: rotate(45deg) scale(0);
+}
+
+.reader-convenience-checkbox.is-checked {
+  border-color: var(--brand);
+  background: var(--brand);
+}
+
+.reader-convenience-checkbox.is-checked::before {
+  transform: rotate(45deg) scale(1);
+}
+
 .reader-word-info {
   top: var(--readerInfoTop, 84px);
   left: var(--readerInfoLeft, 12px);
+}
+
+/* Make the popup a flex column so the disambiguation panel can absorb the
+   remaining space and scroll internally while the rest of the pane stays put.
+   Max-height raised so a 5-entry disambiguation pane always has room. */
+.reader-word-info:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: min(500px, calc(100vh - 24px));
+}
+
+/* Siblings of the disambiguation panel keep their natural height so the
+   status toggle and other controls are never squeezed when the panel opens. */
+.reader-word-info:not([hidden]) > :not(.disambiguation-panel) {
+  flex-shrink: 0;
 }
 
 .reader-word-info-head {
@@ -579,6 +746,32 @@
 
 .disambiguation-panel {
   margin: 10px 0;
+  flex: 0 1 auto;
+  height: 95px;
+  min-height: 95px;
+  max-height: 195px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border-main);
+  border-radius: 10px;
+  background: var(--color-panel);
+  resize: vertical;
+}
+
+/* Lock row heights via line-height so resize reveals exactly the same number
+   of entries on every device, independent of the browser's font line-height.
+   Header row: 14 + 14 padding + 1 border = 29px. Body row: 16 + 14 + 1 = 31px.
+   Min 95px ≈ header + 2 entries (3 rows). Max 195px ≈ header + 5 entries. */
+.disambiguation-panel thead th {
+  line-height: 14px;
+}
+
+.disambiguation-panel tbody td {
+  line-height: 16px;
+}
+
+.disambiguation-panel tr:last-child td {
+  border-bottom: 0;
 }
 
 .disambiguation-panel table,
@@ -607,8 +800,41 @@
   text-transform: uppercase;
 }
 
+.disambiguation-panel thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 .disambiguation-row td {
   background: var(--surface-muted);
+}
+
+.disambiguation-panel tr.is-original-translation,
+.disambiguation-table tr.is-original-translation {
+  outline: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
+  outline-offset: -1px;
+}
+
+.disambiguation-panel tr.is-original-translation td,
+.disambiguation-table tr.is-original-translation td {
+  background: color-mix(in srgb, var(--known) 8%, var(--surface-panel));
+  border-top: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
+}
+
+.disambiguation-panel tr.is-original-translation td:first-child,
+.disambiguation-table tr.is-original-translation td:first-child {
+  border-left: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.disambiguation-panel tr.is-original-translation td:last-child,
+.disambiguation-table tr.is-original-translation td:last-child {
+  border-right: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 
 .reader-resize-handle,
@@ -822,6 +1048,7 @@
       max-height: 100svh;
       overflow: hidden;
       border-radius: 0;
+      padding-top: 50px;
       padding-bottom: calc(70px + env(safe-area-inset-bottom));
     }
 
@@ -858,20 +1085,25 @@
       grid-column: 1;
     }
 
-    .reader-focus-command {
-      width: 72px;
-      height: 42px;
-      margin: -14px 0 0;
-      border-radius: 8px;
+    .reader-focus-command,
+    .reader-focus-exit {
+      width: 76px;
+      height: 36px;
+      margin: 0;
+      border-radius: 0 0 0 12px;
       font-size: 0.9rem;
     }
 
-    .reader-focus-exit {
-      width: 72px;
-      height: 42px;
-      margin: -14px 0 0;
-      border-radius: 8px;
-      font-size: 0.9rem;
+    /* The toolbar stacks on mobile, so only the title row sits beside the corner
+       segment. Reserve room on the title block alone (not the whole toolbar, so
+       the controls row still spans full width) so the title ends just before the
+       button begins. */
+    .is-reader-active .reader-toolbar {
+      padding-right: 0;
+    }
+
+    .is-reader-active .reader-toolbar > div:first-child {
+      padding-right: 84px;
     }
   
     .reader-pagination-controls {

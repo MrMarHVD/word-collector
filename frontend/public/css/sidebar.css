@@ -1,0 +1,31 @@
+/*
+ * Shared collapsible-sidebar shell used by the reader and vocab panes. Owns the
+ * cross-pane chrome — the head row that holds the minimise button and the
+ * slide-out collapse animation — so both sidebars share one structure while
+ * their inner contents differ. Pane-specific layout (grid column widths, resize
+ * handles, focus mode) lives in the owning pane's stylesheet.
+ */
+
+.app-sidebar {
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform 220ms ease, opacity 180ms ease;
+}
+
+/* Head row: the minimise / expand button sits at the trailing edge. */
+.app-sidebar-head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+/* Collapsed: slide the sidebar out of view. The owning pane's stylesheet
+   collapses the layout column so the content reclaims the freed space. */
+.app-sidebar-layout.is-sidebar-collapsed .app-sidebar {
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+}

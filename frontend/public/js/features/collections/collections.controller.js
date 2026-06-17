@@ -1,13 +1,63 @@
+/**
+ * @fileoverview Collections feature controller — manages the vocabulary word
+ * table for the selected collection. Handles word loading, collection
+ * switching, search, word-status updates (single and multi-select), row
+ * selection (click, Shift+click, Cmd/Ctrl+click), drag-and-drop word moves
+ * between collections, translation-override editing, disambiguation expansion,
+ * and bulk word deletion.
+ */
+
 import { requestJson } from "../../api.js";
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
 import { state } from "../../state.js";
 import { renderCollectionsList, renderSelectedCollectionStats } from "../../views/dashboard.js";
 import { resetWordWindow } from "../../views/shell.js";
+import { createCollapsibleSidebar } from "../../views/components/sidebar.js";
 import { loadMoreWordsIfNeeded, renderWords } from "../../views/words.js";
 
 let loadDashboard = async () => {};
 
+/** Shared collapsible-sidebar controller for the collections sidebar. */
+let collectionsSidebar = null;
+
+/**
+ * Positions the floating reopen button level with the collections sidebar head.
+ *
+ * The button is fixed to the viewport, so its `top` is derived from the live
+ * sidebar position (which shifts with the email-verification banner and the
+ * header). Matches how the reader positions its own open button. No-op until
+ * the sidebar controller has been created.
+ *
+ * @sideeffects Sets the `--collectionsSidebarOpenTop` custom property on
+ *   `elements.collectionsSidebarOpen`.
+ */
+function positionCollectionsSidebarOpen() {
+  if (!elements.collectionsWorkspace || !elements.collectionsSidebarOpen) {
+    return;
+  }
+  const top = Math.round(elements.collectionsWorkspace.getBoundingClientRect().top + 14);
+  elements.collectionsSidebarOpen.style.setProperty("--collectionsSidebarOpenTop", `${top}px`);
+}
+
+/**
+ * Re-aligns the collections reopen button after a layout change (e.g. when the
+ * vocab tab becomes visible). Only relevant while the sidebar is collapsed.
+ *
+ * @returns {void}
+ */
+export function refreshCollectionsSidebar() {
+  positionCollectionsSidebarOpen();
+}
+
+/**
+ * Injects dependencies that the collections controller needs but cannot import
+ * directly (to avoid circular module dependencies).
+ *
+ * @param {{ loadDashboard: function(): Promise<void> }} options
+ * @param {function(): Promise<void>} options.loadDashboard - Reloads dashboard
+ *   data after word status changes, bulk deletion, or drag-and-drop moves.
+ */
 export function configureCollectionsController(options) {
   loadDashboard = options.loadDashboard;
 }
@@ -32,6 +82,26 @@ function setWordActionError(message = "") {
   elements.wordActionError.hidden = !message;
 }
 
+/**
+ * Fetches all words for the currently selected collection (or all words for
+ * the active study language when the "All" pseudo-collection is selected) and
+ * re-renders the word table.
+ *
+ * Clears the word table and shows an empty state when no collection is
+ * selected or when the "All" collection is selected without an active study
+ * language. Applies `state.search` as a server-side filter.
+ *
+ * @returns {Promise<void>}
+ *
+ * @sideeffects
+ * - Clears `state.selectedWordIds` and `state.selectionAnchorId`.
+ * - Calls GET `/api/languages/:id/words?search=…` or
+ *   GET `/api/collections/:id/words?search=…`.
+ * - Mutates `state.words`.
+ * - Calls {@link renderWords}, and updates `elements.wordRows.innerHTML`,
+ *   `elements.wordPagination`, and `elements.emptyState` for the no-collection
+ *   edge case.
+ */
 export async function loadWords() {
   state.selectedWordIds.clear();
   state.selectionAnchorId = null;
@@ -132,7 +202,88 @@ async function moveSelectedWords(wordIds, destinationId) {
   await loadDashboard();
 }
 
+function beginTranslationOverrideEdit(wordId) {
+  state.translationOverrideEditWordId = wordId;
+  state.translationOverrideEditContext = "vocab";
+  renderWords(state.words);
+  requestAnimationFrame(() => {
+    elements.wordRows.querySelector(`.translation-override-form[data-word-id="${wordId}"] .translation-override-input`)?.focus();
+  });
+}
+
+async function saveTranslationOverride(wordId, translationOverride) {
+  await requestJson(`/api/words/${wordId}/translation-override`, {
+    method: "PATCH",
+    body: JSON.stringify({ translationOverride })
+  });
+  state.translationOverrideEditWordId = null;
+  state.translationOverrideEditContext = null;
+  await loadWords();
+}
+
+function cancelTranslationOverrideEdit() {
+  state.translationOverrideEditWordId = null;
+  state.translationOverrideEditContext = null;
+  renderWords(state.words);
+}
+
+/**
+ * Attaches all DOM event listeners for the collections feature. Must be called
+ * once during application bootstrap.
+ *
+ * Registered interactions include:
+ * - Bulk-delete button: confirms, then POSTs to `/api/words/delete`.
+ * - Collection sidebar button clicks switching the active collection.
+ * - Collections select (mobile dropdown) switching the active collection.
+ * - Search input re-loading words on each keystroke.
+ * - Table scroll triggering {@link loadMoreWordsIfNeeded} for infinite-scroll
+ *   mode.
+ * - Prev / next page buttons in paged mode.
+ * - Word-row clicks (delegated on `elements.wordRows`):
+ *   - Translation-override edit / cancel / clear / form submit.
+ *   - Disambiguation toggle (expands inline candidate table).
+ *   - Status-segment clicks: applies to the clicked word, or to the entire
+ *     multi-selection when the word is part of one.
+ *   - Row checkbox selection with Shift (range), Cmd/Ctrl (toggle), and plain
+ *     click (single-select).
+ * - Drag-and-drop from word rows to collection buttons:
+ *   - `dragstart` encodes the selected word IDs as
+ *     `"application/x-word-marker-words"` and disables drag on mobile.
+ *   - `dragover` / `dragleave` provide drop-target highlighting on collection
+ *     buttons.
+ *   - `drop` moves the dragged words to the target collection via
+ *     POST `/api/words/move`.
+ *
+ * @sideeffects
+ * - Instantiates the shared collapsible-sidebar controller for the collections
+ *   sidebar (minimise / reopen buttons, persisted via
+ *   `wordMarkerCollectionsSidebarCollapsed`).
+ * - Adds event listeners on `elements.deleteSelectedButton`,
+ *   `elements.collectionsList`, `elements.collectionsSelect`,
+ *   `elements.searchInput`, `elements.tableWrap`, `elements.wordPrevPage`,
+ *   `elements.wordNextPage`, and `elements.wordRows`.
+ */
 export function bindCollectionsEvents() {
+  collectionsSidebar = createCollapsibleSidebar({
+    layout: elements.collectionsWorkspace,
+    toggleButton: elements.collectionsSidebarToggle,
+    openButton: elements.collectionsSidebarOpen,
+    collapsed: state.collectionsSidebarCollapsed,
+    storageKey: "wordMarkerCollectionsSidebarCollapsed",
+    onChange: (collapsed) => {
+      state.collectionsSidebarCollapsed = collapsed;
+      if (collapsed) {
+        positionCollectionsSidebarOpen();
+      }
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    if (collectionsSidebar?.isCollapsed()) {
+      positionCollectionsSidebarOpen();
+    }
+  });
+
   elements.deleteSelectedButton.addEventListener("click", async () => {
     if (!state.selectedWordIds.size) {
       return;
@@ -187,6 +338,34 @@ export function bindCollectionsEvents() {
   });
 
   elements.wordRows.addEventListener("click", async (event) => {
+    const translationEdit = event.target.closest("[data-translation-override-edit]");
+    if (translationEdit) {
+      beginTranslationOverrideEdit(Number(translationEdit.dataset.wordId));
+      return;
+    }
+
+    const translationCancel = event.target.closest("[data-translation-override-cancel]");
+    if (translationCancel) {
+      cancelTranslationOverrideEdit();
+      return;
+    }
+
+    const translationClear = event.target.closest("[data-translation-override-clear]");
+    if (translationClear) {
+      const wordId = Number(translationClear.dataset.wordId);
+      translationClear.disabled = true;
+      try {
+        await saveTranslationOverride(wordId, null);
+      } finally {
+        translationClear.disabled = false;
+      }
+      return;
+    }
+
+    if (event.target.closest("[data-translation-override-form]")) {
+      return;
+    }
+
     const disambiguate = event.target.closest("[data-word-disambiguate]");
     if (disambiguate) {
       const id = Number(disambiguate.dataset.wordDisambiguate);
@@ -233,6 +412,21 @@ export function bindCollectionsEvents() {
       return;
     }
     handleRowSelection(event, Number(row.dataset.wordId));
+  });
+
+  elements.wordRows.addEventListener("submit", async (event) => {
+    const form = event.target.closest("[data-translation-override-form]");
+    if (!form) {
+      return;
+    }
+    event.preventDefault();
+    const button = form.querySelector(".translation-override-save");
+    button.disabled = true;
+    try {
+      await saveTranslationOverride(Number(form.dataset.wordId), new FormData(form).get("translationOverride"));
+    } finally {
+      button.disabled = false;
+    }
   });
 
   elements.wordRows.addEventListener("dragstart", (event) => {

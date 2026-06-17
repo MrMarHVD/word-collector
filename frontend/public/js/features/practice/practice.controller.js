@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Practice feature controller — orchestrates the flashcard
+ * practice session lifecycle. Fetches session word lists from the API,
+ * manages in-memory session state (current card index, flip state, answers),
+ * persists "known" status changes, handles keyboard shortcuts, and saves
+ * practice-settings changes (words-per-session).
+ */
+
 import { requestJson } from "../../api.js";
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
@@ -26,6 +34,14 @@ const session = {
   panel: "practice"
 };
 
+/**
+ * Injects dependencies that the practice controller needs but cannot import
+ * directly (to avoid circular module dependencies).
+ *
+ * @param {{ loadDashboard: function(): Promise<void> }} options
+ * @param {function(): Promise<void>} options.loadDashboard - Reloads dashboard
+ *   data when any word status was changed during a session.
+ */
 export function configurePracticeController(options) {
   loadDashboard = options.loadDashboard;
 }
@@ -39,7 +55,16 @@ function resetSession() {
   session.statusChanged = false;
 }
 
-// Show the landing page; called when the practice tab is opened.
+/**
+ * Called when the user navigates to the practice tab. When a session is
+ * already active it resumes mid-session at the current card; otherwise it
+ * resets session state and renders the landing page.
+ *
+ * @sideeffects
+ * - When active: calls {@link renderPracticeCard} with the current session
+ *   state.
+ * - When inactive: calls `resetSession` then {@link renderPracticeLanding}.
+ */
 export function enterPracticeTab() {
   if (session.active) {
     renderPracticeCard(session, session.index, session.flipped);
@@ -103,11 +128,12 @@ function beginSession(words) {
   renderPracticeCard(session, session.index, session.flipped);
 }
 
+// Toggle the card between its front and back so a turned card can be turned back.
 function flipCard() {
-  if (!session.active || session.flipped) {
+  if (!session.active) {
     return;
   }
-  session.flipped = true;
+  session.flipped = !session.flipped;
   renderPracticeCard(session, session.index, session.flipped);
 }
 
@@ -196,6 +222,35 @@ async function savePracticeSettings(form) {
   }
 }
 
+/**
+ * Attaches all DOM event listeners for the practice feature. Must be called
+ * once during application bootstrap.
+ *
+ * Registered interactions include:
+ * - Sidebar panel navigation buttons (`data-practice-panel`), only active
+ *   outside a session.
+ * - "Start marked words" button (`data-practice-start-marked`): starts a
+ *   session in `"marked"` mode.
+ * - "Start" button (`data-practice-start`): starts a full session.
+ * - "Begin with fewer" button (`data-practice-begin`): starts with the
+ *   partial word list shown in the notice screen.
+ * - "Back" / "Exit" button (`data-practice-done`): resets the session and
+ *   shows the landing page.
+ * - Previous / next card navigation buttons.
+ * - Answer buttons (`data-practice-answer`): records the answer and advances
+ *   or finishes the session.
+ * - Card click / tap to flip.
+ * - Practice settings form submission (saves words-per-session via
+ *   PATCH `/api/settings`).
+ * - Keyboard shortcuts (practice tab, active session only):
+ *   - Space / Enter — flip the card.
+ *   - `1` / ArrowLeft — answer "don't know".
+ *   - `2` / ArrowRight — answer "know".
+ *
+ * @sideeffects
+ * - Adds event listeners on `elements.practiceContent` (delegated clicks and
+ *   submit) and `document` (keydown).
+ */
 export function bindPracticeEvents() {
   elements.practiceContent.addEventListener("click", async (event) => {
     const panelButton = event.target.closest("[data-practice-panel]");
@@ -254,7 +309,7 @@ export function bindPracticeEvents() {
     if (event.target instanceof HTMLElement && event.target.closest("input, textarea, select")) {
       return;
     }
-    if (!session.flipped && (event.key === " " || event.key === "Enter")) {
+    if (event.key === " " || event.key === "Enter") {
       event.preventDefault();
       flipCard();
       return;

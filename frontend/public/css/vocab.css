@@ -11,6 +11,33 @@
   box-shadow: inset 0 0 0 2px var(--brand);
 }
 
+/* Collapsible collections sidebar — the vocab pane's instance of the shared
+   sidebar shell. Collapsing slides the sidebar out (handled by the shell) and
+   drops its grid column so the word list reclaims the width. */
+.collections-workspace {
+  transition: grid-template-columns 220ms ease;
+}
+
+.collections-workspace.is-sidebar-collapsed {
+  /* Reserve a left gutter wide enough to keep the fixed reopen widget (pinned
+     to the viewport's left edge, 42px wide) clear of the word list with a
+     small gap. The shell is centred at min(1180px, 100vw - 32px), so on wide
+     viewports its own margin already clears the widget and the gutter
+     collapses to zero; on narrow viewports it grows to fill the shortfall. */
+  grid-template-columns:
+    max(0px, calc(42px + 14px - (100vw - min(1180px, 100vw - 32px)) / 2))
+    minmax(0, 1fr);
+  column-gap: 0;
+}
+
+/* The floating reopen button is fixed to the viewport's left gutter, vertically
+   aligned with the sidebar head. Its top is computed in the collections
+   controller so it tracks layout shifts (e.g. the email-verification banner),
+   mirroring how the reader positions its own open button. */
+.collections-sidebar-open {
+  top: var(--collectionsSidebarOpenTop, 120px);
+}
+
 .word-drag-cell {
   width: 28px;
   cursor: grab;
@@ -52,8 +79,51 @@
 }
 
 .table-wrap.is-scrollable {
-  max-height: min(62vh, 680px);
+  /*
+   * Size the scrollable word list to the space left below the page controls so
+   * the whole vocab view fits within the viewport and the list scrolls
+   * internally instead of growing the page. Clamped to keep a usable minimum on
+   * short screens and a sensible cap on tall ones.
+   */
+  max-height: clamp(240px, calc(100vh - 490px), 680px);
   overflow: auto;
+}
+
+/*
+ * Desktop: compact the vocabulary table so the full word list fits within a
+ * normal screen height without scrolling. Slightly reduces the table font size
+ * and trims the vertical height of each row and its subcomponents. Mobile keeps
+ * its own card layout via the max-width media queries below.
+ */
+@media (min-width: 761px) {
+  .table-wrap table {
+    font-size: 0.9rem;
+  }
+
+  .table-wrap .word-row > td {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .table-wrap .word-row .word-cell {
+    gap: 2px;
+  }
+
+  .table-wrap .word-cell-main {
+    font-size: 0.95rem;
+  }
+
+  .table-wrap .word-cell-phonetic {
+    font-size: 0.78rem;
+  }
+
+  .table-wrap .status-toggle {
+    padding: 2px;
+  }
+
+  .table-wrap .status-segment {
+    min-height: 28px;
+  }
 }
 
 tbody td {
@@ -214,6 +284,80 @@ tbody tr:last-child td {
   text-transform: uppercase;
 }
 
+.translation-override-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.translation-override-display.is-compact {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.translation-override-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-label);
+}
+
+.translation-override-text.is-overridden {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.translation-override-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.translation-override-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: min(100%, 360px);
+}
+
+.translation-override-form.is-compact {
+  width: 100%;
+}
+
+.translation-override-input {
+  min-width: 0;
+  flex: 1 1 150px;
+  border: 1px solid var(--border-main);
+  border-radius: 8px;
+  background: var(--surface-panel);
+  color: var(--text-main);
+  padding: 7px 9px;
+  font-size: 0.88rem;
+  line-height: 1.25;
+}
+
+.translation-override-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--brand) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 16%, transparent);
+}
+
+.translation-override-save {
+  flex: 0 0 auto;
+  width: max-content;
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 0.8rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.translation-override-cancel,
+.translation-override-edit,
+.translation-override-clear {
+  flex: 0 0 auto;
+}
+
 .collections-mobile-select-wrap {
   display: none;
 }
@@ -239,6 +383,32 @@ tbody tr:last-child td {
 
   .collections-sidebar {
     position: static;
+  }
+
+  /* On mobile the sidebar stacks above the word list, so collapse it to zero
+     height and float the reopen control as a bottom-right pill (matching the
+     reader pane's mobile behaviour). */
+  .collections-workspace.is-sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .collections-workspace.is-sidebar-collapsed .collections-sidebar {
+    max-height: 0;
+    margin: 0;
+    padding-block: 0;
+    border-width: 0;
+    overflow: hidden;
+  }
+
+  .collections-sidebar-open {
+    position: fixed;
+    top: auto;
+    right: 10px;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    left: auto;
+    width: 48px;
+    border-left: 1px solid var(--border-main);
+    border-radius: 999px;
   }
 
   .word-table-toolbar {

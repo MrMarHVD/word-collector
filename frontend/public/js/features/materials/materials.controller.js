@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Materials feature controller — manages the list of imported
+ * reading materials for the current study language. Handles paginated loading
+ * with infinite scroll, file upload via the import modal, material selection,
+ * inline renaming, deletion, and translation-progress polling. Also maintains
+ * a per-study-language localStorage cache of the last selected material ID so
+ * the reader can restore its position on next load.
+ */
+
 import { apiErrorMessage, apiUrl, csrfHeaders, requestJson } from "../../api.js";
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
@@ -13,11 +22,26 @@ function selectedMaterialCacheKey() {
   return state.selectedStudyLanguageId ? `wordMarkerSelectedMaterialId:${state.selectedStudyLanguageId}` : "";
 }
 
+/**
+ * Returns the persisted selected material ID for the current study language
+ * from localStorage, or `null` when none is stored or no study language is
+ * active.
+ *
+ * @returns {number|null}
+ */
 export function cachedSelectedMaterialId() {
   const key = selectedMaterialCacheKey();
   return key ? Number(localStorage.getItem(key)) || null : null;
 }
 
+/**
+ * Writes or removes the selected material ID in localStorage under a key that
+ * is scoped to the current study language. Does nothing when no study language
+ * is active.
+ *
+ * @param {number|null} materialId - The material ID to persist, or `null` to
+ *   remove the cached entry.
+ */
 export function cacheSelectedMaterialId(materialId) {
   const key = selectedMaterialCacheKey();
   if (!key) {
@@ -30,6 +54,18 @@ export function cacheSelectedMaterialId(materialId) {
   }
 }
 
+/**
+ * Injects dependencies that the materials controller needs but cannot import
+ * directly (to avoid circular module dependencies).
+ *
+ * @param {{ loadDashboard: function(): Promise<void>, loadMaterialReader: function(number|null, object=): Promise<void>, loadWords: function(): Promise<void> }} options
+ * @param {function(): Promise<void>} options.loadDashboard - Reloads dashboard
+ *   data after a material is uploaded or deleted.
+ * @param {function(number|null, object=): Promise<void>} options.loadMaterialReader
+ *   - Fetches and renders reader tokens for the selected material.
+ * @param {function(): Promise<void>} options.loadWords - Reloads the vocabulary
+ *   word list, called during translation-progress polling.
+ */
 export function configureMaterialsController(options) {
   loadDashboard = options.loadDashboard;
   loadMaterialReader = options.loadMaterialReader;
@@ -133,6 +169,32 @@ async function saveMaterialRename(materialId, title) {
   renderReaderTokens();
 }
 
+/**
+ * Fetches the material list for the current study language and appends it to
+ * `state.materials`. Clears state and renders empty views when no study
+ * language is active.
+ *
+ * Supports pagination: when `reset` is `true` the offset is reset and the
+ * existing list is cleared before fetching page 1. Subsequent calls with
+ * `reset = false` append the next page. Stops early when `state.materialHasMore`
+ * is `false`.
+ *
+ * After loading, schedules a translation-refresh polling interval when any
+ * material is still being imported or translated.
+ *
+ * @param {boolean} [reset=false] - When `true`, discards the current list and
+ *   fetches from offset 0.
+ *
+ * @returns {Promise<void>}
+ *
+ * @sideeffects
+ * - Mutates `state.materials`, `state.materialOffset`, `state.materialHasMore`,
+ *   and `state.selectedMaterialId`.
+ * - Calls GET `/api/materials?languageId=…&offset=…&search=…`.
+ * - Calls {@link renderMaterialList}, {@link renderImportProgress}, and
+ *   {@link renderReaderTokens}.
+ * - Starts or clears the translation-refresh polling interval.
+ */
 export async function loadMaterials(reset = false) {
   if (!state.selectedStudyLanguageId) {
     if (translationPollId) {
@@ -169,6 +231,30 @@ export async function loadMaterials(reset = false) {
   scheduleTranslationRefresh();
 }
 
+/**
+ * Attaches all DOM event listeners for the materials feature. Must be called
+ * once during application bootstrap.
+ *
+ * Registered interactions include:
+ * - Import modal open and close buttons.
+ * - Import form submission: validates file size and material count limits
+ *   before POSTing to `/api/materials` as multipart form data; tracks the
+ *   resulting material ID for progress display and auto-opens it when ready.
+ * - Material search input with 200 ms debounce triggering a reset load.
+ * - Material list scroll triggering paginated load of additional materials.
+ * - Material list clicks: rename button (enters inline edit), delete button
+ *   (confirms then calls DELETE `/api/materials/:id`), material title button
+ *   (selects and opens in reader).
+ * - Rename form submit and focusout saving the new title via
+ *   PATCH `/api/materials/:id`.
+ * - Escape key inside the rename input to cancel without saving.
+ *
+ * @sideeffects
+ * - Adds event listeners on `elements.materialImportOpen`,
+ *   `elements.materialImportModalClose`, `elements.materialImportForm`,
+ *   `elements.materialSearch`, `elements.materialList`, and keyboard events
+ *   within the list.
+ */
 export function bindMaterialsEvents() {
   elements.materialImportOpen.addEventListener("click", openMaterialImportModal);
   elements.materialImportModalClose.addEventListener("click", closeMaterialImportModal);

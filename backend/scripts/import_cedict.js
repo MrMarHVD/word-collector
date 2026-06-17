@@ -1,3 +1,29 @@
+/**
+ * @file import_cedict.js
+ * @description Builds an English-to-Chinese lookup index from the CC-CEDICT dictionary
+ * (gzip-compressed UTF-8 text). Populates the `cedict_english_index` table, which is
+ * cleared and rebuilt within a single transaction.
+ *
+ * Each CEDICT entry line has the form:
+ * ```
+ * traditional simplified [pinyin] /def1/def2/.../
+ * ```
+ * The importer extracts single-word English keys from each definition segment,
+ * assigns a POS label heuristically (e.g. "to X" → verb), and stores one row per
+ * (english_key, simplified) pair with the full definition text, pinyin, and priority.
+ * Stop words and non-alpha-only tokens are excluded. Entries with 3 or fewer
+ * definitions receive a small priority boost (they tend to be less ambiguous).
+ *
+ * CLI usage:
+ * ```
+ * node backend/scripts/import_cedict.js [gzPath]
+ * ```
+ * Optional first argument overrides the default path:
+ * `<ROOT>/data/dictionaries/cedict_ts.u8.gz`.
+ *
+ * Exits with a JSON summary `{ entries, rows }` printed to stdout.
+ * Requires `DATABASE_URL` (or equivalent db config) to be set in the environment.
+ */
 import { createGunzip } from "node:zlib";
 import { createReadStream } from "node:fs";
 import { join } from "node:path";
@@ -31,7 +57,12 @@ const STOP_WORDS = new Set([
   "with"
 ]);
 
-// Read and decompress a gzipped dictionary file.
+/**
+ * Read and decompress a gzipped dictionary file.
+ *
+ * @param {string} path - Absolute path to a `.gz` file.
+ * @returns {Promise<string>} Decompressed UTF-8 text content.
+ */
 function readGzip(path) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -43,7 +74,14 @@ function readGzip(path) {
   });
 }
 
-// Produce English index keys with priorities from CEDICT definitions.
+/**
+ * Heuristically infer a POS tag from a single CEDICT definition segment.
+ * Definitions starting with "to " are treated as verbs; segments containing
+ * explicit POS keywords are matched accordingly.
+ *
+ * @param {string} value - A single definition segment (one `/…/` field).
+ * @returns {"verb"|"adjective"|"adverb"|"noun"|""} Inferred POS string.
+ */
 function posForDefinition(value) {
   const clean = value.toLowerCase();
   if (clean.startsWith("to ")) return "verb";
@@ -53,6 +91,16 @@ function posForDefinition(value) {
   return "";
 }
 
+/**
+ * Extract indexable English keys with priorities and POS tags from a CEDICT entry's
+ * definition list. Only single lowercase words matching `[a-z][a-z'-]{1,80}` are
+ * indexed; stop words are excluded. Verbs written as "to X" are indexed under the
+ * bare verb form.
+ *
+ * @param {string[]} definitions - Array of definition segments for one CEDICT entry.
+ * @returns {{ key: string, priority: number, pos: string }[]} Unique key objects;
+ *   when the same key appears multiple times, the entry with the highest priority wins.
+ */
 function englishKeys(definitions) {
   // English reader tokens are single words, so only index single-word glosses.
   const keys = new Map();

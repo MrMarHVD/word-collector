@@ -1,7 +1,40 @@
+/**
+ * @fileoverview Route handlers for the `/api/collections/:id` resource.
+ *
+ * Collections group words within a study language. The routes here allow
+ * reassigning a collection to a different language and permanently deleting
+ * a collection (and all its words, by cascading delete in the repository).
+ */
+
 import { getLanguage } from "../../modules/languages/languages.service.js";
 import { readJson } from "../request.js";
 import { jsonResponse } from "../response.js";
 
+/**
+ * Creates route handlers for `/api/collections/:id`.
+ *
+ * Only paths matching `/api/collections/:id` (numeric ID) are handled;
+ * all others return `false` immediately.
+ *
+ * **PATCH /api/collections/:id**
+ * Moves the collection to a different study language.
+ * - Body: `{ languageId: number }` — the target language (must be owned by the user).
+ * - Response 200: updated collection record.
+ * - Response 400: `languageId` missing or language not found.
+ * - Response 404: collection not found or not owned by the user.
+ * - Response 409: a collection with the same name already exists in the target language
+ *   (unique constraint violation).
+ *
+ * **DELETE /api/collections/:id**
+ * Permanently deletes the collection. Associated words are removed via a
+ * cascading delete in the repository layer.
+ * - Response 200: `{ deleted: true, id: number }`
+ * - Response 404: collection not found or not owned by the user.
+ *
+ * @param {Object} deps
+ * @param {import("../../db/repositories.js").Repositories} deps.repositories
+ * @returns {(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, url: URL, user: import("../../auth/session.js").SessionUser) => Promise<boolean>}
+ */
 export function createCollectionsRoutes({ repositories }) {
   return async function handleCollectionsRoutes(req, res, url, user) {
     const collectionMatch = url.pathname.match(/^\/api\/collections\/(\d+)$/);

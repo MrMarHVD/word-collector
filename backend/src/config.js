@@ -1,3 +1,18 @@
+/**
+ * @fileoverview Central runtime configuration.
+ *
+ * Reads all environment variables from the process environment (after loading an
+ * optional `.env` file) and re-exports them as typed, named constants consumed
+ * throughout the backend.  Optional integrations (Sentry, Resend, Brevo, Google
+ * OAuth) are enabled only when their respective variables are present, keeping
+ * local and CI runs fully offline by default.
+ *
+ * In production every required variable must be set explicitly; missing values
+ * throw at import time so the process never starts in a misconfigured state.  In
+ * development, `JWT_SECRET` falls back to a file-persisted secret so that local
+ * restarts keep existing sessions valid.
+ */
+
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,7 +33,14 @@ try {
 export const NODE_ENV = process.env.NODE_ENV || "development";
 export const IS_PRODUCTION = NODE_ENV === "production";
 
-// Read a required variable, failing fast when it is missing.
+/**
+ * Reads a required environment variable, throwing at startup if it is absent.
+ * Failing fast here prevents the server from running in a silently broken state.
+ *
+ * @param {string} name - Environment variable name.
+ * @returns {string} The variable's value.
+ * @throws {Error} When the variable is not set or is an empty string.
+ */
 function requireEnv(name) {
   const value = process.env[name];
   if (!value) {

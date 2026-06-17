@@ -181,40 +181,77 @@
       </section>
 
       <section id="dashboardView" class="tab-view">
-        <section class="metrics mb-4 grid grid-cols-4 gap-3.5 max-md:grid-cols-1" aria-label="Overall progress">
-          <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
-            <span id="totalWords" class="block text-3xl font-black leading-none">0</span>
-            <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.totalWords">単語数</small>
-          </article>
-          <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
-            <span id="learningTotal" class="block text-3xl font-black leading-none">0</span>
-            <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.learningWords">学習中</small>
-          </article>
-          <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
-            <span id="unknownTotal" class="block text-3xl font-black leading-none">0</span>
-            <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.unknownWords">未習得</small>
-          </article>
-          <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
-            <span id="collectionCount" class="block text-3xl font-black leading-none">0</span>
-            <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.collectionCount">コレクション数</small>
-          </article>
-          <article id="wantToPracticeCard" class="rounded-lg border border-line bg-panel p-5 shadow-panel" hidden>
-            <span id="wantToPracticeTotal" class="block text-3xl font-black leading-none text-brand">0</span>
-            <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.wantToPracticeWords">練習したい単語</small>
-          </article>
-        </section>
+        <div class="local-tabbar dashboard-stats-tabs mb-4" role="tablist" aria-label="Dashboard statistics">
+          <button class="local-tab dashboard-stats-tab is-active" type="button" role="tab" data-dashboard-stats-tab="overview" aria-selected="true" data-i18n="dashboard.overviewTab">Overview</button>
+          <button class="local-tab dashboard-stats-tab" type="button" role="tab" data-dashboard-stats-tab="documents" aria-selected="false" data-i18n="dashboard.documentsTab">Documents</button>
+        </div>
 
-        <section class="collection-panel rounded-lg border border-line bg-panel p-5 shadow-panel">
-          <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
-            <h2 class="text-base font-bold" data-i18n="dashboard.collectionProgress">コレクション別の進捗</h2>
+        <div id="dashboardOverviewPanel" data-dashboard-stats-panel="overview">
+          <section class="metrics mb-4 grid grid-cols-4 gap-3.5 max-md:grid-cols-1" aria-label="Overall progress">
+            <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
+              <span id="totalWords" class="block text-3xl font-black leading-none">0</span>
+              <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.totalWords">単語数</small>
+            </article>
+            <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
+              <span id="learningTotal" class="block text-3xl font-black leading-none">0</span>
+              <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.learningWords">学習中</small>
+            </article>
+            <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
+              <span id="unknownTotal" class="block text-3xl font-black leading-none">0</span>
+              <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.unknownWords">未習得</small>
+            </article>
+            <article class="rounded-lg border border-line bg-panel p-5 shadow-panel">
+              <span id="collectionCount" class="block text-3xl font-black leading-none">0</span>
+              <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.collectionCount">コレクション数</small>
+            </article>
+            <article id="wantToPracticeCard" class="rounded-lg border border-line bg-panel p-5 shadow-panel" hidden>
+              <span id="wantToPracticeTotal" class="block text-3xl font-black leading-none text-brand">0</span>
+              <small class="mt-2 block text-sm text-secondary" data-i18n="dashboard.wantToPracticeWords">練習したい単語</small>
+            </article>
+          </section>
+
+          <section class="collection-panel rounded-lg border border-line bg-panel p-5 shadow-panel">
+            <div class="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
+              <h2 class="text-base font-bold" data-i18n="dashboard.collectionProgress">コレクション別の進捗</h2>
+            </div>
+            <div id="collectionCharts" class="chart-grid grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3"></div>
+          </section>
+        </div>
+
+        <section id="dashboardDocumentsPanel" class="dashboard-documents-panel rounded-lg border border-line bg-panel p-5 shadow-panel" data-dashboard-stats-panel="documents" hidden>
+          <div class="section-head mb-4 flex min-h-8 items-end justify-between gap-3 max-md:grid">
+            <div>
+              <h2 class="text-base font-bold" data-i18n="dashboard.documentProgress">Progress by document</h2>
+            </div>
+            <label class="dashboard-document-search grid w-[min(340px,100%)] gap-1.5 text-sm font-semibold text-label">
+              <span data-i18n="dashboard.documentSearch">Search</span>
+              <input id="dashboardDocumentSearch" class="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus" type="search" data-i18n-placeholder="dashboard.documentSearchPlaceholder" placeholder="Search documents" />
+            </label>
           </div>
-          <div id="collectionCharts" class="chart-grid grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3"></div>
+          <div id="dashboardDocumentsPane" class="dashboard-documents-pane rounded-lg border border-line bg-subtle p-3">
+            <div id="dashboardDocumentCharts" class="chart-grid grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3"></div>
+            <p id="dashboardDocumentStatus" class="dashboard-document-status mt-3 min-h-5 text-sm text-secondary" role="status"></p>
+          </div>
         </section>
       </section>
 
       <section id="collectionsView" class="tab-view" hidden>
-        <section class="workspace grid grid-cols-[minmax(220px,260px)_1fr] items-start gap-3.5 max-md:grid-cols-1">
-          <aside class="collections-sidebar rounded-lg border border-line bg-panel p-3.5 shadow-panel">
+        <button id="collectionsSidebarOpen" class="collections-sidebar-open secondary-button fixed left-0 top-[120px] z-[9] grid min-h-[52px] w-[42px] place-items-center rounded-r-lg border border-l-0 border-line bg-panel text-brand shadow-panel" type="button" hidden>
+          <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[1.8]">
+            <path d="M4 5h16M4 12h16M4 19h16" />
+          </svg>
+          <span class="visually-hidden" data-i18n="collections.openSidebar">Open sidebar</span>
+        </button>
+        <section class="workspace collections-workspace app-sidebar-layout grid grid-cols-[minmax(220px,260px)_1fr] items-start gap-3.5 max-md:grid-cols-1">
+          <aside class="collections-sidebar app-sidebar rounded-lg border border-line bg-panel p-3.5 shadow-panel">
+            <div class="app-sidebar-head">
+              <button id="collectionsSidebarToggle" class="secondary-button icon-button grid h-[42px] w-[42px] place-items-center rounded-md border border-line bg-panel text-brand hover:bg-hover" type="button" aria-expanded="true">
+                <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[1.8]">
+                  <path d="M15 6l-6 6 6 6" />
+                </svg>
+                <span class="visually-hidden" data-i18n="collections.toggleSidebar">Toggle sidebar</span>
+              </button>
+            </div>
             <button id="uploadOpenButton" class="collections-sidebar-upload mb-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="button" data-i18n="collections.upload">アップロード</button>
             <label class="collections-mobile-select-wrap grid gap-1.5 text-sm font-semibold text-label">
               <span data-i18n="collections.collection">コレクション</span>
@@ -282,9 +319,9 @@
           </svg>
           <span class="visually-hidden" data-i18n="reader.openSidebar">Open sidebar</span>
         </button>
-        <section class="reader-layout relative grid items-start">
-          <aside class="reader-sidebar sticky top-[88px] z-[8] h-[calc(100vh-88px)] overflow-auto rounded-l-lg border border-line bg-panel p-3.5 shadow-panel">
-            <div class="reader-sidebar-head mb-3 flex justify-end">
+        <section class="reader-layout app-sidebar-layout relative grid items-start">
+          <aside class="reader-sidebar app-sidebar sticky top-[88px] z-[8] h-[calc(100vh-88px)] overflow-auto rounded-l-lg border border-line bg-panel p-3.5 shadow-panel">
+            <div class="reader-sidebar-head app-sidebar-head mb-3 flex justify-end">
               <button id="readerSidebarToggle" class="secondary-button icon-button grid h-[42px] w-[42px] place-items-center rounded-md border border-line bg-panel text-brand hover:bg-hover" type="button" aria-expanded="true">
                 <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5 fill-none stroke-current stroke-[1.8]">
                   <path d="M15 6l-6 6 6 6" />

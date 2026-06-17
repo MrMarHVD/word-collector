@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Transactional email templates. Provides four localized
+ * template builders (`verification`, `passwordReset`, `receipt`, `dunning`)
+ * that each return `{ subject, html, text }` for a given locale and
+ * parameter set. HTML is inline-styled for broad email-client compatibility.
+ * Supported locales: `"en"`, `"ja"`, `"zh"` (falls back to English).
+ */
+
 import { DEFAULT_EMAIL_LOCALE } from "./email.locale.js";
 
 // Localized transactional email templates. Each template builder returns
