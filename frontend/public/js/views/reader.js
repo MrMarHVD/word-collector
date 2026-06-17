@@ -13,7 +13,8 @@ import { renderStatusToggle } from "./words.js";
 import { formatCount, t } from "../i18n.js";
 import { state } from "../state.js";
 import { escapeHtml } from "../shared/html.js";
-import { hasTranslationOverride, renderTranslationOverrideControls } from "./components/translation-override.js";
+import { renderTranslationOverrideControls } from "./components/translation-override.js";
+import { hasDisambiguation, renderDisambiguationTable as renderDisambiguationTableContents } from "./components/disambiguation.js";
 
 const MIN_READER_PANEL_WIDTH = 360;
 const MAX_READER_SIDEBAR_WIDTH = 340;
@@ -561,64 +562,20 @@ function positionReaderWordInfo(anchor) {
   elements.readerWordInfo.style.visibility = "";
 }
 
-function originalTranslationCandidate(token) {
-  if (!hasTranslationOverride(token) || !token.canonicalTranslation) {
-    return null;
-  }
-  return {
-    source: token.dictionaryForm || token.lemma || token.surface || "",
-    translation: token.canonicalTranslation,
-    pos: "",
-    original: true
-  };
-}
-
-function disambiguationEntries(token) {
-  const original = originalTranslationCandidate(token);
-  const originalKey = String(original?.translation || "").toLowerCase();
-  const candidates = (Array.isArray(token.disambiguationCandidates) ? token.disambiguationCandidates : [])
-    .map((candidate) => ({
-      ...candidate,
-      original: Boolean(originalKey && String(candidate.translation || "").toLowerCase() === originalKey)
-    }));
-  const hasOriginalCandidate = candidates.some((candidate) => candidate.original);
-  const originalCandidates = candidates.filter((candidate) => candidate.original);
-  const otherCandidates = candidates.filter((candidate) => !candidate.original);
-  return [
-    ...(hasOriginalCandidate ? originalCandidates : original ? [original] : []),
-    ...otherCandidates
-  ].filter(Boolean);
-}
-
+/**
+ * Wraps the shared disambiguation table in the reader's collapsible panel.
+ * Returns an empty string when the token has nothing to disambiguate.
+ *
+ * @param {object} token - The reader token.
+ * @returns {string} The panel HTML string, or an empty string.
+ */
 function renderDisambiguationTable(token) {
-  const entries = disambiguationEntries(token);
-  if (!entries.length) {
+  const table = renderDisambiguationTableContents(token);
+  if (!table) {
     return "";
   }
   return `
-    <div class="disambiguation-panel" data-disambiguation-panel hidden>
-      <table>
-        <thead>
-          <tr>
-            <th>${escapeHtml(t("table.word"))}</th>
-            <th>${escapeHtml(t("table.translation"))}</th>
-            <th>${escapeHtml(t("reader.partOfSpeech"))}</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${entries.map((candidate) => {
-            const pos = candidate.original ? t("translation.original") : candidate.pos ? t(`pos.${candidate.pos}`, {}, candidate.pos) : "";
-            return `
-              <tr${candidate.original ? ` class="is-original-translation"` : ""}>
-                <td>${escapeHtml(candidate.source || "")}</td>
-                <td>${escapeHtml(candidate.translation || "")}</td>
-                <td>${escapeHtml(pos)}</td>
-              </tr>
-            `;
-          }).join("")}
-        </tbody>
-      </table>
-    </div>
+    <div class="disambiguation-panel" data-disambiguation-panel hidden>${table}</div>
   `;
 }
 
@@ -687,7 +644,7 @@ export function renderReaderWordInfo(token, anchor = null) {
   // status the checkbox is disabled and forced off.
   const canPractice = status === "learning";
   const practiceChecked = canPractice && Boolean(token.wantToPractice);
-  const disambiguationEntryCount = disambiguationEntries(token).length;
+  const showDisambiguation = hasDisambiguation(token);
   const practiceToggle = `
     <label class="reader-practice-toggle${canPractice ? "" : " is-disabled"}"${canPractice ? "" : ` title="${escapeHtml(t("reader.practiceHint"))}"`}>
       <input class="reader-checkbox" type="checkbox" data-reader-practice-checkbox data-reader-word-id="${token.wordId}" ${practiceChecked ? "checked" : ""} ${canPractice ? "" : "disabled"} />
@@ -700,7 +657,7 @@ export function renderReaderWordInfo(token, anchor = null) {
   elements.readerWordInfo.innerHTML = `
     <div class="reader-word-info-head">
       <strong>${escapeHtml(token.surface)}</strong>
-      ${disambiguationEntryCount > 1 || originalTranslationCandidate(token) ? `<button class="disambiguation-button secondary-button rounded-md border border-line bg-panel px-3 text-sm font-bold text-brand hover:bg-hover" type="button" data-disambiguate aria-expanded="false">
+      ${showDisambiguation ? `<button class="disambiguation-button secondary-button rounded-md border border-line bg-panel px-3 text-sm font-bold text-brand hover:bg-hover" type="button" data-disambiguate aria-expanded="false">
         <span class="disambiguation-button-icon" aria-hidden="true">▾</span>
         <span>${escapeHtml(t("reader.disambiguate"))}</span>
       </button>` : ""}

@@ -13,6 +13,7 @@ import { escapeHtml } from "../shared/html.js";
 import { normalizeStatus, WORD_STATUSES } from "../shared/status.js";
 import { renderDisplayModeButtons } from "./shell.js";
 import { renderTranslationOverrideControls } from "./components/translation-override.js";
+import { hasDisambiguation, renderDisambiguationTable } from "./components/disambiguation.js";
 
 function usePagedWordList() {
   return state.wordDisplayMode === "page";
@@ -47,37 +48,26 @@ export function renderStatusToggle(wordId, currentStatus, { dataAttr = "data-wor
   return `<div class="status-toggle" role="group" ${dataAttr}="${wordId}">${segments}</div>`;
 }
 
+/**
+ * Renders the expanded disambiguation row for a word, wrapping the shared
+ * disambiguation table in a full-width table row. Returns an empty string
+ * unless this word is the currently expanded one and it has entries to show.
+ *
+ * @param {object} entry - The vocabulary word entry.
+ * @returns {string} The expansion row HTML string, or an empty string.
+ */
 function renderDisambiguationRows(entry) {
-  const candidates = Array.isArray(entry.disambiguationCandidates) ? entry.disambiguationCandidates : [];
-  if (candidates.length <= 1 || state.expandedDisambiguationWordId !== entry.id) {
+  if (state.expandedDisambiguationWordId !== entry.id) {
+    return "";
+  }
+  const table = renderDisambiguationTable(entry, { className: "disambiguation-table" });
+  if (!table) {
     return "";
   }
   return `
     <tr class="disambiguation-row" data-disambiguation-for="${entry.id}">
       <td></td>
-      <td colspan="4">
-        <table class="disambiguation-table">
-          <thead>
-            <tr>
-              <th>${escapeHtml(t("table.word"))}</th>
-              <th>${escapeHtml(t("table.translation"))}</th>
-              <th>${escapeHtml(t("reader.partOfSpeech"))}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${candidates.map((candidate) => {
-              const pos = candidate.pos ? t(`pos.${candidate.pos}`, {}, candidate.pos) : "";
-              return `
-                <tr>
-                  <td>${escapeHtml(candidate.source || "")}</td>
-                  <td>${escapeHtml(candidate.translation || "")}</td>
-                  <td>${escapeHtml(pos)}</td>
-                </tr>
-              `;
-            }).join("")}
-          </tbody>
-        </table>
-      </td>
+      <td colspan="4">${table}</td>
     </tr>
   `;
 }
@@ -138,7 +128,7 @@ export function renderWords(words) {
         if (entry.pinyin) phonetics.push(entry.pinyin);
         if (entry.traditional && entry.traditional !== entry.word) phonetics.push(entry.traditional);
         const selected = state.selectedWordIds.has(entry.id);
-        const candidates = Array.isArray(entry.disambiguationCandidates) ? entry.disambiguationCandidates : [];
+        const showDisambiguation = hasDisambiguation(entry);
         const expanded = state.expandedDisambiguationWordId === entry.id;
         return `
       <tr class="word-row${selected ? " is-selected" : ""}" draggable="true" data-word-id="${entry.id}" data-collection-id="${entry.collectionId}" aria-selected="${selected}">
@@ -162,7 +152,7 @@ export function renderWords(words) {
           ${renderTranslationOverrideControls(entry, { context: "vocab" })}
         </td>
         <td class="px-3 py-3 align-middle word-action-cell" data-label="${escapeHtml(t("reader.disambiguate"))}">
-          ${candidates.length > 1 ? `<button class="disambiguation-button secondary-button rounded-md border border-line bg-panel px-3 text-sm font-bold text-brand hover:bg-hover" type="button" data-word-disambiguate="${entry.id}" aria-expanded="${expanded}">
+          ${showDisambiguation ? `<button class="disambiguation-button secondary-button rounded-md border border-line bg-panel px-3 text-sm font-bold text-brand hover:bg-hover" type="button" data-word-disambiguate="${entry.id}" aria-expanded="${expanded}">
             <span class="disambiguation-button-icon" aria-hidden="true">▾</span>
             <span>${escapeHtml(t("reader.disambiguate"))}</span>
           </button>` : ""}

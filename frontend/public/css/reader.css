@@ -810,24 +810,28 @@
   background: var(--surface-muted);
 }
 
-.disambiguation-panel tr.is-original-translation {
+.disambiguation-panel tr.is-original-translation,
+.disambiguation-table tr.is-original-translation {
   outline: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
   outline-offset: -1px;
 }
 
-.disambiguation-panel tr.is-original-translation td {
+.disambiguation-panel tr.is-original-translation td,
+.disambiguation-table tr.is-original-translation td {
   background: color-mix(in srgb, var(--known) 8%, var(--surface-panel));
   border-top: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
 }
 
-.disambiguation-panel tr.is-original-translation td:first-child {
+.disambiguation-panel tr.is-original-translation td:first-child,
+.disambiguation-table tr.is-original-translation td:first-child {
   border-left: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
   border-top-left-radius: 8px;
   border-bottom-left-radius: 8px;
 }
 
-.disambiguation-panel tr.is-original-translation td:last-child {
+.disambiguation-panel tr.is-original-translation td:last-child,
+.disambiguation-table tr.is-original-translation td:last-child {
   border-right: 1px solid color-mix(in srgb, var(--known) 62%, transparent);
   border-top-right-radius: 8px;
   border-bottom-right-radius: 8px;
