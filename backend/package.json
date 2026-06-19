@@ -6,9 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "migrate": "node-pg-migrate",
-    "migrate:up": "node-pg-migrate up",
-    "migrate:down": "node-pg-migrate down",
+    "migrate": "node --env-file=../.env ../node_modules/.bin/node-pg-migrate",
+    "migrate:up": "node --env-file=../.env ../node_modules/.bin/node-pg-migrate up",
+    "migrate:down": "node --env-file=../.env ../node_modules/.bin/node-pg-migrate down",
     "provision:admin": "node scripts/provision_admin.js",
     "backfill:global-translations": "node scripts/backfill_global_translations.js",
     "email:test": "node scripts/send_test_email.js",
