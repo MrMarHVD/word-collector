@@ -1,5 +1,5 @@
 /**
- * @fileoverview Central mutable state store for the Word Marker SPA.
+ * @fileoverview Central mutable state store for the Supergloss SPA.
  *
  * Exports a single `state` object that is imported and mutated directly by view
  * and controller modules. Persisted preferences (theme, locale, display mode, etc.)
@@ -61,7 +61,6 @@ function normalizeDashboardStatsTab(stored) {
  *   csrfToken: string|null,
  *   user: object|null,
  *   languages: Array<{id: number, name: string}>,
- *   predefinedLanguages: string[],
  *   studyLanguageOptions: string[],
  *   nativeLanguageOptions: string[],
  *   authProviders: Record<string, unknown>,
@@ -126,7 +125,6 @@ export const state = {
   csrfToken: null,
   user: null,
   languages: [],
-  predefinedLanguages: [],
   studyLanguageOptions: [],
   nativeLanguageOptions: [],
   authProviders: {},

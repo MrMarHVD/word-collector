@@ -45,20 +45,18 @@ export function setActiveTab(tabName) {
 }
 
 /**
- * Shows one of the four top-level shells: `"auth"`, `"onboarding"`,
- * `"welcome"`, or `"app"`. Only the nominated shell is made visible; all
- * others are hidden.
+ * Shows one of the three top-level shells: `"auth"`, `"welcome"`, or `"app"`.
+ * Only the nominated shell is made visible; all others are hidden.
  *
  * When `viewName` is `"welcome"`, the welcome view is shown with its
  * call-to-action and language-gate sections adjusted to match the current
  * authentication and study-language state.
  *
- * @param {"auth"|"onboarding"|"welcome"|"app"} viewName - The shell to display.
+ * @param {"auth"|"welcome"|"app"} viewName - The shell to display.
  *
  * @sideeffects
  * - Removes `is-reader-active` from `document.body` for any non-app view.
- * - Shows or hides `elements.authView`, `elements.onboardingView`, and
- *   `elements.appShell`.
+ * - Shows or hides `elements.authView` and `elements.appShell`.
  * - When showing `"welcome"` or `"app"`, calls {@link renderMenuForAuth}.
  * - When showing `"welcome"`, adjusts `elements.welcomeActions`,
  *   `elements.welcomeLanguageGate`, and all tab content panels.
@@ -68,7 +66,6 @@ export function showView(viewName) {
     document.body.classList.remove("is-reader-active");
   }
   elements.authView.hidden = viewName !== "auth";
-  elements.onboardingView.hidden = viewName !== "onboarding";
   elements.appShell.hidden = viewName !== "app" && viewName !== "welcome";
   if (viewName === "welcome" || viewName === "app") {
     renderMenuForAuth(Boolean(state.user) || viewName === "app");

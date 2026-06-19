@@ -2,7 +2,7 @@
  * @fileoverview Languages repository. SQL persistence for the global language
  * catalogue and user language enrolments. Languages are global records shared
  * across users; a user "has" a language through the `user_languages` join table.
- * Tables: `languages`, `user_languages`, `predefined_languages`.
+ * Tables: `languages`, `user_languages`.
  */
 
 /**
@@ -12,7 +12,6 @@
  * @returns {object} Repository with language CRUD and enrolment methods.
  */
 export function createLanguagesRepository(db) {
-  const predefinedLanguages = db.prepare("SELECT id, name FROM predefined_languages ORDER BY lower(name)");
   // Languages are global; a user "has" a language through user_languages.
   const languagesByUser = db.prepare(`
     SELECT l.id, l.name
@@ -39,14 +38,6 @@ export function createLanguagesRepository(db) {
   const enrollUser = db.prepare("INSERT INTO user_languages (user_id, language_id) VALUES (?, ?) ON CONFLICT DO NOTHING");
 
   return {
-    /**
-     * List all predefined languages, ordered by name.
-     * Queries: `predefined_languages`.
-     * @returns {Array<{ id: number, name: string }>}
-     */
-    listPredefined() {
-      return predefinedLanguages.all();
-    },
     /**
      * List all languages the user has enrolled in, ordered by name.
      * Queries: `languages` JOIN `user_languages`.

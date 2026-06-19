@@ -80,8 +80,7 @@ async function restoreSelectedMaterial() {
  * @returns {Promise<void>}
  *
  * @sideeffects
- * - Mutates `state.dashboard`, `state.predefinedLanguages`,
- *   `state.studyLanguageOptions`, `state.languages`,
+ * - Mutates `state.dashboard`, `state.studyLanguageOptions`, `state.languages`,
  *   `state.selectedStudyLanguageName`, `state.selectedStudyLanguageId`, and
  *   `state.selectedCollectionId`.
  * - Calls GET `/api/dashboard?languageId=…`.
@@ -97,7 +96,6 @@ export async function loadDashboard() {
   }
   state.dashboard = await requestJson(`/api/dashboard?${params}`);
 
-  state.predefinedLanguages = state.dashboard.predefinedLanguages || state.predefinedLanguages;
   state.studyLanguageOptions = state.dashboard.studyLanguageOptions || state.studyLanguageOptions;
   state.languages = state.dashboard.languages || state.languages;
   const selectedLanguage = languageByName(state.languages, state.selectedStudyLanguageName) || state.languages.find((language) => language.id === state.selectedStudyLanguageId);

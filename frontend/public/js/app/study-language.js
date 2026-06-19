@@ -281,7 +281,6 @@ async function addStudyLanguage(name) {
   });
   state.languages = result.languages || state.languages;
   state.studyLanguageOptions = result.studyLanguageOptions || state.studyLanguageOptions;
-  state.predefinedLanguages = result.predefinedLanguages || state.predefinedLanguages;
   const selected = await setStudyLanguage(result.language?.name || name, { persist: true, reload: false });
   if (selected) {
     reloadDashboardPage();

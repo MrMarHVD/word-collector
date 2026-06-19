@@ -58,7 +58,7 @@ function publicUser(user) {
  * (or `null` for unauthenticated requests), language configuration, and
  * available OAuth providers. This is the primary bootstrap call made by the
  * frontend on load.
- * - Response 200: `{ csrfToken, user|null, languages, predefinedLanguages,
+ * - Response 200: `{ csrfToken, user|null, languages,
  *   studyLanguageOptions, nativeLanguageOptions, authProviders }`
  *
  * **GET /api/auth/google/start**
@@ -163,7 +163,6 @@ export function createAuthRoutes({
           csrfToken: createCsrfTokenForRequest(req),
           user: null,
           languages: [],
-          predefinedLanguages: await repositories.languages.listPredefined(),
           studyLanguageOptions: STUDY_LANGUAGE_OPTIONS,
           nativeLanguageOptions: NATIVE_LANGUAGE_OPTIONS,
           authProviders: { google: googleOAuthConfigured() }

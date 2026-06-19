@@ -49,7 +49,7 @@ export function configureAuthController(options) {
  * @returns {Promise<void>}
  *
  * @sideeffects
- * - Mutates `state.user`, `state.languages`, `state.predefinedLanguages`,
+ * - Mutates `state.user`, `state.languages`,
  *   `state.studyLanguageOptions`, `state.nativeLanguageOptions`,
  *   `state.authProviders`, and `state.selectedStudyLanguageName`.
  * - Calls GET `/api/auth/me`.
@@ -61,7 +61,6 @@ export async function loadSession() {
   const result = await requestJson("/api/auth/me");
   state.user = result.user;
   state.languages = result.languages || [];
-  state.predefinedLanguages = result.predefinedLanguages || [];
   state.studyLanguageOptions = result.studyLanguageOptions || [];
   state.nativeLanguageOptions = result.nativeLanguageOptions || [];
   state.authProviders = result.authProviders || {};

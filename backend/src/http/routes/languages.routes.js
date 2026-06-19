@@ -1,8 +1,8 @@
 /**
  * @fileoverview Route handlers for the `/api/languages` endpoint.
  *
- * Covers listing the authenticated user's study languages together with
- * predefined language options, and adding a new study language to their account.
+ * Covers listing the authenticated user's study languages together with the
+ * supported study-language options, and adding a new study language to their account.
  */
 
 import { STUDY_LANGUAGE_OPTIONS } from "../../config.js";
@@ -13,7 +13,6 @@ import { jsonResponse } from "../response.js";
 async function buildLanguagesPayload(repositories, userId) {
   return {
     languages: await getLanguages(repositories, userId),
-    predefinedLanguages: await repositories.languages.listPredefined(),
     studyLanguageOptions: STUDY_LANGUAGE_OPTIONS
   };
 }
@@ -22,15 +21,15 @@ async function buildLanguagesPayload(repositories, userId) {
  * Creates the route handler for `/api/languages`.
  *
  * **GET /api/languages**
- * Returns the authenticated user's study languages, the global list of
- * predefined languages, and the available study-language options.
- * - Response 200: `{ languages, predefinedLanguages, studyLanguageOptions }`
+ * Returns the authenticated user's study languages and the available
+ * study-language options.
+ * - Response 200: `{ languages, studyLanguageOptions }`
  *
  * **POST /api/languages**
  * Adds a new study language for the authenticated user, deriving default
  * translation behaviour from the user's native language profile.
  * - Body: `{ name: string }` — display name of the language to add.
- * - Response 201: `{ languages, predefinedLanguages, studyLanguageOptions, language }`
+ * - Response 201: `{ languages, studyLanguageOptions, language }`
  *   where `language` is the newly created entry.
  * - Response 400: `{ error, errorKey }` if the language is invalid or already added.
  *

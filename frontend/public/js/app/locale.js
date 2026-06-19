@@ -5,7 +5,7 @@
  *   - Sets `document.documentElement.lang` and the page `<title>`.
  *   - Translates all static elements annotated with `data-i18n`, `data-i18n-placeholder`,
  *     `data-i18n-title`, and `data-i18n-aria-label` attributes.
- *   - Re-renders all dynamic views (auth, onboarding, settings, study language,
+ *   - Re-renders all dynamic views (auth, settings, study language,
  *     dashboard, reader, word list) so their text reflects the new locale.
  *
  * Locale changes are persisted to `localStorage` under `wordMarkerLocale`.
@@ -17,7 +17,6 @@ import { state } from "../state.js";
 import { renderThemeButtons } from "../theme.js";
 import { renderAuthMode } from "../views/auth.js";
 import { renderDashboard } from "../views/dashboard.js";
-import { renderOnboarding } from "../views/onboarding.js";
 import { renderMaterialList, renderReaderSidebar, renderReaderSidebarTabs, renderReaderTokens } from "../views/reader.js";
 import { renderDisplayModeButtons, renderLocaleButtons } from "../views/shell.js";
 import { renderWords } from "../views/words.js";
@@ -68,7 +67,6 @@ export function applyLocale() {
   });
 
   renderAuthMode();
-  renderOnboarding(state.predefinedLanguages);
   renderSettings();
   renderStudyLanguageSelect();
   if (state.dashboard) {

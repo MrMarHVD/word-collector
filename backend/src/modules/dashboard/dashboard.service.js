@@ -41,8 +41,8 @@ function normalizeDocument(document) {
 
 /**
  * Build the full dashboard payload for the overview tab. Fetches aggregate
- * totals, per-collection breakdowns, the enrolled and predefined language
- * lists, and the supported study-language options. Collection rows are
+ * totals, per-collection breakdowns, the enrolled language list, and the
+ * supported study-language options. Collection rows are
  * normalised so numeric fields are never null.
  * Coordinates with: dashboard repository, languages repository/service.
  *
@@ -59,7 +59,6 @@ export async function getDashboard(repositories, userId, languageId) {
 
   return {
     languages: await getLanguages(repositories, userId),
-    predefinedLanguages: await repositories.languages.listPredefined(),
     studyLanguageOptions: STUDY_LANGUAGE_OPTIONS,
     selectedLanguageId,
     totalWords: Number(totals.totalWords || 0),

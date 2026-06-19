@@ -50,12 +50,12 @@ function isTokenUsable(row) {
 
 /**
  * Build the auth context payload returned after sign-in and on session refresh.
- * Fetches the user profile, enrolled languages, and the predefined language list.
+ * Fetches the user profile and enrolled languages.
  * Coordinates with: auth repository, languages repository.
  *
  * @param {object} repositories - The wired repository map.
  * @param {number} userId
- * @returns {Promise<{ user: object, languages: object[], predefinedLanguages: object[], needsOnboarding: boolean }>}
+ * @returns {Promise<{ user: object, languages: object[], needsOnboarding: boolean }>}
  */
 export async function getAuthContext(repositories, userId) {
   const languages = await repositories.languages.listForUser(userId);
@@ -73,7 +73,6 @@ export async function getAuthContext(repositories, userId) {
       hasGoogle: profile.hasGoogle === true
     },
     languages,
-    predefinedLanguages: await repositories.languages.listPredefined(),
     needsOnboarding: languages.length === 0
   };
 }
