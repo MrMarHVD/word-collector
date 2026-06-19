@@ -11,6 +11,11 @@
     "dev:api": "npm run dev -w backend",
     "dev:web": "npm run dev -w frontend",
     "build:css": "npm run build:css -w frontend",
-    "watch:css": "npm run watch:css -w frontend"
+    "watch:css": "npm run watch:css -w frontend",
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright test --reporter=html"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.0"
   }
 }

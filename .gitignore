@@ -12,5 +12,8 @@ ssh
 ssh.pub
 .env.production
 .playwright-mcp
+test-results/
+playwright-report/
+tests/.auth/
 
 
