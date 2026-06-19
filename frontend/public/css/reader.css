@@ -598,11 +598,16 @@
 
 /* Make the popup a flex column so the disambiguation panel can absorb the
    remaining space and scroll internally while the rest of the pane stays put.
-   Max-height raised so a 5-entry disambiguation pane always has room. */
+   Max-height raised so a 5-entry disambiguation pane always has room. The popup
+   scrolls vertically when its own content (e.g. a very long translation) would
+   otherwise overflow the capped height — critical on mobile, where the popup is
+   a bottom sheet. Horizontal overflow stays clipped so no sideways scrollbar
+   appears and the edge resize handle keeps its current behaviour. */
 .reader-word-info:not([hidden]) {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   max-height: min(500px, calc(100vh - 24px));
 }
 

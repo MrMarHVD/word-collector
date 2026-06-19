@@ -2594,7 +2594,8 @@ tbody tr:last-child td {
 .reader-word-info:not([hidden]) {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   max-height: min(500px, calc(100vh - 24px));
 }
 .reader-word-info:not([hidden]) > :not(.disambiguation-panel) {
