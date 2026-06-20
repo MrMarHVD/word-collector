@@ -12,8 +12,10 @@
  *   - `reader`      ↔ `/reader`
  *   - `practice`    ↔ `/practice`
  *   - `settings`    ↔ `/settings`
+ *   - `admin`       ↔ `/admin`
  */
 
+import { enterAdminTab, isAdminUser } from "../features/admin/admin.controller.js";
 import { enterPracticeTab } from "../features/practice/practice.controller.js";
 import { refreshCollectionsSidebar } from "../features/collections/collections.controller.js";
 import { renderReaderSidebar } from "../views/reader.js";
@@ -26,7 +28,8 @@ const TAB_TO_PATH = {
   collections: "/vocab",
   reader: "/reader",
   practice: "/practice",
-  settings: "/settings"
+  settings: "/settings",
+  admin: "/admin"
 };
 const PATH_TO_TAB = Object.fromEntries(Object.entries(TAB_TO_PATH).map(([tab, path]) => [path, tab]));
 const DEFAULT_TAB = "dashboard";
@@ -76,6 +79,12 @@ function refreshCollectionsSidebarAfterLayout() {
  */
 // Activate a tab and run its side effects. Does not change the URL.
 export function activateTab(tabName) {
+  // The Admin tab is privilege-gated: a non-admin reaching `/admin` directly is
+  // redirected away so admin UI is never exposed client-side.
+  if (tabName === "admin" && !isAdminUser()) {
+    navigateToTab(DEFAULT_TAB, { replace: true });
+    return;
+  }
   setActiveTab(tabName);
   if (tabName === "reader") {
     renderReaderSidebarAfterLayout();
@@ -83,6 +92,8 @@ export function activateTab(tabName) {
     refreshCollectionsSidebarAfterLayout();
   } else if (tabName === "practice") {
     enterPracticeTab();
+  } else if (tabName === "admin") {
+    enterAdminTab();
   }
 }
 

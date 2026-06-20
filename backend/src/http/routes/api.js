@@ -16,6 +16,9 @@
 
 import { createSessionHelpers } from "../../auth/session.js";
 import { jsonResponse } from "../response.js";
+import { createAdminSuperadminRoutes } from "./admin-superadmin.routes.js";
+import { createAdminUsersRoutes } from "./admin-users.routes.js";
+import { createAdminWordsRoutes } from "./admin-words.routes.js";
 import { createAuthRoutes } from "./auth.routes.js";
 import { createCollectionsRoutes } from "./collections.routes.js";
 import { createDashboardRoutes } from "./dashboard.routes.js";
@@ -51,7 +54,10 @@ export function createApiHandler({ repositories, emailService }) {
     createSettingsRoutes({ repositories, session }),
     createWordsRoutes({ repositories }),
     createCollectionsRoutes({ repositories }),
-    createImportsRoutes({ repositories })
+    createImportsRoutes({ repositories }),
+    createAdminUsersRoutes({ repositories }),
+    createAdminWordsRoutes({ repositories }),
+    createAdminSuperadminRoutes({ repositories })
   ];
 
   return async function handleApi(req, res, url) {

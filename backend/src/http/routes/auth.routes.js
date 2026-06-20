@@ -46,7 +46,9 @@ function publicUser(user) {
     practiceWordsPerSession: user.practiceWordsPerSession,
     emailVerified: user.emailVerified === true,
     hasPassword: user.hasPassword === true,
-    hasGoogle: user.hasGoogle === true
+    hasGoogle: user.hasGoogle === true,
+    isAdmin: user.isAdmin === true,
+    isSuperadmin: user.isSuperadmin === true
   };
 }
 

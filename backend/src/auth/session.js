@@ -94,10 +94,10 @@ function appendSetCookie(res, cookie) {
  * @param {object} authRepository - Repository with session and user queries
  *   (`findSessionUser`, `createSession`, `deleteSession`, `deleteUserSessions`).
  * @returns {{
- *   getAuthenticatedUser: (req: import("node:http").IncomingMessage) => Promise<{userId: number, email: string, emailVerified: boolean, hasPassword: boolean, sessionId: string} | null>,
+ *   getAuthenticatedUser: (req: import("node:http").IncomingMessage) => Promise<{userId: number, email: string, emailVerified: boolean, hasPassword: boolean, isAdmin: boolean, isSuperadmin: boolean, sessionId: string} | null>,
  *   createCsrfTokenForRequest: (req: import("node:http").IncomingMessage) => string,
  *   verifyCsrfTokenForRequest: (req: import("node:http").IncomingMessage) => boolean,
- *   requireUser: (req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse) => Promise<{userId: number, email: string, emailVerified: boolean, hasPassword: boolean, sessionId: string} | null>,
+ *   requireUser: (req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse) => Promise<{userId: number, email: string, emailVerified: boolean, hasPassword: boolean, isAdmin: boolean, isSuperadmin: boolean, sessionId: string} | null>,
  *   createSessionForUser: (res: import("node:http").ServerResponse, user: {id: number}) => Promise<{sessionId: string, csrfToken: string}>,
  *   destroyCurrentSession: (req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse) => Promise<void>,
  *   destroyAllUserSessions: (userId: number) => Promise<void>
@@ -128,7 +128,7 @@ export function createSessionHelpers(authRepository) {
     if (!user) {
       return null;
     }
-    return { userId: user.id, email: user.email, emailVerified: user.emailVerified === true, hasPassword: user.hasPassword === true, sessionId };
+    return { userId: user.id, email: user.email, emailVerified: user.emailVerified === true, hasPassword: user.hasPassword === true, isAdmin: user.isAdmin === true, isSuperadmin: user.isSuperadmin === true, sessionId };
   }
 
   // Require a valid user or write a 401 response.

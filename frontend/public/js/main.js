@@ -17,6 +17,7 @@ import { applyLocale, bindLocaleEvents, configureLocale } from "./app/locale.js"
 import { navigateToTab, resolveInitialTab, startRouter } from "./app/router.js";
 import { bindStudyLanguageEvents, configureStudyLanguage, renderStudyLanguageSelect } from "./app/study-language.js";
 import { elements } from "./dom.js";
+import { bindAdminEvents } from "./features/admin/admin.controller.js";
 import { bindAuthEvents, configureAuthController, consumeVerificationToken, loadSession, openResetPassword, showOAuthError, showVerificationResult } from "./features/auth/auth.controller.js";
 import { bindCollectionsEvents, configureCollectionsController, loadWords } from "./features/collections/collections.controller.js";
 import { bindDashboardEvents, configureDashboardController, loadDashboard } from "./features/dashboard/dashboard.controller.js";
@@ -172,6 +173,7 @@ bindReaderEvents();
 bindCollectionsEvents();
 bindSettingsEvents();
 bindPracticeEvents();
+bindAdminEvents();
 bindSystemThemeListener();
 await loadMessages();
 applyLocale();

@@ -7,6 +7,7 @@
  */
 
 import { apiUrl, requestJson } from "../../api.js";
+import { renderAdminVisibility } from "../admin/admin.controller.js";
 import { availableStudyLanguages, setStudyLanguage } from "../../app/study-language.js";
 import { elements } from "../../dom.js";
 import { t } from "../../i18n.js";
@@ -68,6 +69,7 @@ export async function loadSession() {
     showView("welcome");
     return;
   }
+  renderAdminVisibility();
   const savedLanguageName = localStorage.getItem("wordMarkerStudyLanguageName") || "";
   const availableLanguages = availableStudyLanguages();
   const fallbackLanguageName = availableLanguages[0]?.name || "";
@@ -355,6 +357,7 @@ export function bindAuthEvents() {
       state.dashboard = null;
       state.words = [];
       renderVerifyBanner();
+      renderAdminVisibility();
       showView("welcome");
     } catch (error) {
       elements.verifyBannerStatus.textContent = error.message;

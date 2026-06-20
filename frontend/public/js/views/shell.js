@@ -20,7 +20,8 @@ import { state, WORD_PAGE_SIZE } from "../state.js";
  * - Toggles `is-reader-active` and `is-reader-focus` on `document.body`.
  * - Scrolls to the top of the page when the reader tab is selected.
  * - Shows or hides `elements.dashboardView`, `elements.collectionsView`,
- *   `elements.readerView`, `elements.practiceView`, and `elements.settingsView`.
+ *   `elements.readerView`, `elements.practiceView`, `elements.settingsView`,
+ *   and `elements.adminView`.
  * - Toggles `is-active` on each nav tab button and sets `aria-selected`.
  */
 export function setActiveTab(tabName) {
@@ -37,6 +38,9 @@ export function setActiveTab(tabName) {
   elements.readerView.hidden = tabName !== "reader";
   elements.practiceView.hidden = tabName !== "practice";
   elements.settingsView.hidden = tabName !== "settings";
+  if (elements.adminView) {
+    elements.adminView.hidden = tabName !== "admin";
+  }
   elements.tabButtons.forEach((button) => {
     const active = button.dataset.tab === tabName;
     button.classList.toggle("is-active", active);
@@ -79,6 +83,9 @@ export function showView(viewName) {
     elements.readerView.hidden = true;
     elements.practiceView.hidden = true;
     elements.settingsView.hidden = true;
+    if (elements.adminView) {
+      elements.adminView.hidden = true;
+    }
   }
 }
 

@@ -100,6 +100,7 @@
             <button class="tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-tab="collections" data-i18n="tabs.collections">語彙</button>
             <button class="tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-tab="reader" data-i18n="tabs.reader">Reader</button>
             <button class="tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-tab="practice" data-i18n="tabs.practice">Practice</button>
+            <button id="adminTabButton" class="tab-button admin-tab-button rounded-md px-3 py-2 text-sm font-semibold text-secondary" type="button" data-tab="admin" data-i18n="tabs.admin" hidden>Admin</button>
           </nav>
         </div>
         <div class="menu-actions flex flex-none flex-nowrap items-center justify-end gap-2 max-md:grid max-md:w-full max-md:grid-cols-1">
@@ -143,6 +144,7 @@
               <button class="account-menu-item account-nav-item tab-button w-full rounded-md px-3 py-2 text-left text-sm font-bold text-main hover:bg-hover" type="button" role="menuitem" data-tab="collections" data-i18n="tabs.collections">語彙</button>
               <button class="account-menu-item account-nav-item tab-button w-full rounded-md px-3 py-2 text-left text-sm font-bold text-main hover:bg-hover" type="button" role="menuitem" data-tab="reader" data-i18n="tabs.reader">Reader</button>
               <button class="account-menu-item account-nav-item tab-button w-full rounded-md px-3 py-2 text-left text-sm font-bold text-main hover:bg-hover" type="button" role="menuitem" data-tab="practice" data-i18n="tabs.practice">Practice</button>
+              <button id="adminTabMenuButton" class="account-menu-item account-nav-item tab-button admin-tab-button w-full rounded-md px-3 py-2 text-left text-sm font-bold text-main hover:bg-hover" type="button" role="menuitem" data-tab="admin" data-i18n="tabs.admin" hidden>Admin</button>
               <hr class="account-menu-divider my-1 border-line" />
               <button id="accountSettingsButton" class="account-menu-item w-full rounded-md px-3 py-2 text-left text-sm font-bold text-main hover:bg-hover" type="button" role="menuitem" data-i18n="tabs.settings">Settings</button>
               <button id="logoutButton" class="account-menu-item logout-button w-full rounded-md px-3 py-2 text-left text-sm font-bold text-brand hover:bg-hover" type="button" role="menuitem" data-i18n="auth.logout">ログアウト</button>
@@ -485,6 +487,30 @@
           </section>
         </section>
           </div>
+        </div>
+      </section>
+
+      <section id="adminView" class="tab-view" hidden>
+        <div class="local-tabbar admin-subtabs mb-4" role="tablist" aria-label="Admin sections">
+          <button class="local-tab admin-subtab is-active" type="button" role="tab" data-admin-subtab="admin" aria-selected="true" data-i18n="admin.subtabAdmin">Admin</button>
+          <button id="adminSuperadminSubtab" class="local-tab admin-subtab" type="button" role="tab" data-admin-subtab="superadmin" aria-selected="false" data-i18n="admin.subtabSuperadmin" hidden>Superadmin</button>
+        </div>
+
+        <div data-admin-subtab-panel="admin">
+          <div class="admin-layout flex flex-col gap-4 sm:flex-row sm:items-start">
+            <nav id="adminMenu" class="admin-menu flex shrink-0 gap-1 rounded-lg border border-line bg-muted p-1 sm:w-44 sm:flex-col" aria-label="Admin areas">
+              <button class="admin-menu-button flex-1 rounded-md px-3 py-2 text-sm font-semibold text-secondary sm:text-left" type="button" data-admin-rail="users" data-i18n="admin.railUsers">Users</button>
+              <button class="admin-menu-button flex-1 rounded-md px-3 py-2 text-sm font-semibold text-secondary sm:text-left" type="button" data-admin-rail="words" data-i18n="admin.railWords">Words</button>
+            </nav>
+            <div class="admin-content min-w-0 w-full">
+              <section id="adminUsersPanel" class="admin-panel rounded-lg border border-line bg-panel p-5 shadow-panel" data-admin-rail-panel="users"></section>
+              <section id="adminWordsPanel" class="admin-panel rounded-lg border border-line bg-panel p-5 shadow-panel" data-admin-rail-panel="words" hidden></section>
+            </div>
+          </div>
+        </div>
+
+        <div data-admin-subtab-panel="superadmin" hidden>
+          <section id="adminSuperadminPanel" class="admin-panel rounded-lg border border-line bg-panel p-5 shadow-panel"></section>
         </div>
       </section>
     </main>

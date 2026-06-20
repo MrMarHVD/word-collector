@@ -11,7 +11,8 @@
  */
 
 import { Worker } from "node:worker_threads";
-import { BETA_MAX_ACTIVE_IMPORTS_GLOBAL, BETA_MAX_ACTIVE_IMPORTS_PER_USER, BETA_MAX_MATERIALS_PER_USER, BETA_MAX_MATERIAL_UPLOAD_BYTES, READER_WORK_PAGE_SIZE } from "../../config.js";
+import { BETA_MAX_ACTIVE_IMPORTS_GLOBAL, BETA_MAX_ACTIVE_IMPORTS_PER_USER, READER_WORK_PAGE_SIZE } from "../../config.js";
+import { effectiveMaterialCountForUser, effectiveUploadBytesForUser } from "../admin/admin-users.service.js";
 import { normalizeName } from "../../shared/normalize.js";
 import { lookupChineseDetails, lookupEnglishPos } from "../dictionaries/dictionaries.service.js";
 import { backfillMaterialTranslations, displayTranslationForToken, getTranslationCandidates, languageKey, lookupTranslation, materialTranslationStatus, scheduleMaterialTranslationBackfill, supportedTargetNativeLanguage, translationDisambiguationCandidates, translationForToken } from "../translations/translations.service.js";
@@ -159,8 +160,11 @@ export async function startMaterialImport(repositories, userId, languageId, file
   if (!file?.buffer?.length) {
     return { error: "Upload a PDF, EPUB, or text file." };
   }
-  if (file.buffer.length > BETA_MAX_MATERIAL_UPLOAD_BYTES) {
-    const megabytes = formatMegabytes(BETA_MAX_MATERIAL_UPLOAD_BYTES);
+  // Both checks resolve the per-user override (override ?? global default) so a
+  // raised limit is honoured end-to-end.
+  const maxUploadBytes = await effectiveUploadBytesForUser(userId);
+  if (file.buffer.length > maxUploadBytes) {
+    const megabytes = formatMegabytes(maxUploadBytes);
     return {
       status: 413,
       error: `Documents can be no larger than ${megabytes} MB during beta.`,
@@ -168,13 +172,14 @@ export async function startMaterialImport(repositories, userId, languageId, file
       details: { maxMegabytes: megabytes }
     };
   }
+  const maxMaterials = await effectiveMaterialCountForUser(userId);
   const materialCount = await repositories.materials.countByUser(userId);
-  if (materialCount >= BETA_MAX_MATERIALS_PER_USER) {
+  if (materialCount >= maxMaterials) {
     return {
       status: 409,
-      error: `You can keep up to ${BETA_MAX_MATERIALS_PER_USER} documents during beta. Delete one before uploading another.`,
+      error: `You can keep up to ${maxMaterials} documents during beta. Delete one before uploading another.`,
       errorKey: "errors.materialLimitReached",
-      details: { maxDocuments: BETA_MAX_MATERIALS_PER_USER }
+      details: { maxDocuments: maxMaterials }
     };
   }
   if (await repositories.materials.countProcessingByUser(userId) >= BETA_MAX_ACTIVE_IMPORTS_PER_USER) {

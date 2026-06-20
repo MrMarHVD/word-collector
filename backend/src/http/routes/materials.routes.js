@@ -7,9 +7,9 @@
  */
 
 import { getMaterialReader, getMaterials, startMaterialImport, updateMaterial } from "../../modules/materials/materials.service.js";
+import { effectiveUploadBytesForUser } from "../../modules/admin/admin-users.service.js";
 import { readJson, readMultipart } from "../request.js";
 import { jsonResponse } from "../response.js";
-import { BETA_MAX_MATERIAL_UPLOAD_BYTES } from "../../config.js";
 
 /**
  * Creates the route handler for `/api/materials` and `/api/materials/:id`.
@@ -63,15 +63,19 @@ export function createMaterialsRoutes({ repositories }) {
     }
 
     if (req.method === "POST" && url.pathname === "/api/materials") {
+      // Resolve the per-user override BEFORE the parse cap; a raised limit would
+      // otherwise be truncated at the wire before the service ever sees the file.
+      const maxUploadBytes = await effectiveUploadBytesForUser(user.userId);
       let parsed;
       try {
-        parsed = await readMultipart(req, BETA_MAX_MATERIAL_UPLOAD_BYTES + 1_000_000);
+        parsed = await readMultipart(req, maxUploadBytes + 1_000_000);
       } catch (error) {
         if (error.message === "Request body is too large.") {
+          const maxMegabytes = Math.round(maxUploadBytes / 1024 / 1024);
           jsonResponse(res, 413, {
-            error: "Documents can be no larger than 50 MB during beta.",
+            error: `Documents can be no larger than ${maxMegabytes} MB during beta.`,
             errorKey: "errors.materialFileTooLarge",
-            details: { maxMegabytes: Math.round(BETA_MAX_MATERIAL_UPLOAD_BYTES / 1024 / 1024) }
+            details: { maxMegabytes }
           });
           return true;
         }

@@ -16,7 +16,7 @@
  * @returns {object} Repository with user, session, auth-token, and OAuth CRUD methods.
  */
 export function createAuthRepository(db) {
-  const userSelect = `SELECT u.id, u.email, u.created_at AS "createdAt", u.native_language AS "nativeLanguage", u.practice_words_per_session AS "practiceWordsPerSession", u.email_verified AS "emailVerified", (u.password_hash IS NOT NULL AND u.password_salt IS NOT NULL) AS "hasPassword", EXISTS (SELECT 1 FROM oauth_accounts oa WHERE oa.user_id = u.id AND oa.provider = 'google') AS "hasGoogle", (SELECT oa.display_name FROM oauth_accounts oa WHERE oa.user_id = u.id AND oa.provider = 'google' LIMIT 1) AS "displayName"`;
+  const userSelect = `SELECT u.id, u.email, u.created_at AS "createdAt", u.native_language AS "nativeLanguage", u.practice_words_per_session AS "practiceWordsPerSession", u.email_verified AS "emailVerified", u.is_admin AS "isAdmin", u.is_superadmin AS "isSuperadmin", (u.password_hash IS NOT NULL AND u.password_salt IS NOT NULL) AS "hasPassword", EXISTS (SELECT 1 FROM oauth_accounts oa WHERE oa.user_id = u.id AND oa.provider = 'google') AS "hasGoogle", (SELECT oa.display_name FROM oauth_accounts oa WHERE oa.user_id = u.id AND oa.provider = 'google' LIMIT 1) AS "displayName"`;
   const userByEmail = db.prepare(`${userSelect}, u.password_hash AS "passwordHash", u.password_salt AS "passwordSalt" FROM users u WHERE lower(u.email) = lower(?)`);
   const userById = db.prepare(`${userSelect} FROM users u WHERE u.id = ?`);
   const userSecretById = db.prepare(`SELECT id, email, email_verified AS "emailVerified", password_hash AS "passwordHash", password_salt AS "passwordSalt" FROM users WHERE id = ?`);
@@ -33,7 +33,7 @@ export function createAuthRepository(db) {
   // Sessions: opaque, server-side, revocable. `id` is the SHA-256 hash of the
   // raw token held in the user's cookie.
   const insertSession = db.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)");
-  const sessionUser = db.prepare(`SELECT u.id, u.email, u.native_language AS "nativeLanguage", u.email_verified AS "emailVerified", (u.password_hash IS NOT NULL AND u.password_salt IS NOT NULL) AS "hasPassword", EXISTS (SELECT 1 FROM oauth_accounts oa WHERE oa.user_id = u.id AND oa.provider = 'google') AS "hasGoogle" FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ? AND s.expires_at > now()`);
+  const sessionUser = db.prepare(`SELECT u.id, u.email, u.native_language AS "nativeLanguage", u.email_verified AS "emailVerified", u.is_admin AS "isAdmin", u.is_superadmin AS "isSuperadmin", (u.password_hash IS NOT NULL AND u.password_salt IS NOT NULL) AS "hasPassword", EXISTS (SELECT 1 FROM oauth_accounts oa WHERE oa.user_id = u.id AND oa.provider = 'google') AS "hasGoogle" FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ? AND s.expires_at > now()`);
   const deleteSession = db.prepare("DELETE FROM sessions WHERE id = ?");
   const deleteUserSessions = db.prepare("DELETE FROM sessions WHERE user_id = ?");
   const deleteOtherUserSessions = db.prepare("DELETE FROM sessions WHERE user_id = ? AND id <> ?");

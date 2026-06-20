@@ -70,7 +70,9 @@ export async function getAuthContext(repositories, userId) {
       practiceWordsPerSession: profile.practiceWordsPerSession,
       emailVerified: profile.emailVerified === true,
       hasPassword: profile.hasPassword === true,
-      hasGoogle: profile.hasGoogle === true
+      hasGoogle: profile.hasGoogle === true,
+      isAdmin: profile.isAdmin === true,
+      isSuperadmin: profile.isSuperadmin === true
     },
     languages,
     needsOnboarding: languages.length === 0

@@ -5,6 +5,7 @@
  * rather than holding its own prepared statements.
  */
 
+import { createAdminRepository } from "./admin/admin.repository.js";
 import { createAuthRepository } from "./auth/auth.repository.js";
 import { createDashboardRepository } from "./dashboard/dashboard.repository.js";
 import { createDatabaseRepository } from "./database/database.repository.js";
@@ -24,11 +25,12 @@ import { createWordsRepository } from "./words/words.repository.js";
  * the callback commits or rolls back atomically.
  *
  * @param {object} executor - A database executor produced by `backend/src/db/index.js`.
- * @returns {{ auth, dashboard, dictionaries, languages, materials, practice,
+ * @returns {{ admin, auth, dashboard, dictionaries, languages, materials, practice,
  *   translations, words, imports, database }} The wired repository map.
  */
 export function createRepositories(executor) {
   const repositories = {
+    admin: createAdminRepository(executor),
     auth: createAuthRepository(executor),
     dashboard: createDashboardRepository(executor),
     dictionaries: createDictionariesRepository(executor),
