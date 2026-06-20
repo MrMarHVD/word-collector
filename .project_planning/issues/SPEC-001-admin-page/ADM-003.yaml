@@ -1,0 +1,70 @@
+code: ADM-003
+title: Words panel — canonical translation editing
+status: to do
+spec: SPEC-001-admin-page
+summary: >
+  Deliver the Words panel: browse all global words for a single selected source
+  language with infinite scroll and word search, view the canonical translation
+  for a selectable native language (default English) per word — including empty
+  cells for untranslated words — and edit or add that canonical translation.
+  Per-user translation overrides are left untouched. Every edit is audited.
+scope:
+  files:
+    - backend/src/http/routes/admin-words.routes.js
+    - backend/src/modules/admin/admin-words.repository.js (new)
+    - backend/src/modules/admin/admin-words.service.js (new)
+    - frontend/public/js/features/admin/admin.words.view.js
+    - frontend/public/js/features/admin/admin.words.controller.js (new, invoked from the delegating admin controller)
+  layers:
+    - backend
+    - frontend
+  description: >
+    In scope: an admin words-list endpoint scoped to exactly one source
+    language, with keyset/cursor pagination, alphabetical default sort, word/lemma
+    search, and a native-language parameter (default English) that determines
+    which canonical translation cell is returned per word. The endpoint must
+    return ALL words in the selected language regardless of whether a translation
+    exists in the selected native language (empty/absent translation shown as an
+    editable empty cell). An upsert-canonical-translation endpoint that
+    writes/updates the word_translations row for the (word_id, native_language)
+    pair and audits the change via recordAudit. Build the Words panel UI: a
+    mutually-exclusive source-language picker, a native-language selector
+    defaulting to English, infinite scroll, word search, and inline editable
+    translation cells (including empties to seed missing translations). Out of
+    scope: editing POS or disambiguation candidates (deferred, see spec
+    non-goals); per-user translation overrides (must NOT be modified); user-limit
+    work (ADM-002); grant/revoke and audit-log view (ADM-004); the privilege
+    foundation/shell (ADM-001).
+dependencies:
+  - ADM-001
+acceptance_criteria:
+  - The Words panel is scoped to one source language chosen from a mutually-exclusive picker.
+  - Within the selected language, all words are listed with infinite scroll, sorted alphabetically by default, and searchable by word/lemma.
+  - A native-language selector defaults to English and can be changed; the displayed translation cell reflects the selected native language.
+  - Words with no translation in the selected native language still appear, with an empty editable cell.
+  - An admin can edit an existing canonical translation and add a translation where none existed, for the selected native language.
+  - After an edit, a user without a private translation_override for that word sees the new canonical value, while a user who has an override continues to see their override.
+  - Every translation edit/add produces an admin_audit_log entry capturing actor, action, target (word + native language), before, and after.
+verification:
+  - As an admin, open the Words panel, pick a source language, and confirm all words list with infinite scroll, alphabetical order, and working word search (headless e2e per project convention).
+  - With native language = English, edit a word's canonical translation; confirm it persists and shows on reload.
+  - Switch the native-language selector to another language; confirm previously untranslated words show empty editable cells, and add a translation to one.
+  - As a separate normal user without an override for that word, confirm the new canonical translation is visible; for a word where that user has a translation_override, confirm their override still wins.
+  - Inspect admin_audit_log and confirm an entry with before/after for each edit.
+special_context: >
+  After migration 1748000000007_global-languages-words.js, words are global per
+  language and canonical translations live in the shared word_translations table
+  keyed (word_id, native_language). Each user may privately shadow a canonical
+  value via user_words.translation_override — admin edits must change only the
+  shared word_translations row and never touch translation_override. Existing
+  word listing patterns live in backend/src/modules/words/words.repository.js
+  (e.g. listWordsInLanguage) and may inform the admin list query. Infinite scroll
+  requires keyset/cursor pagination (NFR-2). Call the recordAudit helper from
+  ADM-001.
+implementation_notes: >
+  The native-language selector is a view filter on which translation cell is
+  shown/edited; it must NOT filter out words lacking that translation (FR-21) —
+  always return the full word set for the language. Keep edits to the admin-words.*
+  files and your own frontend panel files; do not touch api.js, modules/index.js,
+  the admin shell, or the words module's existing files beyond what is strictly
+  needed for read reuse.

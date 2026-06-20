@@ -1,0 +1,74 @@
+code: ADM-002
+title: Users panel — per-user material-limit overrides
+status: to do
+spec: SPEC-001-admin-page
+summary: >
+  Deliver the Users panel: an infinite-scrolling, searchable, filterable user
+  list and the ability for admins to set/clear per-user overrides for the two
+  material limits, enforced end-to-end on upload. Regular admins cannot edit
+  themselves or other admins; the superadmin can edit anyone. Every change is
+  audited.
+scope:
+  files:
+    - backend/migrations/ (new migration: nullable max_materials, max_upload_bytes on users)
+    - backend/src/http/routes/admin-users.routes.js
+    - backend/src/modules/admin/admin-users.repository.js (new)
+    - backend/src/modules/admin/admin-users.service.js (new)
+    - backend/src/modules/materials/materials.service.js
+    - backend/src/http/routes/materials.routes.js
+    - frontend/public/js/features/admin/admin.users.view.js
+    - frontend/public/js/features/admin/admin.users.controller.js (new, invoked from the delegating admin controller)
+  layers:
+    - database
+    - backend
+    - frontend
+  description: >
+    In scope: add nullable max_materials and max_upload_bytes override columns to
+    users (null = use global default). Implement the admin list-users endpoint
+    (keyset/cursor pagination, alphabetical-by-email default sort, optional
+    creation-date sort, email search, optional account-creation-date filter),
+    returning per row at least email, admin status, effective limits (override or
+    global default), and material count via a single grouped query (no N+1).
+    Implement the set/clear-limits endpoint that rejects a non-superadmin caller
+    editing an admin row or themselves (403), and audits every change via
+    recordAudit. Thread the per-user upload-bytes override into BOTH the
+    parse-time stream cap in materials.routes.js AND the size/count checks in
+    materials.service.js so a raised limit is honoured end-to-end. Build the
+    Users panel UI: infinite scroll, email search box, creation-date filter and
+    sort toggle, and inline controls to set/clear a user's two limits, with the
+    controls disabled on admin rows for a regular admin. Out of scope: word
+    editing, grant/revoke, the audit-log VIEW (ADM-004), and the privilege
+    foundation/shell (ADM-001).
+dependencies:
+  - ADM-001
+acceptance_criteria:
+  - The Users panel lists users with infinite scroll, sorted alphabetically by email by default, with an optional creation-date sort.
+  - Searching by email narrows the list; an optional account-creation-date filter narrows it further.
+  - Each row shows email, admin status, the user's effective max-materials and max-upload-size (override value if set, otherwise the global default), and material count.
+  - An admin can set and then clear a user's max-materials and max-upload-size overrides; a cleared override reverts that user to the global default.
+  - A regular admin's edit controls are disabled on admin rows (including their own), and the corresponding API call is rejected with 403 even if invoked directly; the superadmin can edit any user including admins and themselves.
+  - A user given a raised upload-size override can upload a correspondingly larger file without it being truncated at parse time, and a raised material-count override lets them keep more documents.
+  - Every limit set/clear produces an admin_audit_log entry capturing actor, action, target, before, and after.
+verification:
+  - Run `npm run migrate:up`; confirm the override columns exist and default to null.
+  - As an admin, open the Users panel; verify default alphabetical order, email search, date filter, and date sort behave as specified (headless e2e per project convention).
+  - Set a non-admin user's max_materials override; confirm the row reflects it and that clearing it returns the row to the global default.
+  - Log in as that user and confirm the new material-count limit is enforced; raise their upload-bytes override and confirm an upload between the old and new ceiling succeeds end-to-end (was previously rejected/truncated).
+  - As a regular admin, confirm edit controls are disabled on an admin row and a direct API call to edit an admin/self returns 403; as superadmin confirm the same edit succeeds.
+  - Inspect admin_audit_log and confirm an entry with before/after for each change.
+special_context: >
+  Material limits are enforced in TWO places today, both using global constants
+  from backend/src/config.js: the parse-time stream cap in
+  materials.routes.js (around line 68, readMultipart) and the size/count checks
+  in materials.service.js (around lines 162 and 172). The per-user override must
+  be resolved BEFORE the parse cap, or a raised limit will still be truncated at
+  the wire before the service ever sees the full file. Infinite scroll requires
+  keyset/cursor pagination (stable ordering by a unique key), not offset
+  pagination (NFR-2). Call the recordAudit helper introduced in ADM-001.
+implementation_notes: >
+  Resolve each user's effective limit as override ?? global-default. Keep the
+  list query to a single grouped statement to avoid N+1 on material counts. The
+  admin-vs-admin edit guard must live server-side; the disabled UI control is
+  cosmetic only. Edit only admin-users.* files and the two materials files plus
+  your own frontend panel files — api.js, modules/index.js, and the admin shell
+  are owned by ADM-001.

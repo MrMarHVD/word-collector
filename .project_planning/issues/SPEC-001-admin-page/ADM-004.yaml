@@ -1,0 +1,58 @@
+code: ADM-004
+title: Superadmin panel — admin grant/revoke and audit log
+status: to do
+spec: SPEC-001-admin-page
+summary: >
+  Deliver the Superadmin subtab: superadmin-only granting and revoking of admin
+  status (with self-superadmin-demotion blocked and revocation effective on the
+  target's next request) plus a read-only, paginated view of the admin audit
+  log. Grant/revoke actions are themselves audited, making the log observable.
+scope:
+  files:
+    - backend/src/http/routes/admin-superadmin.routes.js
+    - backend/src/modules/admin/admin-superadmin.repository.js (new)
+    - backend/src/modules/admin/admin-superadmin.service.js (new)
+    - frontend/public/js/features/admin/admin.superadmin.view.js
+    - frontend/public/js/features/admin/admin.superadmin.controller.js (new, invoked from the delegating admin controller)
+  layers:
+    - backend
+    - frontend
+  description: >
+    In scope: superadmin-only endpoints to grant admin status to a regular user
+    and revoke admin status from an existing admin, both rejecting non-superadmin
+    callers (403) and both writing audit entries via recordAudit. The grant/revoke
+    logic must never allow removing the superadmin's own is_superadmin flag, and
+    revocation takes effect on the target's next request (relies on per-request
+    flag evaluation from ADM-001, so no forced session termination is required).
+    A superadmin-only, paginated, read-only audit-log endpoint and the Superadmin
+    subtab UI: controls to grant/revoke admin and a read-only audit log list.
+    Out of scope: user-limit editing (ADM-002), word/translation editing
+    (ADM-003), the privilege foundation/shell and audit table/recordAudit helper
+    (ADM-001 — consumed here, not created).
+dependencies:
+  - ADM-001
+acceptance_criteria:
+  - Only the superadmin can reach the Superadmin subtab and its endpoints; a regular admin or normal user calling the grant/revoke or audit-log endpoints directly receives 403.
+  - The superadmin can grant admin status to a regular user, after which that user gains admin access on their next request.
+  - The superadmin can revoke a user's admin status, after which that user loses admin access on their next request.
+  - No API or UI path allows the superadmin to remove their own superadmin status.
+  - The Superadmin subtab displays the admin audit log as a read-only, paginated list.
+  - Each grant and revoke produces an admin_audit_log entry (actor, action, target, before, after) that subsequently appears in the audit-log view.
+verification:
+  - As the superadmin, grant admin to a normal account; log in as that account and confirm the Admin tab now appears (headless e2e per project convention).
+  - As the superadmin, revoke that account's admin; confirm on its next request the Admin tab disappears.
+  - Attempt grant/revoke and audit-log reads as a regular admin and as a normal user; confirm all return 403.
+  - Confirm there is no control or endpoint that clears the superadmin's own is_superadmin flag.
+  - Perform a grant and a revoke, then open the audit-log view and confirm both appear with actor/action/target/before/after; confirm pagination works for a longer log.
+special_context: >
+  Revocation relying on "next request" works because ADM-001 surfaces is_admin
+  per request from the users table via the sessionUser query; no session
+  invalidation is needed. The superadmin flag is set only by provision_admin.js
+  (ADM-001) and must be immutable through this issue's API/UI. The audit log read
+  is restricted to the superadmin per the spec (see Open Question OQ-3 — current
+  decision is superadmin-only). Call the recordAudit helper from ADM-001.
+implementation_notes: >
+  This issue is self-verifiable for the audit log: its own grant/revoke actions
+  produce entries, so it does not depend on ADM-002/003. Keep changes to the
+  admin-superadmin.* files and your own frontend panel files; do not touch
+  api.js, modules/index.js, or the admin shell owned by ADM-001.

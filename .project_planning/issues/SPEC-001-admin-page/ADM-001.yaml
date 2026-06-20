@@ -1,0 +1,90 @@
+code: ADM-001
+title: Privilege foundation, admin shell, and audit infrastructure
+status: to do
+spec: SPEC-001-admin-page
+summary: >
+  Introduce the admin/superadmin privilege model end-to-end and deliver an
+  observable, role-gated Admin tab whose subtabs and panels are present but
+  empty. Establish the shared backend seams (privilege guards, admin module
+  skeleton, audit table + write helper, pass-through admin route factories) and
+  frontend seams (admin shell, subtabs, left rail, per-panel view-module stubs)
+  that ADM-002/003/004 build on without touching each other's files.
+scope:
+  files:
+    - backend/migrations/ (new migration: is_admin, is_superadmin on users; admin_audit_log table)
+    - backend/scripts/provision_admin.js
+    - backend/src/modules/auth/auth.repository.js
+    - backend/src/auth/session.js
+    - backend/src/http/routes/api.js
+    - backend/src/http/routes/admin-users.routes.js (new, pass-through stub)
+    - backend/src/http/routes/admin-words.routes.js (new, pass-through stub)
+    - backend/src/http/routes/admin-superadmin.routes.js (new, pass-through stub)
+    - backend/src/http/routes/admin-guards.js (new: requireAdmin / requireSuperadmin)
+    - backend/src/modules/admin/ (new module dir: admin.repository.js, admin.service.js with recordAudit helper)
+    - backend/src/modules/index.js
+    - frontend/public/index.html (admin tab button + admin view container, subtabs, left rail, empty panels)
+    - frontend/public/js/app/router.js
+    - frontend/public/js/main.js
+    - frontend/public/js/state.js
+    - frontend/public/js/features/admin/admin.controller.js (new, delegating)
+    - frontend/public/js/features/admin/admin.users.view.js (new, empty placeholder)
+    - frontend/public/js/features/admin/admin.words.view.js (new, empty placeholder)
+    - frontend/public/js/features/admin/admin.superadmin.view.js (new, empty placeholder)
+  layers:
+    - database
+    - backend
+    - frontend
+  description: >
+    In scope: add the two boolean privilege columns to users (default false);
+    surface isAdmin/isSuperadmin on the per-request authenticated user (extend
+    the sessionUser query in auth.repository.js and the user object returned by
+    session.js, and expose the flags to the frontend via the same payload the
+    app already uses to learn about the current user); extend provision_admin.js
+    so it can set the admin and superadmin flags via env. Add reusable
+    requireAdmin and requireSuperadmin guard helpers and a new admin module
+    (repository + service) including the admin_audit_log table and a shared
+    recordAudit(actor, action, target, before, after) helper. Register three
+    admin route factories in api.js's authenticated chain; in this issue they
+    are pass-through stubs (return false) so ADM-002/003/004 can each fill their
+    own file without editing api.js. Build the frontend Admin tab (rendered only
+    when the current user is an admin or superadmin), the Admin and Superadmin
+    subtabs (Superadmin subtab shown only to the superadmin), the left rail with
+    Users and Words entries inside the Admin subtab, and empty placeholder panel
+    view-modules wired through a delegating admin controller. Out of scope: any
+    user-limit logic, any word/translation logic, any grant/revoke logic, and
+    any actual panel content — those are ADM-002/003/004. The recordAudit helper
+    is created here as shared infra and may have no caller until the feature
+    issues land.
+dependencies: []
+acceptance_criteria:
+  - A user provisioned as superadmin via provision_admin.js sees the Admin tab, the Admin subtab, the Superadmin subtab, and the Users/Words left rail.
+  - A user with only the admin flag sees the Admin tab, the Admin subtab, and the Users/Words left rail, but NOT the Superadmin subtab.
+  - A regular (non-admin) user does not see the Admin tab at all.
+  - The authenticated user payload consumed by the frontend includes the isAdmin and isSuperadmin flags, sourced from the users table per request.
+  - The admin_audit_log table exists after migration with columns for actor, action, target, before value, after value, and timestamp.
+  - provision_admin.js can set a user's admin and/or superadmin flags via environment variables, idempotently.
+  - The three admin route factories are wired into api.js and return false (pass-through) so unrelated requests are unaffected.
+verification:
+  - Run `npm run migrate:up` and confirm the migration applies cleanly; inspect the users table for is_admin/is_superadmin and confirm admin_audit_log exists.
+  - Provision a superadmin and an admin (and use any existing normal account); log in as each in the browser and confirm tab/subtab visibility per the acceptance criteria (use `npm run test:e2e` style headless verification per project convention).
+  - Confirm a normal user receives no Admin tab and that navigating directly to the admin path does not expose admin functionality.
+  - Confirm existing non-admin flows (dashboard, reader, etc.) are unaffected, since the admin route factories are pass-through.
+special_context: >
+  The codebase has no role system today — only authenticated-user vs guest,
+  enforced via server-side sessions in backend/src/auth/session.js. The
+  per-request user is loaded by the sessionUser prepared statement in
+  backend/src/modules/auth/auth.repository.js (around line 36); this is the
+  natural place to add the two flags. Route handlers follow a middleware-like
+  convention (return true if handled, false to pass to the next handler), so a
+  pass-through stub returning false is idiomatic, not dead code. The frontend is
+  a vanilla-JS SPA; new pages are added via router.js (TAB_TO_PATH/PATH_TO_TAB),
+  an index.html <section class="tab-view" hidden> container, a feature
+  controller wired in main.js, and state flags in state.js.
+implementation_notes: >
+  Keep this issue thin: it should compile and run with empty panels, proving the
+  privilege gating works, without implementing any feature behaviour. Prefer
+  separate per-feature route files and per-panel frontend view-modules from the
+  start so ADM-002/003/004 never edit the same file. The superadmin flag must be
+  settable ONLY via provision_admin.js (never via any API/UI), per the spec.
+  Decide and document the exact shape of the recordAudit helper here since three
+  later issues depend on calling it.
