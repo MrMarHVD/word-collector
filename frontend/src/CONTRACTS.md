@@ -11,7 +11,7 @@ contract unilaterally: if one blocks you, stop and report the gap.
 | API              | `PORT=<api> CORS_ORIGIN=http://localhost:<web> API_URL=http://localhost:<api> npm run dev -w backend`                   |
 | React app (Vite) | `PORT=<web> API_PROXY_TARGET=http://localhost:<api> npm run dev -w frontend` (root alias: `npm run dev:web`)            |
 | Playwright       | `PW_FRONTEND_URL=http://localhost:<web> PW_API_URL=http://localhost:<api> npx playwright test [--project=setup] [file]` |
-| Checks           | `npm run lint                                                                                                           | typecheck | test | build -w frontend` (CI runs all four on pull requests) |
+| Checks           | `npm run lint -w frontend`, likewise `typecheck`, `test` and `build` (CI runs all four on pull requests)                |
 
 Vite env vars:
 
@@ -112,8 +112,8 @@ button variants are aligned with the app (`default` = brand fill with
 Mobile bottom sheets: the reader's word-info and translation sheets use the kit
 `Sheet` (`side="bottom"`, `modal={false}`; `features/reader/ReaderSheet.tsx`),
 not the Vaul `Drawer`. Vaul can't be non-modal, and these sheets must allow
-continued text selection behind them. Other mobile bottom sheets (e.g. the mobile
-sidebar): use `Drawer` (Vaul).
+continued text selection behind them. No feature uses the Vaul `Drawer`; it stays
+installed and available for modal bottom sheets.
 
 ## I3 API client
 
