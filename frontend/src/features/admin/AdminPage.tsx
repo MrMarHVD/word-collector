@@ -60,16 +60,19 @@ export default function AdminPage() {
       </div>
 
       <div data-admin-subtab-panel="admin" hidden={subtab !== "admin"}>
-        <div className="admin-layout flex flex-col gap-4 sm:flex-row sm:items-start">
+        <div className="admin-layout flex flex-col gap-4 desktop:flex-row desktop:items-start">
           <nav
             id="adminMenu"
-            className="admin-menu flex shrink-0 gap-1 rounded-lg border border-line bg-muted p-1 sm:w-44 sm:flex-col"
+            className="admin-menu flex shrink-0 gap-1 rounded-lg border border-line bg-muted p-1 desktop:w-44 desktop:flex-col"
             aria-label={t("admin.areasLabel")}
           >
             {RAILS.map((value) => (
               <button
                 key={value}
-                className={cn("admin-menu-button flex-1 rounded-md px-3 py-2 text-sm font-semibold text-secondary sm:text-left", rail === value && "is-active")}
+                className={cn(
+                  "admin-menu-button flex-1 rounded-md px-3 py-2 text-sm font-semibold text-secondary desktop:text-left",
+                  rail === value && "is-active"
+                )}
                 type="button"
                 data-admin-rail={value}
                 aria-selected={rail === value}

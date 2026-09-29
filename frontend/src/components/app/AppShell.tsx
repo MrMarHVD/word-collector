@@ -182,14 +182,14 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <main id="appShell" className="shell mx-auto w-[min(1180px,calc(100%-32px))] pb-8 pt-24 max-md:w-[calc(100%-20px)] max-md:pt-5">
+    <main id="appShell" className="shell mx-auto w-[min(1180px,calc(100%-32px))] pb-8 pt-24 mobile:w-[calc(100%-20px)] mobile:pt-5">
       <header
         className={cn(
-          "menu-bar fixed inset-x-0 top-0 z-10 flex min-h-[72px] items-center gap-3 border-b border-line bg-page/95 px-5 py-2.5 backdrop-blur max-md:static max-md:flex-col max-md:items-stretch",
+          "menu-bar fixed inset-x-0 top-0 z-10 flex min-h-[72px] items-center gap-3 border-b border-line bg-page/95 px-5 py-2.5 backdrop-blur mobile:static mobile:flex-col mobile:items-stretch",
           !user && "is-guest"
         )}
       >
-        <div className="menu-left flex min-w-0 flex-1 items-center gap-4 max-md:grid max-md:grid-cols-1">
+        <div className="menu-left flex min-w-0 flex-1 items-center gap-4 mobile:grid mobile:grid-cols-1">
           <button
             id="brandHomeButton"
             className="menu-brand whitespace-nowrap text-left text-base font-black text-brand hover:text-brand-strong"
@@ -199,7 +199,7 @@ export function AppShell({ children }: AppShellProps) {
             {t("brand")}
           </button>
           <nav
-            className="tabs grid w-[min(560px,100%)] grid-cols-4 gap-1 rounded-lg border border-line bg-muted p-1 max-md:w-full max-md:grid-cols-1"
+            className="tabs grid w-[min(560px,100%)] grid-cols-4 gap-1 rounded-lg border border-line bg-muted p-1 mobile:w-full mobile:grid-cols-1"
             aria-label={t("shell.mainViews")}
             hidden={!user || !hasStudyLanguage}
           >
@@ -228,9 +228,9 @@ export function AppShell({ children }: AppShellProps) {
             </button>
           </nav>
         </div>
-        <div className="menu-actions flex flex-none flex-nowrap items-center justify-end gap-2 max-md:grid max-md:w-full max-md:grid-cols-1">
+        <div className="menu-actions flex flex-none flex-nowrap items-center justify-end gap-2 mobile:grid mobile:w-full mobile:grid-cols-1">
           {user ? (
-            <div className="study-language-bar relative flex items-center gap-1.5 justify-self-end max-md:justify-self-start">
+            <div className="study-language-bar relative flex items-center gap-1.5 justify-self-end mobile:justify-self-start">
               <div className="known-total-badge mr-1 flex items-center gap-1.5 whitespace-nowrap" title={t("stats.knownAll")}>
                 <span id="knownTotal" className="text-lg font-black leading-none text-brand">
                   {formatCount(dashboard?.knownWords ?? 0)}

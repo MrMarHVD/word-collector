@@ -14,3 +14,8 @@
 @source "../";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* The mobile layout switch, identical to the CSS media queries and
+   useIsMobileLayout(): use these instead of Tailwind's sm/md breakpoints. */
+@custom-variant mobile (@media (max-width: 760px));
+@custom-variant desktop (@media (min-width: 761px));

@@ -77,7 +77,7 @@ export default function DashboardPage() {
         </TabsList>
 
         <TabsContent value="overview" id="dashboardOverviewPanel" data-dashboard-stats-panel="overview">
-          <section className="metrics mb-4 grid grid-cols-4 gap-3.5 max-md:grid-cols-1" aria-label={t("dashboard.overallProgress")}>
+          <section className="metrics mb-4 grid grid-cols-4 gap-3.5 mobile:grid-cols-1" aria-label={t("dashboard.overallProgress")}>
             <article className={METRIC_CARD_CLASS}>
               <span id="totalWords" className={METRIC_VALUE_CLASS}>
                 {formatCount(dashboard?.totalWords ?? 0)}
@@ -142,7 +142,7 @@ export default function DashboardPage() {
             className="dashboard-documents-panel rounded-lg border border-line bg-panel p-5 shadow-panel"
             data-dashboard-stats-panel="documents"
           >
-            <div className="section-head mb-4 flex min-h-8 items-end justify-between gap-3 max-md:grid">
+            <div className="section-head mb-4 flex min-h-8 items-end justify-between gap-3 mobile:grid">
               <div>
                 <h2 className="text-base font-bold">{t("dashboard.documentProgress")}</h2>
               </div>

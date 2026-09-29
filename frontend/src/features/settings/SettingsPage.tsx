@@ -17,17 +17,17 @@ export default function SettingsPage() {
   const setActiveTab = useSettingsTabStore((state) => state.setTab);
   return (
     <section id="settingsView" className="tab-view">
-      <div className="settings-layout flex flex-col gap-4 sm:flex-row sm:items-start">
+      <div className="settings-layout flex flex-col gap-4 desktop:flex-row desktop:items-start">
         <nav
           id="settingsMenu"
-          className="settings-menu flex shrink-0 gap-1 rounded-lg border border-line bg-muted p-1 sm:w-44 sm:flex-col"
+          className="settings-menu flex shrink-0 gap-1 rounded-lg border border-line bg-muted p-1 desktop:w-44 desktop:flex-col"
           aria-label={t("settings.title")}
         >
           {SETTINGS_TABS.map(({ tab, labelKey }) => (
             <button
               key={tab}
               className={cn(
-                "settings-menu-button flex-1 rounded-md px-3 py-2 text-sm font-semibold text-secondary sm:text-left",
+                "settings-menu-button flex-1 rounded-md px-3 py-2 text-sm font-semibold text-secondary desktop:text-left",
                 activeTab === tab && "is-active"
               )}
               type="button"

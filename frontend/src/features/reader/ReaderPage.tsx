@@ -703,7 +703,7 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
         <SidebarOpenButton
           ref={openButtonRef}
           id="readerSidebarOpen"
-          className="reader-sidebar-open top-[86px] max-md:top-3"
+          className="reader-sidebar-open top-[86px] mobile:top-3"
           collapsed={!focusMode && !readTab && sidebarCollapsed}
           onOpen={() => setPreference("sidebarCollapsed", false)}
           label={t("reader.openSidebar")}
@@ -746,7 +746,7 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
             >
               {t("reader.exit")}
             </button>
-            <div className="reader-toolbar mb-4 flex items-end justify-between gap-4 max-md:grid">
+            <div className="reader-toolbar mb-4 flex items-end justify-between gap-4 mobile:grid">
               <div>
                 <h2 id="readerTitle" className="text-xl font-bold">
                   {title}

@@ -201,8 +201,8 @@ export function WordsPanel() {
       </div>
       <div className="grid gap-3">
         <LanguagePicker languages={languages} selectedId={selectedId} onSelect={setLanguageId} />
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <label className="grid gap-1.5 text-sm font-semibold text-label sm:w-48">
+        <div className="flex flex-col gap-3 desktop:flex-row desktop:items-end">
+          <label className="grid gap-1.5 text-sm font-semibold text-label desktop:w-48">
             <span>{t("admin.words.nativeLanguage")}</span>
             <select className={cn("admin-words-native", FIELD_INPUT_CLASS)} value={selectedNative} onChange={(event) => setNativeLanguage(event.target.value)}>
               {nativeOptions.map((option) => (
@@ -212,7 +212,7 @@ export function WordsPanel() {
               ))}
             </select>
           </label>
-          <label className="grid gap-1.5 text-sm font-semibold text-label sm:flex-1">
+          <label className="grid gap-1.5 text-sm font-semibold text-label desktop:flex-1">
             <span>{t("admin.words.search")}</span>
             <Input
               className="admin-words-search h-11 bg-panel text-main"
