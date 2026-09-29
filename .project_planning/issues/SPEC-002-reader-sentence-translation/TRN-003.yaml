@@ -1,0 +1,134 @@
+code: TRN-003
+title: Reader drag-selection gesture for eligible (ja material, en native) readers
+status: to do
+spec: SPEC-002-reader-sentence-translation
+summary: >
+  For Japanese materials read by English-native users, replace the radial
+  quick menu's press-and-hold gesture with drag-selection of a contiguous run
+  of words: mouse drag on desktop, press-and-hold then drag on touch. Selected
+  words are highlighted live. On release, the exact source text is rebuilt
+  from reader token data and a selection event is dispatched. Every other
+  language combination keeps today's behaviour byte-for-byte.
+scope:
+  files:
+    - frontend/public/js/features/reader/segment-selection.js (new)
+    - frontend/public/js/features/reader/reader.controller.js (pointer, touch and swipe gating only; the word-info click handler belongs to TRN-005)
+    - frontend/public/css/reader.css (selection highlight and touch rules only)
+  layers:
+    - frontend
+  description: >
+    In scope:
+      - The eligibility check isSegmentTranslationEligible(material, user),
+        evaluated at gesture start (pointerdown/touchstart), not at load.
+      - When eligible, the pointerdown path that currently starts the radial
+        quick menu starts segment selection instead.
+      - Desktop: a left-button mouse press on a token followed by movement
+        past the existing 12px threshold (READER_HOLD_CANCEL_DISTANCE) starts
+        selecting.
+      - Touch/pen: a press-and-hold on a token for the existing 360ms
+        (READER_HOLD_DELAY_MS) without moving past 12px starts selecting, and
+        subsequent movement extends it. Ordinary taps, vertical scrolling and
+        horizontal page-turn swipes keep working when no selection is in
+        progress.
+      - While dragging, tokens from the anchor to the token under the pointer
+        get the class `is-segment-selected`, in either direction. Selection can
+        cross punctuation and block boundaries. It is limited to the tokens
+        rendered on the current page.
+      - During and immediately after a drag:
+          - no word-info popup opens (the click after a drag is suppressed);
+          - no page-turn swipe fires;
+          - no native text selection or iOS callout appears;
+          - the page does not scroll.
+      - On release:
+          - with fewer than 2 tokens selected, clear the highlight and do
+            nothing else (no word-info, no event);
+          - with 2 or more, keep the highlight, rebuild sourceText from
+            state.readerTokens, and dispatch the C3 event.
+      - The highlight persists until clearReaderSegmentSelection() is called,
+        a new selection starts, or the reader re-renders (page turn, resize
+        re-fit, material change).
+    Out of scope:
+      - Translation, the popup, i18n strings.
+      - The word-info click handler and popup mutual exclusion (TRN-005).
+      - Removing any quick-menu code. The quick menu must keep working
+        unchanged for non-eligible readers, so none of it is deleted.
+dependencies: []
+acceptance_criteria:
+  - "Eligible reader (Japanese material, user nativeLanguage English), desktop: dragging with the mouse from one word across several others highlights them live. On release, exactly one reader:segment-selected event fires with the C3 detail, and sourceText equals the original text of those words, including internal punctuation, regardless of the \"show word spaces\" setting."
+  - Dragging right-to-left produces the same words and sourceText as left-to-right over the same range.
+  - A single click (no drag) on a word still opens the word-info popup. A drag never opens it. A drag that stays within one word produces no event and no popup.
+  - Eligible reader, touch (mobile viewport with touch), covering four behaviours. A quick tap opens word-info. A vertical swipe scrolls or pans as before. A horizontal swipe turns the page as before. Press-and-hold then drag highlights words and dispatches the event on release, with no page turn, no scroll and no native selection callout.
+  - The radial quick menu never appears for an eligible reader.
+  - "Non-eligible reader (e.g. Japanese material with native language Chinese, or any non-Japanese material): press-and-hold still shows the radial quick menu and its actions work exactly as before. Dragging selects nothing and dispatches no event."
+  - clearReaderSegmentSelection() removes all highlights. Turning the page also clears them.
+  - All existing Playwright smoke tests still pass.
+verification:
+  - Use a test account with nativeLanguage English and a Japanese material (import a short .txt through the app). In devtools run `document.addEventListener('reader:segment-selected', e => console.log(e.detail))`.
+  - On desktop, drag across part of a sentence and forwards and backwards across a 。; check the highlight, then the logged detail, sourceText and anchorRect. Toggle "show word spaces" and confirm sourceText is unchanged.
+  - Click a single word and confirm word-info opens. Drag and confirm it does not.
+  - In Chromium device emulation (touch, e.g. 390x844), and on a real phone if possible, check tap, vertical scroll, horizontal page-turn and hold-then-drag behaviour.
+  - Switch the native language to Chinese in settings (or open a non-Japanese material) and confirm press-and-hold shows the radial quick menu and applies an action as before. Restore the setting afterwards.
+  - Run `npm run test:e2e`.
+special_context: >
+  CONTRACT C3 (this issue's public API, consumed by TRN-005). Export from
+  frontend/public/js/features/reader/segment-selection.js:
+    isSegmentTranslationEligible(material, user) -> boolean
+      true only when material.languageName and user.nativeLanguage equal
+      "Japanese" and "English" respectively, compared case-insensitively.
+      Use state.currentMaterial and state.user at gesture time.
+    clearReaderSegmentSelection() -> void
+      removes the is-segment-selected highlight and resets selection state.
+  Dispatch on release (2 or more tokens):
+    document.dispatchEvent(new CustomEvent("reader:segment-selected", { detail }))
+    detail = {
+      sourceText: string,            // rebuilt from token data (see below)
+      words: [{ tokenId: string, surface: string, leadingText: string, trailingText: string }],
+                                     // in reading order; gap fields "" when null
+      anchorRect: { top, left, bottom, right, width, height }
+                                     // plain object, viewport coords, the union of the selected tokens' client rects
+    }
+
+  Existing code (from investigation; line numbers approximate):
+    - Tokens are <button class="reader-token" type="button" data-word-id
+      data-token-id data-status> inside #readerText (views/reader.js:329-332).
+      Punctuation and whitespace between tokens are bare text nodes, and
+      tokens are grouped into block elements (p/h*/li) for EPUB
+      (reader.js:336-408). Because tokens are buttons, native text selection
+      is unreliable; use custom token-range selection keyed on data-token-id.
+    - Rebuilding the source: state.readerTokens items carry id, position,
+      surface, leadingText, trailingText, blockIndex, blockType. For the
+      selected range, sourceText = Σ (surface + trailingText), with the last
+      token's trailingText trimmed. Null gaps count as "" (legacy materials
+      are acceptable to be slightly off). Never use the DOM text or
+      selection.toString(): "show word spaces" injects spaces into the DOM
+      (reader.js:346).
+    - Quick menu: a pointerdown on #readerText inside [data-token-id]
+      (reader.controller.js:801-807) calls startReaderConveniencePress
+      (:371-441). It uses READER_HOLD_DELAY_MS 360 and
+      READER_HOLD_CANCEL_DISTANCE 12 (:26-27). Once the menu is shown, the
+      body gets .is-reader-convenience-active, which sets user-select:none
+      (reader.css:459-461), and a 300ms suppressClick swallows the following
+      click (:202-209, :810-815) and swipe (:781-784). Branch at the
+      pointerdown entry point: eligible readers go to segment selection, the
+      rest go to the untouched quick-menu path.
+    - Page turns: a touchstart/touchend swipe with at least 50px dominant
+      horizontal movement (passive listeners, :767-799), a horizontal
+      trackpad wheel (:732-765, no conflict) and arrow keys (:946-962).
+    - Word click handler at :809-831. TRN-005 edits it, so avoid changing it
+      here beyond reusing the existing suppressClick mechanism to swallow the
+      post-drag click.
+    - Mobile CSS sets body { touch-action: pan-x pan-y }
+      (responsive.css:5). Leave responsive.css alone.
+implementation_notes: >
+  Mobile is the hard part. Once the browser starts panning it sends
+  pointercancel, and touch-action cannot be changed mid-gesture. The usual
+  reliable approach: after the hold timer fires, cancel scrolling with a
+  non-passive touchmove listener calling preventDefault, and use touch
+  coordinates with document.elementFromPoint to find the token under the
+  finger. Also suppress the existing swipe handler for that gesture.
+  -webkit-touch-callout:none and user-select:none on #readerText tokens,
+  scoped to eligible readers via a class, prevent the native long-press UI.
+  On desktop, mouse movement with elementFromPoint (or pointer events with
+  capture) is enough. Keep all new logic in segment-selection.js and make the
+  reader.controller.js changes a thin branch plus the swipe and suppressClick
+  hooks, since TRN-005 also edits that file afterwards.

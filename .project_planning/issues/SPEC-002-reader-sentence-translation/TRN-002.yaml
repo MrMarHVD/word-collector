@@ -1,0 +1,95 @@
+code: TRN-002
+title: Client-side translation service module
+status: to do
+spec: SPEC-002-reader-sentence-translation
+summary: >
+  Provide a self-contained browser ES module that translates Japanese text to
+  English on-device using the vendored Bergamot engine. It loads the engine
+  and model lazily on first use, reports loading and translation status, and
+  exposes a stable promise-based API that the rest of the app consumes.
+scope:
+  files:
+    - frontend/public/js/features/translation/translation.service.js (new)
+  layers:
+    - frontend
+  description: >
+    In scope: one ES module implementing CONTRACT C2 exactly. It covers:
+      - lazy engine and model initialisation on the first translate() call,
+        with nothing loaded at import time;
+      - model download progress reporting;
+      - a feature-support check (WebAssembly with SIMD) that rejects with
+        code "unsupported";
+      - mapping model fetch failures (non-2xx, network error) to
+        "model-unavailable" and engine or translation failures to "failed";
+      - superseding: a newer translate() call rejects the still-pending older
+        one with code "superseded";
+      - an engine instance reused across calls.
+    Out of scope: any DOM, reader, popup or i18n code. It does not decide
+    eligibility (that is TRN-003) and does not wire anything (TRN-005). It does
+    not modify the vendored engine files and imposes no text-length limit.
+dependencies:
+  - TRN-001
+acceptance_criteria:
+  - Importing the module triggers no network requests; the first translate() call starts the engine and model downloads.
+  - translate() on each of the four reference paragraphs (see special_context) resolves with { sourceText, targetText, alignments null }. sourceText equals the input and targetText is fluent English conveying the meaning, matching the evaluation outputs in substance.
+  - During the first call, onStatus receives "loading-model" (with { loaded, total } when Content-Length is known), then "translating", then "ready". Later calls skip "loading-model".
+  - A second call issued while the first is pending causes the first to reject with a TranslationError whose code is "superseded", and the second resolves normally.
+  - If a model URL returns 404, translate() rejects with code "model-unavailable". A later call retries loading instead of staying permanently broken.
+  - In a browser without WebAssembly SIMD, translate() rejects with code "unsupported" without downloading the model.
+  - After a page reload the model files come from the browser HTTP cache (DevTools shows "(disk cache)" or equivalent); no Cache API or IndexedDB layer is required.
+verification:
+  - Ensure models are fetched (TRN-001 script) and dev servers are running.
+  - Open the app in Chromium. In devtools, or with Playwright page.evaluate, run `const s = await import('/js/features/translation/translation.service.js')`, then call `s.translate(text, { onStatus: console.log })` for each reference paragraph. Check the resolved objects and the status sequence.
+  - Fire two translate() calls back to back and confirm the first rejects with code "superseded".
+  - Temporarily rename a model file (or block the URL in devtools) and confirm the "model-unavailable" rejection, then restore it and confirm a retry succeeds.
+  - Reload and confirm the model requests are served from cache.
+  - Repeat the reference-paragraph check in Firefox and WebKit if available (npx playwright install webkit firefox), and note the results in the PR.
+special_context: >
+  CONTRACT C1 (asset URLs, provided by TRN-001):
+    /vendor/bergamot/translator.js
+    /vendor/bergamot/worker/translator-worker.js
+    /vendor/bergamot/worker/bergamot-translator-worker.js
+    /vendor/bergamot/worker/bergamot-translator-worker.wasm
+    /models/ja-en-2.1/model.bin
+    /models/ja-en-2.1/lex.bin
+    /models/ja-en-2.1/vocab.spm
+
+  CONTRACT C2 (this issue's public API, consumed by TRN-005). Export exactly:
+    translate(text: string, options?: { onStatus?: (status, info?) => void })
+      -> Promise<{ sourceText: string, targetText: string, alignments: null }>
+      status is "loading-model" (info = { loaded: number, total: number|null }),
+      then "translating", then "ready".
+    class TranslationError extends Error { code }
+      code is one of "unsupported", "model-unavailable", "failed", "superseded".
+      Callers silently ignore "superseded".
+  The alignments field is always null in this spec. It is reserved for a
+  future word-alignment extension, and the popup (TRN-004) already renders
+  source words with indices for it. Keep the field in the result shape.
+
+  Reference paragraphs, with the Bergamot outputs observed during evaluation:
+    吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。吾輩はここで始めて人間というものを見た。
+      -> "I am a cat. I don't have a name yet. I have no idea where I was born. ..."
+    政府は二十九日、電気料金の高騰を受けて、家庭向けの補助金を来年三月まで延長する方針を固めた。関係者によると、補助額は一世帯あたり月平均で約千円になる見通しだ。
+      -> "On the 29th, the government decided to extend subsidies for households until March next year ..."
+    昨日さ、駅前の新しいラーメン屋行ったんだけど、めっちゃ並んでてさ。結局一時間待ったよ。でも味は正直普通だったかな。
+      -> "Yesterday, I went to a new ramen shop in front of the station, ..."
+    私は毎朝七時に起きて、コーヒーを飲みながらニュースを読みます。週末は友達と公園で散歩するのが好きです。
+      -> "I get up at seven every morning and read the news over coffee. ..."
+  Observed latency in headless Chromium on an Apple Silicon Mac: about 350 ms
+  for the first call after the model loaded, then 30–70 ms per paragraph.
+implementation_notes: >
+  The pattern proven in headless Chromium: import { LatencyOptimisedTranslator,
+  TranslatorBacking } from '/vendor/bergamot/translator.js'. Subclass
+  TranslatorBacking:
+    - override loadModelRegistery() to return [{from:'ja', to:'en', files:{}}]
+      (this avoids the package's default remote registry fetch);
+    - override loadTranslationModel() to return {model, shortlist, vocabs:
+      [vocab], config: {}} as ArrayBuffers from the C1 model URLs.
+  Then construct new LatencyOptimisedTranslator({pivotLanguage: null},
+  backing), which also creates the worker, so do it lazily.
+  LatencyOptimisedTranslator already rejects superseded pending requests with
+  its own SupersededError; map that to code "superseded". To report progress,
+  read the model response body as a stream and sum the chunk sizes against
+  Content-Length. For the SIMD check, WebAssembly.validate on a tiny SIMD
+  module is the usual approach. The vendored worker hardcodes alignment:false
+  (translator-worker.js around line 404); leave it untouched in this spec.

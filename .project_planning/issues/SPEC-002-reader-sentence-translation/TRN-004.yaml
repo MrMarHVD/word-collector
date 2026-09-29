@@ -1,0 +1,125 @@
+code: TRN-004
+title: Translation popup UI (desktop anchored pane + mobile sheet)
+status: to do
+spec: SPEC-002-reader-sentence-translation
+summary: >
+  Build the reader translation popup. It shows the original selected text
+  (rendered word by word) at the top and the English translation below. It
+  has four states (loading model, translating, done, error), closes with ×
+  and Escape, is positioned so it never covers the selection, and has a
+  mobile layout. It is driven entirely through an imperative API, so it can
+  be built and verified without the gesture or the engine.
+scope:
+  files:
+    - frontend/public/js/views/reader-translation.js (new)
+    - frontend/public/css/reader-translation.css (new)
+    - frontend/public/tailwind.css (one @import line)
+    - frontend/public/index.html (popup container only)
+    - frontend/public/js/dom.js (element reference only)
+    - frontend/public/locales.json (new keys in ja, en, zh)
+  layers:
+    - frontend
+  description: >
+    In scope:
+      - A new popup element #readerTranslation, placed next to
+        #readerWordInfo in index.html.
+      - A view module implementing CONTRACT C4 exactly.
+      - Rendering the original as one element per word, each carrying
+        data-source-word-index (0-based, matching the words array), with the
+        gap text between words preserved as plain text. Then the translation
+        below it.
+      - The states:
+          - "loading-model": a download message, with a percentage when
+            progress.total is known;
+          - "translating": an in-progress message;
+          - "done": the translation text;
+          - "error": a localised message chosen by errorCode, with
+            "unsupported", "model-unavailable" and "failed" mapped to distinct
+            messages and anything else falling back to "failed".
+      - An × close button with an accessible label. Escape closes on desktop.
+        Closing hides the popup and calls the onClose supplied to
+        openReaderTranslation.
+      - Positioning:
+          - Desktop: anchored to anchorRect, preferring below the selection
+            and flipping above when there is not enough space, clamped
+            horizontally to the viewport. It never overlaps anchorRect.
+          - Mobile (≤760px, the existing breakpoint): a bottom sheet
+            consistent with the word-info sheet, placed so the selection stays
+            visible. For example, scroll the reader content when it can
+            scroll, or dock the sheet at the top when the selection sits where
+            the sheet would be.
+      - Re-positioning on resize while open.
+      - Calling openReaderTranslation while already open replaces the content
+        and re-positions.
+      - Styling that matches the existing popup look (border-line, bg-panel,
+        shadow-panel, rounded) in light and dark themes.
+    Out of scope:
+      - Listening for selection events, calling the translation service, and
+        closing or reopening the word-info popup (all TRN-005).
+      - Any change to reader.js, reader.controller.js or reader.css.
+      - Word-alignment interaction (future).
+dependencies: []
+acceptance_criteria:
+  - In the reader view, calling openReaderTranslation with sample words, sourceText and an anchorRect shows the popup with the original text word by word on top and the loading-state message below. Each word element has data-source-word-index.
+  - setReaderTranslationState moves through loading-model (with a percentage when total is known), translating, done (shows targetText) and error (a distinct message per errorCode) without re-rendering the original text.
+  - The × button and Escape close the popup, onClose is called exactly once per close, and isReaderTranslationOpen() reflects the state.
+  - On desktop the popup rectangle never intersects anchorRect, whether the anchor is near the top, the bottom, the left or the right edge of the viewport.
+  - At ≤760px width the popup renders as a sheet, and the anchor area remains visible (not covered) for anchors in both the top and bottom halves of the screen.
+  - All new UI strings exist under the same keys in ja, en and zh in locales.json, and the popup reads correctly in each UI locale.
+  - The popup looks consistent with the word-info popup in light and dark themes.
+  - "`npm run build:css` succeeds and all existing Playwright smoke tests pass."
+verification:
+  - Run `npm run build:css`, start the dev servers and open the reader view.
+  - "In devtools: `const v = await import('/js/views/reader-translation.js')`, then `v.openReaderTranslation({ words: [{tokenId:'1',surface:'私',leadingText:'',trailingText:''},{tokenId:'2',surface:'は',leadingText:'',trailingText:''},{tokenId:'3',surface:'猫',leadingText:'',trailingText:'。'}], sourceText: '私は猫。', anchorRect: {top:200,left:300,bottom:230,right:420,width:120,height:30}, onClose: () => console.log('closed') })`."
+  - Call setReaderTranslationState with each status and error code and check the rendering.
+  - Close with × and with Escape and check the onClose log.
+  - Repeat with anchorRects near each viewport edge on desktop, and at 390x844 emulation for top-half and bottom-half anchors. Visually confirm there is no overlap.
+  - Switch the UI locale to ja, en and zh, and the theme to light and dark, and check.
+  - Run `npm run test:e2e`.
+special_context: >
+  CONTRACT C4 (this issue's public API, consumed by TRN-005). Export from
+  frontend/public/js/views/reader-translation.js:
+    openReaderTranslation({ words, sourceText, anchorRect, onClose }) -> void
+      words: [{ tokenId, surface, leadingText, trailingText }] in reading
+        order (same shape as the C3 event detail.words)
+      anchorRect: { top, left, bottom, right, width, height } in viewport coords
+      Opens (or replaces content if already open) in the "translating"
+      status. The caller sets "loading-model" if needed.
+    setReaderTranslationState({ status, progress?, targetText?, errorCode? }) -> void
+      status is "loading-model", "translating", "done" or "error";
+      progress = { loaded, total|null }; errorCode is a C2 TranslationError
+      code.
+    closeReaderTranslation() -> void   // hides and calls onClose (no-op if closed)
+    isReaderTranslationOpen() -> boolean
+  DOM contract: container id #readerTranslation, and each source word element
+  carries data-source-word-index (reserved for the future alignment feature).
+  Do not import reader.controller.js or the translation service; the module
+  must stand alone to avoid circular imports.
+
+  Existing patterns to mirror (from investigation):
+    - Word-info popup: <aside id="readerWordInfo" class="reader-word-info fixed
+      z-10 … rounded-lg border border-line bg-panel p-3.5 shadow-panel" hidden>
+      (index.html:390). Rendered by renderReaderWordInfo (views/reader.js:607-674),
+      with close button .reader-word-info-close and aria-label
+      t("reader.closeTranslation").
+    - Positioning via CSS variables in positionReaderWordInfo
+      (reader.js:545-563), including the 86px reserved in mobile focus mode.
+    - Mobile sheet rules at reader.css:952-959 and :1120-1133 (inset, safe
+      area, max-height min(70dvh,520px), raised in focus mode). Copy the
+      approach into reader-translation.css; do not edit reader.css, which
+      TRN-003 owns.
+    - i18n: flat dotted keys in frontend/public/locales.json under ja, en and
+      zh. Use t(key, values, fallback) with {name} interpolation
+      (js/i18n.js:59-65). AGENTS.md requires every string in all three
+      locales.
+    - The CSS pipeline is Tailwind v4: frontend/public/tailwind.css @imports
+      css/*.css into public/styles.css. Add the new file's import right after
+      reader.css.
+implementation_notes: >
+  Suggested key namespace: reader.translation.* (title or heading labels for
+  the original and the translation, loadingModel with {percent}, translating,
+  error.unsupported, error.modelUnavailable, error.failed, close). Keep the
+  original-text rendering separate from the translation area, so later
+  alignment work can add hover/click handlers on data-source-word-index
+  elements and a matching indexed rendering of the translation without
+  restructuring. Check how dom.js registers elements and follow that pattern.

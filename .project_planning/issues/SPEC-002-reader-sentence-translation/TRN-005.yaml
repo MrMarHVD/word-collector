@@ -1,0 +1,128 @@
+code: TRN-005
+title: Wire selection → translation → popup, word-info exclusivity, and e2e tests
+status: to do
+spec: SPEC-002-reader-sentence-translation
+summary: >
+  Connect the three components into the end-to-end feature: a
+  reader:segment-selected event opens the popup and runs translation, status
+  and results flow into the popup, closing clears the selection, and the
+  popup and the word-info popup are mutually exclusive. Adds Playwright
+  coverage for the whole flow on desktop and mobile, and for the unchanged
+  quick menu on non-eligible readers.
+scope:
+  files:
+    - frontend/public/js/features/translation/translation.controller.js (new)
+    - frontend/public/js/main.js (bind call only)
+    - frontend/public/js/features/reader/reader.controller.js (word-info click handler, plus exporting closeReaderWordInfo if not already exported)
+    - tests/smoke/reader-translation.spec.ts (new)
+  layers:
+    - frontend
+    - tests
+  description: >
+    In scope:
+      - A translation controller exporting bindTranslationEvents(), called
+        from main.js next to bindReaderEvents.
+      - On reader:segment-selected:
+          - close the word-info popup;
+          - openReaderTranslation({ words, sourceText, anchorRect, onClose:
+            clearReaderSegmentSelection });
+          - call translate(sourceText, { onStatus }), mapping each status to
+            setReaderTranslationState;
+          - on success, set status "done" with targetText;
+          - on a TranslationError, set status "error" with errorCode, except
+            "superseded", which is ignored.
+      - A newer selection replaces the popup content (handled by C4 open plus
+        C2 superseding).
+      - Opening word-info (the reader.controller.js word click handler) closes
+        the translation popup if it is open.
+      - When the selection can no longer be shown, close the popup (which
+        clears the selection). That covers page turns, reader re-renders and
+        leaving the reader view.
+      - A Playwright spec covering desktop and mobile flows plus the
+        non-eligible quick-menu regression.
+    Out of scope:
+      - Changing the internals of the service, gesture or popup. If a contract
+        gap is found, stop and report it rather than re-implementing another
+        issue's module.
+dependencies:
+  - TRN-002
+  - TRN-003
+  - TRN-004
+acceptance_criteria:
+  - As an eligible reader on desktop, dragging across part of a sentence opens the popup next to (not over) the selection. It shows the original words on top, a loading or translating state, then an English translation below.
+  - The first translation after page load shows the model-download state. After a reload the model is not downloaded again (served from the HTTP cache).
+  - Making a new selection while the popup is open replaces its content with the new original and translation. A stale result never overwrites a newer one.
+  - Closing the popup (× or Escape) removes the selection highlight.
+  - Tapping a word opens word-info and closes the translation popup. Making a selection closes word-info. The two are never visible together.
+  - Turning the page while the popup is open closes it and clears the highlight.
+  - If the model files are unavailable, the popup shows the localised "model unavailable" error rather than hanging.
+  - No network request contains the selected text; the only translation-related requests are the /vendor/bergamot and /models asset fetches.
+  - Non-eligible readers get the radial quick menu exactly as before and never see the translation popup.
+  - The new Playwright spec passes locally with models present, and is skipped (not failed) when GET /models/ja-en-2.1/model.bin returns 404. All existing smoke tests pass.
+verification:
+  - Fetch the models (TRN-001 script), build the CSS and start the servers.
+  - "Run through the full flow manually in desktop Chromium and at 390x844 touch emulation: selection, translation, replacement, close, word-info exclusivity and page turn."
+  - Record network activity in devtools during a translation and confirm no request body or URL contains the selected text.
+  - Temporarily move a model file away, confirm the error state, then restore it.
+  - Run `npx playwright test tests/smoke/reader-translation.spec.ts` and then `npm run test:e2e`.
+  - Also try Safari or WebKit and Firefox if available, and note the results in the PR.
+special_context: >
+  CONTRACT C2 (from TRN-002, frontend/public/js/features/translation/translation.service.js):
+    translate(text, { onStatus? }) -> Promise<{ sourceText, targetText, alignments: null }>
+      onStatus(status, info) with status "loading-model" (info { loaded, total|null }),
+      "translating" or "ready"
+    class TranslationError extends Error { code }
+      code is "unsupported", "model-unavailable", "failed" or "superseded"
+      (ignore "superseded")
+
+  CONTRACT C3 (from TRN-003, frontend/public/js/features/reader/segment-selection.js):
+    isSegmentTranslationEligible(material, user) -> boolean
+    clearReaderSegmentSelection() -> void
+    document event "reader:segment-selected", detail = {
+      sourceText, words: [{ tokenId, surface, leadingText, trailingText }],
+      anchorRect: { top, left, bottom, right, width, height } }
+
+  CONTRACT C4 (from TRN-004, frontend/public/js/views/reader-translation.js):
+    openReaderTranslation({ words, sourceText, anchorRect, onClose })
+      opens in the "translating" status
+    setReaderTranslationState({ status: "loading-model"|"translating"|"done"|"error",
+      progress?, targetText?, errorCode? })
+    closeReaderTranslation()   // calls onClose
+    isReaderTranslationOpen() -> boolean
+    DOM: #readerTranslation; source words carry data-source-word-index
+
+  CONTRACT C1 (from TRN-001): the model files are at
+  /models/ja-en-2.1/{model.bin,lex.bin,vocab.spm}. They are gitignored and
+  return 404 when absent, which is the test skip condition.
+
+  Existing code: the word click handler is in reader.controller.js (around
+  :809-831). closeReaderWordInfo is at :175-181; export it if needed. The
+  outside-click closer for word-info is at :939-944; make sure clicks inside
+  #readerTranslation do not trigger unexpected closes. Page re-renders go
+  through renderReaderTokens / fitReaderTokensToPage (views/reader.js:461-543).
+  TRN-003 clears the highlight on re-render; this issue must also close the
+  popup at those points.
+
+  Tests (from investigation):
+    - Playwright is configured in playwright.config.ts: testDir ./tests, a
+      setup project writing tests/.auth/user.json, a Chromium project with
+      storageState, and globalSetup provisioning the test user via
+      backend/scripts/provision_admin.js. webServer reuses API 3000 and web
+      5173.
+    - No existing test seeds materials, so the spec must create a small
+      Japanese .txt material through the app's API or import UI, and delete
+      it afterwards.
+    - It must set the test user's native language to English, and to Chinese
+      for the regression case, via /api/settings, restoring the original
+      value afterwards.
+    - For mobile, use a 390x844 viewport with hasTouch. Hold-then-drag needs
+      touch events through CDP (Input.dispatchTouchEvent) in Chromium.
+    - Follow the style of tests/smoke/*.spec.ts. Per project convention, UI
+      verification uses headless `npm run test:e2e`, not the Playwright MCP.
+implementation_notes: >
+  Keep the controller thin: it only translates between contracts. Guard
+  against a late translate() result arriving after the popup was closed or
+  replaced. Superseding covers most of this, but a closed popup should also
+  ignore late results. For the no-leak check in tests, page.on('request')
+  can assert that no request URL or post data contains the Japanese sample
+  text.

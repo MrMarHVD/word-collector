@@ -1,0 +1,119 @@
+code: TRN-001
+title: Vendor the Bergamot engine, distribute the ja→en model, and serve both correctly
+status: to do
+spec: SPEC-002-reader-sentence-translation
+summary: >
+  Make the Bergamot translation engine and the pinned Japanese→English model
+  loadable by the browser from the app's own origin, in both dev and
+  production. This covers vendoring the engine, a repeatable model download
+  step (local and deploy), static-server fixes for large binary and .wasm
+  files, and the production security policy change needed to run WebAssembly.
+scope:
+  files:
+    - frontend/public/vendor/bergamot/ (new, committed)
+    - backend/scripts/fetch_mt_models.js (new)
+    - backend/package.json and/or root package.json (script entry only)
+    - backend/src/http/static.js
+    - backend/src/http/security.js
+    - frontend/server.js
+    - .gitignore
+    - .github/workflows/deploy-dev.yml
+  layers:
+    - infrastructure
+    - backend
+    - frontend (static assets only)
+  description: >
+    In scope:
+    (1) Vendor @browsermt/bergamot-translator@0.4.9, unmodified, into
+    frontend/public/vendor/bergamot/. Copy translator.js plus
+    worker/translator-worker.js, worker/bergamot-translator-worker.js and
+    worker/bergamot-translator-worker.wasm, keeping the worker/ subfolder,
+    because translator.js resolves the worker relative to itself. Include the
+    package's LICENSE/README (MPL-2.0).
+    (2) Add a Node script that downloads the three pinned model files to
+    frontend/public/models/ja-en-2.1/ and verifies each file's size and SHA-256.
+    The script is idempotent: it skips files already present with the correct
+    hash, and exits non-zero on a mismatch or download failure.
+    (3) Gitignore frontend/public/models/.
+    (4) Run the script in the dev deploy workflow after npm install.
+    (5) Both static servers:
+      - serve .wasm as application/wasm and .bin/.spm as
+        application/octet-stream;
+      - stream files rather than reading them whole into memory, with a
+        correct Content-Length;
+      - send `Cache-Control: public, max-age=31536000, immutable` for paths
+        under /vendor/bergamot/ and /models/ (both are versioned paths);
+      - return a real 404 for missing files under /vendor/ and /models/
+        instead of the index.html SPA fallback.
+    (6) Production CSP: add 'wasm-unsafe-eval' to script-src. Send the same
+    CSP from the dev server so policy regressions show up in dev.
+    Out of scope: any JS that uses the engine (TRN-002), any reader or UI
+    change.
+dependencies: []
+acceptance_criteria:
+  - Running the fetch script on a clean checkout produces frontend/public/models/ja-en-2.1/{model.bin,lex.bin,vocab.spm} with the pinned sizes and hashes. A second run downloads nothing and exits 0.
+  - git status shows no model files after the script runs; the vendored engine files are tracked.
+  - In both dev (frontend/server.js) and production mode (backend serving PUBLIC_DIR), GET /vendor/bergamot/worker/bergamot-translator-worker.wasm returns 200 with Content-Type application/wasm and the immutable Cache-Control header.
+  - GET /models/ja-en-2.1/model.bin returns 200 with the full 43977787 bytes, streamed, with the immutable Cache-Control header. GET /models/ja-en-2.1/missing.bin returns 404, not HTML.
+  - Production responses carry a CSP whose script-src includes 'wasm-unsafe-eval' and no new third-party origins. The dev server sends the same CSP and the existing app still works fully in dev under it.
+  - The deploy workflow runs the fetch script. It succeeds when the files are already present and fails the deploy on a hash mismatch.
+  - All existing Playwright smoke tests still pass (`npm run test:e2e`).
+verification:
+  - Run `node backend/scripts/fetch_mt_models.js` twice; confirm the files, sizes and hashes, and that the second run is a no-op.
+  - Run `git status` and confirm frontend/public/models/ is ignored.
+  - With dev and API servers running, `curl -sI` the .wasm, model.bin and a missing model path on both the dev port (5173) and the backend port (3000). Check the status, Content-Type, Cache-Control and CSP headers.
+  - Smoke-check the engine in a real browser. Open any app page, then run a minimal Bergamot translation in the devtools console (or via Playwright evaluate) using the loading pattern in implementation_notes. Confirm it returns English text under the production CSP.
+  - Run `npm run test:e2e`.
+special_context: >
+  CONTRACT C1 (asset URLs), consumed by TRN-002. Do not change these paths:
+    /vendor/bergamot/translator.js
+    /vendor/bergamot/worker/translator-worker.js
+    /vendor/bergamot/worker/bergamot-translator-worker.js
+    /vendor/bergamot/worker/bergamot-translator-worker.wasm
+    /models/ja-en-2.1/model.bin
+    /models/ja-en-2.1/lex.bin
+    /models/ja-en-2.1/vocab.spm
+  The model files are gitignored and return 404 when missing (TRN-005 tests
+  skip on that 404); everything else is committed.
+
+  Pinned model: Mozilla Firefox Translations ja→en v2.1. Base URL is
+  https://firefox-settings-attachments.cdn.mozilla.net/ and the files are:
+    model.bin  <- main-workspace/translations-models/2b066368-11b5-4cee-92e8-e6156b334f80.bin
+      size 43977787  sha256 3a603e20bfe1be86071913f9e23ab5129075bc0a8490151020ac4821e4f17302
+    lex.bin    <- main-workspace/translations-models/4e6b3270-8a2f-491d-b717-f99749328622.bin
+      size 9348172   sha256 525f412f0d210536c2933c78ae395fa0bf2b5ee6cc5dda61ebc2e79410ebaee4
+    vocab.spm  <- main-workspace/translations-models/6f4898e3-ebaa-4a79-a1af-93a4f65b96fa.spm
+      size 1443222   sha256 5cb217758bae05877bb3f0c2f612e4e7c1e4cb03c10db11f4a47098d7ae62919
+  The source listing is the Remote Settings collection at
+  https://firefox.settings.services.mozilla.com/v1/buckets/main/collections/translations-models/records,
+  filtered to fromLang=ja, toLang=en, version=2.1. Mozilla's CDN sends no CORS
+  headers, so browsers cannot fetch from it directly; that is why the files
+  are self-hosted. The old GitHub LFS model repo
+  (mozilla/firefox-translations-models) is archived and its LFS downloads
+  return 404; do not use it.
+
+  Production serving: the backend serves PUBLIC_DIR (default frontend/public,
+  backend/src/config.js:53) for all non-/api paths (backend/server.js:72-95).
+  applySecurityHeaders (backend/src/http/security.js:15-27,46-55) applies to
+  every response, static assets included. That matters here: a Web Worker
+  gets its CSP from its own script response, so the worker JS response must
+  also allow 'wasm-unsafe-eval'. The policy is COOP same-origin with no COEP,
+  so SharedArrayBuffer is unavailable, which is fine: this Bergamot build is
+  single-threaded. Today both servers map only .html/.css/.js/.json, use
+  readFile, and fall back to index.html for unknown paths
+  (frontend/server.js:25-30, static.js:18-23).
+implementation_notes: >
+  The loading pattern verified in headless Chromium during evaluation:
+  subclass TranslatorBacking from translator.js, override
+  loadModelRegistery() to return [{from:'ja', to:'en', files:{}}], and
+  override loadTranslationModel() to return {model, shortlist: lex, vocabs:
+  [vocab], config: {}} as ArrayBuffers fetched from the C1 model URLs. Then
+  construct new LatencyOptimisedTranslator({pivotLanguage: null}, backing)
+  and call translate({from:'ja', to:'en', text, html:false}). Use this only
+  for your smoke check; the real module belongs to TRN-002.
+
+  The package's Node mode is broken on modern Node (a require-in-ESM error in
+  the worker), so verify in a browser, not Node. Keep the static-server
+  changes minimal and symmetric between the two servers. Put the fetch script
+  in backend/scripts/ next to the existing import_*.js scripts and follow
+  their style. It must not depend on dev-only packages.
