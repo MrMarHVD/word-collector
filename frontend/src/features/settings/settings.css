@@ -1,0 +1,64 @@
+/* Settings screen, ported from public/css/settings.css. */
+
+@media (min-width: 761px) {
+  .settings-display-mode {
+    display: none;
+  }
+}
+
+.delete-account-section {
+  border-color: var(--danger-border);
+  background: var(--surface-panel);
+  overflow: hidden;
+}
+
+.delete-account-toggle {
+  color: var(--danger);
+}
+
+.delete-account-panel {
+  border-color: var(--danger-border);
+  background: var(--danger-hover-surface);
+}
+
+.delete-account-section h3 {
+  color: var(--danger);
+}
+
+.delete-account-button {
+  border: 1px solid var(--danger);
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.delete-account-button:hover:not(:disabled) {
+  border-color: var(--danger-border-hover);
+  filter: brightness(0.96);
+}
+
+.delete-account-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 760px) {
+  .settings-layout {
+    gap: 12px;
+  }
+
+  .settings-menu {
+    overflow-x: auto;
+  }
+
+  .settings-menu-button {
+    min-width: 120px;
+  }
+
+  .delete-account-section {
+    padding: 14px;
+  }
+
+  .delete-account-button {
+    width: 100%;
+  }
+}
