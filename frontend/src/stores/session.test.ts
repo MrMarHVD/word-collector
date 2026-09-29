@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getCsrfToken, setCsrfToken } from "@/lib/api/client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as authApi from "@/lib/api/auth";
+import { ApiError, getCsrfToken, setCsrfToken } from "@/lib/api/client";
 import type { User } from "@/lib/api/types";
 import { registerSessionReset, useSessionStore } from "./session";
 
@@ -26,5 +27,26 @@ describe("registerSessionReset", () => {
     expect(reset).toHaveBeenCalledTimes(1);
     useSessionStore.getState().handleUnauthorized();
     expect(reset).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("logout", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    [401, "errors.authenticationRequired"],
+    [403, "errors.csrfInvalid"]
+  ])("clears the session when the session had already expired (%i %s)", async (status, errorKey) => {
+    vi.spyOn(authApi, "logout").mockRejectedValue(new ApiError(status, { errorKey }));
+    await useSessionStore.getState().logout();
+    expect(useSessionStore.getState()).toMatchObject({ user: null, verifyNotice: "" });
+  });
+
+  it("keeps the user and shows other failures in the verification banner", async () => {
+    vi.spyOn(authApi, "logout").mockRejectedValue(new ApiError(500, { error: "Server error." }));
+    await useSessionStore.getState().logout();
+    expect(useSessionStore.getState()).toMatchObject({ user: USER, verifyNotice: "Server error." });
   });
 });

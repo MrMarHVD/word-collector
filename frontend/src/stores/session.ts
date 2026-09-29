@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import * as authApi from "@/lib/api/auth";
-import { setCsrfToken } from "@/lib/api/client";
+import { ApiError, isCsrfRejection, setCsrfToken } from "@/lib/api/client";
 import type { AuthProviders, User } from "@/lib/api/types";
 import { queryClient } from "@/lib/query-client";
 import { useStudyLanguageStore } from "@/stores/study-language";
@@ -37,7 +37,7 @@ export interface SessionState {
   setUser: (user: User | null) => void;
   /** Marks bootstrap finished without loading a session (password-reset links). */
   markReady: () => void;
-  /** POST /api/auth/logout, then clears the session. On failure the error is shown in the verification banner. */
+  /** POST /api/auth/logout, then clears the session (also when the session had already expired). Other failures are shown in the verification banner. */
   logout: () => Promise<void>;
   /** Drops the user, the query cache and registered feature state (sign-out, account deletion); `forgetStudyLanguage` also removes the persisted language. */
   clearSession: (options?: { forgetStudyLanguage?: boolean }) => void;
@@ -120,6 +120,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       await authApi.logout();
       get().clearSession();
     } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || isCsrfRejection(error.status, error.errorKey))) {
+        // The session had already expired server-side: finish the sign-out locally.
+        get().clearSession();
+        return;
+      }
       set({ verifyNotice: error instanceof Error ? error.message : String(error) });
     }
   },
