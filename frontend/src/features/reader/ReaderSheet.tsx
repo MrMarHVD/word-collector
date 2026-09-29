@@ -32,7 +32,8 @@ export function ReaderSheet({ open, onClose, id, className, contentRef, children
           id={id}
           side="bottom"
           showCloseButton={false}
-          className={cn(className, "gap-0")}
+          // Portalled to the body, so it must clear the fixed focus-mode layout (z-index 11) that holds the legacy popups.
+          className={cn(className, "z-[12] gap-0")}
           aria-describedby={undefined}
           onOpenAutoFocus={preventDefault}
           onCloseAutoFocus={preventDefault}
