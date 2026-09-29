@@ -5,9 +5,14 @@ on:
     branches:
       - dev
 
+permissions:
+  contents: read
+
+# Never cancel a running deploy: a new push waits instead of cutting the SSH
+# session mid-migration or mid-swap.
 concurrency:
   group: deploy-dev
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -16,7 +21,7 @@ jobs:
 
     steps:
       - name: Deploy to Contabo VPS
-        uses: appleboy/ssh-action@v1.2.2
+        uses: appleboy/ssh-action@2ead5e36573f08b82fbfce1504f1a4b05a647c6f # v1.2.2
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -40,24 +45,29 @@ jobs:
             # Dev dependencies are needed for the frontend build, even under NODE_ENV=production.
             npm install --include=dev
             npm run fetch:mt-models -w backend
-            # Build into a fresh directory; frontend/dist is repointed to it just before the restart,
-            # so the running process never serves an emptied or half-written build.
-            build_dir=".dist-$current_commit"
-            rm -rf "frontend/$build_dir"
+            # Build into a fresh, uniquely named directory; frontend/dist is repointed to it just before
+            # the restart, so the running process never serves an emptied or half-written build, and a
+            # re-run of the same commit never touches the live build.
+            build_dir=".dist-$current_commit-$(date -u +%Y%m%d%H%M%S)"
             npm run build -w frontend -- --outDir "$build_dir"
-            cd backend
-            DATABASE_URL=$(grep '^DATABASE_URL=' ~/supergloss/word-collector/.env | cut -d= -f2-) npx node-pg-migrate up
+            # The migrate and import scripts read DATABASE_URL from .env themselves, keeping it out of argv.
+            npm run migrate:up -w backend
             if [ "$import_jmdict" = true ]; then
-              DATABASE_URL=$(grep '^DATABASE_URL=' ~/supergloss/word-collector/.env | cut -d= -f2-) npm run import:jmdict
+              npm run import:jmdict -w backend
             fi
-            cd ..
 
-            # Atomically swap the frontend/dist symlink (a pre-existing real directory is replaced once).
-            if [ -d frontend/dist ] && [ ! -L frontend/dist ]; then
-              rm -rf frontend/dist
-            fi
+            # Atomically swap the frontend/dist symlink. A pre-existing real directory (first deploy) is
+            # moved aside to .dist-legacy rather than deleted, and kept as the previous build.
             ln -sfn "$build_dir" frontend/dist.next
+            if [ -d frontend/dist ] && [ ! -L frontend/dist ]; then
+              previous_build=".dist-legacy"
+              rm -rf "frontend/$previous_build"
+              mv -T frontend/dist "frontend/$previous_build"
+            else
+              previous_build=$(basename "$(readlink frontend/dist 2>/dev/null || echo none)")
+            fi
             mv -Tf frontend/dist.next frontend/dist
-            find frontend -maxdepth 1 -name '.dist-*' ! -name "$build_dir" -exec rm -rf {} +
+            # Keep the previous build for one deploy, so open tabs can still load its lazy chunks.
+            find frontend -maxdepth 1 -name '.dist-*' ! -name "$build_dir" ! -name "$previous_build" -exec rm -rf {} +
 
             pm2 restart word-marker
