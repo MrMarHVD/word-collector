@@ -79,8 +79,13 @@ function assetMiddleware(req: IncomingMessage, res: ServerResponse, next: Next):
 
 /** Makes the gitignored translation models available at `/models/*` in dev, preview and the build output. */
 function translationModels(): Plugin {
+  // Follows `--outDir`, which deploy uses to build into a fresh directory.
+  let outDir = OUT_DIR;
   return {
     name: "supergloss:translation-models",
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+    },
     configureServer(server) {
       server.middlewares.use(assetMiddleware);
     },
@@ -92,7 +97,7 @@ function translationModels(): Plugin {
         this.warn(`No translation models at ${MODELS_DIR}; run \`npm run fetch:mt-models -w backend\`.`);
         return;
       }
-      cpSync(MODELS_DIR, join(OUT_DIR, "models"), { recursive: true });
+      cpSync(MODELS_DIR, join(outDir, "models"), { recursive: true });
     }
   };
 }

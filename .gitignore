@@ -18,5 +18,6 @@ playwright-report/
 tests/.auth/
 
 
-# React frontend build output.
-frontend/dist/
+# React frontend build output (deploy builds into frontend/.dist-<commit> and symlinks frontend/dist).
+frontend/dist
+frontend/.dist-*/

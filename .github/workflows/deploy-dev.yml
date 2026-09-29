@@ -37,14 +37,27 @@ jobs:
               import_jmdict=true
             fi
 
-            npm install
+            # Dev dependencies are needed for the frontend build, even under NODE_ENV=production.
+            npm install --include=dev
             npm run fetch:mt-models -w backend
-            npm run build -w frontend
+            # Build into a fresh directory; frontend/dist is repointed to it just before the restart,
+            # so the running process never serves an emptied or half-written build.
+            build_dir=".dist-$current_commit"
+            rm -rf "frontend/$build_dir"
+            npm run build -w frontend -- --outDir "$build_dir"
             cd backend
             DATABASE_URL=$(grep '^DATABASE_URL=' ~/supergloss/word-collector/.env | cut -d= -f2-) npx node-pg-migrate up
             if [ "$import_jmdict" = true ]; then
               DATABASE_URL=$(grep '^DATABASE_URL=' ~/supergloss/word-collector/.env | cut -d= -f2-) npm run import:jmdict
             fi
             cd ..
+
+            # Atomically swap the frontend/dist symlink (a pre-existing real directory is replaced once).
+            if [ -d frontend/dist ] && [ ! -L frontend/dist ]; then
+              rm -rf frontend/dist
+            fi
+            ln -sfn "$build_dir" frontend/dist.next
+            mv -Tf frontend/dist.next frontend/dist
+            find frontend -maxdepth 1 -name '.dist-*' ! -name "$build_dir" -exec rm -rf {} +
 
             pm2 restart word-marker
