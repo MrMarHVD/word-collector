@@ -18,6 +18,5 @@ playwright-report/
 tests/.auth/
 
 
-# React frontend build output; translation models when moved into the Vite public dir.
+# React frontend build output.
 frontend/dist/
-frontend/static/models/

@@ -4,17 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev:legacy": "node --watch server.js",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "tsc -p tsconfig.app.json && tsc -p tsconfig.node.json",
-    "test": "vitest run",
-    "build:css": "tailwindcss -i ./public/tailwind.css -o ./public/styles.css",
-    "watch:css": "tailwindcss -i ./public/tailwind.css -o ./public/styles.css --watch"
+    "test": "vitest run"
   },
   "engines": {
     "node": ">=25"

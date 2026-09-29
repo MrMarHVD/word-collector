@@ -10,9 +10,6 @@
     "start": "npm run start -w backend",
     "dev:api": "npm run dev -w backend",
     "dev:web": "npm run dev -w frontend",
-    "dev:app": "npm run dev -w frontend",
-    "build:css": "npm run build:css -w frontend",
-    "watch:css": "npm run watch:css -w frontend",
     "test:e2e": "playwright test",
     "test:e2e:report": "playwright test --reporter=html"
   },

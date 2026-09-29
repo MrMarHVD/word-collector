@@ -7,9 +7,9 @@
  * - `static/` is the public dir: the versioned Bergamot engine under
  *   `/vendor/bergamot-0.4.9/`, the favicon and the no-flash theme script.
  * - The translation models stay in `public/models/` (gitignored, written by
- *   `backend/scripts/fetch_mt_models.js`, shared with the legacy app until the
- *   switchover). The `translationModels` plugin serves them at `/models/*` in
- *   dev/preview and copies them into the build output.
+ *   `backend/scripts/fetch_mt_models.js`). The `translationModels` plugin
+ *   serves them at `/models/*` in dev/preview and copies them into the build
+ *   output, which the backend serves in production.
  */
 
 import { cpSync, createReadStream, existsSync, statSync } from "node:fs";
@@ -40,7 +40,7 @@ function resolveFile(baseDir: string, subPath: string): string | null {
 }
 
 /**
- * Serves `/models/*` from MODELS_DIR (immutable, like the legacy server) and
+ * Serves `/models/*` from MODELS_DIR (immutable, like the backend) and
  * returns real 404s for missing `/vendor/*` and `/models/*` files instead of
  * the SPA fallback.
  */
