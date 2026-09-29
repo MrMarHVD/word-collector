@@ -23,11 +23,14 @@ export interface MaterialImportDialogProps {
  * beta-limit errors and import progress. MaterialList renders it itself; it is
  * exported for other entry points. As in the legacy app it closes as soon as
  * the upload starts; its status line and progress bar keep tracking the last
- * import and show again when it is reopened.
+ * import and show again when it is reopened, as does a file chosen but not
+ * yet imported.
  */
 export function MaterialImportDialog({ open, onOpenChange, onImportStarted }: MaterialImportDialogProps) {
   const t = useT();
   const fileInput = useRef<HTMLInputElement>(null);
+  // The dialog content unmounts on close; the chosen file is kept here and restored on reopen.
+  const chosenFile = useRef<File | null>(null);
   const [status, setStatus] = useState("");
   const [trackedId, setTrackedId] = useState<number | null>(null);
   const upload = useUploadMaterial();
@@ -59,6 +62,7 @@ export function MaterialImportDialog({ open, onOpenChange, onImportStarted }: Ma
     try {
       const { material } = await upload.mutateAsync(file);
       setStatus(t("reader.importStarted"));
+      chosenFile.current = null;
       setTrackedId(material.id);
       onImportStarted?.(material);
     } catch (error) {
@@ -76,6 +80,7 @@ export function MaterialImportDialog({ open, onOpenChange, onImportStarted }: Ma
         className="material-import-panel block rounded-lg border-line bg-panel p-5 shadow-panel sm:max-w-md"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
+          restoreChosenFile(fileInput.current, chosenFile.current);
           fileInput.current?.focus();
         }}
       >
@@ -90,6 +95,9 @@ export function MaterialImportDialog({ open, onOpenChange, onImportStarted }: Ma
             <span>{t("reader.file")}</span>
             <Input
               ref={fileInput}
+              onChange={(event) => {
+                chosenFile.current = event.currentTarget.files?.[0] ?? null;
+              }}
               id="materialFile"
               className="h-auto min-h-11 border-line bg-panel px-3 py-2 text-sm text-main file:mr-3 file:h-auto file:rounded-md file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-label md:text-sm"
               type="file"
@@ -127,4 +135,14 @@ export function MaterialImportDialog({ open, onOpenChange, onImportStarted }: Ma
       </DialogContent>
     </Dialog>
   );
+}
+
+/** Puts a previously chosen file back into a freshly mounted file input. */
+function restoreChosenFile(input: HTMLInputElement | null, file: File | null) {
+  if (!input || !file || input.files?.length) {
+    return;
+  }
+  const transfer = new DataTransfer();
+  transfer.items.add(file);
+  input.files = transfer.files;
 }
