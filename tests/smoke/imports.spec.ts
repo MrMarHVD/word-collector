@@ -194,8 +194,8 @@ test.describe("material imports", () => {
 
       // Delete it from the list after confirming.
       await showDocuments(page);
-      page.once("dialog", (dialog) => dialog.accept());
       await page.locator(`#materialList [data-delete-material-id="${materialId}"]`).click();
+      await page.getByRole("alertdialog").getByRole("button", { name: EN["common.delete"], exact: true }).click();
       await expect(titleButton).toHaveCount(0);
       await expect(page.locator("#readerTitle")).toHaveText(EN["reader.title"]);
     });
