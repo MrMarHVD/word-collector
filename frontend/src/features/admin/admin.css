@@ -1,0 +1,48 @@
+/*
+ * Admin subtab bar. The legacy admin view reused the dashboard's global
+ * `.local-tabbar`/`.local-tab` rules (legacy dashboard.css); they are scoped
+ * here so the admin page does not depend on the dashboard feature's CSS.
+ */
+
+.admin-subtabs.local-tabbar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--brand) 18%, var(--border-main));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand) 5%, var(--surface-panel));
+}
+
+.admin-subtab.local-tab {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.admin-subtab.local-tab:hover,
+.admin-subtab.local-tab.is-active {
+  border-color: color-mix(in srgb, var(--brand) 32%, transparent);
+  background: var(--surface-panel);
+  color: var(--brand);
+  box-shadow: 0 8px 22px var(--shadow-color);
+}
+
+@media (max-width: 760px) {
+  .admin-subtabs.local-tabbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    border-radius: 10px;
+  }
+
+  .admin-subtab.local-tab {
+    border-radius: 8px;
+  }
+}
