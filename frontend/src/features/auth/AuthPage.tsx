@@ -3,10 +3,38 @@ import { api } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useSessionStore, type AuthScreen } from "@/stores/session";
+import { authErrorMessage } from "./auth-status";
 import "./auth.css";
 
 const INPUT_CLASS = "min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus";
 const PANEL_CLASS = "auth-panel w-full max-w-md rounded-lg border border-line bg-panel p-6 shadow-panel";
+const LABEL_CLASS = "grid gap-1.5 text-sm font-semibold text-label";
+const SUBMIT_CLASS = "min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong";
+const STATUS_CLASS = "status min-h-5 text-sm text-secondary";
+
+/**
+ * Status line and busy flag shared by the auth forms. `submit` disables the
+ * form, shows the pending text, runs the request and shows its error on failure;
+ * the action sets any success text itself.
+ */
+function useFormStatus(initialStatus = "") {
+  const [status, setStatus] = useState(initialStatus);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(pendingStatus: string, action: () => Promise<void>) {
+    setSubmitting(true);
+    setStatus(pendingStatus);
+    try {
+      await action();
+    } catch (error) {
+      setStatus(authErrorMessage(error));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return { status, setStatus, submitting, submit };
+}
 
 function BackButton({ id, onClick }: { id: string; onClick: () => void }) {
   const t = useT();
@@ -27,8 +55,7 @@ function LoginPanel({ screen }: { screen: AuthScreen }) {
   const openAuthScreen = useSessionStore((state) => state.openAuthScreen);
   const closeAuthScreen = useSessionStore((state) => state.closeAuthScreen);
   const loadSession = useSessionStore((state) => state.loadSession);
-  const [status, setStatus] = useState(screen.status);
-  const [submitting, setSubmitting] = useState(false);
+  const { status, setStatus, submitting, submit } = useFormStatus(screen.status);
   const isRegister = screen.mode === "register";
   const googleEnabled = authProviders.google === true;
 
@@ -43,9 +70,7 @@ function LoginPanel({ screen }: { screen: AuthScreen }) {
     const data = new FormData(form);
     const email = String(data.get("email") ?? "");
     const password = String(data.get("password") ?? "");
-    setSubmitting(true);
-    setStatus(t(isRegister ? "auth.registering" : "auth.loggingIn"));
-    try {
+    await submit(t(isRegister ? "auth.registering" : "auth.loggingIn"), async () => {
       if (isRegister) {
         await api.auth.register({ email, password, confirmPassword: String(data.get("confirmPassword") ?? "") });
       } else {
@@ -53,11 +78,7 @@ function LoginPanel({ screen }: { screen: AuthScreen }) {
       }
       form.reset();
       await loadSession();
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
-    } finally {
-      setSubmitting(false);
-    }
+    });
   }
 
   return (
@@ -80,11 +101,11 @@ function LoginPanel({ screen }: { screen: AuthScreen }) {
         ))}
       </div>
       <form id="authForm" className="grid gap-4" onSubmit={handleSubmit}>
-        <label className="grid gap-1.5 text-sm font-semibold text-label">
+        <label className={LABEL_CLASS}>
           <span>{t("auth.email")}</span>
           <input id="authEmail" name="email" className={INPUT_CLASS} type="email" autoComplete="email" required />
         </label>
-        <label className="grid gap-1.5 text-sm font-semibold text-label">
+        <label className={LABEL_CLASS}>
           <span>{t("auth.password")}</span>
           <input
             id="authPassword"
@@ -98,19 +119,14 @@ function LoginPanel({ screen }: { screen: AuthScreen }) {
         <p id="authPasswordRequirements" className="text-sm text-secondary" hidden={!isRegister}>
           {t("auth.passwordRequirements")}
         </p>
-        <label id="authConfirmWrap" className="grid gap-1.5 text-sm font-semibold text-label" hidden={!isRegister}>
+        <label id="authConfirmWrap" className={LABEL_CLASS} hidden={!isRegister}>
           <span>{t("auth.confirmPassword")}</span>
           <input id="authConfirmPassword" name="confirmPassword" className={INPUT_CLASS} type="password" autoComplete="new-password" required={isRegister} />
         </label>
-        <button
-          id="authSubmit"
-          className="min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong"
-          type="submit"
-          disabled={submitting}
-        >
+        <button id="authSubmit" className={SUBMIT_CLASS} type="submit" disabled={submitting}>
           {t(isRegister ? "auth.register" : "auth.login")}
         </button>
-        <p id="authStatus" className="status min-h-5 text-sm text-secondary" role="status">
+        <p id="authStatus" className={STATUS_CLASS} role="status">
           {status}
         </p>
       </form>
@@ -148,16 +164,85 @@ function LoginPanel({ screen }: { screen: AuthScreen }) {
   );
 }
 
-/** Forgot/reset panels: minimal until RX-003 ports them (#authForgotPanel, #authResetPanel). */
-function RecoveryPanel({ screen }: { screen: AuthScreen }) {
+/** Forgot-password panel (#authForgotPanel). Always reports success, so it never reveals whether an account exists. */
+function ForgotPanel() {
   const t = useT();
   const openAuthScreen = useSessionStore((state) => state.openAuthScreen);
-  const isForgot = screen.panel === "forgot";
+  const { status, setStatus, submitting, submit } = useFormStatus();
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const email = String(new FormData(form).get("email") ?? "");
+    await submit(t("auth.sendingResetLink"), async () => {
+      await api.auth.requestPasswordReset(email);
+      setStatus(t("auth.resetLinkSent"));
+      form.reset();
+    });
+  }
+
   return (
-    <section id={isForgot ? "authForgotPanel" : "authResetPanel"} className={PANEL_CLASS}>
-      {isForgot ? <BackButton id="authForgotBackButton" onClick={() => openAuthScreen({ panel: "login" })} /> : null}
+    <section id="authForgotPanel" className={PANEL_CLASS}>
+      <BackButton id="authForgotBackButton" onClick={() => openAuthScreen({ panel: "login" })} />
       <p className="eyebrow mb-2 text-xs font-bold uppercase text-brand">{t("brand")}</p>
-      <h1 className="text-3xl font-bold tracking-tight">{t(isForgot ? "auth.forgotTitle" : "auth.resetTitle")}</h1>
+      <h1 className="text-3xl font-bold tracking-tight">{t("auth.forgotTitle")}</h1>
+      <p className="mt-2 text-sm text-secondary">{t("auth.forgotIntro")}</p>
+      <form id="forgotForm" className="mt-5 grid gap-4" onSubmit={handleSubmit}>
+        <label className={LABEL_CLASS}>
+          <span>{t("auth.email")}</span>
+          <input id="forgotEmail" name="email" className={INPUT_CLASS} type="email" autoComplete="email" required />
+        </label>
+        <button id="forgotSubmit" className={SUBMIT_CLASS} type="submit" disabled={submitting}>
+          {t("auth.sendResetLink")}
+        </button>
+        <p id="forgotStatus" className={STATUS_CLASS} role="status">
+          {status}
+        </p>
+      </form>
+    </section>
+  );
+}
+
+/** Reset-password panel (#authResetPanel), opened from an emailed link. On success it returns to login with a confirmation. */
+function ResetPanel({ screen }: { screen: AuthScreen }) {
+  const t = useT();
+  const openAuthScreen = useSessionStore((state) => state.openAuthScreen);
+  const { status, submitting, submit } = useFormStatus();
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    await submit(t("auth.updatingPassword"), async () => {
+      await api.auth.resetPassword({
+        token: screen.resetToken ?? "",
+        password: String(data.get("password") ?? ""),
+        confirmPassword: String(data.get("confirmPassword") ?? "")
+      });
+      openAuthScreen({ panel: "login", mode: "login", status: t("auth.passwordUpdated") });
+    });
+  }
+
+  return (
+    <section id="authResetPanel" className={PANEL_CLASS}>
+      <p className="eyebrow mb-2 text-xs font-bold uppercase text-brand">{t("brand")}</p>
+      <h1 className="text-3xl font-bold tracking-tight">{t("auth.resetTitle")}</h1>
+      <form id="resetForm" className="mt-5 grid gap-4" onSubmit={handleSubmit}>
+        <label className={LABEL_CLASS}>
+          <span>{t("auth.newPassword")}</span>
+          <input id="resetPassword" name="password" className={INPUT_CLASS} type="password" autoComplete="new-password" required />
+        </label>
+        <p className="text-sm text-secondary">{t("auth.passwordRequirements")}</p>
+        <label className={LABEL_CLASS}>
+          <span>{t("auth.confirmPassword")}</span>
+          <input id="resetConfirmPassword" name="confirmPassword" className={INPUT_CLASS} type="password" autoComplete="new-password" required />
+        </label>
+        <button id="resetSubmit" className={SUBMIT_CLASS} type="submit" disabled={submitting}>
+          {t("auth.updatePassword")}
+        </button>
+        <p id="resetStatus" className={STATUS_CLASS} role="status">
+          {status}
+        </p>
+      </form>
     </section>
   );
 }
@@ -165,7 +250,7 @@ function RecoveryPanel({ screen }: { screen: AuthScreen }) {
 /**
  * The full-screen auth view (#authView), shown instead of the app shell while
  * the session store's `authScreen` is set. RX-002 ships the login/register
- * panel; RX-003 completes forgot/reset password and the remaining flows.
+ * panel; RX-003 adds the forgot and reset password panels.
  */
 export default function AuthPage() {
   const screen = useSessionStore((state) => state.authScreen);
@@ -174,7 +259,9 @@ export default function AuthPage() {
   }
   return (
     <main id="authView" className="auth-shell grid min-h-screen place-items-center px-4 py-8">
-      {screen.panel === "login" ? <LoginPanel screen={screen} /> : <RecoveryPanel screen={screen} />}
+      {screen.panel === "login" ? <LoginPanel screen={screen} /> : null}
+      {screen.panel === "forgot" ? <ForgotPanel /> : null}
+      {screen.panel === "reset" ? <ResetPanel screen={screen} /> : null}
     </main>
   );
 }
