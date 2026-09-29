@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router";
 import { LocaleSelect } from "@/components/app/LocaleSelect";
@@ -54,6 +54,17 @@ function AccountMenu({ activeTab, isAdmin, onNavigate }: AccountMenuProps) {
   const t = useT();
   const isMobile = useIsMobileLayout();
   const logout = useSessionStore((state) => state.logout);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  /** Logs out, keeping #logoutButton disabled while the request is in flight (legacy auth.controller.js). */
+  async function handleLogout() {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }
 
   if (!isMobile) {
     return (
@@ -66,7 +77,8 @@ function AccountMenu({ activeTab, isAdmin, onNavigate }: AccountMenuProps) {
           id="logoutButton"
           className="account-menu-item logout-button rounded-md px-3 py-2 text-left text-sm font-bold text-brand hover:bg-hover"
           type="button"
-          onClick={() => void logout()}
+          disabled={isLoggingOut}
+          onClick={() => void handleLogout()}
         >
           {t("auth.logout")}
         </button>
@@ -104,7 +116,12 @@ function AccountMenu({ activeTab, isAdmin, onNavigate }: AccountMenuProps) {
           <DropdownMenuItem id="accountSettingsButton" className={MENU_ITEM} onSelect={() => onNavigate("settings")}>
             {t("tabs.settings")}
           </DropdownMenuItem>
-          <DropdownMenuItem id="logoutButton" className={cn(MENU_ITEM, "logout-button text-brand")} onSelect={() => void logout()}>
+          <DropdownMenuItem
+            id="logoutButton"
+            className={cn(MENU_ITEM, "logout-button text-brand")}
+            disabled={isLoggingOut}
+            onSelect={() => void handleLogout()}
+          >
             {t("auth.logout")}
           </DropdownMenuItem>
         </DropdownMenuContent>
