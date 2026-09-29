@@ -92,7 +92,7 @@ export function ReaderSidebar({
 
   return (
     <Sidebar
-      ref={sidebarRef as RefObject<HTMLElement>}
+      ref={sidebarRef}
       collapsed={collapsed}
       onCollapsedChange={(next) => setPreference("sidebarCollapsed", next)}
       toggleLabel={t("reader.toggleSidebar")}
