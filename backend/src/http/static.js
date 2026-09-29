@@ -4,13 +4,15 @@
  * Serves files from the configured `PUBLIC_DIR`. Any path that resolves outside
  * that directory (path-traversal attempts) or that does not correspond to an
  * existing file falls back to `index.html`, enabling client-side routing in the
- * single-page application. MIME types are limited to the four extensions the
- * build produces; anything else is served as `application/octet-stream`.
+ * single-page application, except under the versioned asset prefixes
+ * (`/vendor/`, `/models/`), which return a real 404. Files are streamed so large
+ * translation-model binaries are never buffered whole in memory.
  */
 
-import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { readFile, stat } from "node:fs/promises";
 import { extname, isAbsolute, relative, resolve } from "node:path";
+import { pipeline } from "node:stream";
 import { PUBLIC_DIR } from "../config.js";
 import { textResponse } from "./response.js";
 
@@ -19,9 +21,31 @@ const mimeTypes = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
-  ".json": "application/json; charset=utf-8"
+  ".json": "application/json; charset=utf-8",
+  ".wasm": "application/wasm",
+  ".bin": "application/octet-stream",
+  ".spm": "application/octet-stream"
 };
 const publicRoot = resolve(PUBLIC_DIR);
+// Asset prefixes that never fall back to index.html.
+const NO_FALLBACK_PREFIXES = ["/vendor/", "/models/"];
+// Versioned asset prefixes whose contents never change at a given URL.
+const IMMUTABLE_PREFIXES = ["/vendor/bergamot-0.4.9/", "/models/"];
+
+/**
+ * Stats a path and returns it only when it is a regular file.
+ *
+ * @param {string} filePath - Absolute path to check.
+ * @returns {Promise<import("node:fs").Stats | null>} File stats, or null when missing or not a file.
+ */
+async function statFile(filePath) {
+  try {
+    const stats = await stat(filePath);
+    return stats.isFile() ? stats : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Resolves and serves a static file from `PUBLIC_DIR`.
@@ -31,9 +55,11 @@ const publicRoot = resolve(PUBLIC_DIR);
  * - Any path whose resolved form escapes `PUBLIC_DIR` (traversal) falls back
  *   to `index.html` with a 200 status rather than returning a 403/404, which
  *   preserves SPA deep-link navigation for unknown routes.
- * - Non-existent paths fall back to `index.html` for the same reason.
- * - Known extensions (`.html`, `.css`, `.js`, `.json`) get the correct MIME type;
- *   everything else receives `application/octet-stream`.
+ * - Non-existent paths fall back to `index.html` for the same reason, except
+ *   under `/vendor/` and `/models/`, which return a plain-text 404.
+ * - Known extensions (`.html`, `.css`, `.js`, `.json`, `.wasm`, `.bin`, `.spm`)
+ *   get the correct MIME type; everything else receives `application/octet-stream`.
+ * - Files under `/vendor/bergamot-0.4.9/` and `/models/` are cached as immutable.
  *
  * @param {import("node:http").IncomingMessage} req - The incoming HTTP request (unused; kept for
  *   a consistent server-handler signature).
@@ -45,8 +71,13 @@ export async function serveStatic(req, res, url) {
   const requestedPath = url.pathname === "/" ? "/index.html" : url.pathname;
   const filePath = resolve(publicRoot, `.${requestedPath}`);
   const pathFromRoot = relative(publicRoot, filePath);
+  const stats = pathFromRoot.startsWith("..") || isAbsolute(pathFromRoot) ? null : await statFile(filePath);
 
-  if (pathFromRoot.startsWith("..") || isAbsolute(pathFromRoot) || !existsSync(filePath)) {
+  if (!stats) {
+    if (NO_FALLBACK_PREFIXES.some((prefix) => requestedPath.startsWith(prefix))) {
+      textResponse(res, 404, "Not found");
+      return;
+    }
     const indexPath = resolve(publicRoot, "index.html");
     const content = await readFile(indexPath);
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
@@ -54,9 +85,15 @@ export async function serveStatic(req, res, url) {
     return;
   }
 
-  const content = await readFile(filePath);
-  res.writeHead(200, {
-    "content-type": mimeTypes[extname(filePath)] || "application/octet-stream"
-  });
-  res.end(content);
+  const headers = {
+    "content-type": mimeTypes[extname(filePath)] || "application/octet-stream",
+    "content-length": stats.size
+  };
+  if (IMMUTABLE_PREFIXES.some((prefix) => requestedPath.startsWith(prefix))) {
+    headers["cache-control"] = "public, max-age=31536000, immutable";
+  }
+  res.writeHead(200, headers);
+  // Headers are already sent, so a read error can only abort the response;
+  // pipeline also destroys the file stream when the client disconnects.
+  pipeline(createReadStream(filePath), res, () => {});
 }

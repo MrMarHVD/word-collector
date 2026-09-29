@@ -26,6 +26,7 @@ import { bindMaterialsEvents, configureMaterialsController, loadMaterials } from
 import { bindPracticeEvents, configurePracticeController } from "./features/practice/practice.controller.js";
 import { bindReaderEvents, configureReaderController, loadMaterialReader } from "./features/reader/reader.controller.js";
 import { bindSettingsEvents, configureSettingsController, renderSettings } from "./features/settings/settings.controller.js";
+import { bindTranslationEvents } from "./features/translation/translation.controller.js";
 import { loadMessages } from "./i18n.js";
 import { applyTheme, bindSystemThemeListener, setTheme } from "./theme.js";
 import { renderAuthMode } from "./views/auth.js";
@@ -170,6 +171,7 @@ bindAuthEvents();
 bindImportEvents();
 bindMaterialsEvents();
 bindReaderEvents();
+bindTranslationEvents();
 bindCollectionsEvents();
 bindSettingsEvents();
 bindPracticeEvents();

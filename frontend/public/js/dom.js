@@ -182,5 +182,6 @@ export const elements = {
   readerNextPage: document.querySelector("#readerNextPage"),
   readerPageStatus: document.querySelector("#readerPageStatus"),
   readerWordInfo: document.querySelector("#readerWordInfo"),
+  readerTranslation: document.querySelector("#readerTranslation"),
   readerPanelResize: document.querySelector("#readerPanelResize")
 };

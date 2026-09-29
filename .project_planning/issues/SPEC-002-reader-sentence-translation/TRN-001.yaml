@@ -10,7 +10,7 @@ summary: >
   files, and the production security policy change needed to run WebAssembly.
 scope:
   files:
-    - frontend/public/vendor/bergamot/ (new, committed)
+    - frontend/public/vendor/bergamot-0.4.9/ (new, committed)
     - backend/scripts/fetch_mt_models.js (new)
     - backend/package.json and/or root package.json (script entry only)
     - backend/src/http/static.js
@@ -25,7 +25,7 @@ scope:
   description: >
     In scope:
     (1) Vendor @browsermt/bergamot-translator@0.4.9, unmodified, into
-    frontend/public/vendor/bergamot/. Copy translator.js plus
+    frontend/public/vendor/bergamot-0.4.9/. Copy translator.js plus
     worker/translator-worker.js, worker/bergamot-translator-worker.js and
     worker/bergamot-translator-worker.wasm, keeping the worker/ subfolder,
     because translator.js resolves the worker relative to itself. Include the
@@ -42,7 +42,7 @@ scope:
       - stream files rather than reading them whole into memory, with a
         correct Content-Length;
       - send `Cache-Control: public, max-age=31536000, immutable` for paths
-        under /vendor/bergamot/ and /models/ (both are versioned paths);
+        under /vendor/bergamot-0.4.9/ and /models/ (both are versioned paths);
       - return a real 404 for missing files under /vendor/ and /models/
         instead of the index.html SPA fallback.
     (6) Production CSP: add 'wasm-unsafe-eval' to script-src. Send the same
@@ -53,7 +53,7 @@ dependencies: []
 acceptance_criteria:
   - Running the fetch script on a clean checkout produces frontend/public/models/ja-en-2.1/{model.bin,lex.bin,vocab.spm} with the pinned sizes and hashes. A second run downloads nothing and exits 0.
   - git status shows no model files after the script runs; the vendored engine files are tracked.
-  - In both dev (frontend/server.js) and production mode (backend serving PUBLIC_DIR), GET /vendor/bergamot/worker/bergamot-translator-worker.wasm returns 200 with Content-Type application/wasm and the immutable Cache-Control header.
+  - In both dev (frontend/server.js) and production mode (backend serving PUBLIC_DIR), GET /vendor/bergamot-0.4.9/worker/bergamot-translator-worker.wasm returns 200 with Content-Type application/wasm and the immutable Cache-Control header.
   - GET /models/ja-en-2.1/model.bin returns 200 with the full 43977787 bytes, streamed, with the immutable Cache-Control header. GET /models/ja-en-2.1/missing.bin returns 404, not HTML.
   - Production responses carry a CSP whose script-src includes 'wasm-unsafe-eval' and no new third-party origins. The dev server sends the same CSP and the existing app still works fully in dev under it.
   - The deploy workflow runs the fetch script. It succeeds when the files are already present and fails the deploy on a hash mismatch.
@@ -66,10 +66,10 @@ verification:
   - Run `npm run test:e2e`.
 special_context: >
   CONTRACT C1 (asset URLs), consumed by TRN-002. Do not change these paths:
-    /vendor/bergamot/translator.js
-    /vendor/bergamot/worker/translator-worker.js
-    /vendor/bergamot/worker/bergamot-translator-worker.js
-    /vendor/bergamot/worker/bergamot-translator-worker.wasm
+    /vendor/bergamot-0.4.9/translator.js
+    /vendor/bergamot-0.4.9/worker/translator-worker.js
+    /vendor/bergamot-0.4.9/worker/bergamot-translator-worker.js
+    /vendor/bergamot-0.4.9/worker/bergamot-translator-worker.wasm
     /models/ja-en-2.1/model.bin
     /models/ja-en-2.1/lex.bin
     /models/ja-en-2.1/vocab.spm

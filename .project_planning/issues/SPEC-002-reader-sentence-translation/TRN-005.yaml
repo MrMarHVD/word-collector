@@ -56,7 +56,7 @@ acceptance_criteria:
   - Tapping a word opens word-info and closes the translation popup. Making a selection closes word-info. The two are never visible together.
   - Turning the page while the popup is open closes it and clears the highlight.
   - If the model files are unavailable, the popup shows the localised "model unavailable" error rather than hanging.
-  - No network request contains the selected text; the only translation-related requests are the /vendor/bergamot and /models asset fetches.
+  - No network request contains the selected text; the only translation-related requests are the /vendor/bergamot-0.4.9 and /models asset fetches.
   - Non-eligible readers get the radial quick menu exactly as before and never see the translation popup.
   - The new Playwright spec passes locally with models present, and is skipped (not failed) when GET /models/ja-en-2.1/model.bin returns 404. All existing smoke tests pass.
 verification:

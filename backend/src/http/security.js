@@ -12,13 +12,17 @@ import { HSTS_MAX_AGE_SECONDS, IS_PRODUCTION } from "../config.js";
 // Content Security Policy. The frontend is served as static assets from this
 // same origin and uses no inline scripts, so the policy can stay strict.
 // 'unsafe-inline' is allowed for styles only, which the views rely on.
+// 'wasm-unsafe-eval' lets the self-hosted Bergamot translation engine compile
+// WebAssembly; it does not permit JavaScript eval. Workers take their CSP from
+// their own script response, so this policy must also cover worker scripts.
+// frontend/server.js mirrors this policy for the dev server; keep them in sync.
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
   "img-src 'self' data:",
-  "script-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   // 'self' assumes this server also serves the frontend. If the API is split to a
   // separate origin, add that origin here (and to the frontend host's own CSP).

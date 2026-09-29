@@ -18,7 +18,8 @@
     "import:doozan-es-en": "node scripts/import_doozan_es_en.js",
     "import:wikdict-fr-en": "node scripts/import_wikdict_romance_en.js french",
     "import:jmdict": "node scripts/import_jmdict.js",
-    "import:cedict": "node scripts/import_cedict.js"
+    "import:cedict": "node scripts/import_cedict.js",
+    "fetch:mt-models": "node scripts/fetch_mt_models.js"
   },
   "engines": {
     "node": ">=25"

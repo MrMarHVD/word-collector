@@ -3,6 +3,7 @@ data/*.db-*
 data/*.secret
 data/argos/
 data/dictionaries/
+frontend/public/models/
 node_modules/
 .venv/
 .env

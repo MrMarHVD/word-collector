@@ -460,6 +460,20 @@
   user-select: none;
 }
 
+.reader-token.is-segment-selected {
+  background: var(--reader-token-selected);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 35%, transparent);
+}
+
+.reader-text.is-segment-selectable .reader-token {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.is-reader-segment-selecting {
+  user-select: none;
+}
+
 .reader-convenience-menu {
   position: fixed;
   inset: 0;

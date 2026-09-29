@@ -46,10 +46,10 @@ verification:
   - Repeat the reference-paragraph check in Firefox and WebKit if available (npx playwright install webkit firefox), and note the results in the PR.
 special_context: >
   CONTRACT C1 (asset URLs, provided by TRN-001):
-    /vendor/bergamot/translator.js
-    /vendor/bergamot/worker/translator-worker.js
-    /vendor/bergamot/worker/bergamot-translator-worker.js
-    /vendor/bergamot/worker/bergamot-translator-worker.wasm
+    /vendor/bergamot-0.4.9/translator.js
+    /vendor/bergamot-0.4.9/worker/translator-worker.js
+    /vendor/bergamot-0.4.9/worker/bergamot-translator-worker.js
+    /vendor/bergamot-0.4.9/worker/bergamot-translator-worker.wasm
     /models/ja-en-2.1/model.bin
     /models/ja-en-2.1/lex.bin
     /models/ja-en-2.1/vocab.spm
@@ -79,7 +79,7 @@ special_context: >
   for the first call after the model loaded, then 30–70 ms per paragraph.
 implementation_notes: >
   The pattern proven in headless Chromium: import { LatencyOptimisedTranslator,
-  TranslatorBacking } from '/vendor/bergamot/translator.js'. Subclass
+  TranslatorBacking } from '/vendor/bergamot-0.4.9/translator.js'. Subclass
   TranslatorBacking:
     - override loadModelRegistery() to return [{from:'ja', to:'en', files:{}}]
       (this avoids the package's default remote registry fetch);

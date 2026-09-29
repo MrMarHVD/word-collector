@@ -16,6 +16,8 @@ import { normalizeStatus } from "../../shared/status.js";
 import { escapeHtml } from "../../shared/html.js";
 import { fitReaderTokensToPage, renderReaderSidebar, renderReaderSidebarTabs, renderReaderTokens, renderReaderWordInfo } from "../../views/reader.js";
 import { createCollapsibleSidebar } from "../../views/components/sidebar.js";
+import { closeReaderTranslation, isReaderTranslationOpen } from "../../views/reader-translation.js";
+import { isSegmentTranslationEligible, preventReaderSegmentScroll, startReaderSegmentPress } from "./segment-selection.js";
 
 const MIN_READER_PANEL_WIDTH = 360;
 const MIN_READER_PANEL_HEIGHT = 520;
@@ -172,7 +174,10 @@ function startReaderResize(event, target) {
   document.addEventListener("pointerup", stopResize);
 }
 
-function closeReaderWordInfo() {
+/**
+ * Closes the word-info popup and clears the selected-token highlight.
+ */
+export function closeReaderWordInfo() {
   state.readerWordInfoTokenId = null;
   state.translationOverrideEditWordId = null;
   state.translationOverrideEditContext = null;
@@ -199,14 +204,20 @@ function removeReaderConvenienceMenu({ suppressClick = false } = {}) {
   if (readerConvenienceMenu.cancelHandler) {
     document.removeEventListener("pointercancel", readerConvenienceMenu.cancelHandler);
   }
-  readerConvenienceMenu = suppressClick ? { suppressClick: true } : null;
+  readerConvenienceMenu = null;
   if (suppressClick) {
-    window.setTimeout(() => {
-      if (readerConvenienceMenu?.suppressClick) {
-        readerConvenienceMenu = null;
-      }
-    }, READER_SUPPRESS_CLICK_MS);
+    suppressReaderClick();
   }
+}
+
+// Swallow the click and swipe that follow a completed hold or drag gesture.
+function suppressReaderClick() {
+  readerConvenienceMenu = { suppressClick: true };
+  window.setTimeout(() => {
+    if (readerConvenienceMenu?.suppressClick) {
+      readerConvenienceMenu = null;
+    }
+  }, READER_SUPPRESS_CLICK_MS);
 }
 
 function readerConvenienceActions(token) {
@@ -591,7 +602,8 @@ async function turnReaderPage(direction) {
  *   font-size, and words-per-page setting changes (persisted to localStorage).
  * - Prev / next page buttons, horizontal trackpad wheel gesture (debounced),
  *   and single-finger horizontal touch swipe.
- * - Long-press / hold on token buttons to reveal the radial convenience menu.
+ * - Long-press / hold on token buttons to reveal the radial convenience menu,
+ *   or drag-select a segment of tokens for Japanese→English readers.
  * - Click on token buttons to show the word-info popup and optionally
  *   auto-mark the word as learning.
  * - Word-info popup: close, translation-override edit/submit/cancel/clear,
@@ -798,9 +810,27 @@ export function bindReaderEvents() {
     turnReaderPage(deltaX < 0 ? "next" : "prev");
   }, { passive: true });
 
+  elements.readerText.addEventListener("touchmove", preventReaderSegmentScroll, { passive: false });
+
   elements.readerText.addEventListener("pointerdown", (event) => {
     const button = event.target.closest("[data-token-id]");
     if (!button) {
+      return;
+    }
+    // Japanese→English readers drag-select segments instead of using the quick menu.
+    const segmentEligible = isSegmentTranslationEligible(state.currentMaterial, state.user);
+    elements.readerText.classList.toggle("is-segment-selectable", segmentEligible);
+    if (segmentEligible) {
+      // A touch drag produces no follow-up click, so a suppression left by the
+      // previous gesture must not swallow this new press's click.
+      if (readerConvenienceMenu?.suppressClick) {
+        readerConvenienceMenu = null;
+      }
+      startReaderSegmentPress(event, button, {
+        holdDelayMs: READER_HOLD_DELAY_MS,
+        moveThreshold: READER_HOLD_CANCEL_DISTANCE,
+        onSelectionEnd: suppressReaderClick
+      });
       return;
     }
     startReaderConveniencePress(event, button);
@@ -817,6 +847,8 @@ export function bindReaderEvents() {
     if (!button) {
       return;
     }
+    // Word-info and the translation popup are never shown together.
+    closeReaderTranslation();
     elements.readerText.querySelectorAll(".reader-token").forEach((entry) => entry.classList.remove("is-selected"));
     button.classList.add("is-selected");
     const token = state.readerTokens.find((entry) => entry.id === Number(button.dataset.tokenId));
@@ -953,7 +985,8 @@ export function bindReaderEvents() {
     } else if (event.key === "ArrowRight") {
       event.preventDefault();
       await turnReaderPage("next");
-    } else if (event.key === "Escape" && state.readerFocusMode) {
+    } else if (event.key === "Escape" && state.readerFocusMode && !isReaderTranslationOpen()) {
+      // An open translation popup takes the Escape; focus mode exits on the next one.
       state.readerFocusMode = false;
       localStorage.setItem("wordMarkerReaderFocusMode", "false");
       closeReaderWordInfo();
