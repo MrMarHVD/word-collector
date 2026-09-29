@@ -1,11 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useSessionStore, type AuthScreen } from "@/stores/session";
-import { authErrorMessage } from "./auth-status";
 import "./auth.css";
 
 const INPUT_CLASS = "h-auto min-h-11 border-line bg-panel py-0 text-main shadow-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-focus";
@@ -29,7 +28,7 @@ function useFormStatus(initialStatus = "") {
     try {
       await action();
     } catch (error) {
-      setStatus(authErrorMessage(error));
+      setStatus(errorMessage(error));
     } finally {
       setSubmitting(false);
     }

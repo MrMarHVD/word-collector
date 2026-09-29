@@ -17,7 +17,7 @@ import * as words from "./words";
 
 export const api = { admin, auth, collections, dashboard, imports, languages, materials, practice, settings, words };
 
-export { ApiError, apiErrorMessage, apiUrl, csrfHeaders, getCsrfToken, request, setCsrfToken, setUnauthorizedHandler } from "./client";
+export { ApiError, apiErrorMessage, apiUrl, csrfHeaders, errorMessage, getCsrfToken, request, setCsrfToken, setUnauthorizedHandler } from "./client";
 export type { ApiErrorPayload, QueryValue, RequestOptions } from "./client";
 export { dashboardSummaryQuery, refreshStudyData } from "./queries";
 export { queryKeys } from "./query-keys";

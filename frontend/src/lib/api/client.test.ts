@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, getCsrfToken, isCsrfRejection, request, setCsrfToken, setUnauthorizedHandler } from "./client";
+import { ApiError, errorMessage, getCsrfToken, isCsrfRejection, request, setCsrfToken, setUnauthorizedHandler } from "./client";
 import { useLocaleStore } from "@/stores/locale";
 
 type FetchCall = [string, RequestInit];
@@ -134,5 +134,22 @@ describe("isCsrfRejection", () => {
     expect(isCsrfRejection(403, "errors.adminRequired")).toBe(false);
     expect(isCsrfRejection(401, "errors.csrfInvalid")).toBe(false);
     expect(isCsrfRejection(403, undefined)).toBe(false);
+  });
+});
+
+describe("errorMessage", () => {
+  it("uses an ApiError's localised message", () => {
+    expect(errorMessage(new ApiError(409, { errorKey: "errors.materialLimitReached", details: { maxDocuments: 7 } }))).toContain("7");
+  });
+
+  it("falls back to errors.requestFailed, or the given text, for non-API errors", () => {
+    expect(errorMessage(new TypeError("Failed to fetch"))).toBe("Request failed.");
+    expect(errorMessage("offline")).toBe("Request failed.");
+    expect(errorMessage(new Error("boom"), "Could not save.")).toBe("Could not save.");
+  });
+
+  it("follows the current locale", () => {
+    useLocaleStore.setState({ locale: "ja" });
+    expect(errorMessage(null)).not.toBe("Request failed.");
   });
 });

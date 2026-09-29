@@ -5,7 +5,7 @@
  * store state that the auth feature renders.
  */
 
-import { api, setUnauthorizedHandler } from "@/lib/api";
+import { api, errorMessage, setUnauthorizedHandler } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { useSessionStore } from "@/stores/session";
 import { startStudyLanguageSync } from "@/stores/study-language";
@@ -15,7 +15,7 @@ async function consumeVerificationToken(token: string): Promise<string> {
     await api.auth.verifyEmail(token);
     return t("verify.success");
   } catch (error) {
-    return error instanceof Error ? error.message : String(error);
+    return errorMessage(error);
   }
 }
 

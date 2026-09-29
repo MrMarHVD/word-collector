@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { useSessionStore } from "@/stores/session";
-import { authErrorMessage, needsEmailVerification } from "./auth-status";
+import { needsEmailVerification } from "./auth-status";
 import "./auth.css";
 
 /**
@@ -30,7 +30,7 @@ export function VerifyBanner() {
       await api.auth.resendVerification();
       setVerifyNotice(t("verify.sent"));
     } catch (error) {
-      setVerifyNotice(authErrorMessage(error));
+      setVerifyNotice(errorMessage(error));
     } finally {
       setSending(false);
     }

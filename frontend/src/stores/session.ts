@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import * as authApi from "@/lib/api/auth";
-import { ApiError, isCsrfRejection, setCsrfToken } from "@/lib/api/client";
+import { ApiError, errorMessage, isCsrfRejection, setCsrfToken } from "@/lib/api/client";
 import type { AuthProviders, User } from "@/lib/api/types";
 import { queryClient } from "@/lib/query-client";
 import { useStudyLanguageStore } from "@/stores/study-language";
@@ -125,7 +125,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         get().clearSession();
         return;
       }
-      set({ verifyNotice: error instanceof Error ? error.message : String(error) });
+      set({ verifyNotice: errorMessage(error) });
     }
   },
   clearSession: ({ forgetStudyLanguage = false } = {}) => {

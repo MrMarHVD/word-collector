@@ -88,6 +88,15 @@ export function isCsrfRejection(status: number, errorKey: unknown): boolean {
   return status === 403 && errorKey === CSRF_INVALID_ERROR_KEY;
 }
 
+/**
+ * Display text for any caught error: an ApiError's (already localised)
+ * message, else `fallback` (default t("errors.requestFailed")), so network
+ * and other non-API errors never surface raw browser English.
+ */
+export function errorMessage(error: unknown, fallback = t("errors.requestFailed")): string {
+  return error instanceof ApiError && error.message ? error.message : fallback;
+}
+
 /** Localised message for an API error payload. */
 export function apiErrorMessage(payload: ApiErrorPayload): string {
   return payload.errorKey ? t(payload.errorKey, payload.details || {}) : payload.error || t("errors.requestFailed");

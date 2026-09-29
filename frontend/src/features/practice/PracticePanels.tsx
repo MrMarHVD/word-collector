@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from "react";
+import { errorMessage } from "@/lib/api";
 import { useFormatCount, useT } from "@/lib/i18n";
 import { studyLanguageLabelKey } from "@/lib/study-language";
 import { useSessionStore } from "@/stores/session";
@@ -115,7 +116,7 @@ export function PracticeSettings() {
       setValue(String(practiceWordsPerSession(result.user.practiceWordsPerSession)));
       setStatus(t("settings.saved"));
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
+      setStatus(errorMessage(error));
     }
   }
 
