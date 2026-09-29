@@ -80,11 +80,14 @@ function assetMiddleware(req: IncomingMessage, res: ServerResponse, next: Next):
 /** Makes the gitignored translation models available at `/models/*` in dev, preview and the build output. */
 function translationModels(): Plugin {
   // Follows `--outDir`, which deploy uses to build into a fresh directory.
+  // Only `vite build` copies; Vitest also closes the bundle, with a dummy outDir.
   let outDir = OUT_DIR;
+  let isBuild = false;
   return {
     name: "supergloss:translation-models",
     configResolved(config) {
       outDir = resolve(config.root, config.build.outDir);
+      isBuild = config.command === "build" && !process.env.VITEST;
     },
     configureServer(server) {
       server.middlewares.use(assetMiddleware);
@@ -93,6 +96,9 @@ function translationModels(): Plugin {
       server.middlewares.use(assetMiddleware);
     },
     closeBundle() {
+      if (!isBuild) {
+        return;
+      }
       if (!existsSync(MODELS_DIR)) {
         this.warn(`No translation models at ${MODELS_DIR}; run \`npm run fetch:mt-models -w backend\`.`);
         return;
