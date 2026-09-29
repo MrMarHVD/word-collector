@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { Flag } from "@/components/app/Flag";
 import { toastError } from "@/components/app/toast";
+import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
 import { addableStudyLanguages, studyLanguageLabelKey } from "@/lib/study-language";
 import { useSessionStore } from "@/stores/session";
@@ -75,22 +76,18 @@ export default function WelcomePage() {
         ) : null}
         {!user ? (
           <div id="welcomeActions" className="welcome-actions mx-auto mt-8 grid w-full max-w-xs grid-cols-2 gap-3 max-sm:grid-cols-1">
-            <button
-              id="welcomeLoginButton"
-              className="min-h-12 rounded-md bg-brand px-5 text-sm font-bold text-white hover:bg-brand-strong"
-              type="button"
-              onClick={() => openAuthScreen({ mode: "login" })}
-            >
+            <Button id="welcomeLoginButton" className="h-auto min-h-12 px-5 py-0 text-white" type="button" onClick={() => openAuthScreen({ mode: "login" })}>
               {t("auth.login")}
-            </button>
-            <button
+            </Button>
+            <Button
               id="welcomeRegisterButton"
-              className="min-h-12 rounded-md border border-line bg-panel px-5 text-sm font-bold text-brand hover:bg-hover"
+              variant="outline"
+              className="h-auto min-h-12 px-5 py-0 shadow-none"
               type="button"
               onClick={() => openAuthScreen({ mode: "register" })}
             >
               {t("auth.register")}
-            </button>
+            </Button>
           </div>
         ) : null}
       </div>

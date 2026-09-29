@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -6,10 +8,10 @@ import { useSessionStore, type AuthScreen } from "@/stores/session";
 import { authErrorMessage } from "./auth-status";
 import "./auth.css";
 
-const INPUT_CLASS = "min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus";
+const INPUT_CLASS = "h-auto min-h-11 border-line bg-panel py-0 text-main shadow-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-focus";
 const PANEL_CLASS = "auth-panel w-full max-w-md rounded-lg border border-line bg-panel p-6 shadow-panel";
 const LABEL_CLASS = "grid gap-1.5 text-sm font-semibold text-label";
-const SUBMIT_CLASS = "min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong";
+const SUBMIT_CLASS = "h-auto min-h-11 w-full px-4 py-0 text-white";
 const STATUS_CLASS = "status min-h-5 text-sm text-secondary";
 
 /**
@@ -103,11 +105,11 @@ function LoginPanel({ screen }: { screen: AuthScreen }) {
       <form id="authForm" className="grid gap-4" onSubmit={handleSubmit}>
         <label className={LABEL_CLASS}>
           <span>{t("auth.email")}</span>
-          <input id="authEmail" name="email" className={INPUT_CLASS} type="email" autoComplete="email" required />
+          <Input id="authEmail" name="email" className={INPUT_CLASS} type="email" autoComplete="email" required />
         </label>
         <label className={LABEL_CLASS}>
           <span>{t("auth.password")}</span>
-          <input
+          <Input
             id="authPassword"
             name="password"
             className={INPUT_CLASS}
@@ -121,11 +123,11 @@ function LoginPanel({ screen }: { screen: AuthScreen }) {
         </p>
         <label id="authConfirmWrap" className={LABEL_CLASS} hidden={!isRegister}>
           <span>{t("auth.confirmPassword")}</span>
-          <input id="authConfirmPassword" name="confirmPassword" className={INPUT_CLASS} type="password" autoComplete="new-password" required={isRegister} />
+          <Input id="authConfirmPassword" name="confirmPassword" className={INPUT_CLASS} type="password" autoComplete="new-password" required={isRegister} />
         </label>
-        <button id="authSubmit" className={SUBMIT_CLASS} type="submit" disabled={submitting}>
+        <Button id="authSubmit" className={SUBMIT_CLASS} type="submit" disabled={submitting}>
           {t(isRegister ? "auth.register" : "auth.login")}
-        </button>
+        </Button>
         <p id="authStatus" className={STATUS_CLASS} role="status">
           {status}
         </p>
@@ -139,9 +141,10 @@ function LoginPanel({ screen }: { screen: AuthScreen }) {
         <span>{t("auth.or")}</span>
         <span className="h-px bg-line" />
       </div>
-      <button
+      <Button
         id="authGoogleButton"
-        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-line bg-panel px-4 text-sm font-bold text-main hover:bg-hover"
+        variant="outline"
+        className="flex h-auto min-h-11 w-full px-4 py-0 text-main shadow-none"
         type="button"
         hidden={!googleEnabled}
         onClick={() => window.location.assign(api.auth.googleStartUrl())}
@@ -150,7 +153,7 @@ function LoginPanel({ screen }: { screen: AuthScreen }) {
           G
         </span>
         <span>{t("auth.google")}</span>
-      </button>
+      </Button>
       <button
         id="authForgotButton"
         className="mt-2 text-sm font-semibold text-brand hover:text-brand-strong"
@@ -190,11 +193,11 @@ function ForgotPanel() {
       <form id="forgotForm" className="mt-5 grid gap-4" onSubmit={handleSubmit}>
         <label className={LABEL_CLASS}>
           <span>{t("auth.email")}</span>
-          <input id="forgotEmail" name="email" className={INPUT_CLASS} type="email" autoComplete="email" required />
+          <Input id="forgotEmail" name="email" className={INPUT_CLASS} type="email" autoComplete="email" required />
         </label>
-        <button id="forgotSubmit" className={SUBMIT_CLASS} type="submit" disabled={submitting}>
+        <Button id="forgotSubmit" className={SUBMIT_CLASS} type="submit" disabled={submitting}>
           {t("auth.sendResetLink")}
-        </button>
+        </Button>
         <p id="forgotStatus" className={STATUS_CLASS} role="status">
           {status}
         </p>
@@ -229,16 +232,16 @@ function ResetPanel({ screen }: { screen: AuthScreen }) {
       <form id="resetForm" className="mt-5 grid gap-4" onSubmit={handleSubmit}>
         <label className={LABEL_CLASS}>
           <span>{t("auth.newPassword")}</span>
-          <input id="resetPassword" name="password" className={INPUT_CLASS} type="password" autoComplete="new-password" required />
+          <Input id="resetPassword" name="password" className={INPUT_CLASS} type="password" autoComplete="new-password" required />
         </label>
         <p className="text-sm text-secondary">{t("auth.passwordRequirements")}</p>
         <label className={LABEL_CLASS}>
           <span>{t("auth.confirmPassword")}</span>
-          <input id="resetConfirmPassword" name="confirmPassword" className={INPUT_CLASS} type="password" autoComplete="new-password" required />
+          <Input id="resetConfirmPassword" name="confirmPassword" className={INPUT_CLASS} type="password" autoComplete="new-password" required />
         </label>
-        <button id="resetSubmit" className={SUBMIT_CLASS} type="submit" disabled={submitting}>
+        <Button id="resetSubmit" className={SUBMIT_CLASS} type="submit" disabled={submitting}>
           {t("auth.updatePassword")}
-        </button>
+        </Button>
         <p id="resetStatus" className={STATUS_CLASS} role="status">
           {status}
         </p>

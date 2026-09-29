@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router";
 import { LocaleSelect } from "@/components/app/LocaleSelect";
 import { StudyLanguageSelect } from "@/components/app/StudyLanguageSelect";
+import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { VerifyBanner } from "@/features/auth";
 import { pathForTab, tabForPath, type Tab } from "@/app/route-paths";
@@ -24,7 +25,7 @@ const NAV_TABS: { tab: Tab; labelKey: string }[] = [
 
 function GearIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="menu-icon-gear h-5 w-5 fill-none stroke-current stroke-[1.8]">
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="menu-icon-gear size-5 fill-none stroke-current stroke-[1.8]">
       <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
       <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.3a2 2 0 0 1-4 0V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 0 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H2.7a2 2 0 0 1 0-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7A2 2 0 0 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6v-.3a2 2 0 0 1 4 0V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 0 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.3a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z" />
     </svg>
@@ -33,14 +34,13 @@ function GearIcon() {
 
 function BurgerIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="menu-icon-burger h-5 w-5 fill-none stroke-current stroke-[2]">
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="menu-icon-burger size-5 fill-none stroke-current stroke-[2]">
       <path d="M4 6h16M4 12h16M4 18h16" />
     </svg>
   );
 }
 
-const MENU_ICON_BUTTON =
-  "secondary-button icon-button grid h-[52px] w-[52px] place-items-center rounded-md border border-line bg-panel text-brand hover:bg-hover";
+const MENU_ICON_BUTTON = "secondary-button icon-button size-[52px] shadow-none";
 const MENU_ITEM = "account-menu-item w-full rounded-md px-3 py-2 text-left text-sm font-bold text-main hover:bg-hover";
 
 interface AccountMenuProps {
@@ -69,10 +69,10 @@ function AccountMenu({ activeTab, isAdmin, onNavigate }: AccountMenuProps) {
   if (!isMobile) {
     return (
       <>
-        <button id="settingsButton" className={MENU_ICON_BUTTON} type="button" onClick={() => onNavigate("settings")}>
+        <Button id="settingsButton" className={MENU_ICON_BUTTON} variant="outline" size="icon" type="button" onClick={() => onNavigate("settings")}>
           <GearIcon />
           <span className="visually-hidden">{t("tabs.settings")}</span>
-        </button>
+        </Button>
         <button
           id="logoutButton"
           className="account-menu-item logout-button rounded-md px-3 py-2 text-left text-sm font-bold text-brand hover:bg-hover"
@@ -91,10 +91,10 @@ function AccountMenu({ activeTab, isAdmin, onNavigate }: AccountMenuProps) {
     <div className="account-menu relative justify-self-end">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button id="settingsButton" className={MENU_ICON_BUTTON} type="button">
+          <Button id="settingsButton" className={MENU_ICON_BUTTON} variant="outline" size="icon" type="button">
             <BurgerIcon />
             <span className="visually-hidden">{t("tabs.settings")}</span>
-          </button>
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           id="accountDropdown"
