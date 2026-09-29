@@ -25,6 +25,17 @@
   --ring: var(--brand);
 }
 
+/* Kit Input/Textarea placeholders: the legacy (Tailwind preflight) half-strength
+   text colour instead of --muted-foreground, which is too close to entered
+   text in the dark theme. Unlayered, so it beats the kit's placeholder utility;
+   same @supports guard as preflight. */
+@supports (not (-webkit-appearance: -apple-pay-button)) or (contain-intrinsic-size: 1px) {
+  [data-slot="input"]::placeholder,
+  [data-slot="textarea"]::placeholder {
+    color: color-mix(in oklab, currentcolor 50%, transparent);
+  }
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
