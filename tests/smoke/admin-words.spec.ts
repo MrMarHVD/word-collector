@@ -22,7 +22,8 @@ const SCRIPT = path.resolve(process.cwd(), "backend/scripts/provision_admin.js")
 const ADMIN = { email: "pw-words-admin@example.com", password: "Playwright123" };
 const PLAIN = { email: "pw-words-user@example.com", password: "Playwright123" };
 
-const LANG = `PWWords-${Date.now()}`;
+// Unique per worker: fullyParallel workers each load this module and insert their own language.
+const LANG = `PWWords-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const WORDS = ["alpha", "bravo", "charlie", "delta"]; // alphabetical fixtures
 
 function databaseUrl(): string {

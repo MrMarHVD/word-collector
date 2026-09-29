@@ -1158,68 +1158,10 @@
   }
 }
 
-/* Word-info status toggle and the empty-state text (from public/css/vocab.css,
-   scoped to the reader so the vocab stylesheet is not needed here). */
+/* Word-info status toggle: full width (the shared toggle is in
+   styles/components.css). */
 .reader-word-info .status-toggle {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   width: 100%;
-  overflow: hidden;
-  border: 1px solid var(--border-main);
-  border-radius: 999px;
-  background: var(--surface-muted);
-  padding: 3px;
-}
-
-.reader-word-info .status-segment {
-  min-height: 32px;
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  font-weight: 800;
-  line-height: 1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.reader-word-info .status-segment[data-status="unknown"][data-active="true"] {
-  border-color: color-mix(in srgb, var(--unknown) 42%, transparent);
-  background: color-mix(in srgb, var(--unknown) 18%, transparent);
-  color: var(--unknown-strong);
-}
-
-.reader-word-info .status-segment[data-status="learning"][data-active="true"] {
-  border-color: color-mix(in srgb, var(--learning) 42%, transparent);
-  background: color-mix(in srgb, var(--learning) 16%, transparent);
-  color: var(--learning-strong);
-}
-
-.reader-word-info .status-segment[data-status="known"][data-active="true"] {
-  border-color: color-mix(in srgb, var(--known) 38%, transparent);
-  background: color-mix(in srgb, var(--known) 14%, transparent);
-  color: var(--known);
-}
-
-.reader-word-info .status-segment:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 1px;
-}
-
-.reader-word-info .status-segment:hover {
-  background: var(--surface-panel);
-  color: var(--text-main);
-}
-
-.reader-word-info .status-segment[data-active="true"]:hover {
-  color: inherit;
-}
-
-.reader-text .empty {
-  color: var(--text-muted);
 }
 
 /* Mobile bottom sheets (kit Sheet): keep the legacy sheet exactly as it was,

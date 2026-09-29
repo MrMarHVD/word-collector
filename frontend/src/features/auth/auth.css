@@ -45,17 +45,3 @@
   height: 100%;
   display: block;
 }
-
-@media (max-width: 760px) {
-  .auth-panel {
-    max-height: calc(100dvh - 24px);
-    overflow: auto;
-    padding: 18px;
-  }
-}
-
-/* Focus reading hides the banner along with the rest of the chrome (legacy reader.css). */
-.is-reader-focus #verifyBanner {
-  display: none;
-  pointer-events: none;
-}

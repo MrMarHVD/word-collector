@@ -119,11 +119,3 @@
   display: flex;
   gap: 4px;
 }
-
-@media (max-width: 760px) {
-  .material-import-panel {
-    max-height: calc(100dvh - 24px);
-    overflow: auto;
-    padding: 18px;
-  }
-}

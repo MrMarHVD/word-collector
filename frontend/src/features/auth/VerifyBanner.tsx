@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { useSessionStore } from "@/stores/session";
@@ -38,15 +39,9 @@ export function VerifyBanner() {
   return (
     <div id="verifyBanner" className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-muted px-4 py-3 text-sm" role="status">
       <span className="flex-1 font-semibold text-label">{t("verify.bannerText")}</span>
-      <button
-        id="verifyResendButton"
-        className="min-h-9 rounded-md bg-brand px-3 text-sm font-bold text-white hover:bg-brand-strong"
-        type="button"
-        disabled={sending}
-        onClick={() => void resend()}
-      >
+      <Button id="verifyResendButton" className="h-auto min-h-9 px-3 py-0 text-white" type="button" disabled={sending} onClick={() => void resend()}>
         {t("verify.resend")}
-      </button>
+      </Button>
       <span id="verifyBannerStatus" className="text-secondary" role="status">
         {verifyNotice}
       </span>
