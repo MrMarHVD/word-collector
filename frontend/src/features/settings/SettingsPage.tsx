@@ -1,11 +1,9 @@
-import { useState } from "react";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
+import { useSettingsTabStore, type SettingsTab } from "./settings-tab-store";
 import { SystemSettingsPanel } from "./SystemSettingsPanel";
 import "./settings.css";
-
-type SettingsTab = "system" | "account";
 
 const SETTINGS_TABS: { tab: SettingsTab; labelKey: string }[] = [
   { tab: "system", labelKey: "settings.menuSystem" },
@@ -15,7 +13,8 @@ const SETTINGS_TABS: { tab: SettingsTab; labelKey: string }[] = [
 /** The settings route (#settingsView): a section menu with the "System" and "Account" panels, ported from the legacy settings view. */
 export default function SettingsPage() {
   const t = useT();
-  const [activeTab, setActiveTab] = useState<SettingsTab>("system");
+  const activeTab = useSettingsTabStore((state) => state.tab);
+  const setActiveTab = useSettingsTabStore((state) => state.setTab);
   return (
     <section id="settingsView" className="tab-view">
       <div className="settings-layout flex flex-col gap-4 sm:flex-row sm:items-start">
