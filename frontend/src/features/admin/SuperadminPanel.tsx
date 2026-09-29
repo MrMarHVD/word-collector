@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { api, queryKeys, type AuditEntry } from "@/lib/api";
+import { api, errorMessage, queryKeys, type AuditEntry } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useLocaleStore } from "@/stores/locale";
@@ -44,7 +44,7 @@ function AuditLog() {
 
   let content = null;
   if (audit.isError) {
-    content = <p className="text-sm text-danger">{audit.error.message}</p>;
+    content = <p className="text-sm text-danger">{errorMessage(audit.error)}</p>;
   } else if (data && !data.entries.length) {
     content = <p className="text-sm text-secondary">{t("admin.superadminAuditEmpty")}</p>;
   } else if (data) {
@@ -108,7 +108,7 @@ export function SuperadminPanel() {
       setAuditPage(1);
       await queryClient.invalidateQueries({ queryKey: queryKeys.admin.audit(1) });
     } catch (error) {
-      setStatus({ text: error instanceof Error ? error.message : String(error), error: true });
+      setStatus({ text: errorMessage(error), error: true });
     }
   }
 

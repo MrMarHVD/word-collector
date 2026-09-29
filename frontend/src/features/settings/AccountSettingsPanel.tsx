@@ -1,17 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useConfirm } from "@/components/app/ConfirmDialog";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { useLocaleStore } from "@/stores/locale";
 import { useSessionStore } from "@/stores/session";
 import { accountDetailRows, deleteConfirmationMatches } from "./settings-logic";
 
 const INPUT_CLASS = "min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus";
-
-/** Returns the status text of a failed request. */
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 /** Collapsible change-password form (#changePasswordSection); only rendered for accounts with a password. */
 function ChangePasswordSection() {

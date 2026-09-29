@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { refreshStudyData } from "@/lib/api/queries";
 import { useT } from "@/lib/i18n";
 import { availableStudyLanguages, firstAvailableStudyLanguageAlphabetically, studyLanguageLabelKey } from "@/lib/study-language";
@@ -58,7 +58,7 @@ export function SystemSettingsPanel({ hidden }: { hidden: boolean }) {
       }
       await refreshStudyData(queryClient);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
+      setStatus(errorMessage(error));
     } finally {
       setSaving(false);
     }

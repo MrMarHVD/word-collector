@@ -5,7 +5,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { api, queryKeys, type PracticeMode } from "@/lib/api";
+import { api, errorMessage, queryKeys, type PracticeMode } from "@/lib/api";
 import { refreshStudyData } from "@/lib/api/queries";
 import { useT } from "@/lib/i18n";
 import { useSessionStore } from "@/stores/session";
@@ -43,7 +43,7 @@ export function useStartPractice(): (mode?: PracticeMode) => Promise<void> {
           staleTime: 0
         });
       } catch (error) {
-        store.setStatus(error instanceof Error ? error.message : String(error));
+        store.setStatus(errorMessage(error));
         return;
       }
 

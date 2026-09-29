@@ -4,7 +4,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useConfirm } from "@/components/app/ConfirmDialog";
 import { Sidebar, SidebarLayout, SidebarOpenButton } from "@/components/app/Sidebar";
 import { toastError } from "@/components/app/toast";
-import { api, dashboardSummaryQuery, refreshStudyData } from "@/lib/api";
+import { api, dashboardSummaryQuery, errorMessage, refreshStudyData } from "@/lib/api";
 import type { CollectionStats, ImportWordsResponse, Word, WordStatus } from "@/lib/api/types";
 import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { usePersistentState } from "@/lib/hooks/use-persistent-state";
@@ -214,7 +214,7 @@ export default function CollectionsPage() {
       await refreshStudyData(queryClient);
       resetWordState();
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : t("errors.requestFailed"));
+      setActionError(errorMessage(error));
     } finally {
       setDeleting(false);
     }
@@ -261,7 +261,7 @@ export default function CollectionsPage() {
     try {
       await api.words.move(wordIds, collectionId);
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : t("errors.requestFailed"));
+      setActionError(errorMessage(error));
       return;
     }
     await refreshStudyData(queryClient);

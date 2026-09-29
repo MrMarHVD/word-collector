@@ -4,7 +4,7 @@
  */
 
 import { toast as sonner } from "sonner";
-import { t } from "@/lib/i18n";
+import { errorMessage } from "@/lib/api/client";
 
 export const toast = {
   /** Neutral notice. */
@@ -13,7 +13,7 @@ export const toast = {
   error: (message: string) => sonner.error(message)
 };
 
-/** Shows an error toast for a caught error: its (already localised) message, else t("errors.requestFailed"). */
+/** Shows an error toast for a caught error (text from errorMessage in @/lib/api). */
 export function toastError(error: unknown): void {
-  sonner.error(error instanceof Error && error.message ? error.message : t("errors.requestFailed"));
+  sonner.error(errorMessage(error));
 }

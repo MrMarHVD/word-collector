@@ -4,6 +4,7 @@ import { toastError } from "@/components/app/toast";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { errorMessage } from "@/lib/api";
 import type { MaterialDetail } from "@/lib/api/types";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -66,7 +67,7 @@ export function MaterialImportDialog({ open, onOpenChange, onImportStarted }: Ma
       setTrackedId(material.id);
       onImportStarted?.(material);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : t("errors.requestFailed"));
+      setStatus(errorMessage(error));
       toastError(error);
     }
   }

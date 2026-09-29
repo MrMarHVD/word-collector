@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Input } from "@/components/ui/input";
-import type { AdminWord, Language } from "@/lib/api";
+import { errorMessage, type AdminWord, type Language } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { defaultNativeLanguage } from "./admin-logic";
@@ -52,7 +52,7 @@ function WordRow({
       setOriginal(saved);
     } catch (error) {
       setValue(original);
-      onError((error instanceof Error && error.message) || t("admin.words.saveError"));
+      onError(errorMessage(error, t("admin.words.saveError")));
     } finally {
       setSaving(false);
     }
@@ -118,7 +118,7 @@ function WordsList({ languageId, nativeLanguage, search }: { languageId: number;
     return () => observer.disconnect();
   }, [canLoadMore, isFetchingNextPage, fetchNextPage, rows.length]);
 
-  const loadError = words.error ? words.error.message || t("admin.words.loadError") : "";
+  const loadError = words.error ? errorMessage(words.error, t("admin.words.loadError")) : "";
 
   return (
     <div ref={listRef} className="admin-words-list max-h-[28rem] overflow-y-auto rounded-md border border-line">
@@ -185,7 +185,7 @@ export function WordsPanel() {
     return <WordsMessage text={t("admin.words.loading")} />;
   }
   if (meta.isError) {
-    return <WordsMessage text={meta.error.message || t("admin.words.loadError")} />;
+    return <WordsMessage text={errorMessage(meta.error, t("admin.words.loadError"))} />;
   }
 
   const languages = meta.data.languages ?? [];

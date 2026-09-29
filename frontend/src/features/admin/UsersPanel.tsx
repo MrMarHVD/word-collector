@@ -2,7 +2,7 @@ import { useState, type FormEvent, type UIEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { AdminUser } from "@/lib/api";
+import { errorMessage, type AdminUser } from "@/lib/api";
 import { useFormatCount, useT } from "@/lib/i18n";
 import { useSessionStore } from "@/stores/session";
 import { bytesToMb, canEditUser, isNearListEnd, limitInputValues, limitsRequest, usersQueryParams } from "./admin-logic";
@@ -138,7 +138,7 @@ export function UsersPanel() {
       await saveLimits(userId, body);
       setStatus(t("admin.usersLimitsSaved"));
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
+      setStatus(errorMessage(error));
     }
   }
 
@@ -186,7 +186,7 @@ export function UsersPanel() {
         {rows && rows.length > 0 && users.hasNextPage ? <p className="p-2 text-center text-xs text-secondary">{t("admin.usersScrollForMore")}</p> : null}
       </div>
       <p className="status min-h-5 text-sm text-secondary" role="status" data-admin-users-status>
-        {users.isError ? users.error.message : status}
+        {users.isError ? errorMessage(users.error) : status}
       </p>
     </div>
   );

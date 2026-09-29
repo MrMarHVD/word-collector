@@ -122,8 +122,8 @@ installed and available for modal bottom sheets.
 Behaviour (`client.ts`, ported from `api.js`):
 
 - Same-origin `/api/*` with `credentials: "include"`. JSON bodies get `content-type: application/json`; `FormData` is sent as-is.
-- POST/PATCH/DELETE send `x-csrf-token`, fetched lazily from `GET /api/auth/me`. The token is rotated from any response body with `csrfToken` (`getCsrfToken`/`setCsrfToken`/`csrfHeaders` are available).
-- Non-2xx responses throw `ApiError { status, errorKey?, details?, payload }` whose `message` is already localised (`errorKey`+`details` → `error` → `errors.requestFailed`). Show `error.message`.
+- POST/PATCH/DELETE send `x-csrf-token`, fetched lazily from `GET /api/auth/me`. The token is rotated from any response body with `csrfToken` (`getCsrfToken`/`setCsrfToken`/`csrfHeaders` are available). A 403 `errors.csrfInvalid` (expired or stale token) refetches the token and retries the request once.
+- Non-2xx responses throw `ApiError { status, errorKey?, details?, payload }` whose `message` is already localised (`errorKey`+`details` → `error` → `errors.requestFailed`). Show caught errors with `errorMessage(error, fallback?)`: the ApiError message, else `fallback` (default `errors.requestFailed`), never a raw browser message.
 - HTTP 401 → `session.handleUnauthorized()` (user dropped, query cache cleared, welcome shown in place), except calls made with `handleUnauthorized: false` (login, register, verify-email, request/reset password).
 - Low level: `request<T>(path, { method, body, query, headers, signal, handleUnauthorized })`. `query` skips `null`/`undefined`/`""`.
 
@@ -166,6 +166,7 @@ Server data belongs in TanStack Query, not in stores. Outside React, use `useXSt
 - `loadSession(): Promise<User|null>`: GET /api/auth/me. Fills this store and the study-language catalogue, restores the language selection, and closes the auth screen when signed in.
 - `setUser(user)`, `markReady()`, `logout()` (POST logout → `clearSession`; on failure → `verifyNotice`), `clearSession({ forgetStudyLanguage? })` (account deletion passes `true`), `handleUnauthorized()`, `openAuthScreen(partial?)` (defaults: login panel, login mode, no status), `closeAuthScreen()`, `setVerifyNotice(text)`
 - Helpers: `isAdminUser(user)`, `isSuperadminUser(user)`.
+- `registerSessionReset(reset)`: feature state kept outside the query cache (module singletons, feature stores) registers a reset at module load; `clearSession` and `handleUnauthorized` run every registered reset, so nothing carries over to the next user.
 - Bootstrap (`app/bootstrap.ts`, RX-002) consumes `?reset_token` (→ `openAuthScreen({panel:"reset", resetToken})`, no session load), `?verify_token` (→ `verifyNotice` when signed in, else a login screen with that `status`) and `?oauth_error` (→ a login screen with the localised error), then strips them from the URL.
 
 **`useStudyLanguageStore`** (`@/stores/study-language`)
@@ -201,7 +202,7 @@ Actions: `setPreference(key, value)`, `setPreferences(partial)`. Also exported: 
 **`useUiPreferencesStore`** (`@/stores/ui-preferences`): `wordDisplayMode: "page"|"infinite"` (`wordMarkerDisplayMode`, default infinite), `setWordDisplayMode(m)`. Shared by vocab and settings.
 
 Feature-local persisted keys (`wordMarkerDashboardStatsTab`,
-`wordMarkerCollectionsSidebarCollapsed`, `wordMarkerSelectedMaterialId:<languageId>`, …):
+`wordMarkerCollectionsSidebarCollapsed`, `wordMarkerSelectedMaterialId:<userId>:<languageId>`, …):
 use `usePersistentState(key, parse, serialize?)` from
 `@/lib/hooks/use-persistent-state`, or `readStorage`/`writeStorage`/`removeStorage`
 from `@/lib/storage`, with the legacy key, parsing and default.
@@ -229,7 +230,7 @@ from `@/lib/storage`, with the legacy key, parsing and default.
 | `CloseButton`                                                | `{ label; …button props (onClick, data-* hooks, className) }`. `.close-button` with a centred SVG ×.                                                                                                                                                                                                                                                                                                                                                          |
 | `ConfirmDialog`                                              | `{ open; onOpenChange; onConfirm; title; description?; confirmLabel?; cancelLabel?; destructive? }` (controlled)                                                                                                                                                                                                                                                                                                                                              |
 | `useConfirm()`                                               | `const confirm = useConfirm(); if (await confirm({ title, description?, confirmLabel?, cancelLabel?, destructive? })) …`. Replaces `window.confirm`.                                                                                                                                                                                                                                                                                                          |
-| `toast` / `toastError` (`toast.ts`)                          | `toast.success(msg)`, `toast.error(msg)`, `toast.info(msg)`, `toastError(error)` (message or `errors.requestFailed`). Replaces `window.alert`. The `<Toaster/>` is already mounted.                                                                                                                                                                                                                                                                           |
+| `toast` / `toastError` (`toast.ts`)                          | `toast.success(msg)`, `toast.error(msg)`, `toast.info(msg)`, `toastError(error)` (text from `errorMessage`). Replaces `window.alert`. The `<Toaster/>` is already mounted.                                                                                                                                                                                                                                                                                    |
 | `TranslationOverride`                                        | `{ entry: TranslationEntry; wordId; context: "vocab"\|"reader"; compact?; editing; onEdit(); onCancel(); onSave(value: string); onClear() }`. Controlled edit state; save/clear may return a Promise (buttons disable meanwhile). Send `onSave`'s raw value, or `null` for clear, to `api.words.setTranslationOverride`. Keeps the legacy classes and `data-translation-override-*` / `data-word-id` hooks.                                                   |
 | `DisambiguationTable`                                        | `{ entry; className? }`. Candidate table (original translation highlighted) or nothing. Wrap it in `.disambiguation-panel` (reader) or a `.disambiguation-row` cell (vocab, `className="disambiguation-table"`).                                                                                                                                                                                                                                              |
 | `DisambiguationToggle`                                       | `{ expanded; onToggle(); className?; …button props (e.g. data-word-disambiguate) }`                                                                                                                                                                                                                                                                                                                                                                           |
@@ -268,7 +269,7 @@ Every other feature's `index.ts` is `export {}`.
 | `MaterialImportDialog` | materials (RX-006) → any                           | `{ open: boolean; onOpenChange(open: boolean): void; onImportStarted?(material: MaterialDetail): void }`. `#materialImportModal`.                                                                                                                                                                                                                                                                                                                      | renders `null` |
 
 Division of state: the reader owns the selected material id, its per-language
-cache key `wordMarkerSelectedMaterialId:<languageId>`, and loading the material
+cache key `wordMarkerSelectedMaterialId:<userId>:<languageId>` (a legacy `…:<languageId>` entry moves to the first user who reads it), and loading the material
 (`api.materials.reader`). Materials owns the list, search and import tracking.
 The auth feature owns `WelcomePage`/`AuthPage` (built by RX-002 for the
 first-run path; forgot/reset panels are minimal placeholders) and all auth

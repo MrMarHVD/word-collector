@@ -5,7 +5,9 @@
  *   and always send the session cookie.
  * - Unsafe methods (POST, PATCH, DELETE) carry the `x-csrf-token` header; the
  *   token is fetched lazily from GET /api/auth/me and rotated from any
- *   response body that contains `csrfToken`.
+ *   response body that contains `csrfToken`. A request the server rejects
+ *   with `errors.csrfInvalid` (the token expired or belongs to an older
+ *   session) is retried once with a freshly fetched token.
  * - Non-2xx responses throw an `ApiError` whose message is localised from
  *   `errorKey` (+ `details`), else the server's `error`, else
  *   "errors.requestFailed".
@@ -56,6 +58,7 @@ export class ApiError extends Error {
 }
 
 const UNSAFE_METHODS = new Set(["POST", "PATCH", "DELETE"]);
+const CSRF_INVALID_ERROR_KEY = "errors.csrfInvalid";
 
 let csrfToken: string | null = null;
 let unauthorizedHandler: () => void = () => {};
@@ -78,6 +81,20 @@ export function setCsrfToken(token: string | null): void {
 /** Resolves an API path to a URL. The API is same-origin, so this is the path itself; kept for full-page redirects like OAuth. */
 export function apiUrl(path: string): string {
   return path;
+}
+
+/** Whether a response is the server's CSRF rejection (token missing, expired or bound to another session). */
+export function isCsrfRejection(status: number, errorKey: unknown): boolean {
+  return status === 403 && errorKey === CSRF_INVALID_ERROR_KEY;
+}
+
+/**
+ * Display text for any caught error: an ApiError's (already localised)
+ * message, else `fallback` (default t("errors.requestFailed")), so network
+ * and other non-API errors never surface raw browser English.
+ */
+export function errorMessage(error: unknown, fallback = t("errors.requestFailed")): string {
+  return error instanceof ApiError && error.message ? error.message : fallback;
 }
 
 /** Localised message for an API error payload. */
@@ -128,11 +145,10 @@ export async function csrfHeaders(): Promise<Record<string, string>> {
   return csrfToken ? { "x-csrf-token": csrfToken } : {};
 }
 
-/** Sends an API request and returns the parsed JSON body typed as `T`. Throws `ApiError` on non-2xx. */
-export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, query, headers = {}, signal, handleUnauthorized = true } = options;
+async function send(path: string, options: RequestOptions): Promise<Response> {
+  const { method = "GET", body, query, headers = {}, signal } = options;
   const isForm = body instanceof FormData;
-  const response = await fetch(apiUrl(withQuery(path, query)), {
+  return fetch(apiUrl(withQuery(path, query)), {
     method,
     credentials: "include",
     signal,
@@ -143,7 +159,19 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     },
     body: body === undefined ? undefined : isForm ? body : JSON.stringify(body)
   });
-  const payload = await readPayload(response);
+}
+
+/** Sends an API request and returns the parsed JSON body typed as `T`. Throws `ApiError` on non-2xx. */
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { method = "GET", handleUnauthorized = true } = options;
+  let response = await send(path, options);
+  let payload = await readPayload(response);
+  if (UNSAFE_METHODS.has(method) && isCsrfRejection(response.status, payload.errorKey)) {
+    // The token outlived its 24 h lifetime or its session: fetch a fresh one and retry once.
+    csrfToken = null;
+    response = await send(path, options);
+    payload = await readPayload(response);
+  }
   if (payload.csrfToken !== undefined) {
     csrfToken = typeof payload.csrfToken === "string" && payload.csrfToken ? payload.csrfToken : null;
   }

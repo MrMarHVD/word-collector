@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from "react";
 import { CloseButton } from "@/components/app/CloseButton";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import type { CollectionStats, ImportWordsRequest, ImportWordsResponse } from "@/lib/api/types";
 import { useFormatCount, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -74,7 +74,7 @@ export function UploadDialog({ open, onOpenChange, languageId, collections, onIm
       await onImported(result);
       changeOpen(false);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : t("errors.requestFailed"));
+      setStatus(errorMessage(error));
     } finally {
       setPending(false);
     }

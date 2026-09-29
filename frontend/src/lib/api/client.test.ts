@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, getCsrfToken, request, setCsrfToken, setUnauthorizedHandler } from "./client";
+import { ApiError, errorMessage, getCsrfToken, isCsrfRejection, request, setCsrfToken, setUnauthorizedHandler } from "./client";
 import { useLocaleStore } from "@/stores/locale";
 
 type FetchCall = [string, RequestInit];
@@ -80,6 +80,37 @@ describe("request", () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
+  it("refetches an expired CSRF token and retries the unsafe request once", async () => {
+    setCsrfToken("expired");
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(403, { errorKey: "errors.csrfInvalid" }))
+      .mockResolvedValueOnce(jsonResponse(200, { csrfToken: "fresh", user: null }))
+      .mockResolvedValueOnce(jsonResponse(200, { loggedOut: true }));
+    await expect(request("/api/auth/logout", { method: "POST" })).resolves.toEqual({ loggedOut: true });
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(["/api/auth/logout", "/api/auth/me", "/api/auth/logout"]);
+    expect((fetchMock.mock.calls[0] as FetchCall)[1].headers).toMatchObject({ "x-csrf-token": "expired" });
+    expect((fetchMock.mock.calls[2] as FetchCall)[1].headers).toMatchObject({ "x-csrf-token": "fresh" });
+  });
+
+  it("gives up after one CSRF retry and throws the rejection", async () => {
+    setCsrfToken("expired");
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(403, { errorKey: "errors.csrfInvalid" }))
+      .mockResolvedValueOnce(jsonResponse(200, { csrfToken: "fresh", user: null }))
+      .mockResolvedValueOnce(jsonResponse(403, { errorKey: "errors.csrfInvalid" }));
+    const error = await request("/api/words/status", { method: "POST", body: {} }).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).errorKey).toBe("errors.csrfInvalid");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not retry other 403s", async () => {
+    setCsrfToken("t");
+    fetchMock.mockResolvedValueOnce(jsonResponse(403, { errorKey: "errors.adminRequired" }));
+    await expect(request("/api/admin/users", { method: "POST", body: {} })).rejects.toBeInstanceOf(ApiError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("localises errors from errorKey with details, then error, then errors.requestFailed", async () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse(409, { errorKey: "errors.materialLimitReached", details: { maxDocuments: 7 }, error: "raw" }))
@@ -94,5 +125,31 @@ describe("request", () => {
 
     await expect(request("/api/words/status")).rejects.toThrow("Invalid status.");
     await expect(request("/api/dashboard")).rejects.toThrow("Request failed.");
+  });
+});
+
+describe("isCsrfRejection", () => {
+  it("matches only a 403 with errors.csrfInvalid", () => {
+    expect(isCsrfRejection(403, "errors.csrfInvalid")).toBe(true);
+    expect(isCsrfRejection(403, "errors.adminRequired")).toBe(false);
+    expect(isCsrfRejection(401, "errors.csrfInvalid")).toBe(false);
+    expect(isCsrfRejection(403, undefined)).toBe(false);
+  });
+});
+
+describe("errorMessage", () => {
+  it("uses an ApiError's localised message", () => {
+    expect(errorMessage(new ApiError(409, { errorKey: "errors.materialLimitReached", details: { maxDocuments: 7 } }))).toContain("7");
+  });
+
+  it("falls back to errors.requestFailed, or the given text, for non-API errors", () => {
+    expect(errorMessage(new TypeError("Failed to fetch"))).toBe("Request failed.");
+    expect(errorMessage("offline")).toBe("Request failed.");
+    expect(errorMessage(new Error("boom"), "Could not save.")).toBe("Could not save.");
+  });
+
+  it("follows the current locale", () => {
+    useLocaleStore.setState({ locale: "ja" });
+    expect(errorMessage(null)).not.toBe("Request failed.");
   });
 });
