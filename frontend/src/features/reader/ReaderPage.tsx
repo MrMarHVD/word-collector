@@ -114,6 +114,8 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
   const selectionSequence = useRef(0);
   const pageTurnInProgress = useRef(false);
   const pendingFlip = useRef<PageDirection | null>(null);
+  // Ends an in-progress resize drag; also called on unmount.
+  const stopResizeRef = useRef<(() => void) | null>(null);
 
   // ------------------------------------------------------------ page data
 
@@ -194,9 +196,12 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
           pendingFlip.current = direction;
         }
         if (wordIdsToMark.length) {
-          Promise.all(wordIdsToMark.map((wordId) => api.words.setStatus(wordId, "known")))
-            .then(refresh)
-            .catch(() => {});
+          // One atomic bulk request; refresh either way so the reader, dashboard
+          // and known total reflect what was actually saved.
+          api.words
+            .setStatuses(wordIdsToMark, "known")
+            .catch(() => {})
+            .finally(refresh);
         }
       } catch (error) {
         toastError(error);
@@ -466,11 +471,16 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
     const stop = () => {
       document.removeEventListener("pointermove", resize);
       document.removeEventListener("pointerup", stop);
+      document.removeEventListener("pointercancel", stop);
       document.body.classList.remove("is-resizing-reader");
+      stopResizeRef.current = null;
     };
+    stopResizeRef.current?.();
+    stopResizeRef.current = stop;
     document.body.classList.add("is-resizing-reader");
     document.addEventListener("pointermove", resize);
     document.addEventListener("pointerup", stop);
+    document.addEventListener("pointercancel", stop);
   }
 
   // Fit to page: probe how many fetched tokens fit, before the page is painted.
@@ -578,6 +588,7 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
       gestures.detach();
       gesturesRef.current = null;
       selectionRef.current = null;
+      stopResizeRef.current?.();
       document.body.classList.remove("is-resizing-reader");
     };
   }, []);
@@ -692,7 +703,7 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
         <SidebarOpenButton
           ref={openButtonRef}
           id="readerSidebarOpen"
-          className="reader-sidebar-open top-[86px] max-md:top-3"
+          className="reader-sidebar-open top-[86px] mobile:top-3"
           collapsed={!focusMode && !readTab && sidebarCollapsed}
           onOpen={() => setPreference("sidebarCollapsed", false)}
           label={t("reader.openSidebar")}
@@ -735,7 +746,7 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
             >
               {t("reader.exit")}
             </button>
-            <div className="reader-toolbar mb-4 flex items-end justify-between gap-4 max-md:grid">
+            <div className="reader-toolbar mb-4 flex items-end justify-between gap-4 mobile:grid">
               <div>
                 <h2 id="readerTitle" className="text-xl font-bold">
                   {title}

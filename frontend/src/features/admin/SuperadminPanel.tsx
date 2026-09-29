@@ -124,7 +124,7 @@ export function SuperadminPanel() {
           <h2 className="text-sm font-bold text-main">{t("admin.superadminManageTitle")}</h2>
           <p className="text-sm text-secondary">{t("admin.superadminManageDescription")}</p>
         </div>
-        <form id="superadminGrantForm" className="flex flex-col gap-2 sm:flex-row sm:items-end" onSubmit={handleSubmit}>
+        <form id="superadminGrantForm" className="flex flex-col gap-2 desktop:flex-row desktop:items-end" onSubmit={handleSubmit}>
           <label className="grid flex-1 gap-1.5 text-sm font-semibold text-label">
             <span>{t("admin.superadminEmailLabel")}</span>
             <Input

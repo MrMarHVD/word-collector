@@ -49,7 +49,7 @@ src/
 - TypeScript is strict. Document every new component, hook and function with a short purpose comment; the types replace JSDoc `@param`/`@returns`.
 - Tailwind scans `src/` only. The legacy classes and tokens work unchanged (`bg-panel`, `text-secondary`, `border-line`, `bg-brand`, `shadow-panel`, …).
 - Feature CSS lives in `src/features/<name>/<name>.css`, imported from your page. Keep it **unlayered**, as in the legacy app, so it still beats utility classes. Global and shared CSS is in `src/styles/` (read-only for features).
-- Mobile breakpoint: `max-width: 760px` (`useIsMobileLayout()` in `@/lib/hooks/use-media-query`).
+- Mobile breakpoint: `max-width: 760px` (`useIsMobileLayout()` in `@/lib/hooks/use-media-query`). In Tailwind use the `mobile:` (≤760px) and `desktop:` (≥761px) variants, not `sm:`/`md:`.
 - Button text: legacy `button { font: inherit }` (in `styles/base.css`) overrides `font-*`/`text-*` utilities on buttons, exactly as it does in the legacy app. Keep it that way for parity.
 
 ## I1 Routes

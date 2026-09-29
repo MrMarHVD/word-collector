@@ -46,7 +46,7 @@ export default function WelcomePage() {
     <section id="welcomeView" className="welcome-view grid min-h-[calc(100vh-180px)] place-items-center px-4 py-8">
       <div className="welcome-hero w-full max-w-lg text-center">
         <p className="eyebrow mb-3 text-xs font-bold uppercase tracking-wide text-brand">{t("brand")}</p>
-        <h1 className="text-4xl font-black tracking-tight max-md:text-3xl">{t("welcome.title")}</h1>
+        <h1 className="text-4xl font-black tracking-tight mobile:text-3xl">{t("welcome.title")}</h1>
         <p className="mt-4 text-lg text-secondary">{t("welcome.subtitle")}</p>
         {user && selectedId === null ? (
           <div id="welcomeLanguageGate" className="welcome-language-gate mx-auto mt-8 grid w-full max-w-sm gap-3">

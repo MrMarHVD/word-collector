@@ -150,7 +150,7 @@ export function UsersPanel() {
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      <div className="flex flex-col gap-3 desktop:flex-row desktop:items-end">
         <label className="grid flex-1 gap-1.5 text-sm font-semibold text-label">
           <span>{t("admin.usersSearchLabel")}</span>
           <Input

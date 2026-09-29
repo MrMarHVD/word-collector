@@ -338,7 +338,7 @@ export default function CollectionsPage() {
       <SidebarLayout
         ref={workspaceRef}
         collapsed={sidebarCollapsed}
-        className="workspace collections-workspace grid grid-cols-[minmax(220px,260px)_1fr] items-start gap-3.5 max-md:grid-cols-1"
+        className="workspace collections-workspace grid grid-cols-[minmax(220px,260px)_1fr] items-start gap-3.5 mobile:grid-cols-1"
       >
         <Sidebar
           className="collections-sidebar rounded-lg border border-line bg-panel p-3.5 shadow-panel"
@@ -378,9 +378,9 @@ export default function CollectionsPage() {
         </Sidebar>
 
         <section className="browser-panel rounded-lg border border-line bg-panel p-5 shadow-panel">
-          <div className="section-head mb-4 flex min-h-8 items-center justify-between gap-3 max-md:grid">
+          <div className="section-head mb-4 flex min-h-8 items-center justify-between gap-3 mobile:grid">
             <h2 className="text-base font-bold">{t("collections.wordsTitle")}</h2>
-            <div className="collection-actions desktop-display-mode flex flex-wrap items-center justify-end gap-2.5 max-md:grid">
+            <div className="collection-actions desktop-display-mode flex flex-wrap items-center justify-end gap-2.5 mobile:grid">
               <div
                 className="display-mode-buttons grid grid-cols-2 gap-1 rounded-lg border border-line bg-muted p-1"
                 role="group"
