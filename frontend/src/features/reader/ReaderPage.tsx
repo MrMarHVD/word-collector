@@ -103,7 +103,6 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
   const [segment, setSegment] = useState<{ layout: ReaderLayout; range: SegmentRange } | null>(null);
   const [translation, setTranslation] = useState<(ReaderTranslationState & { layout: ReaderLayout; fontSize: number }) | null>(null);
 
-  const readerViewRef = useRef<HTMLElement | null>(null);
   const layoutRef = useRef<HTMLElement | null>(null);
   const sidebarRef = useRef<HTMLElement | null>(null);
   const openButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -591,8 +590,15 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
       }
     }
     function handleClick(event: MouseEvent) {
-      const target = event.target as Element | null;
-      if (!latestState.current.wordInfoOpen || (target && (wordInfoRef.current?.contains(target) || target.closest?.(".reader-token")))) {
+      // The event path, not the target's ancestors: a click inside word-info may
+      // have re-rendered (detached) its target by the time it reaches the document.
+      const path = event.composedPath();
+      const popup = wordInfoRef.current;
+      if (
+        !latestState.current.wordInfoOpen ||
+        (popup && path.includes(popup)) ||
+        path.some((node) => node instanceof Element && node.classList.contains("reader-token"))
+      ) {
         return;
       }
       latest.current.closeWordInfo();
@@ -659,7 +665,7 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
 
   return (
     <Tabs asChild value={isMobile ? sidebarTab : desktopTab} onValueChange={changeSidebarTab} className="tab-view block gap-0">
-      <section ref={readerViewRef} id="readerView">
+      <section id="readerView">
         <ReaderSidebarTabList
           id="readerSidebarTabs"
           tabs={["read", "documents", "settings"]}
