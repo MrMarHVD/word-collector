@@ -14,6 +14,7 @@ import { formatCount, t } from "../i18n.js";
 import { state } from "../state.js";
 import { escapeHtml } from "../shared/html.js";
 import { renderTranslationOverrideControls } from "./components/translation-override.js";
+import { renderCloseButton } from "./components/close-button.js";
 import { hasDisambiguation, renderDisambiguationTable as renderDisambiguationTableContents } from "./components/disambiguation.js";
 
 const MIN_READER_PANEL_WIDTH = 360;
@@ -661,7 +662,7 @@ export function renderReaderWordInfo(token, anchor = null) {
         <span class="disambiguation-button-icon" aria-hidden="true">▾</span>
         <span>${escapeHtml(t("reader.disambiguate"))}</span>
       </button>` : ""}
-      <button class="reader-word-info-close" type="button" data-reader-word-info-close aria-label="${escapeHtml(t("reader.closeTranslation"))}">&times;</button>
+      ${renderCloseButton({ dataAttr: "data-reader-word-info-close", label: t("reader.closeTranslation") })}
     </div>
     <dl>
       ${rows.map((row) => `<dt>${escapeHtml(row.label)}</dt><dd>${row.valueHtml || escapeHtml(row.value)}</dd>`).join("")}

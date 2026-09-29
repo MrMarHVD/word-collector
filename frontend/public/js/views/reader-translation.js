@@ -13,6 +13,7 @@
 import { elements } from "../dom.js";
 import { t } from "../i18n.js";
 import { escapeHtml } from "../shared/html.js";
+import { renderCloseButton } from "./components/close-button.js";
 
 const GAP = 10;
 const MARGIN = 12;
@@ -182,7 +183,7 @@ export function openReaderTranslation({ words, anchorRect, getAnchorRect, onClos
   popup.innerHTML = `
     <div class="reader-translation-head">
       <span class="reader-translation-label">${escapeHtml(t("reader.translation.original"))}</span>
-      <button class="reader-word-info-close" type="button" data-reader-translation-close aria-label="${escapeHtml(t("reader.closeTranslation"))}">&times;</button>
+      ${renderCloseButton({ dataAttr: "data-reader-translation-close", label: t("reader.closeTranslation") })}
     </div>
     <p class="reader-translation-source">${renderSourceWords(words)}</p>
     <span class="reader-translation-label">${escapeHtml(t("reader.translation.target"))}</span>

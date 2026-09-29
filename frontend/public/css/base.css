@@ -41,6 +41,34 @@ button:disabled {
   opacity: 0.62;
 }
 
+.close-button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.close-button:hover,
+.close-button:focus-visible {
+  border-color: color-mix(in srgb, var(--brand) 22%, transparent);
+  background: var(--brand-hover-surface);
+  color: var(--brand);
+}
+
+.close-button-icon {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
 .danger-button {
   border-color: var(--danger-border);
   background: var(--surface-panel);

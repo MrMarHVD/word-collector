@@ -650,25 +650,8 @@
   justify-self: end;
 }
 
-.reader-word-info-close {
+.reader-word-info-head .close-button {
   grid-column: 3;
-  display: inline-grid;
-  width: 30px;
-  min-height: 30px;
-  place-items: center;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: var(--surface-muted);
-  color: var(--text-muted);
-  font-size: 20px;
-  line-height: 1;
-}
-
-.reader-word-info-close:hover,
-.reader-word-info-close:focus-visible {
-  border-color: color-mix(in srgb, var(--brand) 22%, transparent);
-  background: var(--brand-hover-surface);
-  color: var(--brand);
 }
 
 .reader-word-info dl {
