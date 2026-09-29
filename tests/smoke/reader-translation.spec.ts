@@ -173,7 +173,7 @@ async function selectedSurfaces(page: Page, from: number, to: number) {
 
 async function translateDirectly(page: Page, text: string) {
   return page.evaluate(async (sourceText) => {
-    const { translate } = await import("/js/features/translation/translation.service.js");
+    const { translate } = await import("/src/features/reader/translation/translation.service.ts");
     return (await translate(sourceText)).targetText;
   }, text);
 }
@@ -362,7 +362,7 @@ test.describe("reader sentence translation", () => {
     await selectMaterial(page);
     await mouseSelect(page, 0, 3);
     await expect(popup.locator(".reader-translation-target")).not.toBeEmpty({ timeout: 60_000 });
-    expect([...responseUrls.values()].some((url) => url.endsWith("/js/main.js")), "network capture is working").toBe(true);
+    expect([...responseUrls.values()].some((url) => url.endsWith("/src/main.tsx")), "network capture is working").toBe(true);
     expect(modelBytes, "model files were downloaded again").toBeLessThan(64 * 1024);
     await cdp.detach();
   });
