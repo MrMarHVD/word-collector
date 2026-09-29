@@ -194,9 +194,12 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
           pendingFlip.current = direction;
         }
         if (wordIdsToMark.length) {
-          Promise.all(wordIdsToMark.map((wordId) => api.words.setStatus(wordId, "known")))
-            .then(refresh)
-            .catch(() => {});
+          // One atomic bulk request; refresh either way so the reader, dashboard
+          // and known total reflect what was actually saved.
+          api.words
+            .setStatuses(wordIdsToMark, "known")
+            .catch(() => {})
+            .finally(refresh);
         }
       } catch (error) {
         toastError(error);
