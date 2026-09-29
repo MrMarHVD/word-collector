@@ -7,7 +7,6 @@ import { useAdminViewStore } from "./admin-view-store";
 import { SuperadminPanel } from "./SuperadminPanel";
 import { UsersPanel } from "./UsersPanel";
 import { WordsPanel } from "./WordsPanel";
-import "./admin.css";
 
 const PANEL_CLASS = "admin-panel rounded-lg border border-line bg-panel p-5 shadow-panel";
 const SUBTABS: AdminSubtab[] = ["admin", "superadmin"];
