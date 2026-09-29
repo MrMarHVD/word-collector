@@ -155,6 +155,15 @@ export function AppShell({ children }: AppShellProps) {
   const hasStudyLanguage = selectedLanguageId !== null;
   const { data: dashboard } = useQuery({ ...dashboardSummaryQuery(selectedLanguageId), enabled: Boolean(user && hasStudyLanguage) });
 
+  // Every /api/dashboard response refreshes the study-language catalogue, as the legacy loadDashboard() did.
+  useEffect(() => {
+    if (!dashboard) {
+      return;
+    }
+    const { languages, studyLanguageOptions, setCatalog } = useStudyLanguageStore.getState();
+    setCatalog({ languages: dashboard.languages || languages, studyLanguageOptions: dashboard.studyLanguageOptions || studyLanguageOptions });
+  }, [dashboard]);
+
   useEffect(() => {
     const onReader = Boolean(user) && activeTab === "reader";
     document.body.classList.toggle("is-reader-active", onReader);
