@@ -337,14 +337,19 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
     [reader, refresh]
   );
 
-  function openMaterial(item: MaterialListItem) {
-    if (item.translationStatus && !item.translationStatus.ready) {
-      return;
-    }
-    reader.select(item.id);
-    setSidebarTab("read");
-    reader.load(item.id).catch(toastError);
-  }
+  const { select: selectMaterial, load: loadMaterial } = reader;
+  // Stable: MaterialList's auto-open of a finished import runs in an effect that depends on it.
+  const openMaterial = useCallback(
+    (item: MaterialListItem) => {
+      if (item.translationStatus && !item.translationStatus.ready) {
+        return;
+      }
+      selectMaterial(item.id);
+      setSidebarTab("read");
+      loadMaterial(item.id).catch(toastError);
+    },
+    [loadMaterial, selectMaterial]
+  );
 
   function handleMaterialDeleted(materialId: number) {
     if (materialId === reader.selectedMaterialId) {
@@ -519,7 +524,7 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
     setFocusMode,
     reload
   });
-  const latestState = useRef({ eligible, tokensById, layout, focusMode, translationOpen: false, wordInfoOpen: false });
+  const latestState = useRef({ eligible, tokensById, layout, focusMode, isMobile, translationOpen: false, wordInfoOpen: false });
   useLayoutEffect(() => {
     latest.current = {
       applyLayout,
@@ -533,7 +538,15 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
       setFocusMode,
       reload
     };
-    latestState.current = { eligible, tokensById, layout, focusMode, translationOpen: openTranslation !== null, wordInfoOpen: wordInfoToken !== null };
+    latestState.current = {
+      eligible,
+      tokensById,
+      layout,
+      focusMode,
+      isMobile,
+      translationOpen: openTranslation !== null,
+      wordInfoOpen: wordInfoToken !== null
+    };
   });
 
   useEffect(() => {
@@ -571,7 +584,9 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
 
   useEffect(() => {
     function handleKeydown(event: KeyboardEvent) {
-      const { focusMode: inFocusMode, translationOpen } = latestState.current;
+      const { focusMode: inFocusMode, translationOpen, wordInfoOpen, isMobile: mobile } = latestState.current;
+      // Escape closes the top layer first: the translation popup, then the mobile word-info sheet, then focus mode.
+      const wordInfoSheetOpen = mobile && wordInfoOpen && !translationOpen;
       if (!event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && !isTextInputTarget(event.target)) {
         // Widgets that own the arrow keys (tabs, selects, menus) prevent them first.
         if (event.key === "ArrowLeft" && !event.defaultPrevented) {
@@ -580,13 +595,15 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
         } else if (event.key === "ArrowRight" && !event.defaultPrevented) {
           event.preventDefault();
           void latest.current.turnPage("next");
-        } else if (event.key === "Escape" && inFocusMode && !translationOpen) {
+        } else if (event.key === "Escape" && inFocusMode && !translationOpen && !wordInfoSheetOpen) {
           // An open translation popup takes the Escape; focus mode exits on the next one.
           latest.current.setFocusMode(false);
         }
       }
       if (event.key === "Escape" && translationOpen) {
         latest.current.closeTranslation();
+      } else if (event.key === "Escape" && wordInfoSheetOpen) {
+        latest.current.closeWordInfo();
       }
     }
     function handleClick(event: MouseEvent) {

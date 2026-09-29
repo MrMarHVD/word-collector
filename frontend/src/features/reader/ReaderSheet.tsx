@@ -18,7 +18,10 @@ function preventDefault(event: Event) {
 }
 
 /**
- * Mobile bottom sheet for the reader's word-info and translation popups. Non-modal,
+ * Mobile bottom sheet for the reader's word-info and translation popups. This is
+ * the kit's Sheet (Radix Dialog) rather than the Vaul Drawer named in contract
+ * I2: Vaul always renders a modal Radix dialog, which blocks the text behind the
+ * sheet (approved deviation, to be recorded in CONTRACTS.md). Non-modal,
  * like the legacy sheets: the text behind stays tappable and selectable, focus
  * stays where it is, and outside interaction does not close it (the page decides
  * when it closes, including on Escape).
