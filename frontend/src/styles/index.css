@@ -1,0 +1,16 @@
+/*
+ * Stylesheet entry for the React app. Tailwind scans src/ only. Legacy CSS
+ * ported from public/css/ stays unlayered (as in the old app) so it keeps
+ * beating utility classes; shadcn's base resets live in @layer base.
+ */
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@import "./theme.css";
+@import "./shadcn.css";
+@import "./base.css";
+@import "./components.css";
+@import "./shell.css";
+
+@source "../";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));

@@ -1,0 +1,58 @@
+/*
+ * Maps shadcn/ui's colour and radius variables onto the existing theme.css
+ * tokens, so every shadcn component renders in the app's own palette and
+ * follows html[data-theme] (the dark overrides live on the same element).
+ * shadcn's "secondary" colour is not mapped: the app's `text-secondary`
+ * (muted text, theme.css) keeps that name, and the kit uses `bg-muted` instead.
+ */
+:root {
+  --radius: 0.5rem;
+  --background: var(--surface-page);
+  --foreground: var(--text-main);
+  --card: var(--surface-panel);
+  --card-foreground: var(--text-main);
+  --popover: var(--surface-panel);
+  --popover-foreground: var(--text-main);
+  --primary: var(--brand);
+  --primary-foreground: #ffffff;
+  --muted: var(--surface-muted);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--brand-hover-surface);
+  --accent-foreground: var(--text-main);
+  --destructive: var(--danger);
+  --border: var(--border-main);
+  --input: var(--border-main);
+  --ring: var(--brand);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply min-h-screen bg-background text-foreground antialiased;
+  }
+}

@@ -1,0 +1,55 @@
+/* Auth and welcome screens, ported from public/css/shell.css and base.css. */
+
+.welcome-language-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.welcome-language-button {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  border: 1px solid var(--border-main);
+  border-radius: 8px;
+  background: var(--surface-panel);
+  padding: 10px 14px;
+  color: var(--text-main);
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-align: left;
+  box-shadow: 0 10px 28px var(--shadow-color);
+}
+
+.welcome-language-button:hover,
+.welcome-language-button:focus-visible {
+  border-color: color-mix(in srgb, var(--brand) 36%, transparent);
+  background: var(--brand-hover-surface);
+  outline: 0;
+}
+
+.welcome-language-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 30px;
+  overflow: hidden;
+  border: 1px solid var(--border-main);
+  border-radius: 5px;
+}
+
+.welcome-language-flag svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+@media (max-width: 760px) {
+  .auth-panel {
+    max-height: calc(100dvh - 24px);
+    overflow: auto;
+    padding: 18px;
+  }
+}

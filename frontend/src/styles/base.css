@@ -1,0 +1,82 @@
+/*
+ * Global element rules ported from public/css/base.css and the global part of
+ * public/css/responsive.css. The body classes are toggled by AppShell.
+ */
+* {
+  box-sizing: border-box;
+}
+
+[hidden],
+.tab-view[hidden] {
+  display: none !important;
+}
+
+body {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+body.is-reader-active {
+  height: 100vh;
+  overflow: hidden;
+}
+
+button,
+input,
+select {
+  max-width: 100%;
+  min-width: 0;
+  font: inherit;
+}
+
+label {
+  min-width: 0;
+}
+
+input[type="file"] {
+  overflow: hidden;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+@media (max-width: 760px) {
+  body {
+    overflow-x: hidden;
+    /* Suppress double-tap and pinch zoom gestures (iOS ignores user-scalable=no). */
+    touch-action: pan-x pan-y;
+  }
+
+  /* iOS auto-zooms on focus when form controls are under 16px, and with
+     zoom-out blocked the page gets stuck zoomed in. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  body.is-reader-active {
+    height: auto;
+    overflow: auto;
+  }
+
+  body.is-reader-focus {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+  }
+}
