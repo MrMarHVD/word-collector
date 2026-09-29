@@ -111,6 +111,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     set({ user: null, authScreen: null, verifyNotice: "" });
   },
   handleUnauthorized: () => {
+    // The token is bound to the expired session; the next sign-in needs a fresh one.
+    setCsrfToken(null);
     queryClient.clear();
     set({ user: null, authScreen: null });
   },
