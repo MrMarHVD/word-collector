@@ -109,8 +109,10 @@ test.describe("settings", () => {
     await confirmation.fill(user.email!);
     await expect(submit).toBeEnabled();
 
-    page.once("dialog", (dialog) => dialog.accept());
     await submit.click();
+    const finalConfirm = page.getByRole("alertdialog", { name: EN["settings.deleteAccountFinalConfirm"] });
+    await expect(finalConfirm).toBeVisible();
+    await finalConfirm.getByRole("button", { name: EN["settings.deleteAccountButton"], exact: true }).click();
     await expect(page.locator("#welcomeView")).toBeVisible();
     await expect(page.locator("#welcomeLoginButton")).toBeVisible();
     await expect.poll(async () => (await pool.query("SELECT 1 FROM users WHERE lower(email) = lower($1)", [user.email])).rowCount).toBe(0);
