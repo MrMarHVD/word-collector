@@ -1,0 +1,107 @@
+code: RX-009
+title: "Settings"
+status: to do
+spec: SPEC-003-react-frontend-migration
+summary: >
+  Port the settings screen: profile, native and study languages, locale, theme, reader-related settings stored server-side, and account deletion (#deleteAccountPanel) with an in-app confirmation.
+scope:
+  files:
+    - "frontend/src/features/settings/**"
+  layers:
+    - frontend
+  description: >
+    In scope: everything inside frontend/src/features/settings/, replacing RX-002's placeholder with a full-parity implementation, using the shared kit, API, stores, i18n and shared components (I2–I6), and preserving the test hooks (I7). Out of scope: editing any file outside your folder (and listed spec files), shared components, stores, the API client, routes.tsx and the old frontend. Report contract gaps instead of working around them.
+dependencies:
+  - RX-001
+  - RX-002
+acceptance_criteria:
+  - "All settings persist and apply as in the old app, and account deletion works with in-app confirmation."
+  - "tests/smoke/settings.spec.ts (from RX-001) passes unchanged."
+  - "Desktop and mobile (390x844) layouts, light and dark themes, and ja/en/zh all match the old app's behaviour and look native to the new kit."
+  - "Lint, typecheck and Vitest pass; unit tests cover any pure logic extracted in this feature."
+verification:
+  - "Run `npm run lint`, `npm run typecheck` and `npm test` (Vitest) in frontend/ with no errors."
+  - "Start the API and the Vite dev server on your assigned ports. Run the relevant specs with PW_FRONTEND_URL/PW_API_URL pointed at the Vite server; they must pass (excluding the known 429s, identified explicitly)."
+  - "Manually or with throwaway Playwright scripts, check desktop and 390x844 touch layouts, light and dark themes, and ja/en/zh UI locales against the old app (run the old frontend on another port for side-by-side comparison)."
+special_context: |
+  CONTRACTS I1–I8 (SPEC-003). RX-002 fixes these and documents the exact
+  exported names, types and props in frontend/src/CONTRACTS.md, which is the
+  source of truth. Never change a contract unilaterally. If a gap blocks you,
+  stop and report it.
+
+  I1 Routes. src/app/routes.tsx (owned by RX-002) maps the existing URL paths
+  (/dashboard, /vocab, /reader, /practice, /settings, /admin, plus the auth,
+  welcome, verification and reset flows) to lazily imported default exports at
+  src/features/<name>/<Name>Page.tsx. The feature folders are auth, dashboard,
+  collections, materials, reader, practice, settings and admin. RX-002 ships
+  placeholder pages. The owning issue replaces everything inside its own
+  folder, and never edits routes.tsx or any other feature's folder.
+
+  I2 UI kit. src/components/ui/* holds the shadcn components on Radix, with
+  Vaul for drawers and sonner for toasts, all installed by RX-002. They are
+  read-only for feature issues. If a needed shadcn component is missing, add it
+  as a NEW file only; never edit existing ones.
+
+  I3 API. src/lib/api/ holds typed functions for every existing /api endpoint
+  plus a queryKeys module. It keeps api.js's 401 behaviour (redirect to login)
+  and the CSRF handling. Feature issues build their own TanStack Query hooks
+  from these functions inside their feature folder. If an endpoint function is
+  missing or mistyped, report it rather than working around it.
+
+  I4 Stores. src/stores/ holds Zustand stores with fixed exported interfaces:
+  - session and user (including a loadSession action);
+  - study language (available and selected);
+  - reader preferences, persisted under the EXISTING localStorage keys
+    (wordMarkerReader*, e.g. wordMarkerReaderWordsPerPage, FontSize,
+    SidebarCollapsed, SidebarWidth, InfoWidth, PanelWidth, PanelHeight,
+    FocusMode, FocusPanelWidth, plus the auto-mark, word-spaces and
+    highlight-opacity preferences), with the same defaults as state.js;
+  - theme (light, dark or system, applied via html[data-theme]);
+  - locale (ja, en or zh).
+  Keep server data out of the stores; it belongs in TanStack Query.
+
+  I5 i18n. useT() returns t(key, values?, fallback?) with the current
+  semantics (js/i18n.js): {name} interpolation; a missing key falls back to
+  ja, then the fallback, then the key. Keys come from the existing
+  locales.json (ja, en, zh). RX-002 adds generic common.* keys (confirm,
+  cancel, delete, save, close, saved, error and similar). Features use existing
+  keys or common.*. A genuinely new key goes under the feature's own prefix, is
+  added to all three locales, and existing keys are never edited, so parallel
+  edits merge additively.
+
+  I6 Shared app components. src/components/app/ holds components owned by
+  RX-002 with fixed props: AppShell (layout, navigation, auth gate, language
+  gate), Sidebar, StudyLanguageSelect, CloseButton (centred SVG ×, the
+  existing .close-button look), ConfirmDialog with a useConfirm() hook, toast
+  helpers (sonner), TranslationOverride and Disambiguation. Consume them; don't
+  fork them.
+
+  I7 Test hooks. Preserve every element id, data-* attribute and ARIA label
+  that tests/auth.setup.ts and tests/smoke/*.spec.ts use for your area (grep
+  them). They are the acceptance contract. Test edits are allowed only where a
+  spec depends on implementation internals (module file paths, direct module
+  imports, internal globals). Such edits must assert the same behaviour, and
+  every one is listed in your report.
+
+  I8 Cross-feature exports. A component rendered by a feature other than its
+  owner (e.g. the materials list inside the reader's documents tab, and the
+  material-import dialog) is exported from the owner's
+  src/features/<name>/index.ts. RX-002 creates a typed stub for each, with the
+  exact props, and lists them in CONTRACTS.md. The owner implements it behind
+  the same name and props; consumers import only from that index.
+
+  General rules: follow AGENTS.md (localisation, mobile parity, design
+  consistency, documentation adapted for TypeScript). Don't commit unless the
+  orchestrator says to. Use only the ports the orchestrator assigns. Use
+  temporary data only, and never touch the shared test user's settings outside
+  the e2e specs' own restore logic. The OLD frontend (frontend/public/**,
+  frontend/server.js) stays untouched until RX-011. Port BEHAVIOUR from the old
+  code, which is the reference implementation; use shadcn components in place
+  of hand-rolled widgets, keeping placement and behaviour (SPEC-003 scope A: no
+  UX redesign). Known pre-existing failures: admin and superadmin specs can hit
+  429 from the login rate limiter (10 per 15 minutes per IP, in-memory, reset
+  by restarting the API). Identify these explicitly; they are not regressions.
+
+  Old reference: js/features/settings/settings.controller.js, #settingsView and #deleteAccountPanel in public/index.html, css/settings.css. Theme and locale changes go through the I4 stores; server-side settings go through the I3 API.
+implementation_notes: >
+  Port behaviour faithfully; the old code is the spec. Extract pure logic (calculations, transforms, gesture maths) into plain TypeScript modules with Vitest tests. Use TanStack Query for all server data (with optimistic updates where the old app updated the UI immediately) and the I4 stores for UI preferences.

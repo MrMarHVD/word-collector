@@ -1,0 +1,156 @@
+code: RX-002
+title: "Foundation: scaffold, tooling, UI kit, core services, shell and contracts"
+status: to do
+spec: SPEC-003-react-frontend-migration
+summary: >
+  Create the React + TypeScript application skeleton in frontend/ alongside the untouched old app. It covers the build and dev setup, tooling and CI, the shadcn UI kit themed with the existing tokens, the typed API client, stores, i18n, routing with placeholder pages, the app shell, shared app components, the welcome/login/language-gate path, and a CONTRACTS.md defining every interface the parallel feature issues build on.
+scope:
+  files:
+    - "frontend/package.json, frontend/vite.config.ts, frontend/tsconfig*.json, frontend/index.html (new Vite entry; the old public/index.html is untouched)"
+    - "frontend/eslint.config.*, frontend/.prettierrc*, frontend/vitest config"
+    - "frontend/components.json (shadcn)"
+    - "frontend/src/main.tsx, frontend/src/app/** (providers, routes.tsx, query client)"
+    - "frontend/src/components/ui/** (shadcn kit), frontend/src/components/app/** (shared app components)"
+    - "frontend/src/lib/** (api client, i18n, utils), frontend/src/stores/**"
+    - "frontend/src/styles/** (Tailwind v4 entry, theme token mapping)"
+    - "frontend/src/features/*/ (placeholder <Name>Page.tsx and index.ts cross-feature stubs only)"
+    - "frontend/src/features/auth/ (the welcome screen, login form and first-run study-language gate only; ownership passes to RX-003)"
+    - "frontend/src/CONTRACTS.md (new)"
+    - "the new app's static public dir (Vite public/): copy the vendor/bergamot-0.4.9/ engine, and handle the gitignored models/ path and fetch-script target"
+    - "backend/scripts/fetch_mt_models.js (target path only, if the models dir moves)"
+    - ".gitignore (new build output and models path)"
+    - ".github/workflows/ci.yml (new PR workflow)"
+    - "root package.json (script entries only)"
+  layers:
+    - frontend
+    - tooling
+    - ci
+  description: >
+    In scope:
+
+    Build and tooling:
+    - Vite + React + strict TypeScript + Tailwind v4 in frontend/. The dev server proxies /api to the backend on one origin, so no env.js; its port is configurable by env.
+    - ESLint (typescript-eslint, react-hooks) and Prettier, with npm scripts dev, build, preview, lint, typecheck and test.
+    - Vitest, with unit tests for the i18n helper and the API client.
+    - A GitHub Actions PR workflow running lint, typecheck, Vitest and build.
+
+    UI and theme:
+    - shadcn/ui on Radix, with every component the app needs installed up front: button, input, textarea, label, select, checkbox, switch, radio-group, slider, dialog, alert-dialog, drawer (Vaul), sheet, dropdown-menu, popover, tooltip, tabs, table, card, badge, separator, scroll-area, skeleton, sonner, form helpers.
+    - The existing css/theme.css tokens mapped onto shadcn's CSS variables, keeping html[data-theme] light/dark and the existing visual identity.
+
+    Core services:
+    - Typed API client covering EVERY endpoint the old js/api.js and feature controllers call (I3).
+    - TanStack Query provider, and the Zustand stores (I4).
+    - useT() over the existing locales.json, with generic common.* keys added in ja/en/zh (I5).
+
+    Routing and shared UI:
+    - React Router with the existing paths, and placeholder pages per feature (I1).
+    - Shared app components (I6).
+    - Typed stubs for the cross-feature exports (I8).
+
+    First-run path: a fully functional welcome screen, login form and first-run study-language gate, preserving #welcomeLoginButton, #authEmail, #authPassword, #authSubmit, [data-welcome-study-language] and #appShell, so tests/auth.setup.ts passes against the new app and the feature issues can run e2e.
+
+    Static assets: engine and model files served at the unchanged URLs /vendor/bergamot-0.4.9/* and /models/ja-en-2.1/* by the Vite dev server and in the build output.
+
+    CONTRACTS.md documents I1–I8 exactly: route table, store interfaces, API client module layout, useT semantics, shared component props, and the list of cross-feature exports with props.
+
+    Out of scope: implementing feature screens beyond placeholders; backend serving, deploy and Playwright config changes (RX-011); removing the old frontend.
+dependencies: []
+acceptance_criteria:
+  - "`npm run dev` in frontend/ serves the React app. /api calls reach the backend through the proxy, and the old app still runs unchanged via frontend/server.js."
+  - "`npm run build`, `npm run lint`, `npm run typecheck` and `npm test` all pass. The CI workflow runs these on pull requests."
+  - "tests/auth.setup.ts passes against the new app's dev server (with PW_FRONTEND_URL), reaching a visible #appShell with navigation to every route."
+  - "Every existing URL path resolves to its (placeholder) page, with deep links, reload and back/forward working. Unauthenticated users are gated to welcome/login. Language-required routes gate as today."
+  - "Light and dark themes switch via html[data-theme], and shadcn components render in the app's existing colours in both."
+  - "Reader preferences, theme and locale are read from and written to the same localStorage keys and defaults as the old app, checked by setting values in the old app and seeing them in the new app."
+  - "UI text renders from locales.json in ja, en and zh; common.* keys exist in all three."
+  - "/vendor/bergamot-0.4.9/worker/bergamot-translator-worker.wasm and /models/ja-en-2.1/model.bin are served by the dev server and present in the build output. Models remain gitignored."
+  - "The shared components render and work on desktop and at 390x844: AppShell, Sidebar, StudyLanguageSelect, CloseButton (× centred), ConfirmDialog/useConfirm and toast."
+  - "CONTRACTS.md documents I1–I8 with exact names, types and props, and every cross-feature stub it lists exists and type-checks."
+verification:
+  - "Run the full npm script set in frontend/, and confirm the CI workflow syntax (e.g. act or a dry-run review)."
+  - "Start the API and the Vite dev server on your assigned ports and run `npx playwright test --project=setup` with PW_FRONTEND_URL/PW_API_URL pointing at them."
+  - "Check routes, gating, theme, locale and localStorage continuity manually or with throwaway Playwright scripts. For localStorage, set preferences in the old app (frontend/server.js on another port), then load the new app with the same storage."
+  - "curl -I the engine and model URLs on the dev server and check the build output directory."
+special_context: |
+  CONTRACTS I1–I8 (SPEC-003). RX-002 fixes these and documents the exact
+  exported names, types and props in frontend/src/CONTRACTS.md, which is the
+  source of truth. Never change a contract unilaterally. If a gap blocks you,
+  stop and report it.
+
+  I1 Routes. src/app/routes.tsx (owned by RX-002) maps the existing URL paths
+  (/dashboard, /vocab, /reader, /practice, /settings, /admin, plus the auth,
+  welcome, verification and reset flows) to lazily imported default exports at
+  src/features/<name>/<Name>Page.tsx. The feature folders are auth, dashboard,
+  collections, materials, reader, practice, settings and admin. RX-002 ships
+  placeholder pages. The owning issue replaces everything inside its own
+  folder, and never edits routes.tsx or any other feature's folder.
+
+  I2 UI kit. src/components/ui/* holds the shadcn components on Radix, with
+  Vaul for drawers and sonner for toasts, all installed by RX-002. They are
+  read-only for feature issues. If a needed shadcn component is missing, add it
+  as a NEW file only; never edit existing ones.
+
+  I3 API. src/lib/api/ holds typed functions for every existing /api endpoint
+  plus a queryKeys module. It keeps api.js's 401 behaviour (redirect to login)
+  and the CSRF handling. Feature issues build their own TanStack Query hooks
+  from these functions inside their feature folder. If an endpoint function is
+  missing or mistyped, report it rather than working around it.
+
+  I4 Stores. src/stores/ holds Zustand stores with fixed exported interfaces:
+  - session and user (including a loadSession action);
+  - study language (available and selected);
+  - reader preferences, persisted under the EXISTING localStorage keys
+    (wordMarkerReader*, e.g. wordMarkerReaderWordsPerPage, FontSize,
+    SidebarCollapsed, SidebarWidth, InfoWidth, PanelWidth, PanelHeight,
+    FocusMode, FocusPanelWidth, plus the auto-mark, word-spaces and
+    highlight-opacity preferences), with the same defaults as state.js;
+  - theme (light, dark or system, applied via html[data-theme]);
+  - locale (ja, en or zh).
+  Keep server data out of the stores; it belongs in TanStack Query.
+
+  I5 i18n. useT() returns t(key, values?, fallback?) with the current
+  semantics (js/i18n.js): {name} interpolation; a missing key falls back to
+  ja, then the fallback, then the key. Keys come from the existing
+  locales.json (ja, en, zh). RX-002 adds generic common.* keys (confirm,
+  cancel, delete, save, close, saved, error and similar). Features use existing
+  keys or common.*. A genuinely new key goes under the feature's own prefix, is
+  added to all three locales, and existing keys are never edited, so parallel
+  edits merge additively.
+
+  I6 Shared app components. src/components/app/ holds components owned by
+  RX-002 with fixed props: AppShell (layout, navigation, auth gate, language
+  gate), Sidebar, StudyLanguageSelect, CloseButton (centred SVG ×, the
+  existing .close-button look), ConfirmDialog with a useConfirm() hook, toast
+  helpers (sonner), TranslationOverride and Disambiguation. Consume them; don't
+  fork them.
+
+  I7 Test hooks. Preserve every element id, data-* attribute and ARIA label
+  that tests/auth.setup.ts and tests/smoke/*.spec.ts use for your area (grep
+  them). They are the acceptance contract. Test edits are allowed only where a
+  spec depends on implementation internals (module file paths, direct module
+  imports, internal globals). Such edits must assert the same behaviour, and
+  every one is listed in your report.
+
+  I8 Cross-feature exports. A component rendered by a feature other than its
+  owner (e.g. the materials list inside the reader's documents tab, and the
+  material-import dialog) is exported from the owner's
+  src/features/<name>/index.ts. RX-002 creates a typed stub for each, with the
+  exact props, and lists them in CONTRACTS.md. The owner implements it behind
+  the same name and props; consumers import only from that index.
+
+  General rules: follow AGENTS.md (localisation, mobile parity, design
+  consistency, documentation adapted for TypeScript). Don't commit unless the
+  orchestrator says to. Use only the ports the orchestrator assigns. Use
+  temporary data only, and never touch the shared test user's settings outside
+  the e2e specs' own restore logic. The OLD frontend (frontend/public/**,
+  frontend/server.js) stays untouched until RX-011. Port BEHAVIOUR from the old
+  code, which is the reference implementation; use shadcn components in place
+  of hand-rolled widgets, keeping placement and behaviour (SPEC-003 scope A: no
+  UX redesign). Known pre-existing failures: admin and superadmin specs can hit
+  429 from the login rate limiter (10 per 15 minutes per IP, in-memory, reset
+  by restarting the API). Identify these explicitly; they are not regressions.
+
+  The old app is the reference: js/state.js (store fields and localStorage keys), js/api.js (client behaviour, 401 handling, CSRF), js/i18n.js and js/app/locale.js (i18n semantics), js/theme.js and js/theme-init.js (theme, including the no-flash init), js/app/router.js (paths, gating), js/app/study-language.js, js/views/shell.js and js/views/components/* (shared components), and frontend/public/css/theme.css (tokens). The SPEC-002 Bergamot engine and service are carried over by RX-007; you only make the static assets available.
+implementation_notes: >
+  Treat CONTRACTS.md as the deliverable the other issues depend on: design the interfaces so each feature can be built in isolation. Enumerate the endpoints by grepping every fetch/api call in the old frontend. Keep the theme no-flash behaviour (set data-theme before first paint). Keep the Tailwind content scanning scoped to src/. Don't over-build: feature-specific hooks and components belong to the feature issues.

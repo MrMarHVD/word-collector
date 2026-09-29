@@ -1,0 +1,140 @@
+code: RX-011
+title: "Switchover: serve the React build, update deploy and tests, remove the old frontend"
+status: to do
+spec: SPEC-003-react-frontend-migration
+summary: >
+  Make the React app the only frontend. The backend serves the Vite build with unchanged security headers, caching and 404 rules. Deploy builds the frontend. Playwright runs against the Vite dev server. Remaining test internals are adjusted and listed. The old frontend code and frontend/server.js are deleted, AGENTS.md is updated for the new stack, and the full acceptance bar is proven.
+scope:
+  files:
+    - "backend/src/config.js (PUBLIC_DIR default)"
+    - "backend/src/http/static.js"
+    - "backend/src/http/security.js"
+    - ".github/workflows/deploy-dev.yml"
+    - "playwright.config.ts"
+    - "tests/** (remaining internal-coupling edits only, listed)"
+    - "frontend/public/** (old app code removed; static assets needed by the new app retained/moved)"
+    - "frontend/server.js (removed)"
+    - "frontend/package.json and root package.json (scripts)"
+    - "AGENTS.md"
+    - ".gitignore"
+    - "README.md only if the user asks"
+  layers:
+    - backend
+    - infrastructure
+    - tests
+    - frontend
+  description: >
+    In scope:
+    - Point production static serving at the Vite build output, keeping applySecurityHeaders (CSP strictness, wasm-unsafe-eval, no new third-party origins beyond anything the build genuinely needs), immutable caching for /vendor/bergamot-0.4.9/ and /models/, real 404s for missing /vendor and /models files, and the SPA fallback for app routes.
+    - Add the build step to deploy, after npm install and before the pm2 restart, keeping the fetch:mt-models step with the models landing where the build or backend serves them.
+    - Switch playwright.config.ts webServer to the Vite dev server with the proxy.
+    - Resolve any remaining internal-coupling test edits.
+    - Delete the old frontend app code and frontend/server.js.
+    - Update AGENTS.md: frontend conventions for React/TS; documentation guidance with TS types replacing JSDoc @param/@returns plus purpose comments; worktree dev-server instructions (ports and commands) for Vite plus API; CSS rebuild instructions replaced by the Vite workflow.
+    - Run the full acceptance bar.
+
+    Out of scope: feature changes, and fixing the pre-existing login rate-limit failures (tracked separately).
+dependencies:
+  - RX-001
+  - RX-003
+  - RX-004
+  - RX-005
+  - RX-006
+  - RX-007
+  - RX-008
+  - RX-009
+  - RX-010
+acceptance_criteria:
+  - "In production mode (backend serving the build), every app route, deep link and reload works. Response headers (CSP etc.), immutable caching and asset 404s match the pre-migration behaviour (compare curl -I output before and after)."
+  - "The deploy workflow builds the frontend and serves it. A dry run of the workflow steps on a clean checkout succeeds."
+  - "`npm run test:e2e` passes in full against the new frontend (existing plus RX-001 specs), apart from the known pre-existing 429 login-rate-limit failures, which are identified explicitly. Every test edit made across the migration is listed with its reason."
+  - "frontend/public contains no old app JS/CSS/HTML, frontend/server.js is gone, and nothing references them."
+  - "AGENTS.md describes the new frontend stack, commands and conventions accurately."
+  - "CI (lint, typecheck, Vitest, build) passes."
+verification:
+  - "Record curl -I output for representative routes and assets on the current production-mode server BEFORE changes, then compare it after."
+  - "Run the production build and start the backend in production mode; walk every route and deep link."
+  - "Run `npm run test:e2e` after an API restart and triage any failure (429s identified as pre-existing)."
+  - "grep the repo for references to frontend/server.js, env.js and /js/ paths."
+special_context: |
+  CONTRACTS I1–I8 (SPEC-003). RX-002 fixes these and documents the exact
+  exported names, types and props in frontend/src/CONTRACTS.md, which is the
+  source of truth. Never change a contract unilaterally. If a gap blocks you,
+  stop and report it.
+
+  I1 Routes. src/app/routes.tsx (owned by RX-002) maps the existing URL paths
+  (/dashboard, /vocab, /reader, /practice, /settings, /admin, plus the auth,
+  welcome, verification and reset flows) to lazily imported default exports at
+  src/features/<name>/<Name>Page.tsx. The feature folders are auth, dashboard,
+  collections, materials, reader, practice, settings and admin. RX-002 ships
+  placeholder pages. The owning issue replaces everything inside its own
+  folder, and never edits routes.tsx or any other feature's folder.
+
+  I2 UI kit. src/components/ui/* holds the shadcn components on Radix, with
+  Vaul for drawers and sonner for toasts, all installed by RX-002. They are
+  read-only for feature issues. If a needed shadcn component is missing, add it
+  as a NEW file only; never edit existing ones.
+
+  I3 API. src/lib/api/ holds typed functions for every existing /api endpoint
+  plus a queryKeys module. It keeps api.js's 401 behaviour (redirect to login)
+  and the CSRF handling. Feature issues build their own TanStack Query hooks
+  from these functions inside their feature folder. If an endpoint function is
+  missing or mistyped, report it rather than working around it.
+
+  I4 Stores. src/stores/ holds Zustand stores with fixed exported interfaces:
+  - session and user (including a loadSession action);
+  - study language (available and selected);
+  - reader preferences, persisted under the EXISTING localStorage keys
+    (wordMarkerReader*, e.g. wordMarkerReaderWordsPerPage, FontSize,
+    SidebarCollapsed, SidebarWidth, InfoWidth, PanelWidth, PanelHeight,
+    FocusMode, FocusPanelWidth, plus the auto-mark, word-spaces and
+    highlight-opacity preferences), with the same defaults as state.js;
+  - theme (light, dark or system, applied via html[data-theme]);
+  - locale (ja, en or zh).
+  Keep server data out of the stores; it belongs in TanStack Query.
+
+  I5 i18n. useT() returns t(key, values?, fallback?) with the current
+  semantics (js/i18n.js): {name} interpolation; a missing key falls back to
+  ja, then the fallback, then the key. Keys come from the existing
+  locales.json (ja, en, zh). RX-002 adds generic common.* keys (confirm,
+  cancel, delete, save, close, saved, error and similar). Features use existing
+  keys or common.*. A genuinely new key goes under the feature's own prefix, is
+  added to all three locales, and existing keys are never edited, so parallel
+  edits merge additively.
+
+  I6 Shared app components. src/components/app/ holds components owned by
+  RX-002 with fixed props: AppShell (layout, navigation, auth gate, language
+  gate), Sidebar, StudyLanguageSelect, CloseButton (centred SVG ×, the
+  existing .close-button look), ConfirmDialog with a useConfirm() hook, toast
+  helpers (sonner), TranslationOverride and Disambiguation. Consume them; don't
+  fork them.
+
+  I7 Test hooks. Preserve every element id, data-* attribute and ARIA label
+  that tests/auth.setup.ts and tests/smoke/*.spec.ts use for your area (grep
+  them). They are the acceptance contract. Test edits are allowed only where a
+  spec depends on implementation internals (module file paths, direct module
+  imports, internal globals). Such edits must assert the same behaviour, and
+  every one is listed in your report.
+
+  I8 Cross-feature exports. A component rendered by a feature other than its
+  owner (e.g. the materials list inside the reader's documents tab, and the
+  material-import dialog) is exported from the owner's
+  src/features/<name>/index.ts. RX-002 creates a typed stub for each, with the
+  exact props, and lists them in CONTRACTS.md. The owner implements it behind
+  the same name and props; consumers import only from that index.
+
+  General rules: follow AGENTS.md (localisation, mobile parity, design
+  consistency, documentation adapted for TypeScript). Don't commit unless the
+  orchestrator says to. Use only the ports the orchestrator assigns. Use
+  temporary data only, and never touch the shared test user's settings outside
+  the e2e specs' own restore logic. The OLD frontend (frontend/public/**,
+  frontend/server.js) stays untouched until RX-011. Port BEHAVIOUR from the old
+  code, which is the reference implementation; use shadcn components in place
+  of hand-rolled widgets, keeping placement and behaviour (SPEC-003 scope A: no
+  UX redesign). Known pre-existing failures: admin and superadmin specs can hit
+  429 from the login rate limiter (10 per 15 minutes per IP, in-memory, reset
+  by restarting the API). Identify these explicitly; they are not regressions.
+
+  Deploy currently runs git reset --hard origin/dev, npm install, build:css, migrations, fetch:mt-models and pm2 restart (.github/workflows/deploy-dev.yml). The backend serves PUBLIC_DIR for all non-/api paths (backend/server.js:72-95); static.js handles MIME, streaming (pipeline), immutable prefixes and the 404 rules added in SPEC-002.
+implementation_notes: >
+  Do the switchover in one coherent change so the repo never has two half-working frontends. Capture the before-state first. Check the SPA fallback doesn't swallow missing /vendor or /models assets.

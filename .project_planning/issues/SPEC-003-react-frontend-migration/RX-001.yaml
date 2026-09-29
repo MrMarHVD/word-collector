@@ -1,0 +1,40 @@
+code: RX-001
+title: "Baseline e2e specs for practice, collections, imports and settings (against the current app)"
+status: to do
+spec: SPEC-003-react-frontend-migration
+summary: >
+  Add Playwright smoke specs for the flows that have no coverage (practice, vocab/collections, material imports, settings), written and passing against the CURRENT frontend. They become part of the acceptance bar the React app must pass.
+scope:
+  files:
+    - "tests/smoke/practice.spec.ts (new)"
+    - "tests/smoke/collections.spec.ts (new)"
+    - "tests/smoke/imports.spec.ts (new)"
+    - "tests/smoke/settings.spec.ts (new)"
+  layers:
+    - tests
+  description: >
+    In scope: four new spec files that exercise each area's primary user flows end to end, as a user would. Write them against the current app. Select elements by stable ids, data-* attributes, ARIA roles/labels and visible localised text; avoid reaching into JS modules or globals, so the specs survive the React rewrite unchanged. Each spec creates and cleans up its own temporary data. Any spec that changes user settings must use a dedicated temporary user (see tests/smoke/reader-translation.spec.ts for the provisioning and account-deletion pattern) so parallel specs aren't disturbed. Out of scope: any frontend or backend code change, and editing existing specs.
+dependencies: []
+acceptance_criteria:
+  - "Each of the four areas has a spec covering its primary flows. Practice: start a session, answer, finish. Collections: create, rename, move and delete a collection; add, edit and mark words; CSV upload if present. Imports: import a TXT (and EPUB/PDF if feasible with small fixtures) and see it listed and openable. Settings: change native language, locale and theme and have them persist, and delete a temporary account."
+  - "All new specs pass against the current app, run three times in a row with no flakes."
+  - "No new spec imports app modules or reads internal globals; they rely only on DOM/ARIA/text hooks."
+  - "All temporary data is removed after each run, including on failure."
+  - "No existing spec or app file is modified."
+verification:
+  - "Run `npx playwright test tests/smoke/{practice,collections,imports,settings}.spec.ts` three times against the current frontend."
+  - "Check the DB for leftover temporary users and materials after a run, and after a deliberately failed run."
+special_context: |
+  General rules: follow AGENTS.md (localisation, mobile parity, design
+  consistency, documentation adapted for TypeScript). Don't commit unless the
+  orchestrator says to. Use only the ports the orchestrator assigns. Use
+  temporary data only, and never touch the shared test user's settings outside
+  the e2e specs' own restore logic. The OLD frontend (frontend/public/**,
+  frontend/server.js) stays untouched until RX-011. Port BEHAVIOUR from the old
+  code, which is the reference implementation; use shadcn components in place
+  of hand-rolled widgets, keeping placement and behaviour (SPEC-003 scope A: no
+  UX redesign). Known pre-existing failures: admin and superadmin specs can hit
+  429 from the login rate limiter (10 per 15 minutes per IP, in-memory, reset
+  by restarting the API). Identify these explicitly; they are not regressions.
+implementation_notes: >
+  Read each area's current controller/view (frontend/public/js/features/<area>/, js/views/) to find the user flows and the existing ids/data-* hooks. Prefer the hooks already present in the markup: RX-005..RX-009 must preserve exactly the ones you use (I7), so favour stable, meaningful ones. Keep the number of logins low because of the login rate limiter; reuse storageState where the spec doesn't need a dedicated user.
