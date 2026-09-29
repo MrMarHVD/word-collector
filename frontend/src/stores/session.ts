@@ -39,9 +39,9 @@ export interface SessionState {
   markReady: () => void;
   /** POST /api/auth/logout, then clears the session. On failure the error is shown in the verification banner. */
   logout: () => Promise<void>;
-  /** Drops the user and the query cache (sign-out, 401, account deletion); `forgetStudyLanguage` also removes the persisted language. */
+  /** Drops the user, the query cache and registered feature state (sign-out, account deletion); `forgetStudyLanguage` also removes the persisted language. */
   clearSession: (options?: { forgetStudyLanguage?: boolean }) => void;
-  /** Called by the API client on HTTP 401: the user is dropped and the welcome screen shows in place. */
+  /** Called by the API client on HTTP 401: the user, query cache and registered feature state are dropped and the welcome screen shows in place. */
   handleUnauthorized: () => void;
   /** Opens an auth screen; unspecified fields default to the login panel in login mode with no status. */
   openAuthScreen: (screen?: Partial<AuthScreen>) => void;
@@ -61,6 +61,25 @@ export function isSuperadminUser(user: Pick<User, "isSuperadmin"> | null): boole
 }
 
 const DEFAULT_AUTH_SCREEN: AuthScreen = { panel: "login", mode: "login", status: "", resetToken: null };
+
+const sessionResets = new Set<() => void>();
+
+/**
+ * Registers a reset for client state kept outside the query cache (module
+ * singletons, feature stores). It runs whenever the session ends (sign-out,
+ * 401, account deletion), so one user's state never carries over to the next
+ * sign-in without a reload. Features register at module load, so the session
+ * store never imports (or eagerly loads) feature code.
+ */
+export function registerSessionReset(reset: () => void): void {
+  sessionResets.add(reset);
+}
+
+function resetSessionState(): void {
+  for (const reset of sessionResets) {
+    reset();
+  }
+}
 
 /** Session and signed-in user. */
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -108,12 +127,14 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     setCsrfToken(null);
     useStudyLanguageStore.getState().reset({ forget: forgetStudyLanguage });
     queryClient.clear();
+    resetSessionState();
     set({ user: null, authScreen: null, verifyNotice: "" });
   },
   handleUnauthorized: () => {
     // The token is bound to the expired session; the next sign-in needs a fresh one.
     setCsrfToken(null);
     queryClient.clear();
+    resetSessionState();
     set({ user: null, authScreen: null });
   },
   openAuthScreen: (screen = {}) => set({ authScreen: { ...DEFAULT_AUTH_SCREEN, ...screen } }),

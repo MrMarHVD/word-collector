@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { registerSessionReset } from "@/stores/session";
 import type { CollectionSelection } from "./word-list";
 
 interface CollectionsViewState {
@@ -18,3 +19,6 @@ export const useCollectionsViewStore = create<CollectionsViewState>((set) => ({
   selectCollection: (selection) => set({ selectedCollectionId: selection, search: "" }),
   setSearch: (search) => set({ search })
 }));
+
+// A new sign-in starts from all words with an empty search, not the previous user's view.
+registerSessionReset(() => useCollectionsViewStore.setState({ selectedCollectionId: "all", search: "" }));

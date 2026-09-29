@@ -16,30 +16,53 @@ import { api, queryKeys } from "@/lib/api";
 import type { MaterialReaderParams, MaterialReaderResponse, ReaderToken } from "@/lib/api/types";
 import { readStorage, removeStorage, writeStorage } from "@/lib/storage";
 import type { ReaderWordsPerPage } from "@/stores/reader-preferences";
+import { useSessionStore } from "@/stores/session";
 import { readerFetchLimit } from "./reader-pagination";
 import { readerSession, type ReaderView } from "./reader-session";
 
 /** Poll interval while the open material's translations are still being prepared. */
 const TRANSLATION_POLL_MS = 1500;
 
-function selectedMaterialStorageKey(languageId: number): string {
+function selectedMaterialStorageKey(userId: number, languageId: number): string {
+  return `wordMarkerSelectedMaterialId:${userId}:${languageId}`;
+}
+
+/** Pre-user-scoping key, shared by every account that used this browser. */
+function legacySelectedMaterialStorageKey(languageId: number): string {
   return `wordMarkerSelectedMaterialId:${languageId}`;
 }
 
-/** The material last opened in this study language (per-language localStorage key), or null. */
-export function readCachedMaterialId(languageId: number | null): number | null {
-  return languageId ? Number(readStorage(selectedMaterialStorageKey(languageId))) || null : null;
+/**
+ * The material this user last opened in this study language (per-user,
+ * per-language localStorage key), or null. A legacy per-language entry is
+ * moved to the first user who reads it, as that key used to be shared.
+ */
+export function readCachedMaterialId(userId: number | null, languageId: number | null): number | null {
+  if (!userId || !languageId) {
+    return null;
+  }
+  const key = selectedMaterialStorageKey(userId, languageId);
+  let stored = readStorage(key);
+  if (stored === null) {
+    const legacyKey = legacySelectedMaterialStorageKey(languageId);
+    stored = readStorage(legacyKey);
+    if (stored !== null) {
+      writeStorage(key, stored);
+      removeStorage(legacyKey);
+    }
+  }
+  return Number(stored) || null;
 }
 
-/** Remembers (or forgets, with null) the material open in this study language. */
-export function writeCachedMaterialId(languageId: number | null, materialId: number | null): void {
-  if (!languageId) {
+/** Remembers (or forgets, with null) the material this user has open in this study language. */
+export function writeCachedMaterialId(userId: number | null, languageId: number | null, materialId: number | null): void {
+  if (!userId || !languageId) {
     return;
   }
   if (materialId) {
-    writeStorage(selectedMaterialStorageKey(languageId), String(materialId));
+    writeStorage(selectedMaterialStorageKey(userId, languageId), String(materialId));
   } else {
-    removeStorage(selectedMaterialStorageKey(languageId));
+    removeStorage(selectedMaterialStorageKey(userId, languageId));
   }
 }
 
@@ -90,8 +113,9 @@ export interface ReaderMaterial {
  */
 export function useReaderMaterial(languageId: number | null, wordsPerPage: ReaderWordsPerPage): ReaderMaterial {
   const queryClient = useQueryClient();
+  const userId = useSessionStore((state) => state.user?.id ?? null);
   const [remembered] = useState(() => (readerSession.languageId === languageId && readerSession.selectedMaterialId !== null ? readerSession : null));
-  const [selectedMaterialId, setSelectedMaterialId] = useState<number | null>(() => remembered?.selectedMaterialId ?? readCachedMaterialId(languageId));
+  const [selectedMaterialId, setSelectedMaterialId] = useState<number | null>(() => remembered?.selectedMaterialId ?? readCachedMaterialId(userId, languageId));
   const [view, setView] = useState<ReaderView | null>(() => remembered?.view ?? null);
   const loadSequence = useRef(0);
   const wordsPerPageRef = useRef(wordsPerPage);
@@ -144,17 +168,17 @@ export function useReaderMaterial(languageId: number | null, wordsPerPage: Reade
   const select = useCallback(
     (materialId: number) => {
       setSelectedMaterialId(materialId);
-      writeCachedMaterialId(languageId, materialId);
+      writeCachedMaterialId(userId, languageId, materialId);
     },
-    [languageId]
+    [userId, languageId]
   );
 
   const clear = useCallback(() => {
     loadSequence.current += 1;
     setSelectedMaterialId(null);
     setView(null);
-    writeCachedMaterialId(languageId, null);
-  }, [languageId]);
+    writeCachedMaterialId(userId, languageId, null);
+  }, [userId, languageId]);
 
   const updateWordTokens = useCallback(
     (wordId: number, updates: Partial<ReaderToken>) => {

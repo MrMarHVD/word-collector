@@ -166,6 +166,7 @@ Server data belongs in TanStack Query, not in stores. Outside React, use `useXSt
 - `loadSession(): Promise<User|null>`: GET /api/auth/me. Fills this store and the study-language catalogue, restores the language selection, and closes the auth screen when signed in.
 - `setUser(user)`, `markReady()`, `logout()` (POST logout → `clearSession`; on failure → `verifyNotice`), `clearSession({ forgetStudyLanguage? })` (account deletion passes `true`), `handleUnauthorized()`, `openAuthScreen(partial?)` (defaults: login panel, login mode, no status), `closeAuthScreen()`, `setVerifyNotice(text)`
 - Helpers: `isAdminUser(user)`, `isSuperadminUser(user)`.
+- `registerSessionReset(reset)`: feature state kept outside the query cache (module singletons, feature stores) registers a reset at module load; `clearSession` and `handleUnauthorized` run every registered reset, so nothing carries over to the next user.
 - Bootstrap (`app/bootstrap.ts`, RX-002) consumes `?reset_token` (→ `openAuthScreen({panel:"reset", resetToken})`, no session load), `?verify_token` (→ `verifyNotice` when signed in, else a login screen with that `status`) and `?oauth_error` (→ a login screen with the localised error), then strips them from the URL.
 
 **`useStudyLanguageStore`** (`@/stores/study-language`)
@@ -201,7 +202,7 @@ Actions: `setPreference(key, value)`, `setPreferences(partial)`. Also exported: 
 **`useUiPreferencesStore`** (`@/stores/ui-preferences`): `wordDisplayMode: "page"|"infinite"` (`wordMarkerDisplayMode`, default infinite), `setWordDisplayMode(m)`. Shared by vocab and settings.
 
 Feature-local persisted keys (`wordMarkerDashboardStatsTab`,
-`wordMarkerCollectionsSidebarCollapsed`, `wordMarkerSelectedMaterialId:<languageId>`, …):
+`wordMarkerCollectionsSidebarCollapsed`, `wordMarkerSelectedMaterialId:<userId>:<languageId>`, …):
 use `usePersistentState(key, parse, serialize?)` from
 `@/lib/hooks/use-persistent-state`, or `readStorage`/`writeStorage`/`removeStorage`
 from `@/lib/storage`, with the legacy key, parsing and default.
@@ -268,7 +269,7 @@ Every other feature's `index.ts` is `export {}`.
 | `MaterialImportDialog` | materials (RX-006) → any                           | `{ open: boolean; onOpenChange(open: boolean): void; onImportStarted?(material: MaterialDetail): void }`. `#materialImportModal`.                                                                                                                                                                                                                                                                                                                      | renders `null` |
 
 Division of state: the reader owns the selected material id, its per-language
-cache key `wordMarkerSelectedMaterialId:<languageId>`, and loading the material
+cache key `wordMarkerSelectedMaterialId:<userId>:<languageId>` (a legacy `…:<languageId>` entry moves to the first user who reads it), and loading the material
 (`api.materials.reader`). Materials owns the list, search and import tracking.
 The auth feature owns `WelcomePage`/`AuthPage` (built by RX-002 for the
 first-run path; forgot/reset panels are minimal placeholders) and all auth

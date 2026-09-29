@@ -5,6 +5,7 @@
  */
 
 import type { MaterialReaderParams } from "@/lib/api/types";
+import { registerSessionReset } from "@/stores/session";
 
 export type ReaderSidebarTab = "read" | "documents" | "settings";
 
@@ -21,17 +22,24 @@ export interface ResolvedPanelSize {
   focusWidth: number;
 }
 
-export const readerSession: {
+interface ReaderSessionState {
   /** Study language the remembered view belongs to. */
   languageId: number | null;
   selectedMaterialId: number | null;
   view: ReaderView | null;
   sidebarTab: ReaderSidebarTab;
   panel: ResolvedPanelSize | null;
-} = {
-  languageId: null,
-  selectedMaterialId: null,
-  view: null,
-  sidebarTab: "read",
-  panel: null
-};
+}
+
+function initialReaderSession(): ReaderSessionState {
+  return { languageId: null, selectedMaterialId: null, view: null, sidebarTab: "read", panel: null };
+}
+
+export const readerSession: ReaderSessionState = initialReaderSession();
+
+/** Forgets the remembered reader state, so the next user starts from their own saved material. */
+export function resetReaderSession(): void {
+  Object.assign(readerSession, initialReaderSession());
+}
+
+registerSessionReset(resetReaderSession);
