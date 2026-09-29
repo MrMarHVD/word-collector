@@ -114,6 +114,8 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
   const selectionSequence = useRef(0);
   const pageTurnInProgress = useRef(false);
   const pendingFlip = useRef<PageDirection | null>(null);
+  // Ends an in-progress resize drag; also called on unmount.
+  const stopResizeRef = useRef<(() => void) | null>(null);
 
   // ------------------------------------------------------------ page data
 
@@ -469,11 +471,16 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
     const stop = () => {
       document.removeEventListener("pointermove", resize);
       document.removeEventListener("pointerup", stop);
+      document.removeEventListener("pointercancel", stop);
       document.body.classList.remove("is-resizing-reader");
+      stopResizeRef.current = null;
     };
+    stopResizeRef.current?.();
+    stopResizeRef.current = stop;
     document.body.classList.add("is-resizing-reader");
     document.addEventListener("pointermove", resize);
     document.addEventListener("pointerup", stop);
+    document.addEventListener("pointercancel", stop);
   }
 
   // Fit to page: probe how many fetched tokens fit, before the page is painted.
@@ -581,6 +588,7 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
       gestures.detach();
       gesturesRef.current = null;
       selectionRef.current = null;
+      stopResizeRef.current?.();
       document.body.classList.remove("is-resizing-reader");
     };
   }, []);
