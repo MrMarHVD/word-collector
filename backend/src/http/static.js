@@ -5,7 +5,7 @@
  * that directory (path-traversal attempts) or that does not correspond to an
  * existing file falls back to `index.html`, enabling client-side routing in the
  * single-page application, except under the versioned asset prefixes
- * (`/vendor/`, `/models/`), which return a real 404. Files are streamed so large
+ * (`/assets/`, `/vendor/`, `/models/`), which return a real 404. Files are streamed so large
  * translation-model binaries are never buffered whole in memory.
  */
 
@@ -23,14 +23,23 @@ const mimeTypes = {
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".wasm": "application/wasm",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".webmanifest": "application/manifest+json",
+  ".md": "text/markdown; charset=utf-8",
   ".bin": "application/octet-stream",
   ".spm": "application/octet-stream"
 };
 const publicRoot = resolve(PUBLIC_DIR);
-// Asset prefixes that never fall back to index.html.
-const NO_FALLBACK_PREFIXES = ["/vendor/", "/models/"];
-// Versioned asset prefixes whose contents never change at a given URL.
-const IMMUTABLE_PREFIXES = ["/vendor/bergamot-0.4.9/", "/models/"];
+// Asset prefixes that never fall back to index.html. A missing `/assets/` chunk
+// (a tab still on a deleted build) must fail as a real 404, not as HTML.
+const NO_FALLBACK_PREFIXES = ["/assets/", "/vendor/", "/models/"];
+// Versioned asset prefixes whose contents never change at a given URL
+// (`/assets/` holds Vite's content-hashed build output).
+const IMMUTABLE_PREFIXES = ["/assets/", "/vendor/bergamot-0.4.9/", "/models/"];
+// index.html references the current hashed assets, so it must be revalidated on every load.
+const NO_CACHE = "no-cache";
 
 /**
  * Stats a path and returns it only when it is a regular file.
@@ -56,12 +65,14 @@ async function statFile(filePath) {
  *   to `index.html` with a 200 status rather than returning a 403/404, which
  *   preserves SPA deep-link navigation for unknown routes.
  * - Non-existent paths fall back to `index.html` for the same reason, except
- *   under `/vendor/` and `/models/`, which return a plain-text 404.
+ *   under `/assets/`, `/vendor/` and `/models/`, which return a plain-text 404.
  * - When `index.html` itself is missing (no frontend build), the fallback
  *   answers with a plain-text 503 instead of an unhandled 500.
- * - Known extensions (`.html`, `.css`, `.js`, `.json`, `.wasm`, `.bin`, `.spm`)
- *   get the correct MIME type; everything else receives `application/octet-stream`.
- * - Files under `/vendor/bergamot-0.4.9/` and `/models/` are cached as immutable.
+ * - Known extensions (`.html`, `.css`, `.js`, `.json`, `.wasm`, images, `.webmanifest`,
+ *   `.md`, `.bin`, `.spm`) get the correct MIME type; everything else receives
+ *   `application/octet-stream`.
+ * - Files under `/assets/`, `/vendor/bergamot-0.4.9/` and `/models/` are cached as
+ *   immutable; `index.html` and the SPA fallback are sent with `no-cache`.
  *
  * @param {import("node:http").IncomingMessage} req - The incoming HTTP request (unused; kept for
  *   a consistent server-handler signature).
@@ -91,7 +102,7 @@ export async function serveStatic(req, res, url) {
       textResponse(res, 503, "Frontend build missing. Run `npm run build -w frontend`.");
       return;
     }
-    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": NO_CACHE });
     res.end(content);
     return;
   }
@@ -102,6 +113,8 @@ export async function serveStatic(req, res, url) {
   };
   if (IMMUTABLE_PREFIXES.some((prefix) => requestedPath.startsWith(prefix))) {
     headers["cache-control"] = "public, max-age=31536000, immutable";
+  } else if (requestedPath === "/index.html") {
+    headers["cache-control"] = NO_CACHE;
   }
   res.writeHead(200, headers);
   // Headers are already sent, so a read error can only abort the response;
