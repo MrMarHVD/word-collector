@@ -231,9 +231,9 @@ UX redesign is deliberately left to a later spec.
 
 ## Open Questions
 
-1. Should the pre-existing login rate-limit failures in the test suite be
-   fixed as part of this spec, for example by raising the limit in test
-   environments, or tracked separately?
+None. The pre-existing login rate-limit failures in the test suite are
+tracked separately from this spec (decided 2026-09-29), and are excluded
+from the acceptance bar as long as they are shown to be the known 429s.
 
 ## Out of Scope for This Spec
 
