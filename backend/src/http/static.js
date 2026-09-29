@@ -16,7 +16,7 @@ import { pipeline } from "node:stream";
 import { PUBLIC_DIR } from "../config.js";
 import { textResponse } from "./response.js";
 
-// Serve public/ files and reject normalized paths that escape that directory.
+// Serve the build output and reject normalized paths that escape that directory.
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -57,6 +57,8 @@ async function statFile(filePath) {
  *   preserves SPA deep-link navigation for unknown routes.
  * - Non-existent paths fall back to `index.html` for the same reason, except
  *   under `/vendor/` and `/models/`, which return a plain-text 404.
+ * - When `index.html` itself is missing (no frontend build), the fallback
+ *   answers with a plain-text 503 instead of an unhandled 500.
  * - Known extensions (`.html`, `.css`, `.js`, `.json`, `.wasm`, `.bin`, `.spm`)
  *   get the correct MIME type; everything else receives `application/octet-stream`.
  * - Files under `/vendor/bergamot-0.4.9/` and `/models/` are cached as immutable.
@@ -79,7 +81,16 @@ export async function serveStatic(req, res, url) {
       return;
     }
     const indexPath = resolve(publicRoot, "index.html");
-    const content = await readFile(indexPath);
+    const content = await readFile(indexPath).catch((error) => {
+      if (error.code === "ENOENT") {
+        return null;
+      }
+      throw error;
+    });
+    if (!content) {
+      textResponse(res, 503, "Frontend build missing. Run `npm run build -w frontend`.");
+      return;
+    }
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     res.end(content);
     return;

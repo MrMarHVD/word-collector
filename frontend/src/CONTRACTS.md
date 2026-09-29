@@ -6,13 +6,12 @@ contract unilaterally: if one blocks you, stop and report the gap.
 
 ## 0. Running the app
 
-| What             | Command (from the repo root)                                                                                                                                                   |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| API              | `PORT=<api> CORS_ORIGIN=http://localhost:<web> API_URL=http://localhost:<api> npm run dev -w backend`                                                                          |
-| React app (Vite) | `PORT=<web> API_PROXY_TARGET=http://localhost:<api> npm run dev -w frontend` (root alias: `npm run dev:app`)                                                                   |
-| Legacy app       | `PORT=<port> API_BASE_URL=http://localhost:<api> npm run dev:legacy -w frontend` (root `npm run dev:web` still starts it; add its origin to `CORS_ORIGIN` if you log in there) |
-| Playwright       | `PW_FRONTEND_URL=http://localhost:<web> PW_API_URL=http://localhost:<api> npx playwright test [--project=setup] [file]`                                                        |
-| Checks           | `npm run lint                                                                                                                                                                  | typecheck | test | build -w frontend` (CI runs all four on pull requests) |
+| What             | Command (from the repo root)                                                                                            |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| API              | `PORT=<api> CORS_ORIGIN=http://localhost:<web> API_URL=http://localhost:<api> npm run dev -w backend`                   |
+| React app (Vite) | `PORT=<web> API_PROXY_TARGET=http://localhost:<api> npm run dev -w frontend` (root alias: `npm run dev:web`)            |
+| Playwright       | `PW_FRONTEND_URL=http://localhost:<web> PW_API_URL=http://localhost:<api> npx playwright test [--project=setup] [file]` |
+| Checks           | `npm run lint -w frontend`, likewise `typecheck`, `test` and `build` (CI runs all four on pull requests)                |
 
 Vite env vars:
 
@@ -22,13 +21,14 @@ Vite env vars:
 The app and API share one origin through the proxy: there is no `env.js`, and
 `window.WORD_MARKER_API_BASE_URL` is undefined (specs fall back to `""`, i.e.
 same origin). Playwright reuses running servers when `PW_FRONTEND_URL` and
-`PW_API_URL` respond. `playwright.config.ts` is unchanged until RX-011.
+`PW_API_URL` respond; otherwise `playwright.config.ts` starts the API and Vite
+(proxying `/api` to `PW_API_URL`).
 
 Static layout:
 
 - `frontend/static/` is Vite's public dir: `/vendor/bergamot-0.4.9/*` (engine copy), `/logo.png`, `/theme-init.js` (no-flash theme script).
-- Models stay in the gitignored `frontend/public/models/` (the `fetch:mt-models` target, shared with the legacy app). The `translationModels` plugin in `vite.config.ts` serves `/models/*` (immutable cache) in dev/preview and copies them to `dist/models/` on build. Missing `/vendor/*` and `/models/*` files return a real 404.
-- Build output: `frontend/dist/` (gitignored).
+- Models stay in the gitignored `frontend/public/models/` (the `fetch:mt-models` target). The `translationModels` plugin in `vite.config.ts` serves `/models/*` (immutable cache) in dev/preview and copies them to `dist/models/` on build. Missing `/vendor/*` and `/models/*` files return a real 404.
+- Build output: `frontend/dist/` (gitignored). In production the backend serves it (`PUBLIC_DIR`) with the same security headers, immutable caching for `/vendor/bergamot-0.4.9/` and `/models/`, asset 404s and SPA fallback; deploy runs `npm run build -w frontend` after `fetch:mt-models`.
 
 ## Layout and conventions
 
@@ -48,8 +48,7 @@ src/
 - Import with the `@/` alias (`@/lib/api`, `@/stores/session`, …).
 - TypeScript is strict. Document every new component, hook and function with a short purpose comment; the types replace JSDoc `@param`/`@returns`.
 - Tailwind scans `src/` only. The legacy classes and tokens work unchanged (`bg-panel`, `text-secondary`, `border-line`, `bg-brand`, `shadow-panel`, …).
-- Feature CSS: port your area's rules from `frontend/public/css/<area>.css` into `src/features/<name>/<name>.css` and import it from your page. Keep it **unlayered**, as in the legacy app, so it still beats utility classes. The reader-layout rules in legacy `shell.css` belong to the reader. Global and shared CSS is in `src/styles/` (read-only for features).
-- The legacy app (`public/**`, `server.js`) is the behavioural reference and stays untouched until RX-011.
+- Feature CSS lives in `src/features/<name>/<name>.css`, imported from your page. Keep it **unlayered**, as in the legacy app, so it still beats utility classes. Global and shared CSS is in `src/styles/` (read-only for features).
 - Mobile breakpoint: `max-width: 760px` (`useIsMobileLayout()` in `@/lib/hooks/use-media-query`).
 - Button text: legacy `button { font: inherit }` (in `styles/base.css`) overrides `font-*`/`text-*` utilities on buttons, exactly as it does in the legacy app. Keep it that way for parity.
 
@@ -110,7 +109,11 @@ meaning (muted text), and the kit's secondary variants use `bg-muted`. The
 button variants are aligned with the app (`default` = brand fill with
 `hover:bg-brand-strong`; `outline` = `border-line bg-panel text-brand hover:bg-hover`).
 
-Mobile bottom sheets (word-info, translation popup, mobile sidebar): use `Drawer` (Vaul).
+Mobile bottom sheets: the reader's word-info and translation sheets use the kit
+`Sheet` (`side="bottom"`, `modal={false}`; `features/reader/ReaderSheet.tsx`),
+not the Vaul `Drawer`. Vaul can't be non-modal, and these sheets must allow
+continued text selection behind them. No feature uses the Vaul `Drawer`; it stays
+installed and available for modal bottom sheets.
 
 ## I3 API client
 
@@ -207,7 +210,7 @@ from `@/lib/storage`, with the legacy key, parsing and default.
 
 - `const t = useT(); t(key, values?, fallback?)`: `{name}` interpolation (every occurrence); a missing or empty key falls back to `ja`, then `fallback`, then the key. Components re-render on locale change.
 - Outside React: `t(...)` (current locale). Also `useFormatCount()` / `formatCount(n)`, and `translate(catalog, locale, key, …)` (pure).
-- Catalogue: `frontend/public/locales.json` (shared with the legacy app, bundled at build time; keys unchanged).
+- Catalogue: `frontend/public/locales.json` (bundled at build time; keys unchanged).
 - Generic keys added by RX-002: `common.confirm cancel delete remove save saved edit rename clear close open back search done ok yes no loading retry error`, and `shell.mainViews`.
 - Rules: use existing keys or `common.*`. A genuinely new key goes under your feature's prefix and into all three locales. Never edit or remove existing keys. To keep merges clean, add your block next to the existing keys with the same prefix, not at the end of each locale.
 - A unit test asserts that ja, en and zh have identical key sets.
@@ -249,8 +252,7 @@ commit), `#authView`, `#welcomeLoginButton`, `#authEmail`, `#authPassword`,
 `#authSubmit`, `[data-welcome-study-language]`, `#localeSelect` (a native select: keep any control the specs drive with `selectOption` native),
 `.tab-button` / `nav.tabs [data-tab=…]` with `is-active`, and the admin tab's
 `hidden` state. Test edits are allowed only for implementation internals
-(module paths, direct module imports such as `/js/features/translation/translation.service.js`,
-internal globals). They must assert the same behaviour, and each one is listed in your report.
+(module paths, direct module imports, internal globals). They must assert the same behaviour, and each one is listed in your report.
 
 ## I8 Cross-feature exports
 

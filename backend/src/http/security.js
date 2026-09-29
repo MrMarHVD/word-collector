@@ -15,7 +15,8 @@ import { HSTS_MAX_AGE_SECONDS, IS_PRODUCTION } from "../config.js";
 // 'wasm-unsafe-eval' lets the self-hosted Bergamot translation engine compile
 // WebAssembly; it does not permit JavaScript eval. Workers take their CSP from
 // their own script response, so this policy must also cover worker scripts.
-// frontend/server.js mirrors this policy for the dev server; keep them in sync.
+// The Vite dev server does not apply it, so check CSP against the backend serving
+// the production build (`npm run build -w frontend`).
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "base-uri 'self'",

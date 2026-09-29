@@ -50,7 +50,8 @@ function requireEnv(name) {
 }
 
 export const PORT = Number(process.env.PORT || 3000);
-export const PUBLIC_DIR = process.env.PUBLIC_DIR || join(ROOT, "frontend", "public");
+// Vite build output (`npm run build -w frontend`), served for all non-/api paths.
+export const PUBLIC_DIR = process.env.PUBLIC_DIR || join(ROOT, "frontend", "dist");
 export const DATA_DIR = process.env.WORD_MARKER_DATA_DIR || join(ROOT, "data");
 export const AUTH_COOKIE = "word_collector_token";
 

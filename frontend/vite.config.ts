@@ -7,9 +7,9 @@
  * - `static/` is the public dir: the versioned Bergamot engine under
  *   `/vendor/bergamot-0.4.9/`, the favicon and the no-flash theme script.
  * - The translation models stay in `public/models/` (gitignored, written by
- *   `backend/scripts/fetch_mt_models.js`, shared with the legacy app until the
- *   switchover). The `translationModels` plugin serves them at `/models/*` in
- *   dev/preview and copies them into the build output.
+ *   `backend/scripts/fetch_mt_models.js`). The `translationModels` plugin
+ *   serves them at `/models/*` in dev/preview and copies them into the build
+ *   output, which the backend serves in production.
  */
 
 import { cpSync, createReadStream, existsSync, statSync } from "node:fs";
@@ -40,7 +40,7 @@ function resolveFile(baseDir: string, subPath: string): string | null {
 }
 
 /**
- * Serves `/models/*` from MODELS_DIR (immutable, like the legacy server) and
+ * Serves `/models/*` from MODELS_DIR (immutable, like the backend) and
  * returns real 404s for missing `/vendor/*` and `/models/*` files instead of
  * the SPA fallback.
  */
@@ -79,8 +79,16 @@ function assetMiddleware(req: IncomingMessage, res: ServerResponse, next: Next):
 
 /** Makes the gitignored translation models available at `/models/*` in dev, preview and the build output. */
 function translationModels(): Plugin {
+  // Follows `--outDir`, which deploy uses to build into a fresh directory.
+  // Only `vite build` copies; Vitest also closes the bundle, with a dummy outDir.
+  let outDir = OUT_DIR;
+  let isBuild = false;
   return {
     name: "supergloss:translation-models",
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+      isBuild = config.command === "build" && !process.env.VITEST;
+    },
     configureServer(server) {
       server.middlewares.use(assetMiddleware);
     },
@@ -88,11 +96,14 @@ function translationModels(): Plugin {
       server.middlewares.use(assetMiddleware);
     },
     closeBundle() {
+      if (!isBuild) {
+        return;
+      }
       if (!existsSync(MODELS_DIR)) {
         this.warn(`No translation models at ${MODELS_DIR}; run \`npm run fetch:mt-models -w backend\`.`);
         return;
       }
-      cpSync(MODELS_DIR, join(OUT_DIR, "models"), { recursive: true });
+      cpSync(MODELS_DIR, join(outDir, "models"), { recursive: true });
     }
   };
 }

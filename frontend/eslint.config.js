@@ -1,7 +1,7 @@
 /**
  * ESLint flat config for the React frontend: typescript-eslint recommended
- * rules plus the React Hooks rules. The legacy app (public/, server.js) and
- * the vendored engine are not linted.
+ * rules plus the React Hooks rules. public/ (locales and models) and the
+ * vendored engine are not linted.
  */
 
 import js from "@eslint/js";
@@ -10,7 +10,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "public", "static", "server.js"] },
+  { ignores: ["dist", "public", "static"] },
   {
     files: ["**/*.{ts,tsx}"],
     extends: [js.configs.recommended, ...tseslint.configs.recommended, reactHooks.configs.flat.recommended],

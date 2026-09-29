@@ -9,8 +9,8 @@ import { defineConfig, devices } from "@playwright/test";
  *    screenshots and traces are captured ONLY on failure, and viewed only when needed.
  *  - Reuse a seeded test user via `storageState` so specs skip the login flow.
  *
- * Servers: the `webServer` block auto-starts the frontend (5173) and API (3000),
- * reusing already-running dev servers when present.
+ * Servers: the `webServer` block auto-starts the Vite dev server (5173, proxying
+ * `/api` to the API) and the API (3000), reusing already-running dev servers when present.
  */
 
 const FRONTEND_URL = process.env.PW_FRONTEND_URL ?? "http://localhost:5173";
@@ -54,7 +54,7 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      command: "PORT=5173 npm run dev:web",
+      command: `PORT=5173 API_PROXY_TARGET=${API_URL} npm run dev:web`,
       url: FRONTEND_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
