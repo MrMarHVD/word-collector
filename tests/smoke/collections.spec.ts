@@ -171,8 +171,8 @@ test.describe("collections", () => {
     // Delete the selected word after confirming.
     await row(page, "w5").locator(".word-cell-main").click();
     await expect(page.locator("#deleteSelectedButton")).toBeEnabled();
-    page.once("dialog", (dialog) => dialog.accept());
     await page.locator("#deleteSelectedButton").click();
+    await page.getByRole("alertdialog").getByRole("button", { name: EN["common.delete"], exact: true }).click();
     await expect(rows(page)).toHaveCount(1);
     await expect(row(page, "w5")).toHaveCount(0);
 
