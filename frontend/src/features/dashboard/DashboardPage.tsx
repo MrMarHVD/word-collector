@@ -130,7 +130,7 @@ export default function DashboardPage() {
                   />
                 ))
               ) : (
-                <p className="empty">{t("dashboard.noCollections")}</p>
+                <p className="empty text-secondary">{t("dashboard.noCollections")}</p>
               )}
             </div>
           </section>
