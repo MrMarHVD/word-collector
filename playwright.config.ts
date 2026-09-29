@@ -9,12 +9,21 @@ import { defineConfig, devices } from "@playwright/test";
  *    screenshots and traces are captured ONLY on failure, and viewed only when needed.
  *  - Reuse a seeded test user via `storageState` so specs skip the login flow.
  *
- * Servers: the `webServer` block auto-starts the Vite dev server (5173, proxying
- * `/api` to the API) and the API (3000), reusing already-running dev servers when present.
+ * Servers: the `webServer` block auto-starts the Vite dev server (port from
+ * PW_FRONTEND_URL, default 5173, proxying `/api` to the API) and the API (port from
+ * PW_API_URL, default 3000), reusing already-running dev servers when present.
  */
 
 const FRONTEND_URL = process.env.PW_FRONTEND_URL ?? "http://localhost:5173";
 const API_URL = process.env.PW_API_URL ?? "http://localhost:3000";
+
+/** Returns the port a URL listens on (URL#port is empty for the scheme's default port). */
+function portOf(url: string): string {
+  const { port, protocol } = new URL(url);
+  return port || (protocol === "https:" ? "443" : "80");
+}
+const FRONTEND_PORT = portOf(FRONTEND_URL);
+const API_PORT = portOf(API_URL);
 
 export default defineConfig({
   testDir: "./tests",
@@ -48,13 +57,13 @@ export default defineConfig({
 
   webServer: [
     {
-      command: "npm run dev:api",
+      command: `PORT=${API_PORT} CORS_ORIGIN=${FRONTEND_URL} API_URL=${API_URL} npm run dev:api`,
       url: `${API_URL}/api/auth/me`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
     {
-      command: `PORT=5173 API_PROXY_TARGET=${API_URL} npm run dev:web`,
+      command: `PORT=${FRONTEND_PORT} API_PROXY_TARGET=${API_URL} npm run dev:web`,
       url: FRONTEND_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

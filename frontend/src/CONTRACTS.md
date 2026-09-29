@@ -28,14 +28,14 @@ Static layout:
 
 - `frontend/static/` is Vite's public dir: `/vendor/bergamot-0.4.9/*` (engine copy), `/logo.png`, `/theme-init.js` (no-flash theme script).
 - Models stay in the gitignored `frontend/public/models/` (the `fetch:mt-models` target). The `translationModels` plugin in `vite.config.ts` serves `/models/*` (immutable cache) in dev/preview and copies them to `dist/models/` on build. Missing `/vendor/*` and `/models/*` files return a real 404.
-- Build output: `frontend/dist/` (gitignored). In production the backend serves it (`PUBLIC_DIR`) with the same security headers, immutable caching for `/vendor/bergamot-0.4.9/` and `/models/`, asset 404s and SPA fallback; deploy runs `npm run build -w frontend` after `fetch:mt-models`.
+- Build output: `frontend/dist/` (gitignored). In production the backend serves it (`PUBLIC_DIR`) with the same security headers, immutable caching for `/assets/`, `/vendor/bergamot-0.4.9/` and `/models/`, real 404s for missing `/assets/`, `/vendor/` and `/models/` files, and a `no-cache` SPA fallback; deploy runs `npm run build -w frontend` after `fetch:mt-models`.
 
 ## Layout and conventions
 
 ```
 src/
   main.tsx               entry (theme sync, session bootstrap, router)
-  app/                   routes.tsx, pages.ts, RouteGate.tsx, RootLayout.tsx, route-paths.ts, providers.tsx, bootstrap.ts
+  app/                   routes.tsx, pages.ts, RouteGate.tsx, RouteError.tsx, RootLayout.tsx, route-paths.ts, providers.tsx, bootstrap.ts, stale-build.ts
   components/ui/         shadcn kit (I2)
   components/app/        shared app components (I6)
   lib/api/               typed API client (I3)
