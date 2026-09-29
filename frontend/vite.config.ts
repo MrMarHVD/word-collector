@@ -14,7 +14,7 @@
 
 import { cpSync, createReadStream, existsSync, statSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { dirname, join, normalize, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
@@ -32,8 +32,10 @@ type Next = (error?: unknown) => void;
 
 /** Returns the file inside `baseDir` for a URL sub-path, or null when missing or outside it. */
 function resolveFile(baseDir: string, subPath: string): string | null {
-  const filePath = normalize(join(baseDir, decodeURIComponent(subPath)));
-  if (!filePath.startsWith(baseDir)) {
+  const filePath = join(baseDir, decodeURIComponent(subPath));
+  const pathFromBase = relative(baseDir, filePath);
+  // Same containment check as backend/src/http/static.js: a prefix match would admit siblings like "models-x".
+  if (pathFromBase.startsWith("..") || isAbsolute(pathFromBase)) {
     return null;
   }
   return existsSync(filePath) && statSync(filePath).isFile() ? filePath : null;
