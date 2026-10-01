@@ -6,6 +6,7 @@ import { Sidebar, SidebarLayout, SidebarOpenButton } from "@/components/app/Side
 import { toastError } from "@/components/app/toast";
 import { api, dashboardSummaryQuery, errorMessage, refreshStudyData } from "@/lib/api";
 import type { CollectionStats, ImportWordsResponse, Word, WordStatus } from "@/lib/api/types";
+import { useAnimatedSidebar } from "@/lib/hooks/use-animated-sidebar";
 import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { usePersistentState } from "@/lib/hooks/use-persistent-state";
 import { useFormatCount, useT } from "@/lib/i18n";
@@ -30,6 +31,7 @@ import {
   type RowSelection
 } from "./word-list";
 import { WordRows } from "./WordRows";
+import { collectionsSidebarColumnWidth } from "./collections-sidebar";
 import "./collections.css";
 
 const SIDEBAR_COLLAPSED_KEY = "wordMarkerCollectionsSidebarCollapsed";
@@ -115,6 +117,24 @@ export default function CollectionsPage() {
     window.addEventListener("resize", position);
     return () => window.removeEventListener("resize", position);
   }, [sidebarCollapsed]);
+
+  // Slides the desktop sidebar column open or closed: the workspace grid takes the
+  // animated width through a CSS variable (see collections.css) instead of a
+  // grid-template-columns transition, which cannot interpolate here.
+  useAnimatedSidebar({
+    collapsed: sidebarCollapsed,
+    enabled: !isMobile,
+    restWidth: (collapsed) => collectionsSidebarColumnWidth(collapsed, window.innerWidth),
+    onFrame: (width) => {
+      const workspace = workspaceRef.current;
+      workspace?.classList.toggle("is-sidebar-sliding", width !== null);
+      if (width === null) {
+        workspace?.style.removeProperty("--collectionsSidebarColumn");
+      } else {
+        workspace?.style.setProperty("--collectionsSidebarColumn", `${width}px`);
+      }
+    }
+  });
 
   /** Clears the row selection and the inline error, as every legacy word reload did. */
   const resetWordState = useCallback(() => {
