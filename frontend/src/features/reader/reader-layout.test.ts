@@ -56,4 +56,10 @@ describe("computeReaderLayout", () => {
   it("drops the sidebar column when collapsed", () => {
     expect(computeReaderLayout({ ...desktop, sidebarCollapsed: true }).panelWidth).toBe(1400);
   });
+
+  it("sizes the panel beside a sidebar column that is animating", () => {
+    const layout = computeReaderLayout({ ...desktop, sidebarCollapsed: true, sidebarWidth: 150, savedPanelWidth: 600 });
+    expect(layout).toMatchObject({ sidebarWidth: 150, panelWidth: 600, panelOffset: 400 - 150 });
+    expect(computeReaderLayout({ ...desktop, focusMode: true, sidebarWidth: 150 }).sidebarWidth).toBe(0);
+  });
 });

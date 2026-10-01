@@ -34,6 +34,8 @@ export interface ReaderLayoutInput {
   /** Top of the reader panel in viewport coordinates. */
   panelTop: number;
   sidebarCollapsed: boolean;
+  /** The sidebar column's width while it animates open or closed; omitted = the resting width. */
+  sidebarWidth?: number;
   /** The width chosen in the reader settings (focus width in focus mode); 0 = automatic. */
   savedPanelWidth: number;
 }
@@ -52,7 +54,7 @@ export interface ReaderLayout {
 /** Resolves the sidebar and panel dimensions for the current viewport. */
 export function computeReaderLayout(input: ReaderLayoutInput): ReaderLayout {
   const { focusMode, viewportWidth, viewportHeight } = input;
-  const sidebarWidth = focusMode ? 0 : readerSidebarColumnWidth(input.sidebarCollapsed, input.mobile);
+  const sidebarWidth = focusMode ? 0 : (input.sidebarWidth ?? readerSidebarColumnWidth(input.sidebarCollapsed, input.mobile));
   const maxPanelWidth = Math.max(1, viewportWidth - sidebarWidth);
   const maxPanelHeight = focusMode ? Math.max(1, viewportHeight) : Math.max(1, viewportHeight - input.panelTop - READER_PANEL_BOTTOM_MARGIN);
   const minPanelWidth = Math.min(MIN_READER_PANEL_WIDTH, maxPanelWidth);
