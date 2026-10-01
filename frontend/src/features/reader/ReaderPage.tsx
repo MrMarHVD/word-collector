@@ -1,14 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode
-} from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { SidebarLayout, SidebarOpenButton } from "@/components/app/Sidebar";
 import { toastError } from "@/components/app/toast";
@@ -26,7 +16,7 @@ import { useStudyLanguageStore } from "@/stores/study-language";
 import { QUICK_MENU_ACTIONS, type QuickMenuActionKey } from "./quick-menu";
 import { attachReaderGestures, SEGMENT_SELECTED_EVENT, type ReaderGestures, type SegmentRange, type SegmentSelectedDetail } from "./reader-gestures";
 import { measureFitTokenCount } from "./reader-fit";
-import { clamp, computeReaderLayout, readerResizeBounds, type ResizeTarget } from "./reader-layout";
+import { computeReaderLayout } from "./reader-layout";
 import { pageTurnStart, readerPageStatus, type PageDirection } from "./reader-pagination";
 import { readerSession, type ReaderSidebarTab } from "./reader-session";
 import { isWordSpacingLanguage, layoutReaderTokens, normalizeStatus, type ReaderLayout } from "./reader-tokens";
@@ -65,7 +55,7 @@ export default function ReaderPage() {
 /**
  * The reader (ported from views/reader.js and reader.controller.js): the
  * sidebar with documents and settings, and the reading panel with token
- * pages, pagination, focus mode, resize handles, word-info, the radial quick
+ * pages, pagination, focus mode, word-info, the radial quick
  * menu and sentence translation.
  */
 function ReaderScreen({ languageId }: { languageId: number | null }) {
@@ -79,17 +69,13 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
   const fontSize = useReaderPreferencesStore((state) => state.fontSize);
   const focusMode = useReaderPreferencesStore((state) => state.focusMode);
   const sidebarCollapsed = useReaderPreferencesStore((state) => state.sidebarCollapsed);
-  const sidebarWidth = useReaderPreferencesStore((state) => state.sidebarWidth);
-  const infoWidth = useReaderPreferencesStore((state) => state.infoWidth);
   const panelWidth = useReaderPreferencesStore((state) => state.panelWidth);
-  const panelHeight = useReaderPreferencesStore((state) => state.panelHeight);
   const focusPanelWidth = useReaderPreferencesStore((state) => state.focusPanelWidth);
   const autoMarkKnown = useReaderPreferencesStore((state) => state.autoMarkKnownOnPageTurn);
   const autoMarkLearning = useReaderPreferencesStore((state) => state.autoMarkLearningOnClick);
   const showWordSpaces = useReaderPreferencesStore((state) => state.showWordSpaces);
   const highlightOpacity = useReaderPreferencesStore((state) => state.highlightOpacity);
   const setPreference = useReaderPreferencesStore((state) => state.setPreference);
-  const setPreferences = useReaderPreferencesStore((state) => state.setPreferences);
 
   const reader = useReaderMaterial(languageId, wordsPerPage);
   const [sidebarTab, setSidebarTab] = useState<ReaderSidebarTab>(() => (readerSession.languageId === languageId ? readerSession.sidebarTab : "read"));
@@ -114,8 +100,6 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
   const selectionSequence = useRef(0);
   const pageTurnInProgress = useRef(false);
   const pendingFlip = useRef<PageDirection | null>(null);
-  // Ends an in-progress resize drag; also called on unmount.
-  const stopResizeRef = useRef<(() => void) | null>(null);
 
   // ------------------------------------------------------------ page data
 
@@ -388,7 +372,6 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
     }
     // Measure in the right mode: the shell sets the same body class, but only after this effect.
     document.body.classList.toggle("is-reader-focus", focusMode);
-    const resolved = (readerSession.panel ??= { width: panelWidth, height: panelHeight, focusWidth: focusPanelWidth });
     const viewportWidth = document.documentElement.clientWidth;
     const size = computeReaderLayout({
       focusMode,
@@ -397,21 +380,12 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
       viewportHeight: window.innerHeight,
       panelTop: panel.getBoundingClientRect().top,
       sidebarCollapsed,
-      sidebarWidth,
-      savedPanelWidth: focusMode ? resolved.focusWidth : resolved.width,
-      savedPanelHeight: resolved.height
+      savedPanelWidth: focusMode ? focusPanelWidth : panelWidth
     });
-    if (focusMode) {
-      resolved.focusWidth = size.panelWidth;
-    } else {
-      resolved.width = size.panelWidth;
-      resolved.height = size.panelHeight;
-    }
     const vars: Record<string, string> = {
       "--readerViewportWidth": `${viewportWidth}px`,
       "--readerViewportOffset": `${layoutElement.parentElement?.getBoundingClientRect().left ?? 0}px`,
       "--readerSidebarWidth": `${size.sidebarWidth}px`,
-      "--readerInfoWidth": `${infoWidth}px`,
       "--readerPanelMinWidth": `${size.minPanelWidth}px`,
       "--readerPanelMaxHeight": `${size.maxPanelHeight}px`,
       "--readerPanelMinHeight": `${size.minPanelHeight}px`,
@@ -425,63 +399,11 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
     if (sidebarRef.current && openButtonRef.current) {
       openButtonRef.current.style.setProperty("--readerSidebarOpenTop", `${sidebarRef.current.getBoundingClientRect().top + 14}px`);
     }
-  }, [focusMode, focusPanelWidth, infoWidth, isMobile, panelHeight, panelWidth, sidebarCollapsed, sidebarWidth]);
+  }, [focusMode, focusPanelWidth, isMobile, panelWidth, sidebarCollapsed]);
 
   useLayoutEffect(() => {
     applyLayout();
   }, [applyLayout, sidebarTab]);
-
-  /** Drag-to-resize for the sidebar and the panel (legacy startReaderResize). */
-  function startResize(event: ReactPointerEvent, target: ResizeTarget) {
-    const layoutElement = layoutRef.current;
-    const panel = panelRef.current;
-    if (!layoutElement || !panel) {
-      return;
-    }
-    event.preventDefault();
-    const startX = event.clientX;
-    const startY = event.clientY;
-    const panelRect = panel.getBoundingClientRect();
-    const renderedSidebarWidth = focusMode || sidebarCollapsed ? 0 : (sidebarRef.current?.getBoundingClientRect().width ?? 0);
-    const initialWidth = target === "sidebar" ? sidebarWidth : panelRect.width;
-    const initialHeight = panelRect.height;
-    const bounds = readerResizeBounds({
-      target,
-      mobile: isMobile,
-      layoutWidth: layoutElement.getBoundingClientRect().width,
-      sidebarWidth: renderedSidebarWidth,
-      panelTop: panelRect.top,
-      viewportHeight: window.innerHeight
-    });
-    const resize = (moveEvent: PointerEvent) => {
-      const nextWidth = clamp(initialWidth + moveEvent.clientX - startX, bounds.minWidth, bounds.maxWidth);
-      const resolved = (readerSession.panel ??= { width: panelWidth, height: panelHeight, focusWidth: focusPanelWidth });
-      if (target === "sidebar") {
-        setPreference("sidebarWidth", nextWidth);
-      } else if (focusMode) {
-        resolved.focusWidth = nextWidth;
-        setPreference("focusPanelWidth", nextWidth);
-      } else {
-        const nextHeight = clamp(initialHeight + moveEvent.clientY - startY, bounds.minHeight, bounds.maxHeight);
-        resolved.width = nextWidth;
-        resolved.height = nextHeight;
-        setPreferences({ panelWidth: nextWidth, panelHeight: nextHeight });
-      }
-    };
-    const stop = () => {
-      document.removeEventListener("pointermove", resize);
-      document.removeEventListener("pointerup", stop);
-      document.removeEventListener("pointercancel", stop);
-      document.body.classList.remove("is-resizing-reader");
-      stopResizeRef.current = null;
-    };
-    stopResizeRef.current?.();
-    stopResizeRef.current = stop;
-    document.body.classList.add("is-resizing-reader");
-    document.addEventListener("pointermove", resize);
-    document.addEventListener("pointerup", stop);
-    document.addEventListener("pointercancel", stop);
-  }
 
   // Fit to page: probe how many fetched tokens fit, before the page is painted.
   const measureFit = useCallback(() => {
@@ -588,8 +510,6 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
       gestures.detach();
       gesturesRef.current = null;
       selectionRef.current = null;
-      stopResizeRef.current?.();
-      document.body.classList.remove("is-resizing-reader");
     };
   }, []);
 
@@ -721,7 +641,6 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
             selectedMaterialId={reader.selectedMaterialId}
             onOpenMaterial={openMaterial}
             onMaterialDeleted={handleMaterialDeleted}
-            onResizeStart={(event) => startResize(event, "sidebar")}
           />
           <section
             ref={panelRef}
@@ -862,13 +781,6 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
               readerTextRef={readerTextRef}
               isMobile={isMobile}
               onClose={closeTranslation}
-            />
-            <div
-              id="readerPanelResize"
-              className="reader-panel-resize"
-              role="separator"
-              aria-orientation="vertical"
-              onPointerDown={(event) => startResize(event, "panel")}
             />
           </section>
         </SidebarLayout>

@@ -29,7 +29,7 @@ describe("session reset", () => {
     Object.assign(readerSession, { languageId: 3, selectedMaterialId: 9, view: { materialId: 9, params: {} }, sidebarTab: "settings" });
     useCollectionsViewStore.setState({ selectedCollectionId: 4, search: "cat" });
     useSessionStore.getState().handleUnauthorized();
-    expect(readerSession).toEqual({ languageId: null, selectedMaterialId: null, view: null, sidebarTab: "read", panel: null });
+    expect(readerSession).toEqual({ languageId: null, selectedMaterialId: null, view: null, sidebarTab: "read" });
     expect(useCollectionsViewStore.getState()).toMatchObject({ selectedCollectionId: "all", search: "" });
   });
 });
