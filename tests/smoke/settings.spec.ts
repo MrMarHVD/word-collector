@@ -79,17 +79,17 @@ test.describe("settings", () => {
     const html = page.locator("html");
 
     await page.locator('[data-theme-option="dark"]').click();
-    await expect(page.locator('[data-theme-option="dark"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('[data-theme-option="dark"]')).toHaveAttribute("aria-checked", "true");
     await expect(html).toHaveAttribute("data-theme-preference", "dark");
     await expect(html).toHaveAttribute("data-theme", "dark");
 
     await page.reload();
-    await expect(page.locator('[data-theme-option="dark"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('[data-theme-option="dark"]')).toHaveAttribute("aria-checked", "true");
     await expect(html).toHaveAttribute("data-theme", "dark");
 
     await page.locator('[data-theme-option="light"]').click();
-    await expect(page.locator('[data-theme-option="light"]')).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator('[data-theme-option="dark"]')).toHaveAttribute("aria-pressed", "false");
+    await expect(page.locator('[data-theme-option="light"]')).toHaveAttribute("aria-checked", "true");
+    await expect(page.locator('[data-theme-option="dark"]')).toHaveAttribute("aria-checked", "false");
     await expect(html).toHaveAttribute("data-theme", "light");
   });
 

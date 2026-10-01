@@ -241,15 +241,15 @@ from `@/lib/storage`, with the legacy key, parsing and default.
 Build every settings surface from these, not ad-hoc cards or raw controls.
 
 - `SettingSection`: `{ title; className?; …section props; children }`. Small uppercase heading over one bordered container; children (rows) get a `Separator` between them.
-- `SettingRow`: `{ label; description?; htmlFor?; stacked?; className?; …div props; children }`. Kit `Field` (horizontal): label + one-line description left, control (`children`) right, min 44px. `htmlFor` is the control's id. `stacked` is for wide controls (Select, Slider): 224px wide on desktop, label above and the control full width on mobile. Other rows stay horizontal on mobile.
+- `SettingRow`: `{ label; description?; htmlFor?; labelId?; stacked?; className?; …div props; children }`. Kit `Field` (horizontal): label + one-line description left, control (`children`) right, min 44px. `htmlFor` is the control's id. `stacked` is for wide controls (Select, Slider): 224px wide on desktop, label above and the control full width on mobile. Other rows stay horizontal on mobile.
 - `SettingSelect`: the kit `SelectTrigger` with the settings styling; use inside `Select` (`<Select><SettingSelect id=… aria-labelledby=…><SelectValue/></SettingSelect><SelectContent>…`).
-- `Segmented<T>`: `{ value: T; onValueChange(v: T); options: { value: T; label; itemProps? }[]; "aria-label"; className? }`. Single-select kit `ToggleGroup`, never empty, full width with equal items; each item has an explicit `aria-pressed`. `itemProps` carries per-item attributes such as `data-theme-option` / `data-display-mode`.
+- `Segmented<T>`: `{ value: T; onValueChange(v: T); options: { value: T; label; itemProps? }[]; "aria-label"; className? }`. Single-select kit `ToggleGroup`, never empty, full width with equal items; the selected item is exposed through Radix's `aria-checked` (no `aria-pressed`). `itemProps` carries per-item attributes such as `data-theme-option` / `data-display-mode`.
 
 Shared CSS classes (in `styles/components.css`): `.visually-hidden`,
 `.danger-button`, `.material-icon-button` (+ `.material-rename-button`,
 `.material-delete-button`, `.material-action-icon`), the `.is-active`
 segmented-button styles (`.tab-button`, `.display-mode-button`,
-`.theme-button`, `.settings-menu-button`, `.reader-sidebar-tab-button`,
+`.theme-button`, `.reader-sidebar-tab-button`,
 `.auth-mode-button`, `.upload-target-button`, `.locale-button`).
 
 ## I7 Test hooks

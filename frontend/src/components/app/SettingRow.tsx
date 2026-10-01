@@ -15,6 +15,8 @@ export interface SettingRowProps extends Omit<ComponentProps<"div">, "children">
   description?: ReactNode;
   /** Id of the control the label belongs to. */
   htmlFor?: string;
+  /** Id for the label element, so a control without a native label (e.g. a slider thumb) can reference it. */
+  labelId?: string;
   /** Wide control (Select, Slider): label above, control full width on mobile. */
   stacked?: boolean;
   /** The control, shown on the right. */
@@ -25,7 +27,7 @@ export interface SettingRowProps extends Omit<ComponentProps<"div">, "children">
  * One settings row: label and description on the left, control on the right
  * (min 44px high). Rows stay horizontal on mobile unless `stacked`.
  */
-export function SettingRow({ label, description, htmlFor, stacked = false, className, children, ...props }: SettingRowProps) {
+export function SettingRow({ label, description, htmlFor, labelId, stacked = false, className, children, ...props }: SettingRowProps) {
   return (
     <Field
       orientation="horizontal"
@@ -37,7 +39,7 @@ export function SettingRow({ label, description, htmlFor, stacked = false, class
       {...props}
     >
       <FieldContent className="gap-0.5">
-        <FieldLabel htmlFor={htmlFor} className="text-sm font-semibold text-main">
+        <FieldLabel id={labelId} htmlFor={htmlFor} className="text-sm font-semibold text-main">
           {label}
         </FieldLabel>
         {description ? <FieldDescription className="text-xs text-secondary">{description}</FieldDescription> : null}

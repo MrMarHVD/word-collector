@@ -1,4 +1,4 @@
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { useT } from "@/lib/i18n";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
@@ -11,7 +11,7 @@ const SETTINGS_TABS: { tab: SettingsTab; labelKey: string }[] = [
   { tab: "account", labelKey: "settings.menuAccount" }
 ];
 
-/** The settings route (#settingsView): one page heading over kit Tabs (vertical on desktop, horizontal on mobile) for the "System" and "Account" panels. */
+/** The settings route (#settingsView): one page heading over kit Tabs (vertical on desktop, horizontal on mobile) whose tabpanels hold the "System" and "Account" panels. */
 export default function SettingsPage() {
   const t = useT();
   const isMobile = useIsMobileLayout();
@@ -26,16 +26,20 @@ export default function SettingsPage() {
         orientation={isMobile ? "horizontal" : "vertical"}
         className="settings-layout gap-4 desktop:flex-row desktop:items-start mobile:flex-col"
       >
-        <TabsList id="settingsMenu" aria-label={t("settings.title")} className="settings-menu shrink-0 desktop:w-44 mobile:w-full">
+        <TabsList id="settingsMenu" aria-label={t("settings.title")} className="shrink-0 desktop:w-44 mobile:w-full">
           {SETTINGS_TABS.map(({ tab, labelKey }) => (
             <TabsTrigger key={tab} value={tab} data-settings-tab={tab} className="min-h-9 px-3">
               {t(labelKey)}
             </TabsTrigger>
           ))}
         </TabsList>
-        <div className="settings-content min-w-0 w-full max-w-xl">
-          <SystemSettingsPanel hidden={activeTab !== "system"} />
-          <AccountSettingsPanel hidden={activeTab !== "account"} />
+        <div className="min-w-0 w-full max-w-xl">
+          <TabsContent value="system" forceMount hidden={activeTab !== "system"} data-settings-panel="system">
+            <SystemSettingsPanel />
+          </TabsContent>
+          <TabsContent value="account" forceMount hidden={activeTab !== "account"} data-settings-panel="account">
+            <AccountSettingsPanel />
+          </TabsContent>
         </div>
       </Tabs>
     </section>

@@ -22,8 +22,8 @@ export interface SegmentedProps<T extends string> {
 }
 
 /**
- * Always has one selected item (re-clicking it is a no-op). Each item carries an
- * explicit `aria-pressed`; items share the width equally so the group fits one row on mobile.
+ * Always has one selected item (re-clicking it is a no-op). Radix marks the selected item with
+ * `aria-checked`; items share the width equally so the group fits one row on mobile.
  */
 export function Segmented<T extends string>({ value, onValueChange, options, className, ...props }: SegmentedProps<T>) {
   return (
@@ -39,7 +39,6 @@ export function Segmented<T extends string>({ value, onValueChange, options, cla
         <ToggleGroupItem
           key={optionValue}
           value={optionValue}
-          aria-pressed={value === optionValue}
           className="min-h-11 flex-1 rounded-md px-3 text-sm font-bold text-secondary hover:bg-panel hover:text-main data-[state=on]:bg-panel data-[state=on]:text-main data-[state=on]:shadow-sm"
           {...itemProps}
         >
