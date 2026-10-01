@@ -5,18 +5,14 @@
  * styles/components.css. Unlayered, so they still beat utility classes.
  */
 
+/* ReaderPage sets --readerSidebarWidth: 0 when collapsed, animated in between. */
 .reader-layout {
-  grid-template-columns: minmax(240px, min(var(--readerSidebarWidth), 340px)) minmax(0, 1fr);
+  grid-template-columns: var(--readerSidebarWidth) minmax(0, 1fr);
   width: var(--readerViewportWidth, 100vw);
   margin-left: calc(-1 * var(--readerViewportOffset, 0px));
   --readerSidebarWidth: 300px;
   --readerPanelWidth: 100%;
   --readerPanelHeight: auto;
-  transition: grid-template-columns 220ms ease;
-}
-
-.reader-layout.is-sidebar-collapsed {
-  grid-template-columns: 0 minmax(0, 1fr);
 }
 
 .reader-sidebar {
@@ -132,6 +128,26 @@
   transform: translateX(-100%);
   opacity: 0;
   pointer-events: none;
+}
+
+/* On desktop the sidebar keeps its open width and slides with its column, so
+   its right edge stays on the column edge while ReaderPage animates the width. */
+@media (min-width: 761px) {
+  .reader-sidebar,
+  .reader-layout.is-sidebar-collapsed .reader-sidebar {
+    width: var(--readerSidebarOpenWidth, 300px);
+    transform: translateX(calc(var(--readerSidebarWidth) - 100%));
+    transition:
+      opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 220ms ease;
+  }
+}
+
+@media (min-width: 761px) and (prefers-reduced-motion: reduce) {
+  .reader-sidebar,
+  .reader-layout.is-sidebar-collapsed .reader-sidebar {
+    transition: none;
+  }
 }
 
 .reader-panel {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { animate, useReducedMotion, type AnimationPlaybackControls } from "motion/react";
 import { SidebarLayout, SidebarOpenButton } from "@/components/app/Sidebar";
 import { toastError } from "@/components/app/toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,6 +10,7 @@ import { refreshStudyData } from "@/lib/api/queries";
 import type { MaterialListItem, ReaderToken, WordStatus } from "@/lib/api/types";
 import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { useFormatCount, useT } from "@/lib/i18n";
+import { MOTION_DURATION, MOTION_EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useReaderPreferencesStore, type ReaderWordsPerPage } from "@/stores/reader-preferences";
 import { useSessionStore } from "@/stores/session";
@@ -16,7 +18,7 @@ import { useStudyLanguageStore } from "@/stores/study-language";
 import { QUICK_MENU_ACTIONS, type QuickMenuActionKey } from "./quick-menu";
 import { attachReaderGestures, SEGMENT_SELECTED_EVENT, type ReaderGestures, type SegmentRange, type SegmentSelectedDetail } from "./reader-gestures";
 import { measureFitTokenCount } from "./reader-fit";
-import { computeReaderLayout } from "./reader-layout";
+import { computeReaderLayout, readerSidebarColumnWidth } from "./reader-layout";
 import { pageTurnStart, readerPageStatus, type PageDirection } from "./reader-pagination";
 import { readerSession, type ReaderSidebarTab } from "./reader-session";
 import { isWordSpacingLanguage, layoutReaderTokens, normalizeStatus, type ReaderLayout } from "./reader-tokens";
@@ -65,6 +67,7 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
   const user = useSessionStore((state) => state.user);
   const studyLanguageName = useStudyLanguageStore((state) => state.selectedName);
   const isMobile = useIsMobileLayout();
+  const reduceMotion = useReducedMotion();
   const wordsPerPage = useReaderPreferencesStore((state) => state.wordsPerPage);
   const fontSize = useReaderPreferencesStore((state) => state.fontSize);
   const focusMode = useReaderPreferencesStore((state) => state.focusMode);
@@ -100,6 +103,10 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
   const selectionSequence = useRef(0);
   const pageTurnInProgress = useRef(false);
   const pendingFlip = useRef<PageDirection | null>(null);
+  // The sidebar column's width while it animates open or closed (null at rest), and that animation.
+  const sidebarColumnWidth = useRef<number | null>(null);
+  const sidebarAnimation = useRef<AnimationPlaybackControls | null>(null);
+  const settledSidebarCollapsed = useRef(sidebarCollapsed);
 
   // ------------------------------------------------------------ page data
 
@@ -380,12 +387,14 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
       viewportHeight: window.innerHeight,
       panelTop: panel.getBoundingClientRect().top,
       sidebarCollapsed,
+      sidebarWidth: sidebarColumnWidth.current ?? undefined,
       savedPanelWidth: focusMode ? focusPanelWidth : panelWidth
     });
     const vars: Record<string, string> = {
       "--readerViewportWidth": `${viewportWidth}px`,
       "--readerViewportOffset": `${layoutElement.parentElement?.getBoundingClientRect().left ?? 0}px`,
       "--readerSidebarWidth": `${size.sidebarWidth}px`,
+      "--readerSidebarOpenWidth": `${readerSidebarColumnWidth(false, isMobile)}px`,
       "--readerPanelMinWidth": `${size.minPanelWidth}px`,
       "--readerPanelMaxHeight": `${size.maxPanelHeight}px`,
       "--readerPanelMinHeight": `${size.minPanelHeight}px`,
@@ -570,6 +579,41 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
     };
   }, []);
 
+  // Slide the desktop sidebar column open or closed, re-laying out the panel on
+  // every frame so it never jumps (this runs after the applyLayout effect, so
+  // it re-applies the starting width before paint); fit to page once settled.
+  useLayoutEffect(() => {
+    if (settledSidebarCollapsed.current === sidebarCollapsed) {
+      return;
+    }
+    settledSidebarCollapsed.current = sidebarCollapsed;
+    const from = sidebarColumnWidth.current ?? readerSidebarColumnWidth(!sidebarCollapsed, false);
+    const animated = !focusMode && !isMobile && !reduceMotion;
+    sidebarAnimation.current?.stop();
+    sidebarAnimation.current = null;
+    sidebarColumnWidth.current = animated ? from : null;
+    latest.current.applyLayout();
+    if (!animated) {
+      return;
+    }
+    sidebarAnimation.current = animate(from, readerSidebarColumnWidth(sidebarCollapsed, false), {
+      duration: MOTION_DURATION.base,
+      ease: MOTION_EASE,
+      onUpdate: (width) => {
+        sidebarColumnWidth.current = width;
+        latest.current.applyLayout();
+      },
+      onComplete: () => {
+        sidebarColumnWidth.current = null;
+        sidebarAnimation.current = null;
+        latest.current.applyLayout();
+        latest.current.measureFit();
+      }
+    });
+  }, [focusMode, isMobile, reduceMotion, sidebarCollapsed]);
+
+  useEffect(() => () => sidebarAnimation.current?.stop(), []);
+
   // Re-fit whenever the text area changes size (window, sidebar, panel or focus mode).
   useEffect(() => {
     const readerText = readerTextRef.current;
@@ -579,6 +623,10 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
     let frame = 0;
     const observer = new ResizeObserver(() => {
       cancelAnimationFrame(frame);
+      // A sliding sidebar re-fits once, when it has settled.
+      if (sidebarAnimation.current) {
+        return;
+      }
       frame = requestAnimationFrame(() => latest.current.measureFit());
     });
     observer.observe(readerText);
