@@ -1096,3 +1096,73 @@
 .reader-translation[data-slot="sheet-content"] {
   display: block;
 }
+
+/* Focus mode is just text on the page: no panel frame, and the few controls
+   (exit, page turns, progress) are ghosted so they never compete with the
+   text. Placed last so these rules win over the panel rules above. */
+.is-reader-focus .reader-layout {
+  background: var(--surface-page);
+}
+
+.is-reader-focus .reader-panel,
+.is-reader-focus .reader-text {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.is-reader-focus .reader-text {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text-muted) 30%, transparent) transparent;
+}
+
+.is-reader-focus .reader-focus-exit,
+.is-reader-focus .reader-pagination-controls button {
+  min-height: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-weight: 500;
+  opacity: 0.4;
+  transition: opacity 160ms ease;
+}
+
+.is-reader-focus .reader-focus-exit:hover,
+.is-reader-focus .reader-focus-exit:focus-visible,
+.is-reader-focus .reader-pagination-controls button:hover:not(:disabled),
+.is-reader-focus .reader-pagination-controls button:focus-visible {
+  background: transparent;
+  opacity: 1;
+}
+
+.is-reader-focus .reader-pagination-controls button:disabled {
+  opacity: 0.15;
+}
+
+.is-reader-focus .reader-focus-exit {
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  width: auto;
+  height: auto;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+
+.is-reader-focus .reader-pagination-controls #readerPageStatus {
+  color: var(--text-muted);
+  opacity: 0.4;
+}
+
+.is-reader-focus .reader-progress {
+  height: 2px;
+  background: transparent;
+}
+
+.is-reader-focus .reader-progress-bar {
+  background: var(--text-muted);
+  opacity: 0.3;
+}
