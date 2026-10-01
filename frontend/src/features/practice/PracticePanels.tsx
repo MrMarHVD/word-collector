@@ -1,4 +1,7 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { SettingRow, SettingSection } from "@/components/app/SettingRow";
+import { toast, toastError } from "@/components/app/toast";
+import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/api";
 import { useFormatCount, useT } from "@/lib/i18n";
 import { studyLanguageLabelKey } from "@/lib/study-language";
@@ -100,7 +103,7 @@ export function PracticeLanding() {
   );
 }
 
-/** Settings panel: the words-per-session form, saved to the user's settings. */
+/** Settings panel: the words-per-session setting, saved on blur or Enter. */
 export function PracticeSettings() {
   const t = useT();
   const wordsPerSession = useWordsPerSession();
@@ -108,45 +111,84 @@ export function PracticeSettings() {
   const [value, setValue] = useState(() => String(wordsPerSession));
   const [status, setStatus] = useState("");
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setStatus(t("settings.saving"));
+  const currentValue = useRef(value);
+  const lastAttempt = useRef<string | null>(null);
+  const saving = useRef(false);
+
+  function changeValue(next: string) {
+    currentValue.current = next;
+    setValue(next);
+  }
+
+  /**
+   * Saves a changed, valid value once per distinct value (Enter then blur does not repeat). A value
+   * changed while a save is pending is committed after it settles. An invalid value shows the
+   * message once and the input resets to the saved value.
+   */
+  async function commit() {
+    const attempted = currentValue.current;
+    if (saving.current || attempted === String(wordsPerSession) || attempted === lastAttempt.current) {
+      return;
+    }
+    lastAttempt.current = attempted;
+    const count = Number(attempted);
+    if (!Number.isInteger(count) || count < 1 || count > 200) {
+      setStatus(t("practice.wordsPerSessionInvalid"));
+      toast.error(t("practice.wordsPerSessionInvalid"));
+      changeValue(String(wordsPerSession));
+      lastAttempt.current = null;
+      return;
+    }
+    saving.current = true;
     try {
-      const result = await save.mutateAsync(Number(value));
-      setValue(String(practiceWordsPerSession(result.user.practiceWordsPerSession)));
+      const result = await save.mutateAsync(count);
+      const saved = String(practiceWordsPerSession(result.user.practiceWordsPerSession));
+      if (currentValue.current === attempted) {
+        changeValue(saved);
+      }
       setStatus(t("settings.saved"));
+      toast.success(t("settings.saved"));
     } catch (error) {
+      lastAttempt.current = null;
       setStatus(errorMessage(error));
+      toastError(error);
+    } finally {
+      saving.current = false;
+    }
+    if (currentValue.current !== attempted && currentValue.current !== lastAttempt.current) {
+      void commit();
     }
   }
 
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void commit();
+  }
+
   return (
-    <section className={PANEL_CLASS}>
-      <h2 className="text-2xl font-bold tracking-tight">{t("practice.settingsTitle")}</h2>
-      <p className="mt-2 text-sm text-secondary">{t("practice.settingsIntro")}</p>
-      <form id="practiceSettingsForm" className="mt-5 grid gap-4" onSubmit={(event) => void submit(event)}>
-        <label className="grid gap-1.5 text-sm font-semibold text-label">
-          <span>{t("settings.practiceWordsPerSession")}</span>
-          <input
-            id="practiceWordsPerSession"
-            className="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus"
-            type="number"
-            min="1"
-            max="200"
-            step="1"
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-          />
-        </label>
-        <p className="hint min-h-5 text-sm text-secondary">{t("settings.practiceWordsPerSessionHint")}</p>
-        <button className="min-h-11 rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="submit" disabled={save.isPending}>
-          {t("settings.save")}
-        </button>
-        <p id="practiceSettingsStatus" className="status min-h-5 text-sm text-secondary" role="status">
+    <div className="grid gap-4">
+      <h2 className="text-base font-bold">{t("practice.settingsTitle")}</h2>
+      <form id="practiceSettingsForm" onSubmit={submit}>
+        <SettingSection title={t("practice.settingsSession")}>
+          <SettingRow label={t("practice.wordsPerSession")} description={t("settings.practiceWordsPerSessionHint")} htmlFor="practiceWordsPerSession">
+            <Input
+              id="practiceWordsPerSession"
+              className="min-h-11 w-24 text-base"
+              type="number"
+              min="1"
+              max="200"
+              step="1"
+              value={value}
+              onChange={(event) => changeValue(event.target.value)}
+              onBlur={() => void commit()}
+            />
+          </SettingRow>
+        </SettingSection>
+        <p id="practiceSettingsStatus" className="visually-hidden" role="status" aria-live="off">
           {status}
         </p>
       </form>
-    </section>
+    </div>
   );
 }
 

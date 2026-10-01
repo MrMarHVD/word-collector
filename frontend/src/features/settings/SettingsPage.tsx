@@ -1,5 +1,6 @@
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { useT } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import { useSettingsTabStore, type SettingsTab } from "./settings-tab-store";
 import { SystemSettingsPanel } from "./SystemSettingsPanel";
@@ -10,40 +11,37 @@ const SETTINGS_TABS: { tab: SettingsTab; labelKey: string }[] = [
   { tab: "account", labelKey: "settings.menuAccount" }
 ];
 
-/** The settings route (#settingsView): a section menu with the "System" and "Account" panels, ported from the legacy settings view. */
+/** The settings route (#settingsView): one page heading over kit Tabs (vertical on desktop, horizontal on mobile) whose tabpanels hold the "System" and "Account" panels. */
 export default function SettingsPage() {
   const t = useT();
+  const isMobile = useIsMobileLayout();
   const activeTab = useSettingsTabStore((state) => state.tab);
   const setActiveTab = useSettingsTabStore((state) => state.setTab);
   return (
-    <section id="settingsView" className="tab-view">
-      <div className="settings-layout flex flex-col gap-4 desktop:flex-row desktop:items-start">
-        <nav
-          id="settingsMenu"
-          className="settings-menu flex shrink-0 gap-1 rounded-lg border border-line bg-muted p-1 desktop:w-44 desktop:flex-col"
-          aria-label={t("settings.title")}
-        >
+    <section id="settingsView" className="tab-view grid gap-4">
+      <h2 className="text-lg font-bold">{t("settings.title")}</h2>
+      <Tabs
+        value={activeTab}
+        onValueChange={(tab) => setActiveTab(tab as SettingsTab)}
+        orientation={isMobile ? "horizontal" : "vertical"}
+        className="settings-layout gap-4 desktop:flex-row desktop:items-start mobile:flex-col"
+      >
+        <TabsList id="settingsMenu" aria-label={t("settings.title")} className="shrink-0 desktop:w-44 mobile:w-full">
           {SETTINGS_TABS.map(({ tab, labelKey }) => (
-            <button
-              key={tab}
-              className={cn(
-                "settings-menu-button flex-1 rounded-md px-3 py-2 text-sm font-semibold text-secondary desktop:text-left",
-                activeTab === tab && "is-active"
-              )}
-              type="button"
-              data-settings-tab={tab}
-              aria-current={activeTab === tab ? "page" : "false"}
-              onClick={() => setActiveTab(tab)}
-            >
+            <TabsTrigger key={tab} value={tab} data-settings-tab={tab} className="min-h-9 px-3">
               {t(labelKey)}
-            </button>
+            </TabsTrigger>
           ))}
-        </nav>
-        <div className="settings-content min-w-0 w-full max-w-xl">
-          <SystemSettingsPanel hidden={activeTab !== "system"} />
-          <AccountSettingsPanel hidden={activeTab !== "account"} />
+        </TabsList>
+        <div className="min-w-0 w-full max-w-xl">
+          <TabsContent value="system" forceMount hidden={activeTab !== "system"} data-settings-panel="system">
+            <SystemSettingsPanel />
+          </TabsContent>
+          <TabsContent value="account" forceMount hidden={activeTab !== "account"} data-settings-panel="account">
+            <AccountSettingsPanel />
+          </TabsContent>
         </div>
-      </div>
+      </Tabs>
     </section>
   );
 }

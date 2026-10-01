@@ -1,26 +1,29 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useConfirm } from "@/components/app/ConfirmDialog";
+import { SettingRow, SettingSection } from "@/components/app/SettingRow";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { api, errorMessage } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { useLocaleStore } from "@/stores/locale";
 import { useSessionStore } from "@/stores/session";
 import { accountDetailRows, deleteConfirmationMatches } from "./settings-logic";
 
-const INPUT_CLASS = "min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus";
-
-/** Collapsible change-password form (#changePasswordSection); only rendered for accounts with a password. */
+/** Change-password row (#changePasswordSection) opening a dialog with the form; only rendered for accounts with a password. */
 function ChangePasswordSection() {
   const t = useT();
-  const [expanded, setExpanded] = useState(false);
+  const [open, setOpen] = useState(false);
   const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const currentPasswordRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (expanded) {
-      currentPasswordRef.current?.focus();
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setStatus("");
     }
-  }, [expanded]);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,77 +47,72 @@ function ChangePasswordSection() {
   }
 
   return (
-    <div id="changePasswordSection" className="mt-8 rounded-md border border-line bg-panel shadow-sm">
-      <div className="border-b border-line px-3 py-2">
-        <h3 className="text-sm font-bold text-main">{t("settings.securityTitle")}</h3>
-      </div>
-      <button
-        id="changePasswordToggle"
-        className="flex min-h-12 w-full items-center justify-between gap-3 px-3 text-left text-sm font-bold text-main hover:bg-hover"
-        type="button"
-        aria-expanded={expanded}
-        onClick={() => setExpanded(!expanded)}
-      >
-        <span>{t("settings.passwordTitle")}</span>
-        <span className="text-base leading-none text-secondary" aria-hidden="true">
-          +
-        </span>
-      </button>
-      <form id="changePasswordForm" className="grid gap-4 border-t border-line bg-panel p-3" hidden={!expanded} onSubmit={handleSubmit}>
-        <p className="text-sm text-secondary">{t("auth.passwordRequirements")}</p>
-        <label className="grid gap-1.5 text-sm font-semibold text-label">
-          <span>{t("settings.currentPassword")}</span>
-          <input
-            ref={currentPasswordRef}
-            id="currentPassword"
-            name="currentPassword"
-            className={INPUT_CLASS}
-            type="password"
-            autoComplete="current-password"
-            required
-          />
-        </label>
-        <label className="grid gap-1.5 text-sm font-semibold text-label">
-          <span>{t("auth.newPassword")}</span>
-          <input id="newPassword" name="newPassword" className={INPUT_CLASS} type="password" autoComplete="new-password" required />
-        </label>
-        <label className="grid gap-1.5 text-sm font-semibold text-label">
-          <span>{t("auth.confirmPassword")}</span>
-          <input id="confirmNewPassword" name="confirmPassword" className={INPUT_CLASS} type="password" autoComplete="new-password" required />
-        </label>
-        <button className="min-h-11 rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="submit" disabled={submitting}>
-          {t("settings.updatePassword")}
-        </button>
-        <p id="changePasswordStatus" className="status min-h-5 text-sm text-secondary" role="status">
-          {status}
-        </p>
-      </form>
-    </div>
+    <>
+      <SettingSection id="changePasswordSection" title={t("settings.securityTitle")}>
+        <SettingRow label={t("settings.passwordTitle")}>
+          <Button id="changePasswordToggle" type="button" variant="outline" className="min-h-11" onClick={() => setOpen(true)}>
+            {t("settings.changePasswordButton")}
+          </Button>
+        </SettingRow>
+      </SettingSection>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("settings.passwordTitle")}</DialogTitle>
+            <DialogDescription>{t("auth.passwordRequirements")}</DialogDescription>
+          </DialogHeader>
+          <form id="changePasswordForm" className="grid gap-4" onSubmit={handleSubmit}>
+            <Field>
+              <FieldLabel htmlFor="currentPassword">{t("settings.currentPassword")}</FieldLabel>
+              <Input id="currentPassword" name="currentPassword" className="min-h-11" type="password" autoComplete="current-password" required />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="newPassword">{t("auth.newPassword")}</FieldLabel>
+              <Input id="newPassword" name="newPassword" className="min-h-11" type="password" autoComplete="new-password" required />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="confirmNewPassword">{t("auth.confirmPassword")}</FieldLabel>
+              <Input id="confirmNewPassword" name="confirmPassword" className="min-h-11" type="password" autoComplete="new-password" required />
+            </Field>
+            <p id="changePasswordStatus" className="status min-h-5 text-sm text-secondary" role="status">
+              {status}
+            </p>
+            <DialogFooter>
+              <Button type="submit" className="min-h-11" disabled={submitting}>
+                {t("settings.updatePassword")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
 /**
- * Danger zone (#deleteAccountSection): the delete button unlocks once the
- * account email is typed, then an in-app confirmation precedes the deletion.
- * On success the session is cleared (forgetting the study language) and the
- * welcome screen shows in place.
+ * Danger zone (#deleteAccountSection): the destructive button opens a dialog
+ * (#deleteAccountPanel) whose delete button unlocks once the account email is
+ * typed, then an in-app confirmation precedes the deletion. On success the
+ * session is cleared (forgetting the study language) and the welcome screen
+ * shows in place.
  */
 function DeleteAccountSection({ email }: { email: string }) {
   const t = useT();
   const confirm = useConfirm();
   const clearSession = useSessionStore((state) => state.clearSession);
-  const [expanded, setExpanded] = useState(false);
+  const [open, setOpen] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [status, setStatus] = useState("");
   const [deleting, setDeleting] = useState(false);
-  const confirmationRef = useRef<HTMLInputElement>(null);
   const matches = deleteConfirmationMatches(email, confirmation);
 
-  useEffect(() => {
-    if (expanded) {
-      confirmationRef.current?.focus();
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setConfirmation("");
+      setStatus("");
     }
-  }, [expanded]);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -142,80 +140,70 @@ function DeleteAccountSection({ email }: { email: string }) {
   }
 
   return (
-    <section id="deleteAccountSection" className="delete-account-section mt-8 rounded-md border shadow-sm">
-      <button
-        id="deleteAccountToggle"
-        className="delete-account-toggle flex min-h-12 w-full items-center justify-between gap-3 px-3 text-left text-sm font-bold hover:bg-hover"
-        type="button"
-        aria-expanded={expanded}
-        onClick={() => setExpanded(!expanded)}
-      >
-        <span>{t("settings.dangerZoneTitle")}</span>
-        <span className="text-base leading-none text-secondary" aria-hidden="true">
-          +
-        </span>
-      </button>
-      <div id="deleteAccountPanel" className="delete-account-panel grid gap-4 border-t p-4" hidden={!expanded}>
-        <div className="grid gap-1">
-          <h3 className="text-sm font-bold">{t("settings.deleteAccountTitle")}</h3>
-          <p className="text-sm text-secondary">{t("settings.deleteAccountDescription")}</p>
-        </div>
-        <form id="deleteAccountForm" className="grid gap-3" onSubmit={handleSubmit}>
-          <label className="grid gap-1.5 text-sm font-semibold text-label">
-            <span>{t("settings.deleteAccountConfirmLabel")}</span>
-            <input
-              ref={confirmationRef}
-              id="deleteAccountConfirmation"
-              className={INPUT_CLASS}
-              type="email"
-              autoComplete="off"
-              spellCheck={false}
-              required
-              placeholder={t("settings.deleteAccountConfirmPlaceholder")}
-              value={confirmation}
-              onChange={(event) => {
-                setStatus("");
-                setConfirmation(event.target.value);
-              }}
-            />
-          </label>
-          <button
-            id="deleteAccountSubmit"
-            className="delete-account-button min-h-11 rounded-md px-4 text-sm font-bold"
-            type="submit"
-            disabled={!matches || deleting}
-          >
+    <>
+      <SettingSection id="deleteAccountSection" title={t("settings.dangerZoneTitle")}>
+        <SettingRow label={t("settings.deleteAccountTitle")} description={t("settings.deleteAccountDescription")}>
+          <Button id="deleteAccountToggle" type="button" variant="destructive" className="min-h-11" onClick={() => setOpen(true)}>
             {t("settings.deleteAccountButton")}
-          </button>
-          <p id="deleteAccountStatus" className="status min-h-5 text-sm text-secondary" role="status">
-            {status}
-          </p>
-        </form>
-      </div>
-    </section>
+          </Button>
+        </SettingRow>
+      </SettingSection>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent id="deleteAccountPanel">
+          <DialogHeader>
+            <DialogTitle>{t("settings.deleteAccountTitle")}</DialogTitle>
+            <DialogDescription>{t("settings.deleteAccountDescription")}</DialogDescription>
+          </DialogHeader>
+          <form id="deleteAccountForm" className="grid gap-4" onSubmit={handleSubmit}>
+            <Field>
+              <FieldLabel htmlFor="deleteAccountConfirmation">{t("settings.deleteAccountConfirmLabel")}</FieldLabel>
+              <Input
+                id="deleteAccountConfirmation"
+                className="min-h-11"
+                type="email"
+                autoComplete="off"
+                spellCheck={false}
+                required
+                placeholder={t("settings.deleteAccountConfirmPlaceholder")}
+                value={confirmation}
+                onChange={(event) => {
+                  setStatus("");
+                  setConfirmation(event.target.value);
+                }}
+              />
+            </Field>
+            <p id="deleteAccountStatus" className="status min-h-5 text-sm text-secondary" role="status">
+              {status}
+            </p>
+            <DialogFooter>
+              <Button id="deleteAccountSubmit" type="submit" variant="destructive" className="min-h-11" disabled={!matches || deleting}>
+                {t("settings.deleteAccountButton")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
 /** The "Account" panel: account details, change password (password accounts only) and account deletion. */
-export function AccountSettingsPanel({ hidden }: { hidden: boolean }) {
+export function AccountSettingsPanel() {
   const t = useT();
   const locale = useLocaleStore((state) => state.locale);
   const user = useSessionStore((state) => state.user);
   return (
-    <section className="settings-panel rounded-lg border border-line bg-panel p-5 shadow-panel" data-settings-panel="account" hidden={hidden}>
-      <div className="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
-        <h2 className="text-base font-bold">{t("settings.accountDetailsTitle")}</h2>
-      </div>
-      <dl id="accountDetails" className="grid gap-3 text-sm">
+    <div className="grid gap-6">
+      <SettingSection id="accountDetails" title={t("settings.accountDetailsTitle")}>
         {accountDetailRows(user, t, locale).map((row) => (
-          <div key={row.labelKey} className="grid gap-1 rounded-md border border-line bg-muted px-3 py-2">
-            <dt className="text-xs font-semibold uppercase text-secondary">{t(row.labelKey)}</dt>
-            <dd className="break-words font-semibold text-main">{row.value}</dd>
+          <div key={row.labelKey} className="flex min-h-11 items-center justify-between gap-4 px-4 py-3">
+            <span className="text-sm text-secondary">{t(row.labelKey)}</span>
+            <span className="break-words text-right text-sm font-semibold text-main mobile:max-w-52 mobile:break-all">{row.value}</span>
           </div>
         ))}
-      </dl>
+      </SettingSection>
       {user?.hasPassword === true ? <ChangePasswordSection /> : null}
       <DeleteAccountSection email={user?.email ?? ""} />
-    </section>
+    </div>
   );
 }

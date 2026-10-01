@@ -51,16 +51,16 @@ test.describe("settings", () => {
     await openSettings(browser);
     await page.locator("#localeSelect").selectOption("ja");
     await expect(page.locator("html")).toHaveAttribute("lang", "ja");
-    await expect(page.locator('[data-settings-panel="system"]').getByRole("heading", { name: JA["settings.title"] })).toBeVisible();
+    await expect(page.locator("#settingsView").getByRole("heading", { level: 2, name: JA["settings.title"] })).toBeVisible();
 
     await page.reload();
     await expect(page.locator("#localeSelect")).toHaveValue("ja");
     await expect(page.locator("html")).toHaveAttribute("lang", "ja");
-    await expect(page.locator('[data-settings-panel="system"]').getByRole("heading", { name: JA["settings.title"] })).toBeVisible();
+    await expect(page.locator("#settingsView").getByRole("heading", { level: 2, name: JA["settings.title"] })).toBeVisible();
 
     await page.locator("#localeSelect").selectOption("en");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
-    await expect(page.locator('[data-settings-panel="system"]').getByRole("heading", { name: EN["settings.title"] })).toBeVisible();
+    await expect(page.locator("#settingsView").getByRole("heading", { level: 2, name: EN["settings.title"] })).toBeVisible();
   });
 
   test("native language is saved and persists after a reload", async ({ browser }) => {
@@ -68,7 +68,6 @@ test.describe("settings", () => {
     const select = page.locator("#nativeLanguageSelect");
     await expect(select).toHaveValue("English");
     await select.selectOption("Chinese");
-    await page.locator("#settingsForm").getByRole("button", { name: EN["settings.save"], exact: true }).click();
     await expect(page.locator("#settingsStatus")).toHaveText(EN["settings.saved"]);
 
     await page.reload();
@@ -80,17 +79,17 @@ test.describe("settings", () => {
     const html = page.locator("html");
 
     await page.locator('[data-theme-option="dark"]').click();
-    await expect(page.locator('[data-theme-option="dark"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('[data-theme-option="dark"]')).toHaveAttribute("aria-checked", "true");
     await expect(html).toHaveAttribute("data-theme-preference", "dark");
     await expect(html).toHaveAttribute("data-theme", "dark");
 
     await page.reload();
-    await expect(page.locator('[data-theme-option="dark"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('[data-theme-option="dark"]')).toHaveAttribute("aria-checked", "true");
     await expect(html).toHaveAttribute("data-theme", "dark");
 
     await page.locator('[data-theme-option="light"]').click();
-    await expect(page.locator('[data-theme-option="light"]')).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator('[data-theme-option="dark"]')).toHaveAttribute("aria-pressed", "false");
+    await expect(page.locator('[data-theme-option="light"]')).toHaveAttribute("aria-checked", "true");
+    await expect(page.locator('[data-theme-option="dark"]')).toHaveAttribute("aria-checked", "false");
     await expect(html).toHaveAttribute("data-theme", "light");
   });
 
