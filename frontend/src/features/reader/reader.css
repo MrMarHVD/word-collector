@@ -1116,9 +1116,18 @@
   box-shadow: none;
 }
 
+/* Faint side rules mark where the text column begins and ends. */
 .is-reader-focus .reader-text {
+  border-inline: 1px solid color-mix(in srgb, var(--border-main) 60%, transparent);
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--text-muted) 30%, transparent) transparent;
+}
+
+/* Full-bleed on mobile, so the screen edge already bounds the text. */
+@media (max-width: 760px) {
+  .is-reader-focus .reader-text {
+    border-inline: 0;
+  }
 }
 
 .is-reader-focus .reader-focus-exit,
