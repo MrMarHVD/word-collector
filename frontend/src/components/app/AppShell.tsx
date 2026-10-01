@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router";
+import { FadeIn } from "@/components/app/FadeIn";
 import { LocaleSelect } from "@/components/app/LocaleSelect";
 import { StudyLanguageSelect } from "@/components/app/StudyLanguageSelect";
 import { Button } from "@/components/ui/button";
@@ -245,7 +246,7 @@ export function AppShell({ children }: AppShellProps) {
         </div>
       </header>
       {user ? <VerifyBanner /> : null}
-      {children}
+      <FadeIn key={activeTab ?? pathname}>{children}</FadeIn>
     </main>
   );
 }

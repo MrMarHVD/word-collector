@@ -1,10 +1,12 @@
 import { useEffect, useState, type UIEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { m } from "motion/react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { dashboardSummaryQuery } from "@/lib/api";
 import { usePersistentState } from "@/lib/hooks/use-persistent-state";
 import { useFormatCount, useT } from "@/lib/i18n";
+import { MOTION_FADE } from "@/lib/motion";
 import { useStudyLanguageStore } from "@/stores/study-language";
 import { ProgressCard } from "./ProgressCard";
 import { DASHBOARD_STATS_TAB_KEY, documentMeta, isNearScrollEnd, parseDashboardStatsTab, type DashboardStatsTab } from "./progress";
@@ -76,68 +78,73 @@ export default function DashboardPage() {
           ))}
         </TabsList>
 
-        <TabsContent value="overview" id="dashboardOverviewPanel" data-dashboard-stats-panel="overview">
-          <section className="metrics mb-4 grid grid-cols-4 gap-3.5 mobile:grid-cols-1" aria-label={t("dashboard.overallProgress")}>
-            <article className={METRIC_CARD_CLASS}>
-              <span id="totalWords" className={METRIC_VALUE_CLASS}>
-                {formatCount(dashboard?.totalWords ?? 0)}
-              </span>
-              <small className={METRIC_LABEL_CLASS}>{t("dashboard.totalWords")}</small>
-            </article>
-            <article className={METRIC_CARD_CLASS}>
-              <span id="learningTotal" className={METRIC_VALUE_CLASS}>
-                {formatCount(dashboard?.learningWords ?? 0)}
-              </span>
-              <small className={METRIC_LABEL_CLASS}>{t("dashboard.learningWords")}</small>
-            </article>
-            <article className={METRIC_CARD_CLASS}>
-              <span id="unknownTotal" className={METRIC_VALUE_CLASS}>
-                {formatCount(dashboard?.unknownWords ?? 0)}
-              </span>
-              <small className={METRIC_LABEL_CLASS}>{t("dashboard.unknownWords")}</small>
-            </article>
-            <article className={METRIC_CARD_CLASS}>
-              <span id="collectionCount" className={METRIC_VALUE_CLASS}>
-                {formatCount(collections.length)}
-              </span>
-              <small className={METRIC_LABEL_CLASS}>{t("dashboard.collectionCount")}</small>
-            </article>
-            {/* The want-to-practice metric only appears once the user has marked a word. */}
-            <article id="wantToPracticeCard" className={METRIC_CARD_CLASS} hidden={wantToPracticeWords < 1}>
-              <span id="wantToPracticeTotal" className={`${METRIC_VALUE_CLASS} text-brand`}>
-                {formatCount(wantToPracticeWords)}
-              </span>
-              <small className={METRIC_LABEL_CLASS}>{t("dashboard.wantToPracticeWords")}</small>
-            </article>
-          </section>
+        <TabsContent value="overview" asChild>
+          <m.div id="dashboardOverviewPanel" data-dashboard-stats-panel="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={MOTION_FADE}>
+            <section className="metrics mb-4 grid grid-cols-4 gap-3.5 mobile:grid-cols-1" aria-label={t("dashboard.overallProgress")}>
+              <article className={METRIC_CARD_CLASS}>
+                <span id="totalWords" className={METRIC_VALUE_CLASS}>
+                  {formatCount(dashboard?.totalWords ?? 0)}
+                </span>
+                <small className={METRIC_LABEL_CLASS}>{t("dashboard.totalWords")}</small>
+              </article>
+              <article className={METRIC_CARD_CLASS}>
+                <span id="learningTotal" className={METRIC_VALUE_CLASS}>
+                  {formatCount(dashboard?.learningWords ?? 0)}
+                </span>
+                <small className={METRIC_LABEL_CLASS}>{t("dashboard.learningWords")}</small>
+              </article>
+              <article className={METRIC_CARD_CLASS}>
+                <span id="unknownTotal" className={METRIC_VALUE_CLASS}>
+                  {formatCount(dashboard?.unknownWords ?? 0)}
+                </span>
+                <small className={METRIC_LABEL_CLASS}>{t("dashboard.unknownWords")}</small>
+              </article>
+              <article className={METRIC_CARD_CLASS}>
+                <span id="collectionCount" className={METRIC_VALUE_CLASS}>
+                  {formatCount(collections.length)}
+                </span>
+                <small className={METRIC_LABEL_CLASS}>{t("dashboard.collectionCount")}</small>
+              </article>
+              {/* The want-to-practice metric only appears once the user has marked a word. */}
+              <article id="wantToPracticeCard" className={METRIC_CARD_CLASS} hidden={wantToPracticeWords < 1}>
+                <span id="wantToPracticeTotal" className={`${METRIC_VALUE_CLASS} text-brand`}>
+                  {formatCount(wantToPracticeWords)}
+                </span>
+                <small className={METRIC_LABEL_CLASS}>{t("dashboard.wantToPracticeWords")}</small>
+              </article>
+            </section>
 
-          <section className="collection-panel rounded-lg border border-line bg-panel p-5 shadow-panel">
-            <div className="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
-              <h2 className="text-base font-bold">{t("dashboard.collectionProgress")}</h2>
-            </div>
-            <div id="collectionCharts" className={CHART_GRID_CLASS}>
-              {collections.length ? (
-                collections.map((collection) => (
-                  <ProgressCard
-                    key={collection.id}
-                    title={collection.name}
-                    subtitle={collection.languageName}
-                    detailText={t("progress.knownOfTotal", { total: formatCount(collection.totalWords), known: formatCount(collection.knownWords) })}
-                    totalWords={collection.totalWords}
-                    knownWords={collection.knownWords}
-                    learningWords={collection.learningWords}
-                    unknownWords={collection.unknownWords}
-                  />
-                ))
-              ) : (
-                <p className="empty text-secondary">{t("dashboard.noCollections")}</p>
-              )}
-            </div>
-          </section>
+            <section className="collection-panel rounded-lg border border-line bg-panel p-5 shadow-panel">
+              <div className="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
+                <h2 className="text-base font-bold">{t("dashboard.collectionProgress")}</h2>
+              </div>
+              <div id="collectionCharts" className={CHART_GRID_CLASS}>
+                {collections.length ? (
+                  collections.map((collection) => (
+                    <ProgressCard
+                      key={collection.id}
+                      title={collection.name}
+                      subtitle={collection.languageName}
+                      detailText={t("progress.knownOfTotal", { total: formatCount(collection.totalWords), known: formatCount(collection.knownWords) })}
+                      totalWords={collection.totalWords}
+                      knownWords={collection.knownWords}
+                      learningWords={collection.learningWords}
+                      unknownWords={collection.unknownWords}
+                    />
+                  ))
+                ) : (
+                  <p className="empty text-secondary">{t("dashboard.noCollections")}</p>
+                )}
+              </div>
+            </section>
+          </m.div>
         </TabsContent>
 
         <TabsContent value="documents" asChild>
-          <section
+          <m.section
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={MOTION_FADE}
             id="dashboardDocumentsPanel"
             className="dashboard-documents-panel rounded-lg border border-line bg-panel p-5 shadow-panel"
             data-dashboard-stats-panel="documents"
@@ -177,7 +184,7 @@ export default function DashboardPage() {
                 {documentStatus}
               </p>
             </div>
-          </section>
+          </m.section>
         </TabsContent>
       </Tabs>
     </section>

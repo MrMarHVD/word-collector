@@ -1,5 +1,6 @@
-import type { CSSProperties } from "react";
+import { m, useReducedMotion } from "motion/react";
 import { useFormatCount, useT } from "@/lib/i18n";
+import { MOTION_EASE } from "@/lib/motion";
 import { progressPercents } from "./progress";
 
 export interface ProgressCardProps {
@@ -13,15 +14,22 @@ export interface ProgressCardProps {
   unknownWords: number;
 }
 
-/** Progress chart card (legacy `.chart-card`): a known/learning/unknown pie beside the counts. */
+/** Progress chart card (legacy `.chart-card`): a known/learning/unknown pie that fills in on mount, beside the counts. */
 export function ProgressCard({ title, subtitle, detailText, totalWords, knownWords, learningWords, unknownWords }: ProgressCardProps) {
   const t = useT();
   const formatCount = useFormatCount();
   const { knownPercent, learningPercent } = progressPercents({ totalWords, knownWords, learningWords });
-  const pieStyle = { "--knownPercent": `${knownPercent}%`, "--learningPercent": `${learningPercent}%` } as CSSProperties;
+  const reducedMotion = useReducedMotion();
+  const pieVars = { "--knownPercent": `${knownPercent}%`, "--learningPercent": `${learningPercent}%` };
   return (
     <article className="chart-card rounded-lg border border-line bg-panel p-3.5">
-      <div className="pie" style={pieStyle} />
+      {/* The fill is a CSS-variable animation, which MotionConfig's reduced-motion policy does not cover, so it is skipped explicitly. */}
+      <m.div
+        className="pie"
+        initial={reducedMotion ? false : { "--knownPercent": "0%", "--learningPercent": "0%" }}
+        animate={pieVars}
+        transition={{ duration: 0.5, ease: MOTION_EASE }}
+      />
       <div>
         <strong>{title}</strong>
         <span>{subtitle}</span>
