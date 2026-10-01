@@ -1,11 +1,5 @@
 /* Settings screen, ported from public/css/settings.css. */
 
-@media (min-width: 761px) {
-  .settings-display-mode {
-    display: none;
-  }
-}
-
 .delete-account-section {
   border-color: var(--danger-border);
   background: var(--surface-panel);
@@ -49,14 +43,6 @@
   /* The settings share of the legacy dashboard.css mobile panel padding. */
   .settings-panel {
     padding: 16px;
-  }
-
-  .settings-menu {
-    overflow-x: auto;
-  }
-
-  .settings-menu-button {
-    min-width: 120px;
   }
 
   .delete-account-section {
