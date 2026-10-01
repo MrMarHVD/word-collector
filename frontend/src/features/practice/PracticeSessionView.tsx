@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
+import { m, useReducedMotion } from "motion/react";
 import { useFormatCount, useT } from "@/lib/i18n";
+import { MOTION_FADE } from "@/lib/motion";
 import { canGoNext, canGoPrevious, cardTextSize, flipCard, nextCard, previousCard } from "./practice-session";
 import { usePracticeStore } from "./practice-store";
 import { useAnswerCard } from "./use-practice";
@@ -13,7 +15,11 @@ function cardTextStyle(text: string, maxRem: number): CSSProperties {
   return { "--practice-card-text-size": `${cardTextSize(text, maxRem).toFixed(2)}rem` } as CSSProperties;
 }
 
-/** The flashcard screen: exit and progress, the card between the arrows, and the answer buttons. */
+/**
+ * The flashcard screen: exit and progress, the card between the arrows, and the answer buttons.
+ * Each card fades in as it is shown (no exit animation, so a single [data-practice-card] ever
+ * exists) and flips in 3D; under reduced motion the flip is a crossfade of the two faces.
+ */
 export function PracticeSessionView() {
   const t = useT();
   const formatCount = useFormatCount();
@@ -21,6 +27,7 @@ export function PracticeSessionView() {
   const updateSession = usePracticeStore((state) => state.updateSession);
   const showLanding = usePracticeStore((state) => state.showLanding);
   const answer = useAnswerCard();
+  const reducedMotion = useReducedMotion();
   const card = session.words[session.index];
   if (!card) {
     return null;
@@ -56,9 +63,12 @@ export function PracticeSessionView() {
         </button>
         <div className="practice-card-wrap">
           {/* Keyed by card so moving on never animates the next card's back face into view. */}
-          <div
+          <m.div
             key={session.index}
-            className={`practice-card${session.flipped ? " is-flipped" : ""}`}
+            className={`practice-card${session.flipped ? " is-flipped" : ""}${reducedMotion ? " is-crossfade" : ""}`}
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0, rotateY: session.flipped && !reducedMotion ? 180 : 0 }}
+            transition={MOTION_FADE}
             data-practice-card
             tabIndex={0}
             role="button"
@@ -77,7 +87,7 @@ export function PracticeSessionView() {
               </span>
               {phonetic ? <span className="practice-card-phonetic">{phonetic}</span> : null}
             </div>
-          </div>
+          </m.div>
         </div>
         <button
           className={`${SIDE_BUTTON_CLASS} practice-card-side-button-next`}

@@ -58,7 +58,6 @@
   position: relative;
   min-height: min(420px, 56vh);
   transform-style: preserve-3d;
-  transition: transform 220ms ease;
   cursor: pointer;
   outline: none;
 }
@@ -68,8 +67,31 @@
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
-.practice-card.is-flipped {
-  transform: rotateY(180deg);
+/* The flip itself is driven by Motion (PracticeSessionView). Under reduced motion
+   the card stays flat and the faces crossfade instead. */
+.practice-card.is-crossfade {
+  transform-style: flat;
+}
+
+.practice-card.is-crossfade .practice-card-face {
+  backface-visibility: visible;
+  transition: opacity 150ms ease;
+}
+
+.practice-card.is-crossfade .practice-card-back {
+  transform: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.practice-card.is-crossfade.is-flipped .practice-card-front {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.practice-card.is-crossfade.is-flipped .practice-card-back {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .practice-card-face {
