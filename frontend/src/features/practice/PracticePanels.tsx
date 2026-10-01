@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { SettingRow, SettingSection } from "@/components/app/SettingRow";
 import { toast, toastError } from "@/components/app/toast";
 import { Input } from "@/components/ui/input";
@@ -111,25 +111,52 @@ export function PracticeSettings() {
   const [value, setValue] = useState(() => String(wordsPerSession));
   const [status, setStatus] = useState("");
 
-  /** Saves a changed, valid value; an invalid one shows the validation message instead. */
+  const currentValue = useRef(value);
+  const lastAttempt = useRef<string | null>(null);
+  const saving = useRef(false);
+
+  function changeValue(next: string) {
+    currentValue.current = next;
+    setValue(next);
+  }
+
+  /**
+   * Saves a changed, valid value once per distinct value (Enter then blur does not repeat). A value
+   * changed while a save is pending is committed after it settles. An invalid value shows the
+   * message once and the input resets to the saved value.
+   */
   async function commit() {
-    if (value === String(wordsPerSession) || save.isPending) {
+    const attempted = currentValue.current;
+    if (saving.current || attempted === String(wordsPerSession) || attempted === lastAttempt.current) {
       return;
     }
-    const count = Number(value);
+    lastAttempt.current = attempted;
+    const count = Number(attempted);
     if (!Number.isInteger(count) || count < 1 || count > 200) {
       setStatus(t("practice.wordsPerSessionInvalid"));
       toast.error(t("practice.wordsPerSessionInvalid"));
+      changeValue(String(wordsPerSession));
+      lastAttempt.current = null;
       return;
     }
+    saving.current = true;
     try {
       const result = await save.mutateAsync(count);
-      setValue(String(practiceWordsPerSession(result.user.practiceWordsPerSession)));
+      const saved = String(practiceWordsPerSession(result.user.practiceWordsPerSession));
+      if (currentValue.current === attempted) {
+        changeValue(saved);
+      }
       setStatus(t("settings.saved"));
       toast.success(t("settings.saved"));
     } catch (error) {
+      lastAttempt.current = null;
       setStatus(errorMessage(error));
       toastError(error);
+    } finally {
+      saving.current = false;
+    }
+    if (currentValue.current !== attempted && currentValue.current !== lastAttempt.current) {
+      void commit();
     }
   }
 
@@ -152,12 +179,12 @@ export function PracticeSettings() {
               max="200"
               step="1"
               value={value}
-              onChange={(event) => setValue(event.target.value)}
+              onChange={(event) => changeValue(event.target.value)}
               onBlur={() => void commit()}
             />
           </SettingRow>
         </SettingSection>
-        <p id="practiceSettingsStatus" className="visually-hidden" role="status">
+        <p id="practiceSettingsStatus" className="visually-hidden" role="status" aria-live="off">
           {status}
         </p>
       </form>
