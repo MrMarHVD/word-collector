@@ -10,14 +10,8 @@ export interface ReaderPreferences {
   fontSize: number;
   /** wordMarkerReaderSidebarCollapsed; default false. */
   sidebarCollapsed: boolean;
-  /** wordMarkerReaderSidebarWidth (px); default 300. */
-  sidebarWidth: number;
-  /** wordMarkerReaderInfoWidth (px); default 300. */
-  infoWidth: number;
-  /** wordMarkerReaderPanelWidth (px, 0 = automatic); default 0. */
+  /** wordMarkerReaderPanelWidth (px, 0 = automatic): the text width in normal mode, set from the reader settings; default 0. */
   panelWidth: number;
-  /** wordMarkerReaderPanelHeight (px, 0 = automatic); default 0. */
-  panelHeight: number;
   /** wordMarkerReaderFocusMode; default false. */
   focusMode: boolean;
   /** wordMarkerReaderFocusPanelWidth (px, 0 = automatic); default 0. */
@@ -37,10 +31,7 @@ export const READER_PREFERENCE_KEYS: Record<keyof ReaderPreferences, string> = {
   wordsPerPage: "wordMarkerReaderWordsPerPage",
   fontSize: "wordMarkerReaderFontSize",
   sidebarCollapsed: "wordMarkerReaderSidebarCollapsed",
-  sidebarWidth: "wordMarkerReaderSidebarWidth",
-  infoWidth: "wordMarkerReaderInfoWidth",
   panelWidth: "wordMarkerReaderPanelWidth",
-  panelHeight: "wordMarkerReaderPanelHeight",
   focusMode: "wordMarkerReaderFocusMode",
   focusPanelWidth: "wordMarkerReaderFocusPanelWidth",
   autoMarkKnownOnPageTurn: "wordMarkerReaderAutoMarkKnownOnPageTurn",
@@ -57,10 +48,7 @@ export function readReaderPreferences(): ReaderPreferences {
     wordsPerPage: wordsPerPage === "fit" ? "fit" : Number(wordsPerPage) || 250,
     fontSize: Number(read("fontSize")) || 22,
     sidebarCollapsed: read("sidebarCollapsed") === "true",
-    sidebarWidth: Number(read("sidebarWidth")) || 300,
-    infoWidth: Number(read("infoWidth")) || 300,
     panelWidth: Number(read("panelWidth")) || 0,
-    panelHeight: Number(read("panelHeight")) || 0,
     focusMode: read("focusMode") === "true",
     focusPanelWidth: Number(read("focusPanelWidth")) || 0,
     autoMarkKnownOnPageTurn: read("autoMarkKnownOnPageTurn") === "true",
@@ -73,7 +61,7 @@ export function readReaderPreferences(): ReaderPreferences {
 export interface ReaderPreferencesState extends ReaderPreferences {
   /** Sets one preference and persists it as String(value), the legacy format. */
   setPreference: <K extends keyof ReaderPreferences>(key: K, value: ReaderPreferences[K]) => void;
-  /** Sets and persists several preferences at once (e.g. both panel dimensions after a resize). */
+  /** Sets and persists several preferences at once (e.g. both text widths when the width setting changes). */
   setPreferences: (values: Partial<ReaderPreferences>) => void;
 }
 

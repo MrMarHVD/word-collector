@@ -178,20 +178,20 @@ Server data belongs in TanStack Query, not in stores. Outside React, use `useXSt
 
 **`useReaderPreferencesStore`** (`@/stores/reader-preferences`): same keys, parsing and defaults as `state.js`; writes use `String(value)`.
 
-| Field                         | Key                                       | Default                                          |
-| ----------------------------- | ----------------------------------------- | ------------------------------------------------ |
-| `wordsPerPage: "fit"\|number` | wordMarkerReaderWordsPerPage              | 250                                              |
-| `fontSize`                    | wordMarkerReaderFontSize                  | 22                                               |
-| `sidebarCollapsed`            | wordMarkerReaderSidebarCollapsed          | false                                            |
-| `sidebarWidth`                | wordMarkerReaderSidebarWidth              | 300                                              |
-| `infoWidth`                   | wordMarkerReaderInfoWidth                 | 300                                              |
-| `panelWidth` / `panelHeight`  | wordMarkerReaderPanelWidth / …PanelHeight | 0 (automatic; the reader computes the live size) |
-| `focusMode`                   | wordMarkerReaderFocusMode                 | false                                            |
-| `focusPanelWidth`             | wordMarkerReaderFocusPanelWidth           | 0                                                |
-| `autoMarkKnownOnPageTurn`     | wordMarkerReaderAutoMarkKnownOnPageTurn   | false                                            |
-| `autoMarkLearningOnClick`     | wordMarkerReaderAutoMarkLearningOnClick   | true (only `"false"` disables it)                |
-| `showWordSpaces`              | wordMarkerReaderShowWordSpaces            | false                                            |
-| `highlightOpacity`            | wordMarkerReaderHighlightOpacity          | 0.2                                              |
+| Field                         | Key                                     | Default                                      |
+| ----------------------------- | --------------------------------------- | -------------------------------------------- |
+| `wordsPerPage: "fit"\|number` | wordMarkerReaderWordsPerPage            | 250                                          |
+| `fontSize`                    | wordMarkerReaderFontSize                | 22                                           |
+| `sidebarCollapsed`            | wordMarkerReaderSidebarCollapsed        | false                                        |
+| `panelWidth`                  | wordMarkerReaderPanelWidth              | 0 (automatic: full width beside the sidebar) |
+| `focusMode`                   | wordMarkerReaderFocusMode               | false                                        |
+| `focusPanelWidth`             | wordMarkerReaderFocusPanelWidth         | 0 (automatic: half the viewport)             |
+| `autoMarkKnownOnPageTurn`     | wordMarkerReaderAutoMarkKnownOnPageTurn | false                                        |
+| `autoMarkLearningOnClick`     | wordMarkerReaderAutoMarkLearningOnClick | true (only `"false"` disables it)            |
+| `showWordSpaces`              | wordMarkerReaderShowWordSpaces          | false                                        |
+| `highlightOpacity`            | wordMarkerReaderHighlightOpacity        | 0.2                                          |
+
+The reader is never moved or resized by pointer: the text width is set only from the reader settings ("Text width"), which writes `panelWidth` and `focusPanelWidth` together (mobile is always full width). The old sidebar, info and panel-height keys are no longer read.
 
 Actions: `setPreference(key, value)`, `setPreferences(partial)`. Also exported: `READER_PREFERENCE_KEYS`, `readReaderPreferences()`.
 

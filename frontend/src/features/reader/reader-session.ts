@@ -1,7 +1,7 @@
 /**
  * Reader state that outlives the page component. The legacy app kept it in
  * its global state, so switching tabs and coming back showed the same page,
- * sidebar tab and panel size without refetching; this module plays that role.
+ * sidebar tab without refetching; this module plays that role.
  */
 
 import type { MaterialReaderParams } from "@/lib/api/types";
@@ -15,24 +15,16 @@ export interface ReaderView {
   params: MaterialReaderParams;
 }
 
-/** Last resolved panel size, reused as the saved size on the next layout (legacy state.readerPanel*). */
-export interface ResolvedPanelSize {
-  width: number;
-  height: number;
-  focusWidth: number;
-}
-
 interface ReaderSessionState {
   /** Study language the remembered view belongs to. */
   languageId: number | null;
   selectedMaterialId: number | null;
   view: ReaderView | null;
   sidebarTab: ReaderSidebarTab;
-  panel: ResolvedPanelSize | null;
 }
 
 function initialReaderSession(): ReaderSessionState {
-  return { languageId: null, selectedMaterialId: null, view: null, sidebarTab: "read", panel: null };
+  return { languageId: null, selectedMaterialId: null, view: null, sidebarTab: "read" };
 }
 
 export const readerSession: ReaderSessionState = initialReaderSession();

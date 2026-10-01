@@ -1,7 +1,9 @@
-import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
+import type { RefObject } from "react";
 import { Sidebar } from "@/components/app/Sidebar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { MaterialListItem } from "@/lib/api/types";
+import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { MaterialList } from "@/features/materials";
@@ -15,6 +17,9 @@ const TAB_LABEL_KEYS: Record<ReaderSidebarTab, string> = {
 };
 
 const SETTING_ROW = "reader-setting-row flex items-start gap-3 rounded-lg border border-line bg-panel p-3 text-sm font-semibold text-label";
+
+/** Text widths (px) offered in the settings; 0 is automatic. A saved width outside this list gets its own entry. */
+const TEXT_WIDTH_OPTIONS = [0, 560, 680, 800, 960, 1120];
 
 export interface ReaderSidebarTabListProps {
   tabs: ReaderSidebarTab[];
@@ -64,11 +69,10 @@ export interface ReaderSidebarProps {
   selectedMaterialId: number | null;
   onOpenMaterial: (material: MaterialListItem) => void;
   onMaterialDeleted: (materialId: number) => void;
-  onResizeStart: (event: ReactPointerEvent<HTMLDivElement>) => void;
 }
 
 /**
- * The reader sidebar (legacy `.reader-sidebar`): collapsible, resizable, with
+ * The reader sidebar (legacy `.reader-sidebar`): collapsible, with
  * the Documents tab (the materials feature's list, contract I8) and the
  * Settings tab (reader preferences, persisted through the preferences store).
  */
@@ -79,16 +83,19 @@ export function ReaderSidebar({
   showWordSpacesOption,
   selectedMaterialId,
   onOpenMaterial,
-  onMaterialDeleted,
-  onResizeStart
+  onMaterialDeleted
 }: ReaderSidebarProps) {
   const t = useT();
+  const isMobile = useIsMobileLayout();
+  const panelWidth = useReaderPreferencesStore((state) => state.panelWidth);
   const collapsed = useReaderPreferencesStore((state) => state.sidebarCollapsed);
   const autoMarkKnown = useReaderPreferencesStore((state) => state.autoMarkKnownOnPageTurn);
   const autoMarkLearning = useReaderPreferencesStore((state) => state.autoMarkLearningOnClick);
   const showWordSpaces = useReaderPreferencesStore((state) => state.showWordSpaces);
   const highlightOpacity = useReaderPreferencesStore((state) => state.highlightOpacity);
   const setPreference = useReaderPreferencesStore((state) => state.setPreference);
+  const setPreferences = useReaderPreferencesStore((state) => state.setPreferences);
+  const widthOptions = TEXT_WIDTH_OPTIONS.includes(panelWidth) ? TEXT_WIDTH_OPTIONS : [...TEXT_WIDTH_OPTIONS, panelWidth].sort((a, b) => a - b);
 
   return (
     <Sidebar
@@ -136,6 +143,25 @@ export function ReaderSidebar({
           />
           <span className="reader-setting-text">{t("reader.showWordSpaces")}</span>
         </label>
+        <div className="reader-setting-row grid gap-2 rounded-lg border border-line bg-panel p-3 text-sm font-semibold text-label" hidden={isMobile}>
+          <span id="readerTextWidthLabel">{t("reader.textWidth")}</span>
+          <Select value={String(panelWidth)} onValueChange={(value) => setPreferences({ panelWidth: Number(value), focusPanelWidth: Number(value) })}>
+            <SelectTrigger
+              id="readerTextWidth"
+              aria-labelledby="readerTextWidthLabel"
+              className="min-h-11 w-full rounded-md border-line bg-panel px-3 text-base font-normal text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus data-[size=default]:h-auto"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {widthOptions.map((width) => (
+                <SelectItem key={width} value={String(width)}>
+                  {width === 0 ? t("reader.textWidthAuto") : `${width} px`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <label className="reader-setting-row grid gap-2 rounded-lg border border-line bg-panel p-3 text-sm font-semibold text-label">
           <span>{t("reader.highlightOpacity")}</span>
           <input
@@ -150,7 +176,6 @@ export function ReaderSidebar({
           />
         </label>
       </TabsContent>
-      <div id="readerSidebarResize" className="reader-resize-handle" role="separator" aria-orientation="vertical" onPointerDown={onResizeStart} />
     </Sidebar>
   );
 }

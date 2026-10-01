@@ -10,7 +10,6 @@
   width: var(--readerViewportWidth, 100vw);
   margin-left: calc(-1 * var(--readerViewportOffset, 0px));
   --readerSidebarWidth: 300px;
-  --readerInfoWidth: 300px;
   --readerPanelWidth: 100%;
   --readerPanelHeight: auto;
   transition: grid-template-columns 220ms ease;
@@ -282,27 +281,6 @@
   height: auto;
   min-height: 0;
   overflow: auto;
-}
-
-.is-reader-focus .reader-panel-resize {
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 12px;
-  height: auto;
-  cursor: col-resize;
-}
-
-.is-reader-focus .reader-panel-resize:hover::before {
-  top: 12px;
-  right: 5px;
-  bottom: 12px;
-  width: 2px;
-  height: auto;
-  border-right: 0;
-  border-bottom: 0;
-  border-radius: 999px;
-  background: var(--brand);
 }
 
 /* Thin reading-progress line sitting directly above the reader pane. */
@@ -627,7 +605,7 @@
    scrolls vertically when its own content (e.g. a very long translation) would
    otherwise overflow the capped height — critical on mobile, where the popup is
    a bottom sheet. Horizontal overflow stays clipped so no sideways scrollbar
-   appears and the edge resize handle keeps its current behaviour. */
+   appears. */
 .reader-word-info:not([hidden]) {
   display: flex;
   flex-direction: column;
@@ -740,58 +718,6 @@
   white-space: nowrap;
 }
 
-.reader-resize-handle,
-.reader-word-info-resize,
-.reader-panel-resize {
-  position: absolute;
-  width: 10px;
-  cursor: col-resize;
-}
-
-.reader-resize-handle,
-.reader-word-info-resize {
-  top: 0;
-  right: -5px;
-  bottom: 0;
-}
-
-.reader-panel-resize {
-  right: 0;
-  bottom: 0;
-  width: 20px;
-  height: 20px;
-  cursor: nwse-resize;
-}
-
-.reader-resize-handle:hover::before,
-.reader-word-info-resize:hover::before {
-  content: "";
-  position: absolute;
-  top: 12px;
-  right: 4px;
-  bottom: 12px;
-  width: 2px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--brand) 35%, transparent);
-}
-
-.reader-panel-resize:hover::before {
-  content: "";
-  position: absolute;
-  right: 5px;
-  bottom: 5px;
-  width: 12px;
-  height: 12px;
-  border-right: 2px solid color-mix(in srgb, var(--brand) 45%, transparent);
-  border-bottom: 2px solid color-mix(in srgb, var(--brand) 45%, transparent);
-}
-
-.is-resizing-reader,
-.is-resizing-reader * {
-  cursor: col-resize !important;
-  user-select: none;
-}
-
 @media (max-width: 760px) {
   .reader-layout {
     grid-template-columns: minmax(160px, min(var(--readerSidebarWidth), 240px)) minmax(0, 1fr);
@@ -889,11 +815,6 @@
     width: 48px;
     border-left: 1px solid var(--border-main);
     border-radius: 999px;
-  }
-
-  .reader-resize-handle,
-  .reader-panel-resize {
-    display: none;
   }
 
   .reader-panel {
@@ -1064,7 +985,6 @@
   }
 
   .reader-layout.is-reader-side-panel .reader-sidebar-head,
-  .reader-layout.is-reader-side-panel .reader-resize-handle,
   .reader-layout.is-reader-side-panel .reader-sidebar-open {
     display: none;
   }
