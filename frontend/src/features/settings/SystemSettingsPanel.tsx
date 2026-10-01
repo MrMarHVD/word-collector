@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Segmented } from "@/components/app/Segmented";
 import { SettingRow, SettingSection } from "@/components/app/SettingRow";
-import { toast } from "@/components/app/toast";
+import { toast, toastError } from "@/components/app/toast";
 import { api, errorMessage } from "@/lib/api";
 import { refreshStudyData } from "@/lib/api/queries";
+import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { useT } from "@/lib/i18n";
 import { availableStudyLanguages, firstAvailableStudyLanguageAlphabetically, studyLanguageLabelKey } from "@/lib/study-language";
 import { useSessionStore } from "@/stores/session";
@@ -20,8 +21,9 @@ const DISPLAY_MODE_LABEL_KEYS: Record<WordDisplayMode, string> = { page: "collec
  * (mobile only). Every control saves or applies on change; the outcome shows as a
  * toast and in the visually hidden #settingsStatus.
  */
-export function SystemSettingsPanel({ hidden }: { hidden: boolean }) {
+export function SystemSettingsPanel() {
   const t = useT();
+  const isMobile = useIsMobileLayout();
   const queryClient = useQueryClient();
   const user = useSessionStore((state) => state.user);
   const nativeLanguageOptions = useSessionStore((state) => state.nativeLanguageOptions);
@@ -33,6 +35,7 @@ export function SystemSettingsPanel({ hidden }: { hidden: boolean }) {
   const [nativeLanguage, setNativeLanguage] = useState(user?.nativeLanguage ?? "");
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
+  const latestRequest = useRef(0);
 
   /** Reports a save outcome in the hidden status element and as a toast. */
   function report(message: string, failed = false) {
@@ -45,11 +48,17 @@ export function SystemSettingsPanel({ hidden }: { hidden: boolean }) {
     if (!user) {
       return;
     }
+    // Only the latest request applies its outcome; the select stays enabled so it keeps focus while saving.
+    const request = ++latestRequest.current;
+    const isLatest = () => request === latestRequest.current;
     setNativeLanguage(next);
     setStatus(t("settings.saving"));
     setSaving(true);
     try {
       const result = await api.settings.update({ nativeLanguage: next, activeStudyLanguage: useStudyLanguageStore.getState().selectedName });
+      if (!isLatest()) {
+        return;
+      }
       setUser({ ...user, ...result.user });
       if (result.nativeLanguageOptions) {
         useSessionStore.setState({ nativeLanguageOptions: result.nativeLanguageOptions });
@@ -64,25 +73,34 @@ export function SystemSettingsPanel({ hidden }: { hidden: boolean }) {
       } else {
         report(t("settings.saved"));
       }
+    } catch (error) {
+      if (isLatest()) {
+        setNativeLanguage(user.nativeLanguage);
+        report(errorMessage(error), true);
+      }
+      return;
+    } finally {
+      if (isLatest()) {
+        setSaving(false);
+      }
+    }
+    try {
       await refreshStudyData(queryClient);
     } catch (error) {
-      setNativeLanguage(user.nativeLanguage);
-      report(errorMessage(error), true);
-    } finally {
-      setSaving(false);
+      toastError(error);
     }
   }
 
   return (
-    <div className="grid gap-6" data-settings-panel="system" hidden={hidden}>
+    <div className="grid gap-6">
       <div id="settingsForm" className="grid gap-6">
         <SettingSection title={t("settings.sectionLanguage")}>
           <SettingRow label={t("settings.nativeLanguage")} description={t("settings.nativeLanguageHint")} htmlFor="nativeLanguageSelect" stacked>
             <select
               id="nativeLanguageSelect"
-              className="min-h-11 w-full rounded-md border border-line bg-panel px-3 text-base text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus disabled:opacity-60"
+              className="min-h-11 w-full rounded-md border border-line bg-panel px-3 text-base text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus "
               value={nativeLanguage}
-              disabled={saving}
+              aria-busy={saving}
               onChange={(event) => void saveNativeLanguage(event.target.value)}
             >
               {nativeLanguageOptions.map((language) => (
@@ -106,20 +124,22 @@ export function SystemSettingsPanel({ hidden }: { hidden: boolean }) {
               }))}
             />
           </SettingRow>
-          <SettingRow className="desktop:hidden" label={t("collections.displayMode")} description={t("settings.displayModeHint")} stacked>
-            <Segmented
-              aria-label={t("collections.displayMode")}
-              value={wordDisplayMode}
-              onValueChange={setWordDisplayMode}
-              options={(["page", "infinite"] as const).map((mode) => ({
-                value: mode,
-                label: t(DISPLAY_MODE_LABEL_KEYS[mode]),
-                itemProps: { "data-display-mode": mode }
-              }))}
-            />
-          </SettingRow>
+          {isMobile && (
+            <SettingRow label={t("collections.displayMode")} description={t("settings.displayModeHint")} stacked>
+              <Segmented
+                aria-label={t("collections.displayMode")}
+                value={wordDisplayMode}
+                onValueChange={setWordDisplayMode}
+                options={(["page", "infinite"] as const).map((mode) => ({
+                  value: mode,
+                  label: t(DISPLAY_MODE_LABEL_KEYS[mode]),
+                  itemProps: { "data-display-mode": mode }
+                }))}
+              />
+            </SettingRow>
+          )}
         </SettingSection>
-        <p id="settingsStatus" className="visually-hidden" role="status">
+        <p id="settingsStatus" className="visually-hidden" role="status" aria-live="off">
           {status}
         </p>
       </div>

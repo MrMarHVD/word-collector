@@ -47,12 +47,14 @@ function ChangePasswordSection() {
   }
 
   return (
-    <SettingSection id="changePasswordSection" title={t("settings.securityTitle")}>
-      <SettingRow label={t("settings.passwordTitle")}>
-        <Button id="changePasswordToggle" type="button" variant="outline" className="min-h-11" onClick={() => setOpen(true)}>
-          {t("settings.changePasswordButton")}
-        </Button>
-      </SettingRow>
+    <>
+      <SettingSection id="changePasswordSection" title={t("settings.securityTitle")}>
+        <SettingRow label={t("settings.passwordTitle")}>
+          <Button id="changePasswordToggle" type="button" variant="outline" className="min-h-11" onClick={() => setOpen(true)}>
+            {t("settings.changePasswordButton")}
+          </Button>
+        </SettingRow>
+      </SettingSection>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent>
           <DialogHeader>
@@ -83,7 +85,7 @@ function ChangePasswordSection() {
           </form>
         </DialogContent>
       </Dialog>
-    </SettingSection>
+    </>
   );
 }
 
@@ -138,12 +140,14 @@ function DeleteAccountSection({ email }: { email: string }) {
   }
 
   return (
-    <SettingSection id="deleteAccountSection" title={t("settings.dangerZoneTitle")}>
-      <SettingRow label={t("settings.deleteAccountTitle")} description={t("settings.deleteAccountDescription")}>
-        <Button id="deleteAccountToggle" type="button" variant="destructive" className="min-h-11" onClick={() => setOpen(true)}>
-          {t("settings.deleteAccountButton")}
-        </Button>
-      </SettingRow>
+    <>
+      <SettingSection id="deleteAccountSection" title={t("settings.dangerZoneTitle")}>
+        <SettingRow label={t("settings.deleteAccountTitle")} description={t("settings.deleteAccountDescription")}>
+          <Button id="deleteAccountToggle" type="button" variant="destructive" className="min-h-11" onClick={() => setOpen(true)}>
+            {t("settings.deleteAccountButton")}
+          </Button>
+        </SettingRow>
+      </SettingSection>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent id="deleteAccountPanel">
           <DialogHeader>
@@ -179,26 +183,27 @@ function DeleteAccountSection({ email }: { email: string }) {
           </form>
         </DialogContent>
       </Dialog>
-    </SettingSection>
+    </>
   );
 }
 
 /** The "Account" panel: account details, change password (password accounts only) and account deletion. */
-export function AccountSettingsPanel({ hidden }: { hidden: boolean }) {
+export function AccountSettingsPanel() {
   const t = useT();
   const locale = useLocaleStore((state) => state.locale);
   const user = useSessionStore((state) => state.user);
   return (
-    <section className="settings-panel grid gap-6" data-settings-panel="account" hidden={hidden}>
+    <div className="grid gap-6">
       <SettingSection id="accountDetails" title={t("settings.accountDetailsTitle")}>
         {accountDetailRows(user, t, locale).map((row) => (
-          <SettingRow key={row.labelKey} label={t(row.labelKey)} className="[&_label]:font-normal [&_label]:text-secondary">
+          <div key={row.labelKey} className="flex min-h-11 items-center justify-between gap-4 px-4 py-3">
+            <span className="text-sm text-secondary">{t(row.labelKey)}</span>
             <span className="break-words text-right text-sm font-semibold text-main mobile:max-w-52 mobile:break-all">{row.value}</span>
-          </SettingRow>
+          </div>
         ))}
       </SettingSection>
       {user?.hasPassword === true ? <ChangePasswordSection /> : null}
       <DeleteAccountSection email={user?.email ?? ""} />
-    </section>
+    </div>
   );
 }

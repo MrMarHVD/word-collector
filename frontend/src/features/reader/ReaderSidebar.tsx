@@ -127,37 +127,34 @@ export function ReaderSidebar({
             </SettingRow>
           </SettingSection>
           <SettingSection title={t("reader.settingsAppearance")}>
-            <SettingRow
-              stacked
-              className={STACKED_ROW}
-              label={t("reader.textWidth")}
-              description={t("reader.textWidthHint")}
-              htmlFor="readerTextWidth"
-              hidden={isMobile}
-            >
-              <Select value={String(panelWidth)} onValueChange={(value) => setPreferences({ panelWidth: Number(value), focusPanelWidth: Number(value) })}>
-                <SettingSelect id="readerTextWidth">
-                  <SelectValue />
-                </SettingSelect>
-                <SelectContent>
-                  {widthOptions.map((width) => (
-                    <SelectItem key={width} value={String(width)}>
-                      {width === 0 ? t("reader.textWidthAuto") : `${width} px`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </SettingRow>
+            {!isMobile && (
+              <SettingRow stacked className={STACKED_ROW} label={t("reader.textWidth")} description={t("reader.textWidthHint")} htmlFor="readerTextWidth">
+                <Select value={String(panelWidth)} onValueChange={(value) => setPreferences({ panelWidth: Number(value), focusPanelWidth: Number(value) })}>
+                  <SettingSelect id="readerTextWidth">
+                    <SelectValue />
+                  </SettingSelect>
+                  <SelectContent>
+                    {widthOptions.map((width) => (
+                      <SelectItem key={width} value={String(width)}>
+                        {width === 0 ? t("reader.textWidthAuto") : `${width} px`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </SettingRow>
+            )}
             <SettingRow
               stacked
               className={STACKED_ROW}
               label={t("reader.highlightOpacity")}
               description={t("reader.highlightOpacityHint")}
               htmlFor="readerHighlightOpacity"
+              labelId="readerHighlightOpacityLabel"
             >
               <div className="flex w-full items-center gap-3">
                 <Slider
                   id="readerHighlightOpacity"
+                  aria-labelledby="readerHighlightOpacityLabel"
                   min={0.05}
                   max={0.45}
                   step={0.05}
@@ -167,15 +164,16 @@ export function ReaderSidebar({
                 <span className="w-10 shrink-0 text-right text-sm text-secondary tabular-nums">{Math.round(highlightOpacity * 100)}%</span>
               </div>
             </SettingRow>
-            <SettingRow
-              id="readerShowWordSpacesRow"
-              label={t("reader.showWordSpacesLabel")}
-              description={t("reader.showWordSpacesHint")}
-              htmlFor="readerShowWordSpaces"
-              hidden={!showWordSpacesOption}
-            >
-              <Switch id="readerShowWordSpaces" checked={showWordSpaces} onCheckedChange={(checked) => setPreference("showWordSpaces", checked)} />
-            </SettingRow>
+            {showWordSpacesOption && (
+              <SettingRow
+                id="readerShowWordSpacesRow"
+                label={t("reader.showWordSpacesLabel")}
+                description={t("reader.showWordSpacesHint")}
+                htmlFor="readerShowWordSpaces"
+              >
+                <Switch id="readerShowWordSpaces" checked={showWordSpaces} onCheckedChange={(checked) => setPreference("showWordSpaces", checked)} />
+              </SettingRow>
+            )}
           </SettingSection>
         </div>
       </TabsContent>
