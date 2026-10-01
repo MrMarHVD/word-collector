@@ -29,18 +29,6 @@
     box-shadow 220ms ease;
 }
 
-.reader-setting-row {
-  cursor: pointer;
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease;
-}
-
-.reader-setting-row:hover {
-  border-color: color-mix(in srgb, var(--brand) 24%, transparent);
-  background: var(--surface-subtle);
-}
-
 .reader-checkbox {
   appearance: none;
   display: grid;
@@ -82,11 +70,6 @@
 .reader-checkbox:focus-visible {
   outline: 0;
   box-shadow: 0 0 0 3px var(--focus-ring);
-}
-
-.reader-setting-text {
-  min-width: 0;
-  line-height: 1.35;
 }
 
 .mobile-reader-tabs {
