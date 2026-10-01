@@ -1,7 +1,10 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
+import { m } from "motion/react";
 import { CloseButton } from "@/components/app/CloseButton";
 import { SheetTitle } from "@/components/ui/sheet";
+import { useExitHold } from "@/lib/hooks/use-exit-hold";
 import { useT } from "@/lib/i18n";
+import { MOTION_FADE, MOTION_FADE_FAST } from "@/lib/motion";
 import { sheetClearsAbove, sheetClearsBelow, sheetFallback, translationAnchoredPosition, type Rect } from "./reader-popup-position";
 import { ReaderSheet } from "./ReaderSheet";
 import { segmentSourcePieces, type SegmentWord } from "./segment-text";
@@ -96,11 +99,14 @@ function TranslationBody({ translation, onClose, title }: { translation: ReaderT
  * preferring below and flipping above; on mobile a non-modal bottom sheet
  * that docks at the top when it would cover the selection. When neither side
  * fits, the larger one is used with a capped height, so the selection stays visible.
+ * The desktop popup fades and scales in from the selection and out again (the
+ * last translation stays rendered, inert, until the exit finishes).
  */
 export function ReaderTranslationPopup({ translation, getAnchorRect, readerTextRef, isMobile, onClose }: ReaderTranslationPopupProps) {
   const popupRef = useRef<HTMLElement | null>(null);
   const anchorRef = useRef<Rect | null>(null);
   const open = translation !== null;
+  const { held, release } = useExitHold(translation);
 
   const position = useCallback(() => {
     const popup = popupRef.current;
@@ -124,13 +130,15 @@ export function ReaderTranslationPopup({ translation, getAnchorRect, readerTextR
         }
       }
     } else {
-      const rect = popup.getBoundingClientRect();
-      const placement = translationAnchoredPosition(anchor, rect, { width: window.innerWidth, height: window.innerHeight });
+      // offset size: unaffected by the entry scale, unlike getBoundingClientRect.
+      const size = { width: popup.offsetWidth, height: popup.offsetHeight };
+      const placement = translationAnchoredPosition(anchor, size, { width: window.innerWidth, height: window.innerHeight });
       if (placement.maxHeight !== null) {
         popup.style.setProperty("--readerTranslationMaxHeight", `${placement.maxHeight}px`);
       }
       popup.style.setProperty("--readerTranslationTop", `${placement.top}px`);
       popup.style.setProperty("--readerTranslationLeft", `${placement.left}px`);
+      popup.style.setProperty("--readerTranslationOrigin", placement.top >= anchor.bottom ? "center top" : "center bottom");
     }
     popup.style.visibility = "";
   }, [getAnchorRect, isMobile]);
@@ -178,10 +186,19 @@ export function ReaderTranslationPopup({ translation, getAnchorRect, readerTextR
   }
 
   return (
-    <aside ref={popupRef} id="readerTranslation" className={TRANSLATION_CLASS} hidden={!translation}>
-      {translation ? (
-        <TranslationBody translation={translation} onClose={onClose} title={(label) => <span className="reader-translation-label">{label}</span>} />
-      ) : null}
-    </aside>
+    <m.aside
+      ref={popupRef}
+      id="readerTranslation"
+      className={TRANSLATION_CLASS}
+      hidden={!held}
+      aria-hidden={open ? undefined : true}
+      style={open ? undefined : { pointerEvents: "none" }}
+      initial={false}
+      animate={open ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.97 }}
+      transition={open ? MOTION_FADE : MOTION_FADE_FAST}
+      onAnimationComplete={() => !open && release()}
+    >
+      {held ? <TranslationBody translation={held} onClose={onClose} title={(label) => <span className="reader-translation-label">{label}</span>} /> : null}
+    </m.aside>
   );
 }

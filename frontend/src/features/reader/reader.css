@@ -619,6 +619,8 @@
 .reader-word-info {
   top: var(--readerInfoTop, 84px);
   left: var(--readerInfoLeft, 12px);
+  /* Entry/exit scale (Motion) grows from the side facing the word. */
+  transform-origin: var(--readerInfoOrigin, center);
 }
 
 /* Make the popup a flex column so the disambiguation panel can absorb the
@@ -1082,6 +1084,8 @@
 .reader-translation {
   top: var(--readerTranslationTop, 84px);
   left: var(--readerTranslationLeft, 12px);
+  /* Entry/exit scale (Motion) grows from the side facing the selection. */
+  transform-origin: var(--readerTranslationOrigin, center);
   width: max-content;
   min-width: 240px;
   max-width: min(420px, calc(100vw - 24px));
