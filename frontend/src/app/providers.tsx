@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { domAnimation, LazyMotion, MotionConfig } from "motion/react";
 import { ConfirmProvider } from "@/components/app/ConfirmDialog";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,17 +19,21 @@ function LocaleDocumentSync() {
   return null;
 }
 
-/** App-wide providers: TanStack Query, tooltips, useConfirm() and the toast host. */
+/** App-wide providers: TanStack Query, motion (lazy `m` features, OS reduced-motion honoured), tooltips, useConfirm() and the toast host. */
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <ConfirmProvider>
-          <LocaleDocumentSync />
-          {children}
-          <Toaster />
-        </ConfirmProvider>
-      </TooltipProvider>
+      <LazyMotion features={domAnimation} strict>
+        <MotionConfig reducedMotion="user">
+          <TooltipProvider>
+            <ConfirmProvider>
+              <LocaleDocumentSync />
+              {children}
+              <Toaster />
+            </ConfirmProvider>
+          </TooltipProvider>
+        </MotionConfig>
+      </LazyMotion>
     </QueryClientProvider>
   );
 }
