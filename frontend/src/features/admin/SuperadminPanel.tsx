@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from "react";
+import { m } from "motion/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api, errorMessage, queryKeys, type AuditEntry } from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { MOTION_FADE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useLocaleStore } from "@/stores/locale";
 import { auditActionKey, auditSnapshotKey, formatAuditTimestamp } from "./admin-logic";
@@ -20,7 +22,12 @@ function AuditEntryItem({ entry }: { entry: AuditEntry }) {
   const locale = useLocaleStore((state) => state.locale);
   const actionKey = auditActionKey(entry.action);
   return (
-    <li className="grid gap-1 rounded-md border border-line bg-muted px-3 py-2">
+    <m.li
+      className="grid gap-1 rounded-md border border-line bg-muted px-3 py-2"
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={MOTION_FADE}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-semibold text-main">{actionKey ? t(actionKey) : entry.action}</span>
         <span className="text-xs text-secondary">{formatAuditTimestamp(entry.createdAt, locale)}</span>
@@ -30,7 +37,7 @@ function AuditEntryItem({ entry }: { entry: AuditEntry }) {
       <div className="text-xs text-secondary">
         {t("admin.superadminAuditChange", { before: t(auditSnapshotKey(entry.before)), after: t(auditSnapshotKey(entry.after)) })}
       </div>
-    </li>
+    </m.li>
   );
 }
 
