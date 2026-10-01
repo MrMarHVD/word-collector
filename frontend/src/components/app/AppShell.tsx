@@ -246,7 +246,9 @@ export function AppShell({ children }: AppShellProps) {
         </div>
       </header>
       {user ? <VerifyBanner /> : null}
-      <FadeIn key={activeTab ?? pathname}>{children}</FadeIn>
+      <FadeIn key={activeTab ?? pathname} rise={false}>
+        {children}
+      </FadeIn>
     </main>
   );
 }

@@ -274,3 +274,12 @@ cache key `wordMarkerSelectedMaterialId:<userId>:<languageId>` (a legacy `…:<l
 The auth feature owns `WelcomePage`/`AuthPage` (built by RX-002 for the
 first-run path; forgot/reset panels are minimal placeholders) and all auth
 screens after RX-002.
+
+## Motion (`motion` package, `@/lib/motion`)
+
+- `app/providers.tsx` wraps the app once in `<LazyMotion features={domAnimation} strict>` and `<MotionConfig reducedMotion="user">`. Animate with the `m` component from `motion/react`, never `motion` (`strict` throws on it). `domAnimation` has no `layout`/drag support: use enter/exit with `AnimatePresence`, not layout animation.
+- Calm and short: fades and 4px shifts, `MOTION_DURATION` 150 ms (exits, small items) and 200 ms (entries), ease-out (`MOTION_EASE`), 30 ms stagger. Take tokens from `@/lib/motion`; `FadeIn` (`components/app`) is the shared mount fade. No bounce or flashy effects. The progress-ring fill (500 ms) is the one longer exception.
+- Reduced motion: `MotionConfig` makes Motion skip transform and layout animation for OS `prefers-reduced-motion`; opacity still animates. Motion does not cover CSS-variable animation (progress ring: skipped via `useReducedMotion()`) or 3D flips (the flashcard switches to a face crossfade through `.is-crossfade`).
+- Never animate dialogs, popovers, sheets or toasts: the kit's `tw-animate-css` classes and Sonner already do. The reader's desktop popups are plain `aside`s, so they animate with `m.aside`.
+- Exits must stay inert and test-safe: an exiting element sets `pointerEvents: "none"` (`aria-hidden` for popups) and is gone within 150 ms. Where an exit would leave a second `[data-*]` hook in the DOM (flashcards) or collide with native handlers (`m.*` swallows `onDragStart`/`onDragEnd`, so the draggable vocab rows stay plain `tr`s), use enter-only or no motion.
+- Never put a transform on a wrapper of `position: fixed` content (it becomes the containing block): the routed-page fade in `AppShell` is opacity-only (`<FadeIn rise={false}>`) for that reason.

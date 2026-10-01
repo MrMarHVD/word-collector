@@ -18,8 +18,5 @@ export const MOTION_FADE: Transition = { duration: MOTION_DURATION.base, ease: M
 /** Quicker tween for exits and small items. */
 export const MOTION_FADE_FAST: Transition = { duration: MOTION_DURATION.fast, ease: MOTION_EASE };
 
-/** Gentle, bounce-free spring for the flashcard flip. */
-export const MOTION_SPRING: Transition = { type: "spring", stiffness: 260, damping: 32, mass: 0.9 };
-
 /** Delay in seconds between consecutive items of a staggered group. */
 export const MOTION_STAGGER = 0.03;
