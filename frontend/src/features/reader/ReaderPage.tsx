@@ -583,6 +583,7 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
     collapsed: sidebarCollapsed,
     enabled: !focusMode && !isMobile,
     restWidth: (collapsed) => readerSidebarColumnWidth(collapsed, false),
+    sidebar: sidebarRef,
     onFrame: (width) => {
       sidebarColumnWidth.current = width;
       latest.current.applyLayout();

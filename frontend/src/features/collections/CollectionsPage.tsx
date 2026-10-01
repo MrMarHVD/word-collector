@@ -88,6 +88,7 @@ export default function CollectionsPage() {
   const [page, setPage] = useState(0);
   const [visibleCount, setVisibleCount] = useState(WORD_PAGE_SIZE);
   const workspaceRef = useRef<HTMLElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
   const openButtonRef = useRef<HTMLButtonElement>(null);
   const tableWrapRef = useRef<HTMLDivElement>(null);
 
@@ -125,6 +126,7 @@ export default function CollectionsPage() {
     collapsed: sidebarCollapsed,
     enabled: !isMobile,
     restWidth: (collapsed) => collectionsSidebarColumnWidth(collapsed, window.innerWidth),
+    sidebar: sidebarRef,
     onFrame: (width) => {
       const workspace = workspaceRef.current;
       workspace?.classList.toggle("is-sidebar-sliding", width !== null);
@@ -358,9 +360,10 @@ export default function CollectionsPage() {
       <SidebarLayout
         ref={workspaceRef}
         collapsed={sidebarCollapsed}
-        className="workspace collections-workspace grid grid-cols-[minmax(220px,260px)_1fr] items-start gap-3.5 mobile:grid-cols-1"
+        className="workspace collections-workspace grid grid-cols-[minmax(220px,260px)_minmax(0,1fr)] items-start gap-3.5 mobile:grid-cols-1"
       >
         <Sidebar
+          ref={sidebarRef}
           className="collections-sidebar rounded-lg border border-line bg-panel p-3.5 shadow-panel"
           collapsed={sidebarCollapsed}
           onCollapsedChange={setSidebarCollapsed}
