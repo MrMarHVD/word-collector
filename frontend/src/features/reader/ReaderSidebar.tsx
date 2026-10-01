@@ -1,7 +1,9 @@
 import type { RefObject } from "react";
 import { Sidebar } from "@/components/app/Sidebar";
-import { SettingSelect } from "@/components/app/SettingRow";
+import { SettingRow, SettingSection, SettingSelect } from "@/components/app/SettingRow";
 import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { MaterialListItem } from "@/lib/api/types";
 import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
@@ -17,7 +19,8 @@ const TAB_LABEL_KEYS: Record<ReaderSidebarTab, string> = {
   settings: "reader.settingsTab"
 };
 
-const SETTING_ROW = "reader-setting-row flex items-start gap-3 rounded-lg border border-line bg-panel p-3 text-sm font-semibold text-label";
+/** Stacks a wide control under its label at every width: the desktop sidebar is too narrow for a side-by-side row. */
+const STACKED_ROW = "flex-col items-stretch has-[>[data-slot=field-content]]:items-stretch [&>div:last-child]:w-full";
 
 /** Text widths (px) offered in the settings; 0 is automatic. A saved width outside this list gets its own entry. */
 const TEXT_WIDTH_OPTIONS = [0, 560, 680, 800, 960, 1120];
@@ -114,64 +117,67 @@ export function ReaderSidebar({
         <MaterialList selectedMaterialId={selectedMaterialId} onOpenMaterial={onOpenMaterial} onMaterialDeleted={onMaterialDeleted} />
       </TabsContent>
       <TabsContent value="settings" forceMount hidden={desktopTab !== "settings"} className="reader-sidebar-tab-panel" data-reader-sidebar-panel="settings">
-        <label className={SETTING_ROW}>
-          <input
-            id="readerAutoMarkKnown"
-            className="reader-checkbox"
-            type="checkbox"
-            checked={autoMarkKnown}
-            onChange={(event) => setPreference("autoMarkKnownOnPageTurn", event.target.checked)}
-          />
-          <span className="reader-setting-text">{t("reader.autoMarkKnownOnPageTurn")}</span>
-        </label>
-        <label className={SETTING_ROW}>
-          <input
-            id="readerAutoMarkLearning"
-            className="reader-checkbox"
-            type="checkbox"
-            checked={autoMarkLearning}
-            onChange={(event) => setPreference("autoMarkLearningOnClick", event.target.checked)}
-          />
-          <span className="reader-setting-text">{t("reader.autoMarkLearningOnClick")}</span>
-        </label>
-        <label id="readerShowWordSpacesRow" className={SETTING_ROW} hidden={!showWordSpacesOption}>
-          <input
-            id="readerShowWordSpaces"
-            className="reader-checkbox"
-            type="checkbox"
-            checked={showWordSpaces}
-            onChange={(event) => setPreference("showWordSpaces", event.target.checked)}
-          />
-          <span className="reader-setting-text">{t("reader.showWordSpaces")}</span>
-        </label>
-        <div className="reader-setting-row grid gap-2 rounded-lg border border-line bg-panel p-3 text-sm font-semibold text-label" hidden={isMobile}>
-          <span id="readerTextWidthLabel">{t("reader.textWidth")}</span>
-          <Select value={String(panelWidth)} onValueChange={(value) => setPreferences({ panelWidth: Number(value), focusPanelWidth: Number(value) })}>
-            <SettingSelect id="readerTextWidth" aria-labelledby="readerTextWidthLabel">
-              <SelectValue />
-            </SettingSelect>
-            <SelectContent>
-              {widthOptions.map((width) => (
-                <SelectItem key={width} value={String(width)}>
-                  {width === 0 ? t("reader.textWidthAuto") : `${width} px`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="grid gap-5">
+          <SettingSection title={t("reader.settingsBehaviour")}>
+            <SettingRow label={t("reader.autoMarkKnownLabel")} description={t("reader.autoMarkKnownHint")} htmlFor="readerAutoMarkKnown">
+              <Switch id="readerAutoMarkKnown" checked={autoMarkKnown} onCheckedChange={(checked) => setPreference("autoMarkKnownOnPageTurn", checked)} />
+            </SettingRow>
+            <SettingRow label={t("reader.autoMarkLearningLabel")} description={t("reader.autoMarkLearningHint")} htmlFor="readerAutoMarkLearning">
+              <Switch id="readerAutoMarkLearning" checked={autoMarkLearning} onCheckedChange={(checked) => setPreference("autoMarkLearningOnClick", checked)} />
+            </SettingRow>
+          </SettingSection>
+          <SettingSection title={t("reader.settingsAppearance")}>
+            <SettingRow
+              stacked
+              className={STACKED_ROW}
+              label={t("reader.textWidth")}
+              description={t("reader.textWidthHint")}
+              htmlFor="readerTextWidth"
+              hidden={isMobile}
+            >
+              <Select value={String(panelWidth)} onValueChange={(value) => setPreferences({ panelWidth: Number(value), focusPanelWidth: Number(value) })}>
+                <SettingSelect id="readerTextWidth">
+                  <SelectValue />
+                </SettingSelect>
+                <SelectContent>
+                  {widthOptions.map((width) => (
+                    <SelectItem key={width} value={String(width)}>
+                      {width === 0 ? t("reader.textWidthAuto") : `${width} px`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingRow>
+            <SettingRow
+              stacked
+              className={STACKED_ROW}
+              label={t("reader.highlightOpacity")}
+              description={t("reader.highlightOpacityHint")}
+              htmlFor="readerHighlightOpacity"
+            >
+              <div className="flex w-full items-center gap-3">
+                <Slider
+                  id="readerHighlightOpacity"
+                  min={0.05}
+                  max={0.45}
+                  step={0.05}
+                  value={[highlightOpacity]}
+                  onValueChange={([value]) => setPreference("highlightOpacity", Number(value.toFixed(2)))}
+                />
+                <span className="w-10 shrink-0 text-right text-sm text-secondary tabular-nums">{Math.round(highlightOpacity * 100)}%</span>
+              </div>
+            </SettingRow>
+            <SettingRow
+              id="readerShowWordSpacesRow"
+              label={t("reader.showWordSpacesLabel")}
+              description={t("reader.showWordSpacesHint")}
+              htmlFor="readerShowWordSpaces"
+              hidden={!showWordSpacesOption}
+            >
+              <Switch id="readerShowWordSpaces" checked={showWordSpaces} onCheckedChange={(checked) => setPreference("showWordSpaces", checked)} />
+            </SettingRow>
+          </SettingSection>
         </div>
-        <label className="reader-setting-row grid gap-2 rounded-lg border border-line bg-panel p-3 text-sm font-semibold text-label">
-          <span>{t("reader.highlightOpacity")}</span>
-          <input
-            id="readerHighlightOpacity"
-            className="accent-brand"
-            type="range"
-            min="0.05"
-            max="0.45"
-            step="0.05"
-            value={highlightOpacity}
-            onChange={(event) => setPreference("highlightOpacity", Number(event.target.value))}
-          />
-        </label>
       </TabsContent>
     </Sidebar>
   );
