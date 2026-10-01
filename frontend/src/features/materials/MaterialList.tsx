@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type UIEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence, m } from "motion/react";
 import { useConfirm } from "@/components/app/ConfirmDialog";
 import { toast, toastError } from "@/components/app/toast";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { refreshStudyData } from "@/lib/api";
 import type { MaterialListItem } from "@/lib/api/types";
 import { useFormatCount, useT } from "@/lib/i18n";
+import { MOTION_FADE, MOTION_FADE_FAST } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { MaterialImportDialog } from "./MaterialImportDialog";
 import { hasPendingWork, importProgress, MATERIAL_LOAD_MORE_THRESHOLD_PX, MATERIAL_SEARCH_DEBOUNCE_MS, materialRowState } from "./materials";
@@ -147,21 +149,23 @@ export function MaterialList({ selectedMaterialId, onOpenMaterial, onMaterialDel
         onChange={(event) => setSearchInput(event.target.value)}
       />
       <div id="materialList" className="material-list grid max-h-[calc(100vh-260px)] gap-2 overflow-auto" onScroll={loadMoreOnScroll}>
-        {materials.map((material) => (
-          <MaterialRow
-            key={material.id}
-            material={material}
-            active={material.id === selectedMaterialId}
-            renaming={material.id === renameId}
-            deleting={material.id === deletingId}
-            wordCount={formatCount(material.wordCount)}
-            onOpen={() => openMaterial(material)}
-            onStartRename={() => setRenameId(material.id)}
-            onCancelRename={() => setRenameId(null)}
-            onSaveRename={(input) => saveRename(material, input)}
-            onDelete={() => void removeMaterial(material)}
-          />
-        ))}
+        <AnimatePresence initial={false}>
+          {materials.map((material) => (
+            <MaterialRow
+              key={material.id}
+              material={material}
+              active={material.id === selectedMaterialId}
+              renaming={material.id === renameId}
+              deleting={material.id === deletingId}
+              wordCount={formatCount(material.wordCount)}
+              onOpen={() => openMaterial(material)}
+              onStartRename={() => setRenameId(material.id)}
+              onCancelRename={() => setRenameId(null)}
+              onSaveRename={(input) => saveRename(material, input)}
+              onDelete={() => void removeMaterial(material)}
+            />
+          ))}
+        </AnimatePresence>
         {isSuccess && !materials.length ? <p className="empty text-secondary">{t(search.trim() ? "reader.noSearchMatches" : "reader.noMaterials")}</p> : null}
       </div>
       <MaterialImportDialog
@@ -189,7 +193,10 @@ interface MaterialRowProps {
   onDelete: () => void;
 }
 
-/** One `.material-row`: title button or inline rename form, status meta, progress bar and the rename/delete actions. */
+/**
+ * One `.material-row`: title button or inline rename form, status meta, progress bar and the rename/delete actions.
+ * Fades in when added (import) and out when removed (delete, search); an exiting row is inert so it cannot be clicked.
+ */
 function MaterialRow({ material, active, renaming, deleting, wordCount, onOpen, onStartRename, onCancelRename, onSaveRename, onDelete }: MaterialRowProps) {
   const t = useT();
   const state = materialRowState(material);
@@ -221,7 +228,12 @@ function MaterialRow({ material, active, renaming, deleting, wordCount, onOpen, 
   }
 
   return (
-    <div className={cn("material-row", active && "is-active")}>
+    <m.div
+      className={cn("material-row", active && "is-active")}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0, transition: MOTION_FADE }}
+      exit={{ opacity: 0, height: 0, overflow: "hidden", pointerEvents: "none", transition: MOTION_FADE_FAST }}
+    >
       <div className="material-card">
         <div className="material-main">
           {renaming ? (
@@ -283,7 +295,7 @@ function MaterialRow({ material, active, renaming, deleting, wordCount, onOpen, 
           </button>
         </div>
       </div>
-    </div>
+    </m.div>
   );
 }
 

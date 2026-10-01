@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { m } from "motion/react";
 import { Input } from "@/components/ui/input";
 import { errorMessage, type AdminWord, type Language } from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { MOTION_FADE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { defaultNativeLanguage } from "./admin-logic";
 import { useDebouncedValue } from "./use-debounced-value";
@@ -65,7 +67,13 @@ function WordRow({
   }
 
   return (
-    <div className="admin-words-row flex items-center gap-3 border-b border-line px-3 py-2 last:border-b-0" data-word-id={word.id}>
+    <m.div
+      className="admin-words-row flex items-center gap-3 border-b border-line px-3 py-2 last:border-b-0"
+      data-word-id={word.id}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={MOTION_FADE}
+    >
       <div className="admin-words-term min-w-0 flex-1">
         <div className="truncate text-sm font-semibold text-main">{word.word}</div>
         {word.lemma && word.lemma !== word.word ? <div className="truncate text-xs text-secondary">{word.lemma}</div> : null}
@@ -80,7 +88,7 @@ function WordRow({
         onBlur={() => void handleBlur()}
         onKeyDown={handleKeyDown}
       />
-    </div>
+    </m.div>
   );
 }
 

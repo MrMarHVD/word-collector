@@ -1,9 +1,11 @@
 import { useState, type FormEvent, type UIEvent } from "react";
+import { m } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errorMessage, type AdminUser } from "@/lib/api";
 import { useFormatCount, useT } from "@/lib/i18n";
+import { MOTION_FADE } from "@/lib/motion";
 import { useSessionStore } from "@/stores/session";
 import { bytesToMb, canEditUser, isNearListEnd, limitInputValues, limitsRequest, usersQueryParams } from "./admin-logic";
 import { useAdminViewStore } from "./admin-view-store";
@@ -94,7 +96,12 @@ function UserRow({ row, editable, onSave }: { row: AdminUser; editable: boolean;
   const formatCount = useFormatCount();
   const badgeKey = row.isSuperadmin ? "admin.usersSuperadminBadge" : row.isAdmin ? "admin.usersAdminBadge" : null;
   return (
-    <div className="grid gap-2 rounded-md border border-line bg-muted p-3">
+    <m.div
+      className="grid gap-2 rounded-md border border-line bg-muted p-3"
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={MOTION_FADE}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <span className="min-w-0 flex-1 truncate font-semibold text-main">{row.email}</span>
         {badgeKey ? (
@@ -110,7 +117,7 @@ function UserRow({ row, editable, onSave }: { row: AdminUser; editable: boolean;
         <span>{t("admin.usersMaterialCount", { count: formatCount(row.materialCount) })}</span>
       </div>
       <UserLimitsForm row={row} editable={editable} onSave={onSave} />
-    </div>
+    </m.div>
   );
 }
 

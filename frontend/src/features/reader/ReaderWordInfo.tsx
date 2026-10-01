@@ -1,10 +1,13 @@
 import { useLayoutEffect, useState, type ReactNode, type RefObject } from "react";
+import { m } from "motion/react";
 import { CloseButton } from "@/components/app/CloseButton";
 import { DisambiguationTable, DisambiguationToggle, hasDisambiguation } from "@/components/app/Disambiguation";
 import { TranslationOverride } from "@/components/app/TranslationOverride";
 import { SheetTitle } from "@/components/ui/sheet";
 import type { ReaderToken, WordStatus } from "@/lib/api/types";
+import { useExitHold } from "@/lib/hooks/use-exit-hold";
 import { useT } from "@/lib/i18n";
+import { MOTION_FADE, MOTION_FADE_FAST } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { wordInfoPosition } from "./reader-popup-position";
 import { normalizeStatus } from "./reader-tokens";
@@ -199,10 +202,13 @@ function FragmentRow({ label, value }: { label: string; value: ReactNode }) {
  * The word-info popup (#readerWordInfo, ported from views/reader.js
  * renderReaderWordInfo): beside the tapped word on desktop, a bottom sheet
  * (non-modal sheet) on mobile. Opening, closing and outside clicks are controlled
- * by the page.
+ * by the page. The desktop popup fades and scales in from the word and out again
+ * (the last word stays rendered, inert, until the exit finishes); the mobile
+ * sheet keeps the kit's own animation handling.
  */
 export function ReaderWordInfo({ token, readerTextRef, popupRef, isMobile, mobileFocus, ...handlers }: ReaderWordInfoProps) {
   const { editing } = handlers;
+  const { held, release } = useExitHold(token);
 
   // Position beside the word before paint, so the popup never flashes elsewhere.
   useLayoutEffect(() => {
@@ -214,14 +220,17 @@ export function ReaderWordInfo({ token, readerTextRef, popupRef, isMobile, mobil
     if (!anchor) {
       return;
     }
+    // offset size: unaffected by the entry scale, unlike getBoundingClientRect.
+    const anchorRect = anchor.getBoundingClientRect();
     const { left, top } = wordInfoPosition(
-      anchor.getBoundingClientRect(),
-      popup.getBoundingClientRect(),
+      anchorRect,
+      { width: popup.offsetWidth, height: popup.offsetHeight },
       { width: window.innerWidth, height: window.innerHeight },
       mobileFocus
     );
     popup.style.setProperty("--readerInfoLeft", `${left}px`);
     popup.style.setProperty("--readerInfoTop", `${top}px`);
+    popup.style.setProperty("--readerInfoOrigin", left > anchorRect.left ? "left center" : "right center");
   }, [isMobile, mobileFocus, popupRef, readerTextRef, token, editing]);
 
   if (isMobile) {
@@ -244,8 +253,19 @@ export function ReaderWordInfo({ token, readerTextRef, popupRef, isMobile, mobil
   }
 
   return (
-    <aside ref={popupRef} id="readerWordInfo" className={WORD_INFO_CLASS} hidden={!token}>
-      {token ? <WordInfoBody key={token.id} token={token} {...handlers} renderTitle={(surface) => <strong>{surface}</strong>} /> : null}
-    </aside>
+    <m.aside
+      ref={popupRef}
+      id="readerWordInfo"
+      className={WORD_INFO_CLASS}
+      hidden={!held}
+      aria-hidden={token ? undefined : true}
+      style={token ? undefined : { pointerEvents: "none" }}
+      initial={false}
+      animate={token ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.97 }}
+      transition={token ? MOTION_FADE : MOTION_FADE_FAST}
+      onAnimationComplete={() => !token && release()}
+    >
+      {held ? <WordInfoBody key={held.id} token={held} {...handlers} renderTitle={(surface) => <strong>{surface}</strong>} /> : null}
+    </m.aside>
   );
 }
