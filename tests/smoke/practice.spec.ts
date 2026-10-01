@@ -136,7 +136,7 @@ test.describe("practice", () => {
     await content.locator('[data-practice-panel="settings"]').click();
     await expect(content.getByRole("heading", { name: EN["practice.settingsTitle"] })).toBeVisible();
     await content.locator("#practiceWordsPerSession").fill("2");
-    await content.getByRole("button", { name: EN["settings.save"] }).click();
+    await content.locator("#practiceWordsPerSession").blur();
     await expect(content.locator("#practiceSettingsStatus")).toHaveText(EN["settings.saved"]);
 
     // The setting persists and the two remaining learning words fill the session.
