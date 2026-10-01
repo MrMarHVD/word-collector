@@ -320,7 +320,7 @@
 
 @keyframes reader-page-flip-next {
   0% {
-    opacity: 0.45;
+    opacity: 0.6;
     transform: translateX(26px) rotateY(-5deg);
   }
   100% {
@@ -331,7 +331,7 @@
 
 @keyframes reader-page-flip-prev {
   0% {
-    opacity: 0.45;
+    opacity: 0.6;
     transform: translateX(-26px) rotateY(5deg);
   }
   100% {
@@ -1093,9 +1093,11 @@
 }
 
 /* Focus mode is just text on the page: no panel frame, and the few controls
-   (exit, page turns, progress) are ghosted so they never compete with the
+   (exit, page turns, progress) are muted so they never compete with the
    text. Placed last so these rules win over the panel rules above. */
 .is-reader-focus .reader-layout {
+  /* Muted chrome tone: at least 3:1 against the page in both themes. */
+  --reader-focus-chrome: color-mix(in srgb, var(--text-main) 62%, var(--surface-page));
   background: var(--surface-page);
 }
 
@@ -1109,7 +1111,7 @@
 
 /* Faint side rules mark where the text column begins and ends. */
 .is-reader-focus .reader-text {
-  border-inline: 1px solid color-mix(in srgb, var(--border-main) 60%, transparent);
+  border-inline: 1px solid color-mix(in srgb, var(--text-muted) 80%, transparent);
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--text-muted) 30%, transparent) transparent;
 }
@@ -1128,9 +1130,8 @@
   border-radius: 6px;
   background: transparent;
   box-shadow: none;
-  color: var(--text-muted);
+  color: var(--reader-focus-chrome);
   font-weight: 500;
-  opacity: 0.4;
   transition: opacity 160ms ease;
 }
 
@@ -1139,11 +1140,11 @@
 .is-reader-focus .reader-pagination-controls button:hover:not(:disabled),
 .is-reader-focus .reader-pagination-controls button:focus-visible {
   background: transparent;
-  opacity: 1;
+  color: var(--text-main);
 }
 
 .is-reader-focus .reader-pagination-controls button:disabled {
-  opacity: 0.15;
+  opacity: 0.6;
 }
 
 .is-reader-focus .reader-focus-exit {
@@ -1157,8 +1158,7 @@
 }
 
 .is-reader-focus .reader-pagination-controls #readerPageStatus {
-  color: var(--text-muted);
-  opacity: 0.4;
+  color: var(--reader-focus-chrome);
 }
 
 .is-reader-focus .reader-progress {
@@ -1167,8 +1167,7 @@
 }
 
 .is-reader-focus .reader-progress-bar {
-  background: var(--text-muted);
-  opacity: 0.2;
+  background: var(--reader-focus-chrome);
 }
 
 /* The mobile read-panel rules would otherwise keep the four-row grid whose
