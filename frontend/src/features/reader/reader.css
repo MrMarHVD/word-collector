@@ -1164,5 +1164,15 @@
 
 .is-reader-focus .reader-progress-bar {
   background: var(--text-muted);
-  opacity: 0.3;
+  opacity: 0.2;
+}
+
+/* The mobile read-panel rules would otherwise keep the four-row grid whose
+   hidden toolbar row pushes the text into an auto-sized row. */
+.is-reader-focus .reader-layout.is-reader-read-panel {
+  height: 100dvh;
+}
+
+.is-reader-focus .reader-layout.is-reader-read-panel .reader-panel {
+  grid-template-rows: auto minmax(0, 1fr);
 }
