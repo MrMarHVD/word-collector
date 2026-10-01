@@ -3,7 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { animate, useReducedMotion, type AnimationPlaybackControls } from "motion/react";
 import { SidebarLayout, SidebarOpenButton } from "@/components/app/Sidebar";
 import { toastError } from "@/components/app/toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SettingSelect } from "@/components/app/SettingRow";
+import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import { refreshStudyData } from "@/lib/api/queries";
@@ -738,13 +739,9 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
                 <div className="grid gap-1.5 text-sm font-semibold text-label">
                   <span id="readerWordsPerPageLabel">{t("reader.wordsPerPage")}</span>
                   <Select value={String(wordsPerPage)} onValueChange={changeWordsPerPage}>
-                    <SelectTrigger
-                      id="readerWordsPerPage"
-                      aria-labelledby="readerWordsPerPageLabel"
-                      className="min-h-11 w-full rounded-md border-line bg-panel px-3 text-base font-normal text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus data-[size=default]:h-auto"
-                    >
+                    <SettingSelect id="readerWordsPerPage" aria-labelledby="readerWordsPerPageLabel">
                       <SelectValue />
-                    </SelectTrigger>
+                    </SettingSelect>
                     <SelectContent>
                       {WORDS_PER_PAGE_OPTIONS.map((option) => (
                         <SelectItem key={option} value={option}>

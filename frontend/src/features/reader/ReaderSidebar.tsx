@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import { Sidebar } from "@/components/app/Sidebar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SettingSelect } from "@/components/app/SettingRow";
+import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { MaterialListItem } from "@/lib/api/types";
 import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
@@ -146,13 +147,9 @@ export function ReaderSidebar({
         <div className="reader-setting-row grid gap-2 rounded-lg border border-line bg-panel p-3 text-sm font-semibold text-label" hidden={isMobile}>
           <span id="readerTextWidthLabel">{t("reader.textWidth")}</span>
           <Select value={String(panelWidth)} onValueChange={(value) => setPreferences({ panelWidth: Number(value), focusPanelWidth: Number(value) })}>
-            <SelectTrigger
-              id="readerTextWidth"
-              aria-labelledby="readerTextWidthLabel"
-              className="min-h-11 w-full rounded-md border-line bg-panel px-3 text-base font-normal text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus data-[size=default]:h-auto"
-            >
+            <SettingSelect id="readerTextWidth" aria-labelledby="readerTextWidthLabel">
               <SelectValue />
-            </SelectTrigger>
+            </SettingSelect>
             <SelectContent>
               {widthOptions.map((width) => (
                 <SelectItem key={width} value={String(width)}>
