@@ -21,11 +21,10 @@
 
 /* Collapsible collections sidebar — the vocab pane's instance of the shared
    sidebar shell. Collapsing slides the sidebar out (handled by the shell) and
-   drops its grid column so the word list reclaims the width. */
-.collections-workspace {
-  transition: grid-template-columns 220ms ease;
-}
-
+   drops its grid column so the word list reclaims the width. On desktop
+   CollectionsPage animates the column through --collectionsSidebarColumn (gap
+   included) while `is-sidebar-sliding`; grid-template-columns itself cannot
+   transition between these tracks. */
 .collections-workspace.is-sidebar-collapsed {
   /* Reserve a left gutter wide enough to keep the fixed reopen widget (pinned
      to the viewport's left edge, 42px wide) clear of the word list with a
@@ -36,6 +35,30 @@
     max(0px, calc(42px + 14px - (100vw - min(1180px, 100vw - 32px)) / 2))
     minmax(0, 1fr);
   column-gap: 0;
+}
+
+@media (min-width: 761px) {
+  .collections-workspace.is-sidebar-sliding {
+    grid-template-columns: var(--collectionsSidebarColumn) minmax(0, 1fr);
+    column-gap: 0;
+  }
+
+  /* The sidebar keeps its open width and slides with its column, so its right
+     edge stays one gap short of the column edge while the width animates
+     (260px and 274px are COLLECTIONS_SIDEBAR_WIDTH, and with its gap). */
+  .collections-workspace.is-sidebar-sliding .collections-sidebar,
+  .collections-workspace.is-sidebar-collapsed.is-sidebar-sliding .collections-sidebar {
+    width: 260px;
+    transform: translateX(calc(var(--collectionsSidebarColumn) - 274px));
+    transition: opacity 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@media (min-width: 761px) and (prefers-reduced-motion: reduce) {
+  .collections-workspace .collections-sidebar,
+  .collections-workspace.is-sidebar-sliding .collections-sidebar {
+    transition: none;
+  }
 }
 
 /* The floating reopen button is fixed to the viewport's left gutter, vertically
