@@ -4,9 +4,4 @@
   .settings-layout {
     gap: 12px;
   }
-
-  /* The settings share of the legacy dashboard.css mobile panel padding. */
-  .settings-panel {
-    padding: 16px;
-  }
 }
