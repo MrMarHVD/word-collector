@@ -136,3 +136,51 @@
     height: 40px;
   }
 }
+
+/* Page grid: the category column (sidebar plus gap) beside the works pane. On desktop LibraryPage animates the column through --libraryColumn while `is-sliding`; grid-template-columns itself cannot transition between these tracks. */
+.library-layout {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  align-items: start;
+}
+
+.library-sidebar-column {
+  min-width: 0;
+}
+
+/* The gap to the works pane is the sidebar's own margin, so a collapsed column is exactly 0 wide. */
+.library-sidebar-column > * {
+  margin-right: 16px;
+}
+
+.library-layout.is-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+
+.library-layout.is-collapsed .library-sidebar-column,
+.library-layout.is-sliding .library-sidebar-column {
+  overflow: hidden;
+}
+
+@media (min-width: 761px) {
+  .library-layout.is-sliding {
+    grid-template-columns: var(--libraryColumn) minmax(0, 1fr);
+  }
+
+  /* The sidebar keeps its open width while the column clips it. */
+  .library-layout.is-sliding .library-sidebar-column > * {
+    width: 200px;
+  }
+}
+
+@media (max-width: 760px) {
+  .library-layout,
+  .library-layout.is-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 16px;
+  }
+
+  .library-sidebar-column > * {
+    margin-right: 0;
+  }
+}

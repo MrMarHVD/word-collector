@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState, type UIEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router";
 import { AnimatePresence, useReducedMotion } from "motion/react";
-import { ChevronDownIcon } from "lucide-react";
+import { PanelLeftOpenIcon } from "lucide-react";
 import { useConfirm } from "@/components/app/ConfirmDialog";
 import { FadeIn } from "@/components/app/FadeIn";
 import { toast, toastError } from "@/components/app/toast";
@@ -29,10 +29,12 @@ import { refreshStudyData } from "@/lib/api";
 import type { LibraryCategory, MaterialListItem } from "@/lib/api/types";
 import { useFormatCount, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { useAnimatedSidebar } from "@/lib/hooks/use-animated-sidebar";
+import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { useAssignCategory, useCategories, useLibraryMaterials } from "./data";
-import { CategorySidebar } from "./categories/CategorySidebar";
+import { CategorySidebar, useCategoriesExpanded } from "./categories/CategorySidebar";
 import { LibraryRow } from "./LibraryRow";
-import { LIBRARY_FOCUS_OUTLINE_MS } from "./library";
+import { LIBRARY_FOCUS_OUTLINE_MS, LIBRARY_SIDEBAR_COLUMN_WIDTH } from "./library";
 import "./library.css";
 
 /** The Library route: category and search in the address, works listed with links into the Reader. */
@@ -47,7 +49,10 @@ export default function LibraryPage() {
   const { category, q, focus } = parseLibraryAddress(searchParams);
   const [searchInput, setSearchInput] = useState(q);
   const [importOpen, setImportOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isMobile = useIsMobileLayout();
+  const [categoriesExpanded, setCategoriesExpanded] = useCategoriesExpanded();
+  const layout = useRef<HTMLElement>(null);
+  const sidebarColumn = useRef<HTMLDivElement>(null);
   const [renameId, setRenameId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [outlinedId, setOutlinedId] = useState<number | null>(null);
@@ -61,6 +66,22 @@ export default function LibraryPage() {
   const deleteMaterial = useDeleteMaterial();
   const pending = hasPendingWork(materials);
   const wasPending = useRef(false);
+
+  // Slides the desktop category column open or closed: the grid takes the animated width through --libraryColumn (see library.css).
+  useAnimatedSidebar({
+    collapsed: !categoriesExpanded,
+    enabled: !isMobile,
+    restWidth: (collapsed) => (collapsed ? 0 : LIBRARY_SIDEBAR_COLUMN_WIDTH),
+    sidebar: sidebarColumn,
+    onFrame: (width) => {
+      layout.current?.classList.toggle("is-sliding", width !== null);
+      if (width === null) {
+        layout.current?.style.removeProperty("--libraryColumn");
+      } else {
+        layout.current?.style.setProperty("--libraryColumn", `${width}px`);
+      }
+    }
+  });
 
   const go = useCallback((address: { category: LibraryCategory; q: string }, replace = false) => navigate(libraryPath(address), { replace }), [navigate]);
 
@@ -186,42 +207,34 @@ export default function LibraryPage() {
     }
   }
 
-  const categoryLabel =
-    category === "all"
-      ? t("library.categories.all")
-      : category === "uncategorised"
-        ? t("library.categories.uncategorised")
-        : (categories.find((entry) => entry.id === category)?.name ?? t("library.categories.label"));
   let emptyKey = "";
   if (isSuccess && !materials.length) {
     emptyKey = q ? "reader.noSearchMatches" : category === "all" ? "reader.noMaterials" : "library.emptyCategory";
   }
 
   return (
-    <section id="libraryView" className="grid grid-cols-[200px_minmax(0,1fr)] items-start gap-4 mobile:grid-cols-1">
-      <div className="grid gap-2">
-        <button
-          type="button"
-          className="hidden min-h-11 items-center justify-between gap-2 rounded-lg border border-line bg-panel px-3 text-sm font-semibold text-main mobile:flex"
-          aria-expanded={sidebarOpen}
-          aria-controls="libraryCategories"
-          onClick={() => setSidebarOpen((open) => !open)}
-        >
-          <span className="truncate">{categoryLabel}</span>
-          <ChevronDownIcon aria-hidden="true" className={cn("size-4 shrink-0 transition-transform", sidebarOpen && "rotate-180")} />
-        </button>
-        <div className={cn(!sidebarOpen && "mobile:hidden")}>
-          <CategorySidebar
-            selected={category}
-            onSelect={(next) => {
-              setSidebarOpen(false);
-              go({ category: next, q });
-            }}
-          />
-        </div>
+    <section id="libraryView" ref={layout} className={cn("library-layout", !categoriesExpanded && "is-collapsed")}>
+      <div ref={sidebarColumn} className="library-sidebar-column">
+        <CategorySidebar
+          selected={category}
+          expanded={categoriesExpanded}
+          onExpandedChange={setCategoriesExpanded}
+          onSelect={(next) => go({ category: next, q })}
+        />
       </div>
       <FadeIn className="min-w-0 rounded-lg border border-line bg-panel p-5 shadow-panel mobile:p-3">
         <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className={cn("size-11 shrink-0 border-line bg-panel text-brand mobile:hidden", categoriesExpanded && "hidden")}
+            aria-label={t("library.categories.open")}
+            title={t("library.categories.open")}
+            onClick={() => setCategoriesExpanded(true)}
+          >
+            <PanelLeftOpenIcon aria-hidden="true" />
+          </Button>
           <Input
             id="materialSearch"
             className="h-auto min-h-11 min-w-0 flex-1 mobile:basis-full border-line bg-panel px-3 py-2 text-sm text-main md:text-sm"

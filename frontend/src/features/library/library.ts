@@ -22,3 +22,6 @@ export function firstGrapheme(title: string): string {
 export function readingPercent(readTokens: number, totalTokens: number): number {
   return totalTokens > 0 ? Math.min(100, Math.round((readTokens / totalTokens) * 100)) : 0;
 }
+
+/** The category column's open width in px (sidebar 200 plus the 16px gap); mirrors `.library-layout` in library.css. */
+export const LIBRARY_SIDEBAR_COLUMN_WIDTH = 216;
