@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useT } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Segmented } from "@/components/app/Segmented";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isSuperadminUser, useSessionStore } from "@/stores/session";
 import { resolveAdminSubtab, type AdminRail, type AdminSubtab } from "./admin-logic";
 import { useAdminViewStore } from "./admin-view-store";
@@ -8,7 +10,8 @@ import { SuperadminPanel } from "./SuperadminPanel";
 import { UsersPanel } from "./UsersPanel";
 import { WordsPanel } from "./WordsPanel";
 
-const PANEL_CLASS = "admin-panel rounded-lg border border-line bg-panel p-5 shadow-panel";
+// Card is display:flex, which would override the `hidden` attribute of the inactive rail panels.
+const PANEL_CLASS = "[&[hidden]]:hidden";
 const SUBTABS: AdminSubtab[] = ["admin", "superadmin"];
 const RAILS: AdminRail[] = ["users", "words"];
 
@@ -41,62 +44,52 @@ export default function AdminPage() {
 
   return (
     <section id="adminView" className="tab-view">
-      <div className="local-tabbar admin-subtabs mb-4" role="tablist" aria-label={t("admin.sectionsLabel")}>
-        {SUBTABS.map((value) => (
-          <button
-            key={value}
-            id={value === "superadmin" ? "adminSuperadminSubtab" : undefined}
-            className={cn("local-tab admin-subtab", subtab === value && "is-active")}
-            type="button"
-            role="tab"
-            data-admin-subtab={value}
-            aria-selected={subtab === value}
-            hidden={value === "superadmin" && !superadmin}
-            onClick={() => selectSubtab(value)}
-          >
-            {t(value === "admin" ? "admin.subtabAdmin" : "admin.subtabSuperadmin")}
-          </button>
-        ))}
-      </div>
+      <Tabs className="mb-4" value={subtab} activationMode="manual">
+        <TabsList aria-label={t("admin.sectionsLabel")}>
+          {SUBTABS.filter((value) => value === "admin" || superadmin).map((value) => (
+            <TabsTrigger
+              key={value}
+              id={value === "superadmin" ? "adminSuperadminSubtab" : undefined}
+              value={value}
+              data-admin-subtab={value}
+              onClick={() => selectSubtab(value)}
+            >
+              {t(value === "admin" ? "admin.subtabAdmin" : "admin.subtabSuperadmin")}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       <div data-admin-subtab-panel="admin" hidden={subtab !== "admin"}>
-        <div className="admin-layout flex flex-col gap-4 desktop:flex-row desktop:items-start">
-          <nav
-            id="adminMenu"
-            className="admin-menu flex shrink-0 gap-1 rounded-lg border border-line bg-muted p-1 desktop:w-44 desktop:flex-col"
-            aria-label={t("admin.areasLabel")}
-          >
-            {RAILS.map((value) => (
-              <button
-                key={value}
-                className={cn(
-                  "admin-menu-button flex-1 rounded-md px-3 py-2 text-sm font-semibold text-secondary desktop:text-left",
-                  rail === value && "is-active"
-                )}
-                type="button"
-                data-admin-rail={value}
-                aria-selected={rail === value}
-                onClick={() => selectRail(value)}
-              >
-                {t(value === "users" ? "admin.railUsers" : "admin.railWords")}
-              </button>
-            ))}
-          </nav>
-          <div className="admin-content w-full min-w-0">
-            <section id="adminUsersPanel" className={PANEL_CLASS} data-admin-rail-panel="users" hidden={rail !== "users"}>
-              {subtab === "admin" && rail === "users" ? <UsersPanel key={entry} /> : null}
-            </section>
-            <section id="adminWordsPanel" className={PANEL_CLASS} data-admin-rail-panel="words" hidden={rail !== "words"}>
-              {subtab === "admin" && rail === "words" ? <WordsPanel key={entry} /> : null}
-            </section>
+        <div className="flex flex-col gap-4">
+          <div id="adminMenu">
+            <Segmented
+              className="w-fit"
+              aria-label={t("admin.areasLabel")}
+              value={rail}
+              onValueChange={selectRail}
+              options={RAILS.map((value) => ({
+                value,
+                label: t(value === "users" ? "admin.railUsers" : "admin.railWords"),
+                itemProps: { "data-admin-rail": value }
+              }))}
+            />
+          </div>
+          <div className="w-full min-w-0">
+            <Card id="adminUsersPanel" className={PANEL_CLASS} data-admin-rail-panel="users" hidden={rail !== "users"}>
+              <CardContent>{subtab === "admin" && rail === "users" ? <UsersPanel key={entry} /> : null}</CardContent>
+            </Card>
+            <Card id="adminWordsPanel" className={PANEL_CLASS} data-admin-rail-panel="words" hidden={rail !== "words"}>
+              <CardContent>{subtab === "admin" && rail === "words" ? <WordsPanel key={entry} /> : null}</CardContent>
+            </Card>
           </div>
         </div>
       </div>
 
       <div data-admin-subtab-panel="superadmin" hidden={subtab !== "superadmin"}>
-        <section id="adminSuperadminPanel" className={PANEL_CLASS}>
-          {subtab === "superadmin" ? <SuperadminPanel key={entry} /> : null}
-        </section>
+        <Card id="adminSuperadminPanel" className={PANEL_CLASS}>
+          <CardContent>{subtab === "superadmin" ? <SuperadminPanel key={entry} /> : null}</CardContent>
+        </Card>
       </div>
     </section>
   );

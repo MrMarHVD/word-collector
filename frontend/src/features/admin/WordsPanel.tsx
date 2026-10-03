@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { m } from "motion/react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Text } from "@/components/ui/text";
+import { ListRow } from "@/components/app/ListRow";
+import { Segmented } from "@/components/app/Segmented";
 import { errorMessage, type AdminWord, type Language } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { MOTION_FADE } from "@/lib/motion";
@@ -10,11 +15,15 @@ import { useDebouncedValue } from "./use-debounced-value";
 import { ADMIN_WORDS_PAGE_SIZE, useAdminWordLanguages, useAdminWords, useSaveCanonicalTranslation } from "./queries";
 
 const SEARCH_DEBOUNCE_MS = 250;
-const FIELD_INPUT_CLASS = "min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus";
+const FIELD_LABEL_CLASS = "grid gap-1.5 text-caption font-medium text-label";
 
 /** A muted one-line message inside the panel or list (loading, empty and error states). */
 function WordsMessage({ text }: { text: string }) {
-  return <p className="admin-words-message px-3 py-4 text-sm text-secondary">{text}</p>;
+  return (
+    <Text className="admin-words-message px-4 py-4" tone="muted">
+      {text}
+    </Text>
+  );
 }
 
 /**
@@ -68,25 +77,28 @@ function WordRow({
 
   return (
     <m.div
-      className="admin-words-row flex items-center gap-3 border-b border-line px-3 py-2 last:border-b-0"
+      className="admin-words-row border-b border-line last:border-b-0"
       data-word-id={word.id}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={MOTION_FADE}
     >
-      <div className="admin-words-term min-w-0 flex-1">
-        <div className="truncate text-sm font-semibold text-main">{word.word}</div>
-        {word.lemma && word.lemma !== word.word ? <div className="truncate text-xs text-secondary">{word.lemma}</div> : null}
-      </div>
-      <Input
-        className="admin-words-translation h-auto min-h-9 flex-1 bg-panel px-2 text-sm text-main"
-        type="text"
-        value={value}
-        placeholder={t("admin.words.translationPlaceholder")}
-        disabled={saving}
-        onChange={(event) => setValue(event.target.value)}
-        onBlur={() => void handleBlur()}
-        onKeyDown={handleKeyDown}
+      <ListRow
+        className="border-b-0"
+        title={<span className="admin-words-term">{word.word}</span>}
+        meta={word.lemma && word.lemma !== word.word ? word.lemma : null}
+        actions={
+          <Input
+            className="admin-words-translation w-48 mobile:w-36"
+            type="text"
+            value={value}
+            placeholder={t("admin.words.translationPlaceholder")}
+            disabled={saving}
+            onChange={(event) => setValue(event.target.value)}
+            onBlur={() => void handleBlur()}
+            onKeyDown={handleKeyDown}
+          />
+        }
       />
     </m.div>
   );
@@ -129,7 +141,7 @@ function WordsList({ languageId, nativeLanguage, search }: { languageId: number;
   const loadError = words.error ? errorMessage(words.error, t("admin.words.loadError")) : "";
 
   return (
-    <div ref={listRef} className="admin-words-list max-h-[28rem] overflow-y-auto rounded-md border border-line">
+    <div ref={listRef} className="admin-words-list max-h-[28rem] overflow-y-auto">
       {words.isPending ? <WordsMessage text={t("admin.words.loading")} /> : null}
       {!words.isPending && !rows.length && !loadError ? <WordsMessage text={t("admin.words.noWords")} /> : null}
       {rows.map((word) => (
@@ -149,28 +161,20 @@ function LanguagePicker({ languages, selectedId, onSelect }: { languages: Langua
   const t = useT();
   return (
     <div className="grid gap-1.5">
-      <span className="text-sm font-semibold text-label">{t("admin.words.sourceLanguage")}</span>
-      <div className="admin-words-languages flex flex-wrap gap-1 rounded-lg border border-line bg-muted p-1" role="radiogroup">
-        {languages.map((language) => {
-          const active = language.id === selectedId;
-          return (
-            <button
-              key={language.id}
-              type="button"
-              className={cn(
-                "admin-words-language rounded-md px-3 py-1.5 text-sm font-semibold text-secondary",
-                active && "is-active bg-panel text-main shadow-panel"
-              )}
-              role="radio"
-              data-language-id={language.id}
-              aria-checked={active}
-              onClick={() => onSelect(language.id)}
-            >
-              {language.name}
-            </button>
-          );
-        })}
-      </div>
+      <Text variant="caption" tone="label" className="font-medium">
+        {t("admin.words.sourceLanguage")}
+      </Text>
+      <Segmented
+        className="admin-words-languages w-fit max-w-full flex-wrap"
+        aria-label={t("admin.words.sourceLanguage")}
+        value={String(selectedId)}
+        onValueChange={(id) => onSelect(Number(id))}
+        options={languages.map((language) => ({
+          value: String(language.id),
+          label: language.name,
+          itemProps: { className: "admin-words-language", "data-language-id": String(language.id) }
+        }))}
+      />
     </div>
   );
 }
@@ -204,36 +208,36 @@ export function WordsPanel() {
   return (
     <div className="admin-words grid gap-4">
       <div className="grid gap-1">
-        <h2 className="text-base font-bold">{t("admin.words.title")}</h2>
-        <p className="text-sm text-secondary">{t("admin.words.subtitle")}</p>
+        <Text variant="heading">{t("admin.words.title")}</Text>
+        <Text tone="muted">{t("admin.words.subtitle")}</Text>
       </div>
       <div className="grid gap-3">
         <LanguagePicker languages={languages} selectedId={selectedId} onSelect={setLanguageId} />
         <div className="flex flex-col gap-3 desktop:flex-row desktop:items-end">
-          <label className="grid gap-1.5 text-sm font-semibold text-label desktop:w-48">
+          <Label className={cn(FIELD_LABEL_CLASS, "desktop:w-48")}>
             <span>{t("admin.words.nativeLanguage")}</span>
-            <select className={cn("admin-words-native", FIELD_INPUT_CLASS)} value={selectedNative} onChange={(event) => setNativeLanguage(event.target.value)}>
+            <NativeSelect className="admin-words-native" value={selectedNative} onChange={(event) => setNativeLanguage(event.target.value)}>
               {nativeOptions.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
               ))}
-            </select>
-          </label>
-          <label className="grid gap-1.5 text-sm font-semibold text-label desktop:flex-1">
+            </NativeSelect>
+          </Label>
+          <Label className={cn(FIELD_LABEL_CLASS, "desktop:flex-1")}>
             <span>{t("admin.words.search")}</span>
             <Input
-              className="admin-words-search h-11 bg-panel text-main"
+              className="admin-words-search"
               type="search"
               placeholder={t("admin.words.searchPlaceholder")}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
-          </label>
+          </Label>
         </div>
       </div>
       {selectedId == null ? (
-        <div className="admin-words-list max-h-[28rem] overflow-y-auto rounded-md border border-line">
+        <div className="admin-words-list max-h-[28rem] overflow-y-auto">
           <WordsMessage text={t("admin.words.noLanguages")} />
         </div>
       ) : (
