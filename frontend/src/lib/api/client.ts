@@ -3,7 +3,7 @@
  *
  * - Requests are same-origin (`/api/*`, proxied to the backend by Vite in dev)
  *   and always send the session cookie.
- * - Unsafe methods (POST, PATCH, DELETE) carry the `x-csrf-token` header; the
+ * - Unsafe methods (POST, PUT, PATCH, DELETE) carry the `x-csrf-token` header; the
  *   token is fetched lazily from GET /api/auth/me and rotated from any
  *   response body that contains `csrfToken`. A request the server rejects
  *   with `errors.csrfInvalid` (the token expired or belongs to an older
@@ -21,7 +21,7 @@ import { t } from "@/lib/i18n";
 export type QueryValue = string | number | boolean | null | undefined;
 
 export interface RequestOptions {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   /** JSON-serialised unless it is FormData (sent as multipart without a content-type). */
   body?: unknown;
   /** Appended as a query string; null, undefined and "" values are skipped. */
@@ -57,7 +57,7 @@ export class ApiError extends Error {
   }
 }
 
-const UNSAFE_METHODS = new Set(["POST", "PATCH", "DELETE"]);
+const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const CSRF_INVALID_ERROR_KEY = "errors.csrfInvalid";
 
 let csrfToken: string | null = null;

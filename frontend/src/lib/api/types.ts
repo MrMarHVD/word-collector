@@ -180,7 +180,17 @@ export interface Material {
 /** Row of GET /api/materials. */
 export interface MaterialListItem extends Material {
   translationStatus: TranslationStatus;
+  /** The work's category, or null when uncategorised. */
+  categoryId: number | null;
+  /** When the work was last opened in the Reader (ISO), or null if never. */
+  lastOpenedAt: string | null;
+  /** Reading progress: tokens read out of the work's total tokens. */
+  readTokens: number;
+  totalTokens: number;
 }
+
+/** Which works the Library shows: every work, the uncategorised ones, or one category (by id). */
+export type LibraryCategory = "all" | "uncategorised" | number;
 
 /** Material as returned by the single-material endpoints. */
 export interface MaterialDetail extends Material {
@@ -193,6 +203,8 @@ export interface MaterialsParams {
   languageId: number;
   offset?: number;
   search?: string;
+  /** Category filter; default "all". */
+  category?: LibraryCategory;
 }
 
 export interface MaterialsResponse {
@@ -256,6 +268,13 @@ export interface MaterialReaderResponse {
 export interface UpdateMaterialRequest {
   title?: string;
   readerStart?: number;
+  /** Category to move the work into; null makes it uncategorised. */
+  categoryId?: number | null;
+}
+
+/** Response of POST /api/materials/:id/opened. */
+export interface MaterialOpenedResponse {
+  lastOpenedAt: string;
 }
 
 export interface MaterialResponse {
@@ -265,6 +284,50 @@ export interface MaterialResponse {
 export interface DeletedResponse {
   deleted: true;
   id: number;
+}
+
+// ---------------------------------------------------------------- categories
+
+/** A user-defined Library category. */
+export interface Category {
+  id: number;
+  name: string;
+  /** Display order, ascending. */
+  position: number;
+  materialCount: number;
+}
+
+/** Response of GET /api/categories (categories ordered by position). */
+export interface CategoriesResponse {
+  categories: Category[];
+  /** Number of works in the study language (the "All" count). */
+  totalCount: number;
+  uncategorisedCount: number;
+}
+
+export interface CreateCategoryRequest {
+  languageId: number;
+  name: string;
+}
+
+export interface ReorderCategoriesRequest {
+  languageId: number;
+  /** Exactly the user's categories for the language, in the new order. */
+  ids: number[];
+}
+
+/** Response of the create and rename endpoints. */
+export interface CategoryResponse {
+  category: Category;
+}
+
+export interface ReorderCategoriesResponse {
+  categories: Category[];
+}
+
+/** Response of DELETE /api/categories/:id. */
+export interface OkResponse {
+  ok: true;
 }
 
 // ---------------------------------------------------------------- words
