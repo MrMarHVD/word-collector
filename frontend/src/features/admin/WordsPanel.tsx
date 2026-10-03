@@ -169,10 +169,11 @@ function LanguagePicker({ languages, selectedId, onSelect }: { languages: Langua
         aria-label={t("admin.words.sourceLanguage")}
         value={String(selectedId)}
         onValueChange={(id) => onSelect(Number(id))}
+        // flex-none lets long language names size to content and wrap instead of overflowing onto neighbours.
         options={languages.map((language) => ({
           value: String(language.id),
           label: language.name,
-          itemProps: { className: "admin-words-language", "data-language-id": String(language.id) }
+          itemProps: { className: "admin-words-language flex-none", "data-language-id": String(language.id) }
         }))}
       />
     </div>
