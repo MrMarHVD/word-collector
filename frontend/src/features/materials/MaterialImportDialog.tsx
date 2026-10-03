@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
 import { errorMessage } from "@/lib/api";
 import type { MaterialDetail } from "@/lib/api/types";
 import { useT } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 import { importProgress, validateImportFile } from "./materials";
 import { useMaterialsList, useUploadMaterial } from "./use-materials";
 
@@ -110,21 +110,13 @@ export function MaterialImportDialog({ open, onOpenChange, onImportStarted }: Ma
             {t("reader.importButton")}
           </Button>
           {progressActive ? (
-            <div
-              id="materialImportProgress"
-              className="mt-3"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={importing && progress.determinate ? progress.percent : undefined}
-            >
-              <div className="h-2 w-full overflow-hidden rounded-control bg-muted">
-                <div
-                  id="materialImportProgressBar"
-                  className={cn("h-full rounded-control bg-primary transition-all duration-500", !progress.determinate && !failed && "animate-pulse")}
-                  style={{ width: `${progress.percent}%` }}
-                />
-              </div>
+            <div id="materialImportProgress" className="mt-3">
+              <Progress
+                value={progress.percent}
+                indeterminate={importing && !progress.determinate}
+                aria-label={progressLabel}
+                indicatorProps={{ id: "materialImportProgressBar" }}
+              />
               <Text id="materialImportProgressLabel" variant="caption" tone="muted" className="mt-1 block">
                 {progressLabel}
               </Text>

@@ -35,9 +35,11 @@ import {
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { FloatingPanel } from "@/components/ui/floating-panel";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -238,6 +240,11 @@ export function ComponentShowcase() {
             <Slider aria-label="slider" value={volume} onValueChange={setVolume} />
             <Slider aria-label="slider disabled" defaultValue={[60]} disabled />
           </div>
+          <div className="grid max-w-sm gap-3">
+            <Progress aria-label="progress md" value={60} />
+            <Progress aria-label="progress sm" size="sm" value={35} />
+            <Progress aria-label="progress indeterminate" indeterminate />
+          </div>
         </div>
       </Block>
 
@@ -256,6 +263,11 @@ export function ComponentShowcase() {
             }
           />
           <ListRow selected title={t("styleguide.sampleTitle")} meta={t("styleguide.sampleMeta")} trailing={t("styleguide.sampleValue")} />
+          <ListRow
+            title={t("styleguide.sampleTitle")}
+            meta={t("styleguide.sampleMeta")}
+            below={<Input aria-label={t("styleguide.sampleLabel")} className="max-w-xs" />}
+          />
         </Card>
       </Block>
 
@@ -266,6 +278,11 @@ export function ComponentShowcase() {
               {variant}
             </Badge>
           ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-4 text-body">
+          <span className="text-status-unknown-text">text-status-unknown-text</span>
+          <span className="text-status-learning-text">text-status-learning-text</span>
+          <span className="text-status-known-text">text-status-known-text</span>
         </div>
       </Block>
 
@@ -409,6 +426,9 @@ export function ComponentShowcase() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <FloatingPanel open className="static w-72">
+            <Text variant="body">{t("styleguide.dialogText")}</Text>
+          </FloatingPanel>
           <Button variant="secondary" onClick={() => toast.success(t("styleguide.toastText"))}>
             {t("styleguide.showToast")}
           </Button>

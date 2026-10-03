@@ -1,5 +1,4 @@
 import { useId, useLayoutEffect, useState, type ReactNode, type RefObject } from "react";
-import { m } from "motion/react";
 import { CloseButton } from "@/components/app/CloseButton";
 import { DisambiguationTable, DisambiguationToggle, hasDisambiguation } from "@/components/app/Disambiguation";
 import { TranslationOverride } from "@/components/app/TranslationOverride";
@@ -7,12 +6,12 @@ import { Segmented } from "@/components/app/Segmented";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { FloatingPanel } from "@/components/ui/floating-panel";
 import { SheetTitle } from "@/components/ui/sheet";
 import { Text } from "@/components/ui/text";
 import type { ReaderToken, WordStatus } from "@/lib/api/types";
 import { useExitHold } from "@/lib/hooks/use-exit-hold";
 import { useT } from "@/lib/i18n";
-import { MOTION_FADE, MOTION_FADE_FAST } from "@/lib/motion";
 import { wordInfoPosition } from "./reader-popup-position";
 import { normalizeStatus } from "./reader-tokens";
 import { ReaderSheet } from "./ReaderSheet";
@@ -262,18 +261,7 @@ export function ReaderWordInfo({ token, readerTextRef, popupRef, isMobile, mobil
   }
 
   return (
-    <m.aside
-      ref={popupRef}
-      id="readerWordInfo"
-      className={WORD_INFO_CLASS}
-      hidden={!held}
-      aria-hidden={token ? undefined : true}
-      style={token ? undefined : { pointerEvents: "none" }}
-      initial={false}
-      animate={token ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.97 }}
-      transition={token ? MOTION_FADE : MOTION_FADE_FAST}
-      onAnimationComplete={() => !token && release()}
-    >
+    <FloatingPanel ref={popupRef} id="readerWordInfo" className={WORD_INFO_CLASS} hidden={!held} open={token !== null} onExitComplete={release}>
       {held ? (
         <WordInfoBody
           key={held.id}
@@ -286,6 +274,6 @@ export function ReaderWordInfo({ token, readerTextRef, popupRef, isMobile, mobil
           )}
         />
       ) : null}
-    </m.aside>
+    </FloatingPanel>
   );
 }

@@ -26,6 +26,10 @@
   --color-status-unknown: var(--status-unknown);
   --color-status-learning: var(--status-learning);
   --color-status-known: var(--status-known);
+  /* Text-safe status colours: `text-status-*-text` (the plain `text-status-*` would be the low-contrast fill). */
+  --color-status-unknown-text: var(--status-unknown-text);
+  --color-status-learning-text: var(--status-learning-text);
+  --color-status-known-text: var(--status-known-text);
   --color-gold: var(--unknown);
   --color-danger: var(--danger);
 

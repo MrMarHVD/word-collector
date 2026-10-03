@@ -23,11 +23,11 @@ import { ListRow } from "@/components/app/ListRow";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { importProgress, materialRowState } from "@/features/materials";
 import type { Category, MaterialListItem } from "@/lib/api/types";
 import { useT } from "@/lib/i18n";
 import { MOTION_FADE, MOTION_FADE_FAST } from "@/lib/motion";
-import { cn } from "@/lib/utils";
 import { firstGrapheme, MATERIAL_DRAG_TYPE, readingPercent } from "./library";
 
 export interface LibraryRowProps {
@@ -157,19 +157,13 @@ export function LibraryRow({
           <>
             <span className="block truncate">{meta}</span>
             {state === "ready" || importing ? (
-              <div
-                className="mt-1 h-1.5 overflow-hidden rounded-control bg-muted"
-                role="progressbar"
+              <Progress
+                size="sm"
+                className="mt-1"
                 aria-label={t(importing ? "reader.importingMaterial" : "library.row.readingProgress")}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={importing ? (importing.determinate ? importing.percent : undefined) : percent}
-              >
-                <div
-                  className={cn("h-full rounded-control bg-primary transition-[width] duration-500", importing && !importing.determinate && "animate-pulse")}
-                  style={{ width: `${importing ? importing.percent : percent}%` }}
-                />
-              </div>
+                value={importing ? importing.percent : percent}
+                indeterminate={importing ? !importing.determinate : false}
+              />
             ) : null}
           </>
         }

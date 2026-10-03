@@ -109,7 +109,7 @@ export function PracticeSessionView() {
         <Button
           variant="secondary"
           size="lg"
-          className="border-status-unknown/50 text-(--status-unknown-text)"
+          className="border-status-unknown/50 text-status-unknown-text"
           data-practice-answer="unknown"
           disabled={!session.flipped}
           onClick={() => void answer("unknown")}
@@ -119,7 +119,7 @@ export function PracticeSessionView() {
         <Button
           variant="secondary"
           size="lg"
-          className="border-status-known/50 text-(--status-known-text)"
+          className="border-status-known/50 text-status-known-text"
           data-practice-answer="known"
           disabled={!session.flipped}
           onClick={() => void answer("known")}
