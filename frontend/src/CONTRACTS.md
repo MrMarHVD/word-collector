@@ -381,6 +381,13 @@ LIB-003 owns LibraryPage, LIB-004 owns the sidebar).
   from useCategories() and calling assign.
 - Ids: the sidebar root is #libraryCategories; each category item has
   data-category="all" | "uncategorised" | "<id>".
+- Collapse (LIB-004): CategorySidebar takes optional `expanded` and
+  `onExpandedChange(expanded)`. With `expanded` set it is controlled: collapsed,
+  it renders nothing on desktop (the page shows the re-open button) and keeps
+  its header toggle on mobile. Without it, it persists its own state.
+  `useCategoriesExpanded()` (categories/CategorySidebar.tsx) returns
+  [expanded, setExpanded] persisted under wordMarkerLibraryCategoriesExpanded
+  (default expanded), for the page to own.
 ```
 
 Implementation notes (LIB-002):
