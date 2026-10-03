@@ -146,7 +146,7 @@ test.describe("collections", () => {
 
     // Mark one word as known.
     await row(page, "w1").locator('.status-toggle [data-status="known"]').click();
-    await expect(row(page, "w1").locator('.status-toggle [data-status="known"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(row(page, "w1").locator('.status-toggle [data-status="known"]')).toHaveAttribute("aria-checked", "true");
 
     // Select two rows and mark both as learning in one go.
     await row(page, "w2").locator(".word-cell-main").click();
@@ -154,9 +154,9 @@ test.describe("collections", () => {
     await expect(row(page, "w2")).toHaveAttribute("aria-selected", "true");
     await expect(row(page, "w3")).toHaveAttribute("aria-selected", "true");
     await row(page, "w2").locator('.status-toggle [data-status="learning"]').click();
-    await expect(row(page, "w2").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-pressed", "true");
-    await expect(row(page, "w3").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-pressed", "true");
-    await expect(row(page, "w4").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-pressed", "false");
+    await expect(row(page, "w2").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-checked", "true");
+    await expect(row(page, "w3").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-checked", "true");
+    await expect(row(page, "w4").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-checked", "false");
 
     // Drag a selected word onto another collection to move it there.
     await row(page, "w4").locator(".word-cell-main").click();
@@ -182,8 +182,8 @@ test.describe("collections", () => {
     await collectionButton(page, COLLECTION_A).click();
     await expect(rows(page)).toHaveCount(3);
     await expect(row(page, "w1").locator(".translation-override-text")).toHaveText("edited one");
-    await expect(row(page, "w1").locator('.status-toggle [data-status="known"]')).toHaveAttribute("aria-pressed", "true");
-    await expect(row(page, "w3").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(row(page, "w1").locator('.status-toggle [data-status="known"]')).toHaveAttribute("aria-checked", "true");
+    await expect(row(page, "w3").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-checked", "true");
     await collectionButton(page, COLLECTION_B).click();
     await expect(rows(page)).toHaveCount(1);
     await expect(row(page, "w4")).toBeVisible();
