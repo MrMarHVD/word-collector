@@ -62,10 +62,10 @@
   color-scheme: light;
 
   /* Surfaces */
-  --surface-page: oklch(0.985 0 0);
+  --surface-page: oklch(0.96 0.005 230);
   --surface-panel: oklch(1 0 0);
-  --surface-subtle: oklch(0.967 0 0);
-  --surface-muted: oklch(0.955 0 0);
+  --surface-subtle: oklch(0.955 0.004 230);
+  --surface-muted: oklch(0.94 0.004 230);
   --surface-reader: oklch(0.975 0.014 85);
 
   /* Text */
