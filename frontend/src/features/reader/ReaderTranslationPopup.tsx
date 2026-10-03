@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, type ReactNo
 import { m } from "motion/react";
 import { CloseButton } from "@/components/app/CloseButton";
 import { SheetTitle } from "@/components/ui/sheet";
+import { Text } from "@/components/ui/text";
 import { useExitHold } from "@/lib/hooks/use-exit-hold";
 import { useT } from "@/lib/i18n";
 import { MOTION_FADE, MOTION_FADE_FAST } from "@/lib/motion";
@@ -16,8 +17,8 @@ const ERROR_KEYS: Partial<Record<TranslationErrorCode, string>> = {
   failed: "reader.translation.error.failed"
 };
 
-/** Base classes of #readerTranslation (legacy index.html); reader.css turns it into a sheet on mobile. */
-const TRANSLATION_CLASS = "reader-translation fixed z-10 rounded-lg border border-line bg-panel p-3.5 shadow-panel";
+/** Classes of #readerTranslation: a floating layer (glass); reader.css positions it and turns it into a sheet on mobile. */
+const TRANSLATION_CLASS = "reader-translation fixed z-10 rounded-container p-4 text-main glass shadow-float";
 
 /** What the open popup shows (SPEC-002 contract C4 states). */
 export interface ReaderTranslationState {
@@ -46,13 +47,13 @@ export interface ReaderTranslationPopupProps {
 function TranslationResult({ translation }: { translation: ReaderTranslationState }) {
   const t = useT();
   if (translation.status === "done") {
-    return <p className="reader-translation-target">{translation.targetText ?? ""}</p>;
+    return <Text className="reader-translation-target break-words font-reading leading-[1.6]">{translation.targetText ?? ""}</Text>;
   }
   if (translation.status === "error") {
     return (
-      <p className="reader-translation-message is-error" role="alert">
+      <Text className="reader-translation-message break-words text-destructive" role="alert">
         {t(ERROR_KEYS[translation.errorCode ?? "failed"] ?? ERROR_KEYS.failed!)}
-      </p>
+      </Text>
     );
   }
   let message = t("reader.translation.translating");
@@ -62,7 +63,11 @@ function TranslationResult({ translation }: { translation: ReaderTranslationStat
       ? t("reader.translation.loadingModelProgress", { percent: Math.min(100, Math.max(0, Math.round((progress.loaded / progress.total) * 100))) })
       : t("reader.translation.loadingModel");
   }
-  return <p className="reader-translation-message">{message}</p>;
+  return (
+    <Text tone="label" className="reader-translation-message break-words">
+      {message}
+    </Text>
+  );
 }
 
 /** The popup's content: the original word by word above its translation. */
@@ -70,23 +75,23 @@ function TranslationBody({ translation, onClose, title }: { translation: ReaderT
   const t = useT();
   return (
     <>
-      <div className="reader-translation-head">
+      <div className="mb-2 flex items-center justify-between gap-3">
         {title(t("reader.translation.original"))}
         <CloseButton label={t("reader.closeTranslation")} data-reader-translation-close onClick={onClose} />
       </div>
-      <p className="reader-translation-source">
+      <Text variant="heading" className="mb-3 break-words border-b border-line pb-3 font-reading font-normal leading-[1.6]">
         {segmentSourcePieces(translation.words).map((piece, index) => (
           <Fragment key={index}>
             {piece.leading}
-            <span className="reader-translation-word" data-source-word-index={index}>
-              {piece.surface}
-            </span>
+            <span data-source-word-index={index}>{piece.surface}</span>
             {piece.trailing}
           </Fragment>
         ))}
-      </p>
-      <span className="reader-translation-label">{t("reader.translation.target")}</span>
-      <div className="reader-translation-result" data-reader-translation-result aria-live="polite">
+      </Text>
+      <Text variant="caption" tone="label" className="block font-medium">
+        {t("reader.translation.target")}
+      </Text>
+      <div className="mt-1.5" data-reader-translation-result aria-live="polite">
         <TranslationResult translation={translation} />
       </div>
     </>
@@ -176,7 +181,9 @@ export function ReaderTranslationPopup({ translation, getAnchorRect, readerTextR
             onClose={onClose}
             title={(label) => (
               <SheetTitle asChild>
-                <span className="reader-translation-label">{label}</span>
+                <Text variant="caption" tone="label" className="font-medium">
+                  {label}
+                </Text>
               </SheetTitle>
             )}
           />
@@ -198,7 +205,17 @@ export function ReaderTranslationPopup({ translation, getAnchorRect, readerTextR
       transition={open ? MOTION_FADE : MOTION_FADE_FAST}
       onAnimationComplete={() => !open && release()}
     >
-      {held ? <TranslationBody translation={held} onClose={onClose} title={(label) => <span className="reader-translation-label">{label}</span>} /> : null}
+      {held ? (
+        <TranslationBody
+          translation={held}
+          onClose={onClose}
+          title={(label) => (
+            <Text variant="caption" tone="label" className="font-medium">
+              {label}
+            </Text>
+          )}
+        />
+      ) : null}
     </m.aside>
   );
 }
