@@ -357,7 +357,8 @@ test.describe("reader sentence translation", () => {
       }
     });
     await page.reload();
-    await selectMaterial(page);
+    await expect(tokens(page).first()).toBeVisible();
+    await page.waitForLoadState("networkidle");
     await mouseSelect(page, 0, 3);
     await expect(popup.locator(".reader-translation-target")).not.toBeEmpty({ timeout: 60_000 });
     expect([...responseUrls.values()].some((url) => url.endsWith("/src/main.tsx")), "network capture is working").toBe(true);

@@ -110,10 +110,10 @@ async function removeAddedListWords() {
   }
 }
 
-/** Shows the document list, which sits behind the Documents tab when the reader is open. */
+/** Shows the document list, which sits in the Library: an open reader is left through its exit button. */
 async function showDocuments(page: Page) {
   if (!(await page.locator("#materialImportOpen").isVisible())) {
-    await page.locator('[data-reader-sidebar-tab="documents"]:visible').first().click();
+    await page.locator("#readerFocusExit").click();
   }
   await expect(page.locator("#materialImportOpen")).toBeVisible();
 }
@@ -186,8 +186,8 @@ test.describe("material imports", () => {
 
       // After a reload it is still listed with its file type and opens again.
       await page.reload();
-      await page.locator("#localeSelect").selectOption("en");
       await showDocuments(page);
+      await page.locator("#localeSelect").selectOption("en");
       const listRow = page.locator("#materialList .material-row", { has: page.locator(`[data-material-id="${materialId}"]`) });
       await expect(listRow).toContainText(fill(EN["reader.materialMeta"].split("{words}")[0], { type: fixture.type.toUpperCase() }));
       await openFromList(page, titleButton, title);
