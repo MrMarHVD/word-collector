@@ -282,7 +282,7 @@ test.describe("library and reader", () => {
     const { context, page } = await newPage(browser);
     await page.goto("/dashboard");
     await page.locator('[data-dashboard-stats-tab="documents"]').click();
-    await page.locator(".chart-card-link", { hasText: ALPHA }).click();
+    await page.locator("[data-dashboard-document-link]", { hasText: ALPHA }).click();
 
     // The work is outlined in place under All, and the address drops the focus parameter.
     await expect(page).toHaveURL(/\/library(\?category=all)?$/);
