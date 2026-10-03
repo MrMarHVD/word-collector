@@ -26,7 +26,7 @@ const COLOURS = [
   ["status-known", "var(--status-known)"],
   ["danger", "var(--danger)"]
 ] as const;
-const RADII = ["control", "container", "pill"] as const;
+const RADII = ["control-sm", "control", "container", "pill"] as const;
 const TEXT_STYLES = ["title", "heading", "body", "caption"] as const;
 const WEIGHTS = [
   ["400", "font-normal"],
