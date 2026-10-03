@@ -1,21 +1,20 @@
 import type { ComponentProps } from "react";
-import { cn } from "@/lib/utils";
+import { XIcon } from "lucide-react";
+import { IconButton } from "@/components/ui/icon-button";
 
-export interface CloseButtonProps extends Omit<ComponentProps<"button">, "children" | "type"> {
+export interface CloseButtonProps extends Omit<ComponentProps<typeof IconButton>, "children" | "type" | "aria-label" | "variant"> {
   /** Localised accessible label (e.g. t("common.close")). */
   label: string;
 }
 
 /**
- * Circular close button with a centred SVG × (the legacy `.close-button`).
- * Extra props (onClick, data-* test hooks, className) pass through to the button.
+ * Canonical close button: an `IconButton` with a × icon. Extra props (onClick, data-* test hooks,
+ * className) pass through to the button.
  */
-export function CloseButton({ label, className, ...props }: CloseButtonProps) {
+export function CloseButton({ label, ...props }: CloseButtonProps) {
   return (
-    <button type="button" className={cn("close-button", className)} aria-label={label} {...props}>
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="close-button-icon">
-        <path d="M6 6l12 12M18 6L6 18" />
-      </svg>
-    </button>
+    <IconButton data-slot="close-button" size="sm" aria-label={label} {...props}>
+      <XIcon />
+    </IconButton>
   );
 }

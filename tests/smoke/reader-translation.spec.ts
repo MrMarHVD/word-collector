@@ -284,8 +284,10 @@ test.describe("reader sentence translation", () => {
     expect(messages.some((message) => message.startsWith(EN["reader.translation.loadingModel"]))).toBe(true);
     const translationRequests = requests.slice(windowStart).map((entry) => new URL(entry.split("\n")[0]).pathname);
     expect(translationRequests.some((pathname) => pathname.startsWith("/models/ja-en-2.1/"))).toBe(true);
+    // Same-origin font slices (self-hosted Noto JP/SC unicode-range subsets) may load lazily while the popup renders
+    // new glyphs; they carry no user text. The selected text itself is checked for leaks separately below.
     for (const pathname of translationRequests) {
-      expect(pathname, "unexpected request during translation").toMatch(/^\/(vendor\/bergamot-0\.4\.9|models)\//);
+      expect(pathname, "unexpected request during translation").toMatch(/^\/(vendor\/bergamot-0\.4\.9|models)\/|\.woff2$/);
     }
 
     // A new selection replaces the content; the final result matches the newest selection.

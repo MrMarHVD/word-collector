@@ -7,9 +7,10 @@
 @import "tw-animate-css";
 @import "./theme.css";
 @import "./shadcn.css";
+@import "./fonts.css";
+@import "./glass.css";
 @import "./base.css";
 @import "./components.css";
-@import "./shell.css";
 
 @source "../";
 

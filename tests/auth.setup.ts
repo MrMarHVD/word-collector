@@ -38,7 +38,7 @@ setup("authenticate", async ({ page }) => {
   }
 
   await expect(page.locator("#appShell")).toBeVisible();
-  await expect(page.locator(".tab-button").first()).toBeVisible();
+  await expect(page.locator('nav.tabs [role="tab"]').first()).toBeVisible();
 
   await page.context().storageState({ path: AUTH_FILE });
 });

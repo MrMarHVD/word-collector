@@ -39,10 +39,10 @@ export function SettingRow({ label, description, htmlFor, labelId, stacked = fal
       {...props}
     >
       <FieldContent className="gap-0.5">
-        <FieldLabel id={labelId} htmlFor={htmlFor} className="text-sm font-semibold text-main">
+        <FieldLabel id={labelId} htmlFor={htmlFor} className="text-body font-medium text-main">
           {label}
         </FieldLabel>
-        {description ? <FieldDescription className="text-xs text-secondary">{description}</FieldDescription> : null}
+        {description ? <FieldDescription className="text-caption text-secondary">{description}</FieldDescription> : null}
       </FieldContent>
       <div className={cn("flex shrink-0 items-center justify-end", stacked && "w-56 mobile:w-full")}>{children}</div>
     </Field>
@@ -50,19 +50,22 @@ export function SettingRow({ label, description, htmlFor, labelId, stacked = fal
 }
 
 export interface SettingSectionProps extends Omit<ComponentProps<"section">, "title"> {
-  /** Small uppercase heading above the container. */
+  /** Heading above the container (caption style, normal case). */
   title: ReactNode;
+  /** `card` (default): bordered container. `inset`: no border or fill, rows flush with the section edge; use inside a floating panel or card so surfaces are not nested. */
+  variant?: "card" | "inset";
 }
 
 /**
- * A titled group of settings: one bordered container whose children (usually
- * `SettingRow`s) are divided by a `Separator`.
+ * A titled group of settings: one bordered container (`variant="card"`) or a
+ * borderless group (`variant="inset"`) whose children (usually `SettingRow`s)
+ * are divided by a `Separator`.
  */
-export function SettingSection({ title, className, children, ...props }: SettingSectionProps) {
+export function SettingSection({ title, variant = "card", className, children, ...props }: SettingSectionProps) {
   return (
     <section className={cn("grid gap-2", className)} {...props}>
-      <h3 className="px-1 text-xs font-bold tracking-wider text-secondary uppercase">{title}</h3>
-      <div className="overflow-hidden rounded-lg border border-line bg-panel">
+      <h3 className="px-1 text-caption font-semibold text-label">{title}</h3>
+      <div className={cn("overflow-hidden", variant === "card" ? "rounded-container border border-line bg-panel" : "[&_[data-slot=field]]:px-1")}>
         {Children.toArray(children).map((child, index) => (
           <Fragment key={index}>
             {index > 0 ? <Separator /> : null}
@@ -75,17 +78,8 @@ export function SettingSection({ title, className, children, ...props }: Setting
 }
 
 /**
- * Kit `SelectTrigger` with the settings styling (tall, full width, panel
- * surface). Use inside `Select` in place of `SelectTrigger`.
+ * Kit `SelectTrigger` with the settings styling (44px high, full width). Use inside `Select` in place of `SelectTrigger`.
  */
 export function SettingSelect({ className, ...props }: ComponentProps<typeof SelectTrigger>) {
-  return (
-    <SelectTrigger
-      className={cn(
-        "min-h-11 w-full rounded-md border-line bg-panel px-3 text-base font-normal text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus data-[size=default]:h-auto",
-        className
-      )}
-      {...props}
-    />
-  );
+  return <SelectTrigger className={cn("w-full data-[size=default]:h-11", className)} {...props} />;
 }

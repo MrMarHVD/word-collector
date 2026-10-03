@@ -4,13 +4,14 @@ import { toastError } from "@/components/app/toast";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Text } from "@/components/ui/text";
 import { errorMessage } from "@/lib/api";
 import type { MaterialDetail } from "@/lib/api/types";
 import { useT } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 import { importProgress, validateImportFile } from "./materials";
 import { useMaterialsList, useUploadMaterial } from "./use-materials";
-import "./materials.css";
 
 export interface MaterialImportDialogProps {
   open: boolean;
@@ -77,7 +78,7 @@ export function MaterialImportDialog({ open, onOpenChange, onImportStarted }: Ma
         id="materialImportModal"
         showCloseButton={false}
         aria-describedby={undefined}
-        className="material-import-panel block rounded-lg border-line bg-panel p-5 shadow-panel sm:max-w-md"
+        className="block sm:max-w-md mobile:max-h-[calc(100dvh-24px)] mobile:overflow-auto mobile:p-4"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           restoreChosenFile(fileInput.current, chosenFile.current);
@@ -85,52 +86,45 @@ export function MaterialImportDialog({ open, onOpenChange, onImportStarted }: Ma
         }}
       >
         <form id="materialImportForm" onSubmit={submit}>
-          <div className="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
-            <DialogTitle id="materialImportModalTitle" className="text-base font-bold leading-normal">
+          <div className="mb-4 flex min-h-8 items-center justify-between gap-3">
+            <DialogTitle id="materialImportModalTitle" className="text-heading">
               {t("reader.import")}
             </DialogTitle>
             <CloseButton id="materialImportModalClose" label={t("reader.closeImport")} onClick={() => onOpenChange(false)} />
           </div>
-          <label className="grid gap-1.5 text-sm font-semibold text-label">
-            <span>{t("reader.file")}</span>
+          <div className="grid gap-1.5">
+            <Label htmlFor="materialFile" className="text-label">
+              {t("reader.file")}
+            </Label>
             <Input
               ref={fileInput}
               onChange={(event) => {
                 chosenFile.current = event.currentTarget.files?.[0] ?? null;
               }}
               id="materialFile"
-              className="h-auto min-h-11 border-line bg-panel px-3 py-2 text-sm text-main file:mr-3 file:h-auto file:rounded-md file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-label md:text-sm"
               type="file"
               accept=".pdf,.epub,.txt,application/pdf,application/epub+zip,text/plain"
             />
-          </label>
-          <Button className="mt-3 min-h-11 w-full px-4 text-white" type="submit" disabled={upload.isPending}>
+          </div>
+          <Button className="mt-3 w-full mobile:h-11" type="submit" disabled={upload.isPending}>
             {t("reader.importButton")}
           </Button>
           {progressActive ? (
-            <div
-              id="materialImportProgress"
-              className="mt-3"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={importing && progress.determinate ? progress.percent : undefined}
-            >
-              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  id="materialImportProgressBar"
-                  className={cn("h-full rounded-full bg-brand transition-all duration-500", !progress.determinate && !failed && "animate-pulse")}
-                  style={{ width: `${progress.percent}%` }}
-                />
-              </div>
-              <p id="materialImportProgressLabel" className="mt-1 text-xs text-secondary">
+            <div id="materialImportProgress" className="mt-3">
+              <Progress
+                value={progress.percent}
+                indeterminate={importing && !progress.determinate}
+                aria-label={progressLabel}
+                indicatorProps={{ id: "materialImportProgressBar" }}
+              />
+              <Text id="materialImportProgressLabel" variant="caption" tone="muted" className="mt-1 block">
                 {progressLabel}
-              </p>
+              </Text>
             </div>
           ) : null}
-          <p id="materialImportStatus" className="status mt-3 min-h-5 text-sm text-secondary" role="status">
+          <Text id="materialImportStatus" variant="caption" tone="muted" className="mt-3 block min-h-5" role="status">
             {status}
-          </p>
+          </Text>
         </form>
       </DialogContent>
     </Dialog>

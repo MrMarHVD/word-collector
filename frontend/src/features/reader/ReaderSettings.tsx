@@ -1,11 +1,13 @@
 import { useRef, type ReactNode } from "react";
-import { XIcon } from "lucide-react";
+import { CloseButton } from "@/components/app/CloseButton";
 import { SettingRow, SettingSection, SettingSelect } from "@/components/app/SettingRow";
+import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Text } from "@/components/ui/text";
 import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { useT } from "@/lib/i18n";
 import { useReaderPreferencesStore } from "@/stores/reader-preferences";
@@ -48,17 +50,10 @@ function SettingsForm({ showWordSpacesOption, onWordsPerPageChange, onClose, tit
     <>
       <div className="flex items-center justify-between gap-3 pb-3">
         {title}
-        <button
-          type="button"
-          className="inline-flex size-8 items-center justify-center rounded-md text-secondary hover:bg-hover hover:text-foreground"
-          aria-label={t("reader.closeSettings")}
-          onClick={onClose}
-        >
-          <XIcon className="size-4" />
-        </button>
+        <CloseButton label={t("reader.closeSettings")} onClick={onClose} />
       </div>
       <div className="grid gap-5">
-        <SettingSection title={t("reader.settingsAppearance")}>
+        <SettingSection variant="inset" title={t("reader.settingsAppearance")}>
           <SettingRow stacked className={STACKED_ROW} label={t("reader.fontSize")} htmlFor="readerFontSize" labelId="readerFontSizeLabel">
             <div className="flex w-full items-center gap-3">
               <Slider
@@ -70,7 +65,9 @@ function SettingsForm({ showWordSpacesOption, onWordsPerPageChange, onClose, tit
                 value={[fontSize]}
                 onValueChange={([value]) => setPreference("fontSize", value)}
               />
-              <span className="w-10 shrink-0 text-right text-sm text-secondary tabular-nums">{fontSize}</span>
+              <Text as="span" variant="caption" tone="label" className="w-10 shrink-0 text-right tabular-nums">
+                {fontSize}
+              </Text>
             </div>
           </SettingRow>
           {!isMobile && (
@@ -107,7 +104,9 @@ function SettingsForm({ showWordSpacesOption, onWordsPerPageChange, onClose, tit
                 value={[highlightOpacity]}
                 onValueChange={([value]) => setPreference("highlightOpacity", Number(value.toFixed(2)))}
               />
-              <span className="w-10 shrink-0 text-right text-sm text-secondary tabular-nums">{Math.round(highlightOpacity * 100)}%</span>
+              <Text as="span" variant="caption" tone="label" className="w-10 shrink-0 text-right tabular-nums">
+                {Math.round(highlightOpacity * 100)}%
+              </Text>
             </div>
           </SettingRow>
           {showWordSpacesOption && (
@@ -121,7 +120,7 @@ function SettingsForm({ showWordSpacesOption, onWordsPerPageChange, onClose, tit
             </SettingRow>
           )}
         </SettingSection>
-        <SettingSection title={t("reader.settingsBehaviour")}>
+        <SettingSection variant="inset" title={t("reader.settingsBehaviour")}>
           <SettingRow stacked className={STACKED_ROW} label={t("reader.wordsPerPage")} htmlFor="readerWordsPerPage" labelId="readerWordsPerPageLabel">
             <Select value={String(wordsPerPage)} onValueChange={onWordsPerPageChange}>
               <SettingSelect id="readerWordsPerPage" aria-labelledby="readerWordsPerPageLabel">
@@ -168,18 +167,19 @@ export function ReaderSettings({ open, onOpenChange, showWordSpacesOption, onWor
   const isMobile = useIsMobileLayout();
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const button = (
-    <button
+    <Button
       ref={buttonRef}
       id="readerSettingsButton"
-      className="reader-topbar-button"
-      type="button"
+      variant="ghost"
+      size="sm"
+      className="text-secondary hover:text-main data-[state=open]:text-main"
       aria-label={t("reader.settingsButton")}
       {...{ [READER_SETTINGS_ATTRIBUTE]: "" }}
     >
       Aa
-    </button>
+    </Button>
   );
-  const scrim = open ? <div className="reader-settings-scrim" aria-hidden /> : null;
+  const scrim = open ? <div className="fixed inset-0 -z-10" aria-hidden /> : null;
   // Focus goes back to Aa however the panel closed (the page's own focus handling would otherwise leave it on the text).
   const returnFocus = (event: Event) => {
     event.preventDefault();
@@ -197,12 +197,12 @@ export function ReaderSettings({ open, onOpenChange, showWordSpacesOption, onWor
         <SheetContent
           side="bottom"
           showCloseButton={false}
-          className="z-50 max-h-[60dvh] gap-0 overflow-y-auto rounded-t-xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+          className="z-50 max-h-[60dvh] gap-0 overflow-y-auto rounded-t-container p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
           {...{ [READER_SETTINGS_ATTRIBUTE]: "" }}
           aria-describedby={undefined}
           onCloseAutoFocus={returnFocus}
         >
-          {form(<SheetTitle className="text-base font-bold">{t("reader.settingsTitle")}</SheetTitle>)}
+          {form(<SheetTitle>{t("reader.settingsTitle")}</SheetTitle>)}
         </SheetContent>
       </Sheet>
     );
@@ -219,7 +219,11 @@ export function ReaderSettings({ open, onOpenChange, showWordSpacesOption, onWor
         {...{ [READER_SETTINGS_ATTRIBUTE]: "" }}
         onCloseAutoFocus={returnFocus}
       >
-        {form(<h2 className="text-base font-bold">{t("reader.settingsTitle")}</h2>)}
+        {form(
+          <Text as="h2" variant="heading">
+            {t("reader.settingsTitle")}
+          </Text>
+        )}
       </PopoverContent>
     </Popover>
   );

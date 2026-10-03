@@ -2,6 +2,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { Navigate, useLocation, useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toastError } from "@/components/app/toast";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Text } from "@/components/ui/text";
 import { libraryPath } from "@/app/route-paths";
 import { api, queryKeys } from "@/lib/api";
 import { refreshStudyData } from "@/lib/api/queries";
@@ -29,7 +32,10 @@ import { useReaderMaterial } from "./use-reader-material";
 import "./reader.css";
 
 const NO_TOKENS: ReaderToken[] = [];
-const PAGE_BUTTON = "secondary-button min-h-10 rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover";
+/** Quiet reader chrome: ghost buttons in the muted text tone, full strength on hover. */
+const CHROME_BUTTON = "text-secondary hover:text-main";
+/** The page-turn buttons: on mobile they sit on a glass bar, which only takes the stronger text tones. */
+const PAGE_BUTTON = `${CHROME_BUTTON} mobile:text-main`;
 
 /** Word-info target: the tapped token, with a snapshot kept for when the page no longer holds it. */
 interface WordInfoTarget {
@@ -531,21 +537,25 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
     };
   }, []);
 
-  // Re-fit whenever the text area changes size (window or text width).
+  // Re-fit whenever the text area changes size (window or text width), and when
+  // a reading-font face finishes loading (its metrics differ from the fallback's).
   useEffect(() => {
     const readerText = readerTextRef.current;
     if (!readerText) {
       return;
     }
     let frame = 0;
-    const observer = new ResizeObserver(() => {
+    const schedule = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => latest.current.measureFit());
-    });
+    };
+    const observer = new ResizeObserver(schedule);
     observer.observe(readerText);
+    document.fonts?.addEventListener("loadingdone", schedule);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
+      document.fonts?.removeEventListener("loadingdone", schedule);
     };
   }, []);
 
@@ -567,7 +577,7 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
   let content: ReactNode = null;
   if (material && !ready) {
     title = material.title || t("reader.title");
-    content = <p className="empty">{t("reader.translatingWait")}</p>;
+    content = <Text tone="muted">{t("reader.translatingWait")}</Text>;
   } else if (material) {
     title = material.title || t("reader.title");
     content = <ReaderTokens layout={layout} selectedTokenId={selectedTokenId} segmentRange={segmentRange} />;
@@ -575,75 +585,70 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
 
   return (
     <section id="readerView">
-      <div ref={layoutRef} className="reader-layout relative grid items-start">
-        <div className="reader-topbar">
-          <h2 id="readerTitle" className="reader-topbar-title">
+      <div ref={layoutRef} className="reader-layout relative grid items-start bg-reader text-main">
+        <div className="absolute inset-x-0 top-0 z-[14] flex h-11 items-center justify-between gap-3 pr-3 pl-5 mobile:h-[50px] mobile:pl-3.5">
+          <Text as="h2" id="readerTitle" variant="caption" tone="muted" className="min-w-0 truncate font-medium">
             {title}
-          </h2>
-          <div className="reader-topbar-actions">
+          </Text>
+          <div className="flex flex-none items-center gap-1">
             <ReaderSettings
               open={settingsOpen}
               onOpenChange={setSettingsOpen}
               showWordSpacesOption={isWordSpacingLanguage(languageName) || isWordSpacingLanguage(studyLanguageName)}
               onWordsPerPageChange={changeWordsPerPage}
             />
-            <button id="readerFocusExit" className="reader-topbar-button" type="button" aria-label={t("reader.exitToLibrary")} onClick={exit}>
+            <Button id="readerFocusExit" variant="ghost" size="sm" className={CHROME_BUTTON} aria-label={t("reader.exitToLibrary")} onClick={exit}>
               {t("reader.exit")}
-            </button>
+            </Button>
           </div>
         </div>
-        <section className="reader-panel relative grid overflow-hidden rounded-lg border border-line bg-panel p-5 shadow-panel">
-          <div
+        <section className="reader-panel relative grid overflow-hidden">
+          <Progress
             id="readerProgress"
-            className={cn("reader-progress", !pageStatus && "is-hidden")}
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={pageStatus?.progressPercent ?? 0}
+            size="sm"
+            className={cn("mx-6 w-auto h-0.5 mobile:mx-5", !pageStatus && "invisible")}
             aria-label={t("reader.progressLabel")}
-          >
-            <div
-              id="readerProgressBar"
-              className="reader-progress-bar"
-              style={{ "--readerProgress": `${pageStatus?.progressPercent ?? 0}%` } as CSSProperties}
-            />
-          </div>
+            value={pageStatus?.progressPercent ?? 0}
+            indicatorProps={{ id: "readerProgressBar", className: "duration-200 ease-out" }}
+          />
           <div
             ref={readerTextRef}
             id="readerText"
             className={cn(
-              "reader-text h-full min-h-0 overflow-auto rounded-lg border border-line bg-reader p-6 leading-[1.9]",
+              "reader-text h-full min-h-0 overflow-auto px-6 py-4 font-reading text-[length:var(--readerFontSize,22px)] leading-[1.85] text-main [scrollbar-color:var(--border-strong)_transparent] [scrollbar-width:thin] mobile:px-5",
               eligible && "is-segment-selectable"
             )}
             style={{ "--readerFontSize": `${fontSize}px`, "--readerHighlightOpacity": String(highlightOpacity) } as CSSProperties}
           >
             {content}
           </div>
-          <div className="reader-page-actions mt-4 grid items-center gap-3.5">
+          <div className={cn("reader-page-actions mt-2 grid items-center gap-3.5 px-6", isMobile && "glass rounded-container p-1.5")}>
             <div className="reader-pagination-controls flex items-center justify-center gap-3.5">
-              <button
+              <Button
                 id="readerPrevPage"
+                variant="ghost"
+                size="sm"
                 className={PAGE_BUTTON}
-                type="button"
                 disabled={!pageStatus || pageStatus.prevDisabled}
                 onClick={() => void turnPage("prev")}
               >
                 {t("reader.previous")}
-              </button>
-              <span id="readerPageStatus" className="hint text-sm text-secondary">
+              </Button>
+              <Text id="readerPageStatus" variant="caption" tone="label" className="tabular-nums">
                 {pageStatus
                   ? t("reader.pageStatus", { start: formatCount(pageStatus.first), end: formatCount(pageStatus.end), total: formatCount(pageStatus.total) })
                   : ""}
-              </span>
-              <button
+              </Text>
+              <Button
                 id="readerNextPage"
+                variant="ghost"
+                size="sm"
                 className={PAGE_BUTTON}
-                type="button"
                 disabled={!pageStatus || pageStatus.nextDisabled}
                 onClick={() => void turnPage("next")}
               >
                 {t("reader.next")}
-              </button>
+              </Button>
             </div>
           </div>
           <ReaderWordInfo

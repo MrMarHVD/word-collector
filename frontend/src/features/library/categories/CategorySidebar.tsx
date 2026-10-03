@@ -10,8 +10,10 @@ import { ChevronDownIcon, ChevronRightIcon, EllipsisIcon, PlusIcon } from "lucid
 import { useRef, useState, type DragEvent } from "react";
 import { useConfirm } from "@/components/app/ConfirmDialog";
 import { toastError } from "@/components/app/toast";
+import { ListRow } from "@/components/app/ListRow";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { useAssignCategory, useCategories, useCategoryMutations } from "@/features/library/data";
 import { moveCategoryTo } from "@/features/library/data/library-cache";
@@ -74,7 +76,6 @@ function NameInput({ initial, onSubmit, onCancel }: { initial: string; onSubmit:
       maxLength={MAX_NAME_LENGTH}
       aria-label={t("library.categories.nameLabel")}
       placeholder={t("library.categories.namePlaceholder")}
-      className="h-9"
       onChange={(event) => setValue(event.target.value)}
       onFocus={(event) => event.target.select()}
       onBlur={() => !busy.current && onCancel()}
@@ -183,30 +184,31 @@ export function CategorySidebar({ selected, onSelect, expanded: controlledExpand
     }
   });
 
-  const itemClass = (active: boolean, key: string) =>
-    cn(
-      "flex min-h-11 items-center gap-1 rounded-md pl-3 text-sm font-semibold text-secondary transition-colors hover:bg-muted",
-      active && "bg-muted text-brand",
-      dropKey === key && "bg-brand/10 outline-2 -outline-offset-2 outline-brand"
-    );
+  const itemClass = (key: string) =>
+    cn("min-h-11 gap-1 rounded-control border-b-0 py-0 pr-1 pl-3", dropKey === key && "bg-accent outline-2 -outline-offset-2 outline-primary");
+
+  /** The select button filling a category row: label left, count right. */
+  const selectButton = (active: boolean, label: string, count: number, onClick: () => void) => (
+    <Button
+      variant="ghost"
+      aria-pressed={active}
+      className={cn("h-auto min-h-11 w-full min-w-0 justify-between px-0 py-0 hover:bg-transparent", active && "text-brand")}
+      onClick={onClick}
+    >
+      <span className="truncate">{label}</span>
+      <span className="text-caption text-secondary">{count}</span>
+    </Button>
+  );
 
   const fixedItem = (category: "all" | "uncategorised", label: string, count: number) => (
-    <div
+    <ListRow
       key={category}
       data-category={category}
-      className={itemClass(selected === category, category)}
+      selected={selected === category}
+      className={itemClass(category)}
+      title={selectButton(selected === category, label, count, () => onSelect(category))}
       {...(category === "uncategorised" ? dropProps("uncategorised", "uncategorised") : {})}
-    >
-      <button
-        type="button"
-        aria-pressed={selected === category}
-        className="flex min-h-11 flex-1 items-center justify-between gap-2 pr-3 text-left"
-        onClick={() => onSelect(category)}
-      >
-        <span className="truncate">{label}</span>
-        <span className="text-xs font-medium text-muted-foreground">{count}</span>
-      </button>
-    </div>
+    />
   );
 
   return (
@@ -216,26 +218,14 @@ export function CategorySidebar({ selected, onSelect, expanded: controlledExpand
       aria-label={t("library.categories.label")}
     >
       <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          aria-expanded={expanded}
-          className="flex min-h-11 items-center gap-1 rounded-md px-1 text-xs font-bold uppercase tracking-wide text-muted-foreground hover:text-foreground"
-          onClick={() => setExpanded(!expanded)}
-        >
-          {expanded ? <ChevronDownIcon className="size-4" aria-hidden /> : <ChevronRightIcon className="size-4" aria-hidden />}
+        <Button variant="ghost" size="sm" aria-expanded={expanded} className="text-label mobile:h-11" onClick={() => setExpanded(!expanded)}>
+          {expanded ? <ChevronDownIcon aria-hidden /> : <ChevronRightIcon aria-hidden />}
           {t("library.categories.label")}
-        </button>
+        </Button>
         {expanded ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={t("library.categories.new")}
-            title={t("library.categories.new")}
-            onClick={() => setEditing("new")}
-          >
+          <IconButton aria-label={t("library.categories.new")} title={t("library.categories.new")} onClick={() => setEditing("new")}>
             <PlusIcon aria-hidden />
-          </Button>
+          </IconButton>
         ) : null}
       </div>
       {expanded ? (
@@ -255,11 +245,35 @@ export function CategorySidebar({ selected, onSelect, expanded: controlledExpand
                 onCancel={() => setEditing(null)}
               />
             ) : (
-              <div
+              <ListRow
                 key={category.id}
                 data-category={key}
                 draggable
-                className={itemClass(selected === category.id, key)}
+                selected={selected === category.id}
+                className={itemClass(key)}
+                title={selectButton(selected === category.id, category.name, category.materialCount, () => onSelect(category.id))}
+                actions={
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <IconButton size="sm" aria-label={t("library.categories.actions", { name: category.name })}>
+                        <EllipsisIcon aria-hidden />
+                      </IconButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => setEditing(category.id)}>{t("common.rename")}</DropdownMenuItem>
+                      <DropdownMenuItem disabled={index === 0} onSelect={() => move(category.id, -1)}>
+                        {t("library.categories.moveUp")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem disabled={index === categories.length - 1} onSelect={() => move(category.id, 1)}>
+                        {t("library.categories.moveDown")}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem variant="destructive" onSelect={() => void handleDelete(category)}>
+                        {t("common.delete")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                }
                 onDragStart={(event) => {
                   dragged.current = category.id;
                   event.dataTransfer.setData(CATEGORY_DRAG_TYPE, key);
@@ -270,37 +284,7 @@ export function CategorySidebar({ selected, onSelect, expanded: controlledExpand
                   setDropKey(null);
                 }}
                 {...dropProps(key, category)}
-              >
-                <button
-                  type="button"
-                  aria-pressed={selected === category.id}
-                  className="flex min-h-11 flex-1 items-center justify-between gap-2 text-left"
-                  onClick={() => onSelect(category.id)}
-                >
-                  <span className="truncate">{category.name}</span>
-                  <span className="text-xs font-medium text-muted-foreground">{category.materialCount}</span>
-                </button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label={t("library.categories.actions", { name: category.name })}>
-                      <EllipsisIcon aria-hidden />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => setEditing(category.id)}>{t("common.rename")}</DropdownMenuItem>
-                    <DropdownMenuItem disabled={index === 0} onSelect={() => move(category.id, -1)}>
-                      {t("library.categories.moveUp")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem disabled={index === categories.length - 1} onSelect={() => move(category.id, 1)}>
-                      {t("library.categories.moveDown")}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onSelect={() => void handleDelete(category)}>
-                      {t("common.delete")}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              />
             );
           })}
           {editing === "new" ? (

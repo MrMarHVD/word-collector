@@ -114,7 +114,7 @@ test.describe("collections", () => {
     await upload(page, { newCollection: COLLECTION_A }, csv([["w1", "one"], ["w2", "two"], ["w3", "three"]]));
     await expect(collectionButton(page, COLLECTION_A)).toHaveAttribute("aria-pressed", "true");
     await expect(rows(page)).toHaveCount(3);
-    await expect(row(page, "w2").locator(".translation-override-text")).toHaveText("two");
+    await expect(row(page, "w2").locator("[data-translation-override-text]")).toHaveText("two");
 
     await upload(page, { existingCollection: COLLECTION_A }, csv([["w4", "four"]]));
     await expect(collectionButton(page, COLLECTION_A)).toHaveAttribute("aria-pressed", "true");
@@ -142,11 +142,11 @@ test.describe("collections", () => {
     await row(page, "w1").locator("[data-translation-override-edit]").click();
     await row(page, "w1").getByRole("textbox", { name: EN["translation.overrideInput"] }).fill("edited one");
     await row(page, "w1").getByRole("button", { name: EN["translation.save"], exact: true }).click();
-    await expect(row(page, "w1").locator(".translation-override-text")).toHaveText("edited one");
+    await expect(row(page, "w1").locator("[data-translation-override-text]")).toHaveText("edited one");
 
     // Mark one word as known.
     await row(page, "w1").locator('.status-toggle [data-status="known"]').click();
-    await expect(row(page, "w1").locator('.status-toggle [data-status="known"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(row(page, "w1").locator('.status-toggle [data-status="known"]')).toHaveAttribute("aria-checked", "true");
 
     // Select two rows and mark both as learning in one go.
     await row(page, "w2").locator(".word-cell-main").click();
@@ -154,9 +154,9 @@ test.describe("collections", () => {
     await expect(row(page, "w2")).toHaveAttribute("aria-selected", "true");
     await expect(row(page, "w3")).toHaveAttribute("aria-selected", "true");
     await row(page, "w2").locator('.status-toggle [data-status="learning"]').click();
-    await expect(row(page, "w2").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-pressed", "true");
-    await expect(row(page, "w3").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-pressed", "true");
-    await expect(row(page, "w4").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-pressed", "false");
+    await expect(row(page, "w2").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-checked", "true");
+    await expect(row(page, "w3").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-checked", "true");
+    await expect(row(page, "w4").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-checked", "false");
 
     // Drag a selected word onto another collection to move it there.
     await row(page, "w4").locator(".word-cell-main").click();
@@ -181,9 +181,9 @@ test.describe("collections", () => {
     await page.locator("#localeSelect").selectOption("en");
     await collectionButton(page, COLLECTION_A).click();
     await expect(rows(page)).toHaveCount(3);
-    await expect(row(page, "w1").locator(".translation-override-text")).toHaveText("edited one");
-    await expect(row(page, "w1").locator('.status-toggle [data-status="known"]')).toHaveAttribute("aria-pressed", "true");
-    await expect(row(page, "w3").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(row(page, "w1").locator("[data-translation-override-text]")).toHaveText("edited one");
+    await expect(row(page, "w1").locator('.status-toggle [data-status="known"]')).toHaveAttribute("aria-checked", "true");
+    await expect(row(page, "w3").locator('.status-toggle [data-status="learning"]')).toHaveAttribute("aria-checked", "true");
     await collectionButton(page, COLLECTION_B).click();
     await expect(rows(page)).toHaveCount(1);
     await expect(row(page, "w4")).toBeVisible();

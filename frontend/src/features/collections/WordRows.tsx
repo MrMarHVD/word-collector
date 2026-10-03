@@ -1,14 +1,19 @@
 import { Fragment, type DragEvent, type MouseEvent } from "react";
 import { disambiguationEntries, DisambiguationTable, DisambiguationToggle, hasDisambiguation } from "@/components/app/Disambiguation";
+import { Segmented } from "@/components/app/Segmented";
 import { TranslationOverride } from "@/components/app/TranslationOverride";
+import { Badge } from "@/components/ui/badge";
+import { TableCell, TableRow } from "@/components/ui/table";
+import { Text } from "@/components/ui/text";
 import type { Word, WordStatus } from "@/lib/api/types";
+import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { normalizeStatus, WORD_STATUSES, wordPhonetics } from "./word-list";
 
 /** Clicks on these controls act on the control, not on the row selection. */
 const ROW_CONTROL_SELECTOR =
-  "[data-translation-override-edit], [data-translation-override-cancel], [data-translation-override-clear], [data-translation-override-form], [data-word-disambiguate], .status-segment";
+  "[data-translation-override-edit], [data-translation-override-cancel], [data-translation-override-clear], [data-translation-override-form], [data-word-disambiguate], .status-toggle";
 
 export interface StatusToggleProps {
   wordId: number;
@@ -18,36 +23,30 @@ export interface StatusToggleProps {
   onSelect: (status: WordStatus) => void;
 }
 
-/** Three-segment unknown/learning/known toggle (.status-toggle); clicking the active segment does nothing. */
+/** Three-segment unknown/learning/known toggle (`.status-toggle` is the selector hook for specs and row-click guards); clicking the active segment does nothing. */
 export function StatusToggle({ wordId, status, pendingStatus, onSelect }: StatusToggleProps) {
   const t = useT();
-  const active = normalizeStatus(status);
+  const isMobile = useIsMobileLayout();
   return (
-    <div className="status-toggle" role="group" data-word-id={wordId}>
-      {WORD_STATUSES.map((value) => {
-        const isActive = value === active;
-        return (
-          <button
-            key={value}
-            className="status-segment"
-            type="button"
-            data-status={value}
-            data-active={isActive}
-            aria-pressed={isActive}
-            disabled={pendingStatus === value}
-            onClick={() => !isActive && onSelect(value)}
-          >
-            {t(`word.${value}`)}
-          </button>
-        );
-      })}
-    </div>
+    <Segmented
+      className="status-toggle max-w-[210px]"
+      aria-label={t("table.status")}
+      size={isMobile ? "md" : "sm"}
+      value={normalizeStatus(status)}
+      onValueChange={onSelect}
+      options={WORD_STATUSES.map((value) => ({
+        value,
+        label: t(`word.${value}`),
+        itemProps: { "data-status": value, disabled: pendingStatus === value }
+      }))}
+      data-word-id={wordId}
+    />
   );
 }
 
 function DragHandleIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" className="h-4 w-4 fill-current">
+    <svg aria-hidden="true" viewBox="0 0 16 16" className="size-4 fill-current">
       <circle cx="5" cy="3" r="1.4" />
       <circle cx="11" cy="3" r="1.4" />
       <circle cx="5" cy="8" r="1.4" />
@@ -105,8 +104,9 @@ export function WordRows({
         const phonetics = wordPhonetics(entry);
         return (
           <Fragment key={entry.id}>
-            <tr
-              className={cn("word-row", selected && "is-selected", draggingId === entry.id && "is-dragging")}
+            <TableRow
+              className={cn("word-row group/row cursor-default mobile:block", draggingId === entry.id && "opacity-50")}
+              data-state={selected ? "selected" : undefined}
               draggable
               data-word-id={entry.id}
               data-collection-id={entry.collectionId}
@@ -119,23 +119,33 @@ export function WordRows({
               onDragStart={(event) => onDragStart(event, entry.id)}
               onDragEnd={onDragEnd}
             >
-              <td className="word-drag-cell px-2 py-3 align-middle" data-label={t("collections.collection")}>
-                <span className="word-drag-handle" aria-label={t("collections.dragHandle")} title={t("collections.dragHandle")}>
+              <TableCell className="word-drag-cell w-7 cursor-grab px-2 text-secondary select-none active:cursor-grabbing mobile:hidden">
+                <span
+                  className="word-drag-handle inline-flex items-center justify-center rounded-control p-1 group-hover/row:text-label"
+                  aria-label={t("collections.dragHandle")}
+                  title={t("collections.dragHandle")}
+                >
                   <DragHandleIcon />
                 </span>
-              </td>
-              <td className="px-3 py-3 align-top" data-label={t("table.word")}>
-                <div className="word-cell">
-                  <span className="word-cell-main">{entry.word}</span>
-                  {phonetics ? <span className="word-cell-phonetic">{phonetics}</span> : null}
+              </TableCell>
+              <TableCell className="min-w-56 whitespace-normal mobile:block mobile:min-w-0 mobile:w-full mobile:px-3.5 mobile:pt-3.5 mobile:pb-0.5">
+                <div className="word-cell flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mobile:grid mobile:gap-0.5">
+                  <Text as="span" className="word-cell-main font-semibold mobile:text-heading">
+                    {entry.word}
+                  </Text>
+                  {phonetics ? (
+                    <Text as="span" variant="caption" tone="muted" className="word-cell-phonetic">
+                      {phonetics}
+                    </Text>
+                  ) : null}
                   {posKey ? (
-                    <span className="word-cell-badges">
-                      <span className="word-badge">{t(`pos.${posKey}`, {}, posKey)}</span>
+                    <span className="word-cell-badges flex flex-wrap gap-1 self-center mobile:hidden">
+                      <Badge>{t(`pos.${posKey}`, {}, posKey)}</Badge>
                     </span>
                   ) : null}
                 </div>
-              </td>
-              <td className="px-3 py-3 align-top text-label" data-label={t("table.translation")}>
+              </TableCell>
+              <TableCell className="min-w-44 whitespace-normal text-label mobile:block mobile:min-w-0 mobile:w-full mobile:px-3.5 mobile:pb-3 mobile:[overflow-wrap:anywhere]">
                 <TranslationOverride
                   entry={entry}
                   wordId={entry.id}
@@ -146,28 +156,28 @@ export function WordRows({
                   onSave={(value) => onSaveTranslation(entry.id, value)}
                   onClear={() => onSaveTranslation(entry.id, null)}
                 />
-              </td>
-              <td className="px-3 py-3 align-middle word-action-cell" data-label={t("reader.disambiguate")}>
+              </TableCell>
+              <TableCell className="word-action-cell mobile:hidden">
                 {hasDisambiguation(entry) ? (
                   <DisambiguationToggle expanded={expanded} onToggle={() => onToggleDisambiguation(entry.id)} data-word-disambiguate={entry.id} />
                 ) : null}
-              </td>
-              <td className="status-cell" data-label={t("table.status")}>
+              </TableCell>
+              <TableCell className="status-cell w-[300px] mobile:block mobile:w-full mobile:px-3.5 mobile:pb-3.5">
                 <StatusToggle
                   wordId={entry.id}
                   status={entry.status}
                   pendingStatus={pendingStatus?.wordId === entry.id ? pendingStatus.status : null}
                   onSelect={(status) => onStatus(entry.id, status)}
                 />
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
             {expanded && disambiguationEntries(entry).length ? (
-              <tr className="disambiguation-row" data-disambiguation-for={entry.id}>
-                <td></td>
-                <td colSpan={4}>
-                  <DisambiguationTable entry={entry} className="disambiguation-table" />
-                </td>
-              </tr>
+              <TableRow className="bg-subtle hover:bg-subtle mobile:hidden" data-disambiguation-for={entry.id}>
+                <TableCell></TableCell>
+                <TableCell colSpan={4} className="whitespace-normal">
+                  <DisambiguationTable entry={entry} />
+                </TableCell>
+              </TableRow>
             ) : null}
           </Fragment>
         );

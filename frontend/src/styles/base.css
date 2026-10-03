@@ -6,8 +6,7 @@
   box-sizing: border-box;
 }
 
-[hidden],
-.tab-view[hidden] {
+[hidden] {
   display: none !important;
 }
 
@@ -49,7 +48,6 @@ button {
 
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.62;
 }
 
 @media (max-width: 760px) {

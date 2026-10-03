@@ -4,11 +4,15 @@
  * RouteGate. Owned by RX-002; feature issues never edit this file.
  */
 
+import { lazy } from "react";
 import { createBrowserRouter, type RouteObject } from "react-router";
 import { RootLayout } from "./RootLayout";
 import { HomeRoute, RouteGate } from "./RouteGate";
 import { AdminPage, CollectionsPage, DashboardPage, LibraryPage, PracticePage, ReaderPage, ReaderRedirect, SettingsPage } from "./pages";
 import { RouteError } from "./RouteError";
+
+/** Internal design-token review page (SPEC-005); not in the navigation. */
+const StyleguidePage = lazy(() => import("@/features/styleguide/StyleguidePage"));
 
 export const routes: RouteObject[] = [
   {
@@ -84,6 +88,7 @@ export const routes: RouteObject[] = [
               </RouteGate>
             )
           },
+          { path: "styleguide", element: <StyleguidePage /> },
           { path: "*", element: <HomeRoute /> }
         ]
       }

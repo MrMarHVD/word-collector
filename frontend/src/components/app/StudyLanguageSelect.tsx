@@ -2,11 +2,24 @@ import { useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { toastError } from "@/components/app/toast";
 import { Flag } from "@/components/app/Flag";
+import { PlusIcon } from "lucide-react";
+import { Segmented } from "@/components/app/Segmented";
+import { IconButton } from "@/components/ui/icon-button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Text } from "@/components/ui/text";
 import { useT } from "@/lib/i18n";
 import { studyLanguageLabelKey, studyLanguageMenuOptions } from "@/lib/study-language";
 import { cn } from "@/lib/utils";
 import { useAvailableStudyLanguages, useStudyLanguageStore } from "@/stores/study-language";
+
+/** Flag in a small rounded frame with a hairline border (light flags, e.g. Japan's, stay visible on the light chip); the SVG fills the frame. */
+function FlagChip({ language, className }: { language: string; className?: string }) {
+  return (
+    <span className={cn("inline-flex shrink-0 overflow-hidden rounded-control-sm border border-line-strong [&_svg]:size-full", className)}>
+      <Flag language={language} />
+    </span>
+  );
+}
 
 export interface StudyLanguageSelectProps {
   className?: string;
@@ -55,56 +68,42 @@ export function StudyLanguageSelect({ className }: StudyLanguageSelectProps) {
 
   return (
     <div className={cn("contents", className)}>
-      <div id="studyLanguageButtons" className="flex items-center gap-1.5" role="group" aria-label={t("learning.studyLanguage")}>
-        {enrolled.map((language) => {
-          const active = language.id === selectedId;
-          const label = t(studyLanguageLabelKey(language.name));
-          return (
-            <button
-              key={language.id}
-              className={cn("study-language-button", active && "is-active")}
-              type="button"
-              data-language-name={language.name}
-              aria-pressed={active}
-              aria-label={label}
-              title={label}
-              onClick={() => switchLanguage(language.name)}
-            >
-              <Flag language={language.name} />
-            </button>
-          );
-        })}
+      <div id="studyLanguageButtons" className="mobile:min-w-0 mobile:flex-initial mobile:overflow-x-auto">
+        <Segmented
+          aria-label={t("learning.studyLanguage")}
+          size="sm"
+          className="w-fit"
+          value={enrolled.find((language) => language.id === selectedId)?.name ?? ""}
+          onValueChange={switchLanguage}
+          options={enrolled.map((language) => {
+            const label = t(studyLanguageLabelKey(language.name));
+            return {
+              value: language.name,
+              label: <FlagChip language={language.name} className="h-4 w-6" />,
+              itemProps: { className: "mobile:flex-none mobile:px-2", "data-language-name": language.name, "aria-label": label, title: label }
+            };
+          })}
+        />
       </div>
-      <div className="study-language-add-wrap relative">
+      <div className="relative mobile:z-[2] mobile:flex-none">
         <DropdownMenu open={open} onOpenChange={handleOpenChange}>
           <DropdownMenuTrigger asChild>
-            <button
-              id="studyLanguageAddButton"
-              className="study-language-add-button grid h-[42px] w-[42px] place-items-center rounded-md border border-line bg-panel text-brand hover:bg-hover"
-              type="button"
-              disabled={menuOptions.length === 0 || adding}
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[2]">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              <span className="visually-hidden">{t("learning.add")}</span>
-            </button>
+            <IconButton id="studyLanguageAddButton" variant="secondary" aria-label={t("learning.add")} disabled={menuOptions.length === 0 || adding}>
+              <PlusIcon />
+            </IconButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent
-            id="studyLanguageDropdown"
-            align="end"
-            className="study-language-dropdown min-w-[160px] rounded-md border border-line bg-panel p-1 shadow-panel"
-          >
-            {menuOptions.length === 0 ? <p className="px-2 py-2 text-sm text-secondary">{t("learning.allAdded")}</p> : null}
+          <DropdownMenuContent id="studyLanguageDropdown" align="end" className="min-w-[160px]">
+            {menuOptions.length === 0 ? (
+              <Text variant="caption" tone="label" className="block px-2 py-2">
+                {t("learning.allAdded")}
+              </Text>
+            ) : null}
             {menuOptions.map(({ name, enrolled: isEnrolled, reasonKey }) => {
               const reason = reasonKey ? t(reasonKey) : isEnrolled ? t("learning.alreadyAdded") : "";
               return (
                 <DropdownMenuItem
                   key={name}
-                  className={cn(
-                    "study-language-dropdown-item flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-semibold",
-                    reason ? "text-secondary" : "text-label"
-                  )}
+                  className={cn(reason && "text-label")}
                   data-language-name={name}
                   data-disabled-reason={reason || undefined}
                   aria-disabled={reason ? true : undefined}
@@ -118,17 +117,15 @@ export function StudyLanguageSelect({ className }: StudyLanguageSelectProps) {
                     void handleAdd(name);
                   }}
                 >
-                  <span className="study-language-dropdown-flag">
-                    <Flag language={name} />
-                  </span>
+                  <FlagChip language={name} className="h-5 w-7" />
                   <span>{t(studyLanguageLabelKey(name))}</span>
                 </DropdownMenuItem>
               );
             })}
             {status || (menuOptions.length > 0 && !hasAddable) ? (
-              <p className="px-2 py-2 text-sm text-secondary" data-study-language-menu-status>
+              <Text variant="caption" tone="label" className="block px-2 py-2" data-study-language-menu-status>
                 {status || t("learning.noAvailableForNative")}
-              </p>
+              </Text>
             ) : null}
           </DropdownMenuContent>
         </DropdownMenu>

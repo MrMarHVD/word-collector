@@ -1,0 +1,47 @@
+/*
+ * Self-hosted reading fonts (SPEC-005 D1, registry in @/lib/fonts.ts).
+ * iA Writer Quattro is served unmodified from static/fonts/ (SIL OFL 1.1,
+ * Reserved Font Name "iA Writer"; LICENSE.md beside the files). Noto Sans
+ * JP/SC come from @fontsource-variable and are bundled by Vite: the files are
+ * sliced with unicode-range, so a page only fetches the slices it renders.
+ * Regular covers weights 400-500, Bold 600-700 (the app uses 400/500/600).
+ */
+@import "@fontsource-variable/noto-sans-jp/wght.css";
+@import "@fontsource-variable/noto-sans-sc/wght.css";
+
+@font-face {
+  font-family: "iA Writer Quattro";
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url("/fonts/ia-writer-quattro/iAWriterQuattroS-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "iA Writer Quattro";
+  font-style: italic;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url("/fonts/ia-writer-quattro/iAWriterQuattroS-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "iA Writer Quattro";
+  font-style: normal;
+  font-weight: 600 700;
+  font-display: swap;
+  src: url("/fonts/ia-writer-quattro/iAWriterQuattroS-Bold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "iA Writer Quattro";
+  font-style: italic;
+  font-weight: 600 700;
+  font-display: swap;
+  src: url("/fonts/ia-writer-quattro/iAWriterQuattroS-BoldItalic.woff2") format("woff2");
+}
+
+/* Han glyph variants follow the language: Chinese text prefers the SC face (stack built by the registry). */
+:lang(zh) {
+  --font-reading: var(--font-reading-zh, var(--font-reading-default));
+}

@@ -51,7 +51,11 @@
 ## Frontend conventions
 
 - Write React function components and hooks in strict TypeScript. Import through the `@/` alias.
-- Use the shadcn components in `frontend/src/components/ui/` and the shared components in `frontend/src/components/app/` rather than hand-rolled widgets. Add a missing shadcn component with `npx shadcn@latest add <name>` from `frontend/`.
+- Canonical components only (binding, SPEC-005). The catalogue is "Canonical components" in `frontend/src/CONTRACTS.md` and is rendered at `/styleguide`:
+  - Always use an existing canonical component from `frontend/src/components/ui/` or `frontend/src/components/app/`.
+  - Never create a new implementation of something a canonical component already covers: no hand-rolled buttons, panels, tabs, inputs, popups or tables, and no raw `<button>`, `<input>`, `<select>`, `<textarea>` or `<table>` in feature code (the only exception is a native `<select>` driven by a spec with `selectOption`: use `NativeSelect`). If a variant is missing, add it to the canonical component.
+  - Add a new component only when no canonical component fits. Then justify it, design it consistently with the design tokens and the existing set (radii, type scale, `focus-ring`, states, glass for floating layers, no panel shadow), add it to the CONTRACTS.md catalogue and to `/styleguide`, and document it.
+  - The legacy shared component classes are deleted. ESLint (raw elements in `features/**`, `shadow-panel`, font weights outside 400 to 600, off-scale `rounded-*`) and stylelint (raw colours, radii, shadows and font weights in feature CSS) enforce this through `npm run lint`; the only allow-listed exceptions are in "Documented exceptions" in `frontend/src/CONTRACTS.md`. Feature CSS is layout only.
 - Fetch and mutate server data with TanStack Query hooks built on `@/lib/api`; keep only client state in Zustand stores.
 - Localise all UI text with `useT()` from `@/lib/i18n`.
 - Style with Tailwind utilities and the existing design tokens; feature-specific CSS lives in the feature folder and is imported from its page.

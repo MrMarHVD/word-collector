@@ -1,6 +1,10 @@
+/*
+ * Design tokens (SPEC-005 D1), light and dark. Documented in CONTRACTS.md
+ * "Design tokens". Neutral greys (chroma 0, no tint) plus ONE subtle
+ * blue-teal accent (OKLCH hue 220). The older names (--brand, --border-main,
+ * ...) remain as aliases of the design tokens.
+ */
 @theme {
-  --color-ink: var(--text-main);
-  --color-mist: var(--surface-page);
   --color-page: var(--surface-page);
   --color-panel: var(--surface-panel);
   --color-muted: var(--surface-muted);
@@ -9,73 +13,143 @@
   --color-main: var(--text-main);
   --color-label: var(--text-label);
   --color-secondary: var(--text-muted);
-  --color-line: var(--border-main);
-  --color-brand: var(--brand);
-  --color-brand-strong: var(--brand-strong);
-  --color-hover: var(--brand-hover-surface);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-brand: var(--accent);
+  --color-brand-strong: var(--accent-strong);
+  --color-hover: var(--accent-subtle);
   --color-focus: var(--focus-ring);
-  --color-gold: var(--unknown);
+  --color-status-unknown: var(--status-unknown);
+  --color-status-learning: var(--status-learning);
+  --color-status-known: var(--status-known);
+  /* Text-safe status colours: `text-status-*-text` (the plain `text-status-*` would be the low-contrast fill). */
+  --color-status-unknown-text: var(--status-unknown-text);
+  --color-status-learning-text: var(--status-learning-text);
+  --color-status-known-text: var(--status-known-text);
   --color-danger: var(--danger);
-  --shadow-panel: 0 18px 45px var(--shadow-color);
+  --color-danger-fill: var(--danger-fill);
+  --color-contrast: oklch(0.99 0 0); /* fixed near-white for thumbs and text on solid fills, in both themes */
+
+  /* Panels carry no shadow (FR-2); floating layers use shadow-float. */
+  --shadow-float: var(--shadow-float-value);
+
+  --radius-control-sm: 0.25rem;
+  --radius-control: 0.5rem;
+  --radius-container: 0.875rem;
+  --radius-pill: 999px;
+
+  /* Text styles: size / line height / weight. Weights are 400, 500 and 600 only. */
+  --text-title: 1.375rem;
+  --text-title--line-height: 1.3;
+  --text-title--font-weight: 600;
+  --text-heading: 1.0625rem;
+  --text-heading--line-height: 1.4;
+  --text-heading--font-weight: 600;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.55;
+  --text-body--font-weight: 400;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.45;
+  --text-caption--font-weight: 400;
+
+  /* The registry (@/lib/fonts) sets --font-reading-default on <html> at runtime. This one fallback only
+     covers the moment before JS runs, so the first paint is not in the wrong font; keep it in sync with
+     the registry default. */
+  --font-reading: var(--font-reading-default, "iA Writer Quattro", "Noto Sans JP Variable", "Noto Sans SC Variable", ui-sans-serif, system-ui, sans-serif);
 }
 
 :root {
   color-scheme: light;
-  --surface-page: #f6f7f4;
-  --surface-panel: #ffffff;
-  --surface-muted: #f1f5f9;
-  --surface-subtle: #f8fafc;
-  --surface-reader: #fffefb;
-  --text-main: #172026;
-  --text-label: #334155;
-  --text-muted: #64748b;
-  --border-main: #dbe2df;
-  --brand: #0f766e;
-  --brand-strong: #115e59;
-  --brand-hover-surface: #f0fdfa;
-  --focus-ring: #ccfbf1;
-  --shadow-color: rgba(23, 32, 38, 0.08);
-  --shadow-panel: 0 18px 45px var(--shadow-color);
-  --known: var(--brand);
-  --learning: #3b82f6;
-  --learning-strong: #1d4ed8;
-  --unknown: #d9a441;
-  --unknown-strong: #8a5a07;
-  --reader-token-unknown-rgb: 217 164 65;
-  --reader-token-learning-rgb: 59 130 246;
-  --reader-token-selected: rgba(15, 118, 110, 0.16);
-  --danger: #b91c1c;
-  --danger-border: rgba(185, 28, 28, 0.28);
-  --danger-border-hover: rgba(185, 28, 28, 0.58);
-  --danger-hover-surface: #fef2f2;
+
+  /* Surfaces */
+  --surface-page: oklch(0.985 0 0);
+  --surface-panel: oklch(1 0 0);
+  --surface-subtle: oklch(0.967 0 0);
+  --surface-muted: oklch(0.955 0 0);
+  --surface-reader: oklch(0.975 0.014 85);
+
+  /* Text */
+  --text-main: oklch(0.22 0 0);
+  --text-label: oklch(0.36 0 0);
+  --text-muted: oklch(0.48 0 0);
+
+  /* Borders: one hairline, plus a stronger one for inputs */
+  --border: oklch(0.92 0 0);
+  --border-strong: oklch(0.66 0 0);
+
+  /* The one accent: primary actions, links, focus, active states */
+  --accent: oklch(0.38 0.06 225);
+  --accent-foreground: oklch(0.99 0 0);
+  --accent-subtle: oklch(0.955 0.02 225);
+  --accent-strong: oklch(0.32 0.06 225);
+  --focus-ring: oklch(0.38 0.06 225 / 0.35);
+
+  /* Word-status colours */
+  --status-unknown: oklch(0.78 0.13 80);
+  --status-learning: oklch(0.62 0.15 290);
+  --status-known: oklch(0.55 0.1 160);
+  --status-unknown-text: oklch(0.48 0.1 70);
+  --status-learning-text: oklch(0.45 0.15 290);
+  --status-known-text: oklch(0.42 0.09 160);
+
+  /* Elevation: floating layers only */
+  --shadow-float-value: 0 8px 32px oklch(0 0 0 / 0.12), 0 1px 3px oklch(0 0 0 / 0.08);
+
+  /* Glass: chrome and floating layers only (see .glass in glass.css) */
+  --glass-bg: oklch(1 0 0 / 0.7);
+  --glass-solid: oklch(0.99 0 0);
+  --glass-border: oklch(0 0 0 / 0.08);
+  --glass-blur: blur(24px) saturate(1.6);
+  /* Muted text on glass: the label tone, as light glass over a dark backdrop drops muted to 3.1:1. */
+  --glass-muted: var(--text-label);
+
+  /* Reader token and status aliases */
+  --known: var(--status-known);
+  --learning: var(--status-learning);
+  --reader-token-selected: oklch(0.38 0.06 225 / 0.16);
+  /* --danger is text-safe on glass; --danger-fill is the calmer destructive button fill (white label). */
+  --danger: oklch(0.4 0.15 25);
+  --danger-fill: oklch(0.48 0.14 25);
 }
 
 html[data-theme="dark"] {
   color-scheme: dark;
-  --surface-page: #101417;
-  --surface-panel: #171d21;
-  --surface-muted: #222a2f;
-  --surface-subtle: #20282c;
-  --surface-reader: #111719;
-  --text-main: #eef4f2;
-  --text-label: #d8e1de;
-  --text-muted: #c2cfcb;
-  --border-main: #33413d;
-  --brand: #2dd4bf;
-  --brand-strong: #14b8a6;
-  --brand-hover-surface: rgba(45, 212, 191, 0.12);
-  --focus-ring: rgba(45, 212, 191, 0.24);
-  --shadow-color: rgba(0, 0, 0, 0.28);
-  --known: #2dd4bf;
-  --learning: #60a5fa;
-  --learning-strong: #93c5fd;
-  --unknown: #f0b94b;
-  --unknown-strong: #f8cf73;
-  --reader-token-unknown-rgb: 240 185 75;
-  --reader-token-learning-rgb: 96 165 250;
-  --reader-token-selected: rgba(45, 212, 191, 0.18);
-  --danger: #f87171;
-  --danger-border: rgba(248, 113, 113, 0.3);
-  --danger-border-hover: rgba(248, 113, 113, 0.58);
-  --danger-hover-surface: rgba(248, 113, 113, 0.12);
+
+  --surface-page: oklch(0.165 0 0);
+  --surface-panel: oklch(0.195 0 0);
+  --surface-subtle: oklch(0.225 0 0);
+  --surface-muted: oklch(0.255 0 0);
+  --surface-reader: oklch(0.2 0.006 70);
+
+  --text-main: oklch(0.95 0 0);
+  --text-label: oklch(0.86 0 0);
+  --text-muted: oklch(0.72 0 0);
+
+  --border: oklch(0.29 0 0);
+  --border-strong: oklch(0.5 0 0);
+
+  --accent: oklch(0.7 0.05 220);
+  --accent-foreground: oklch(0.2 0.02 225);
+  --accent-subtle: oklch(0.28 0.03 225);
+  --accent-strong: oklch(0.62 0.05 220);
+  --focus-ring: oklch(0.7 0.05 220 / 0.4);
+
+  --status-unknown: oklch(0.82 0.13 85);
+  --status-learning: oklch(0.72 0.13 290);
+  --status-known: oklch(0.75 0.12 160);
+  --status-unknown-text: oklch(0.85 0.12 85);
+  --status-learning-text: oklch(0.8 0.1 290);
+  --status-known-text: oklch(0.8 0.11 160);
+
+  --shadow-float-value: 0 8px 32px oklch(0 0 0 / 0.5), 0 1px 3px oklch(0 0 0 / 0.4);
+
+  --glass-bg: oklch(0.22 0 0 / 0.94);
+  --glass-solid: oklch(0.23 0 0);
+  --glass-border: oklch(1 0 0 / 0.12);
+  --glass-muted: var(--text-muted);
+  --known: var(--status-known);
+  --learning: var(--status-learning);
+  --reader-token-selected: oklch(0.7 0.05 220 / 0.18);
+  --danger: oklch(0.72 0.16 25);
+  --danger-fill: oklch(0.48 0.14 25);
 }

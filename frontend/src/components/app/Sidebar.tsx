@@ -1,4 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
+import { ChevronLeftIcon, MenuIcon } from "lucide-react";
+import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 
 export interface SidebarLayoutProps extends ComponentProps<"section"> {
@@ -23,26 +25,17 @@ export interface SidebarProps extends Omit<ComponentProps<"aside">, "children"> 
 }
 
 /**
- * Collapsible sidebar shared by the reader and vocab panes (the legacy
- * `.app-sidebar` with its minimise button). Controlled: persist `collapsed`
+ * Collapsible sidebar shared by the reader and vocab panes: the canonical card surface (hairline border on
+ * `bg-panel`) with a minimise button. Controlled: persist `collapsed`
  * yourself (reader preferences store, or usePersistentState).
  */
 export function Sidebar({ collapsed, onCollapsedChange, toggleLabel, toggleId, headClassName, className, children, ...props }: SidebarProps) {
   return (
-    <aside className={cn("app-sidebar", className)} {...props}>
+    <aside className={cn("app-sidebar rounded-container border border-line bg-panel p-3.5", className)} {...props}>
       <div className={cn("app-sidebar-head", headClassName)}>
-        <button
-          id={toggleId}
-          className="secondary-button icon-button grid h-[42px] w-[42px] place-items-center rounded-md border border-line bg-panel text-brand hover:bg-hover"
-          type="button"
-          aria-expanded={!collapsed}
-          onClick={() => onCollapsedChange(!collapsed)}
-        >
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]">
-            <path d="M15 6l-6 6 6 6" />
-          </svg>
-          <span className="visually-hidden">{toggleLabel}</span>
-        </button>
+        <IconButton id={toggleId} variant="secondary" aria-label={toggleLabel} aria-expanded={!collapsed} onClick={() => onCollapsedChange(!collapsed)}>
+          <ChevronLeftIcon />
+        </IconButton>
       </div>
       {children}
     </aside>
@@ -60,20 +53,15 @@ export interface SidebarOpenButtonProps extends Omit<ComponentProps<"button">, "
 /** Floating button at the left edge that re-opens a collapsed Sidebar. Position it (top offset) via className or style. */
 export function SidebarOpenButton({ collapsed, onOpen, label, className, ...props }: SidebarOpenButtonProps) {
   return (
-    <button
-      className={cn(
-        "secondary-button fixed left-0 z-[9] grid min-h-[52px] w-[42px] place-items-center rounded-r-lg border border-l-0 border-line bg-panel text-brand shadow-panel",
-        className
-      )}
-      type="button"
+    <IconButton
+      variant="secondary"
+      className={cn("fixed left-0 z-[9] h-[52px] rounded-l-none border-l-0", className)}
+      aria-label={label}
       hidden={!collapsed}
       onClick={onOpen}
       {...props}
     >
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.8]">
-        <path d="M4 5h16M4 12h16M4 19h16" />
-      </svg>
-      <span className="visually-hidden">{label}</span>
-    </button>
+      <MenuIcon />
+    </IconButton>
   );
 }

@@ -59,7 +59,7 @@ function row(page: Page, title: string) {
 
 /** Titles of the works the Library lists, in order. */
 async function listedTitles(page: Page): Promise<string[]> {
-  return page.locator("#materialList .library-title-button").allTextContents();
+  return page.locator("#materialList [data-material-id]").allTextContents();
 }
 
 /** The sidebar item of a category (or "all" / "uncategorised"). */
@@ -126,7 +126,7 @@ test.describe("library and reader", () => {
     await expect(row(page, BETA)).toBeVisible();
     await page.locator("#materialSearch").fill("zzz-no-such-work");
     await expect(page.locator("#materialList .material-row")).toHaveCount(0);
-    await expect(page.locator("#materialList .empty")).toHaveText(EN["reader.noSearchMatches"]);
+    await expect(page.locator("#materialList [data-library-empty]")).toHaveText(EN["reader.noSearchMatches"]);
     await context.close();
   });
 
@@ -186,15 +186,15 @@ test.describe("library and reader", () => {
     await expect(row(page, GAMMA)).toBeVisible();
 
     // Drag the row's card onto the category.
-    await row(page, GAMMA).locator(".library-card").dragTo(categoryItem(page, target));
+    await row(page, GAMMA).locator('[data-slot="list-row"]').dragTo(categoryItem(page, target));
     await expect.poll(async () => (await (await user.api!.get(`/api/materials?languageId=${user.languageId}&category=${target}`)).json()).materials.map((m: { id: number }) => m.id)).toEqual([materialIds[GAMMA]]);
     await categoryItem(page, target).click();
     await expect(page.locator("#materialList .material-row")).toHaveCount(1);
     await expect(row(page, GAMMA)).toBeVisible();
 
     // Drop on Uncategorised removes the category again.
-    await row(page, GAMMA).locator(".library-card").dragTo(categoryItem(page, "uncategorised"));
-    await expect(page.locator("#materialList .empty")).toHaveText(EN["library.emptyCategory"]);
+    await row(page, GAMMA).locator('[data-slot="list-row"]').dragTo(categoryItem(page, "uncategorised"));
+    await expect(page.locator("#materialList [data-library-empty]")).toHaveText(EN["library.emptyCategory"]);
 
     // Keyboard: open the row menu from its button, then pick the category.
     await categoryItem(page, "all").click();
@@ -282,11 +282,11 @@ test.describe("library and reader", () => {
     const { context, page } = await newPage(browser);
     await page.goto("/dashboard");
     await page.locator('[data-dashboard-stats-tab="documents"]').click();
-    await page.locator(".chart-card-link", { hasText: ALPHA }).click();
+    await page.locator("[data-dashboard-document-link]", { hasText: ALPHA }).click();
 
     // The work is outlined in place under All, and the address drops the focus parameter.
     await expect(page).toHaveURL(/\/library(\?category=all)?$/);
-    await expect(row(page, ALPHA)).toHaveClass(/is-focused/);
+    await expect(row(page, ALPHA).locator("[data-selected]")).toHaveCount(1);
     await expect(page).not.toHaveURL(/focus=/);
     await expect(page.locator("#readerView")).toHaveCount(0);
     await context.close();
