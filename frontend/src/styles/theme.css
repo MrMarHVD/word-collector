@@ -84,8 +84,9 @@
   --accent-foreground: oklch(0.99 0 0);
   --accent-subtle: oklch(0.955 0.02 225);
   --accent-strong: oklch(0.32 0.06 225);
-  /* Translucent state overlays: hover = text colour, selected = accent; both read on page, panel and glass. */
-  --hover-overlay: color-mix(in oklch, var(--text-main) 6%, transparent);
+  /* Translucent state overlays. Light hover lifts towards the panel white on the grey page; inside white
+     surfaces (panel, card, glass) it becomes a pale cool tint instead (rule below). Selected = accent. */
+  --hover-overlay: color-mix(in oklch, var(--surface-panel) 80%, transparent);
   --selected-overlay: color-mix(in oklch, var(--accent) 12%, transparent);
   --focus-ring: oklch(0.38 0.06 225 / 0.35);
 
@@ -115,6 +116,13 @@
   /* --danger is text-safe on glass; --danger-fill is the calmer destructive button fill (white label). */
   --danger: oklch(0.4 0.15 25);
   --danger-fill: oklch(0.48 0.14 25);
+}
+
+/* Light mode: on white surfaces a white lift is invisible, so hover becomes a pale cool tint (page tone). */
+html:not([data-theme="dark"]) :is(.bg-panel, [data-slot="card"], .glass) {
+  --hover-overlay: color-mix(in oklch, var(--surface-page) 85%, transparent);
+  /* Re-declared so the non-inline Tailwind alias (bg-hover) resolves against this scope too. */
+  --color-hover: var(--hover-overlay);
 }
 
 html[data-theme="dark"] {
