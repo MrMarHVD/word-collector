@@ -31,9 +31,18 @@ export interface CategorySidebarProps {
   selected: LibraryCategory;
   /** Called when the user picks a category. */
   onSelect: (category: LibraryCategory) => void;
+  /** Controls the expanded state; when omitted the sidebar keeps its own persisted state. Collapsed and controlled, it renders nothing on desktop (the page shows the re-open button). */
+  expanded?: boolean;
+  /** Called when the user toggles the sidebar's own header control (mobile when controlled). */
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 const parseExpanded = (stored: string | null) => stored !== "false";
+
+/** The persisted expanded state of the category sidebar (default expanded on first visit), for a page that owns it and passes it back as `expanded`. */
+export function useCategoriesExpanded(): [boolean, (expanded: boolean) => void] {
+  return usePersistentState(EXPANDED_KEY, parseExpanded);
+}
 
 /** Inline name field for creating or renaming a category; Enter saves, Escape or blur cancels. */
 function NameInput({ initial, onSubmit, onCancel }: { initial: string; onSubmit: (name: string) => Promise<void>; onCancel: () => void }) {
@@ -81,13 +90,21 @@ function NameInput({ initial, onSubmit, onCancel }: { initial: string; onSubmit:
 }
 
 /** The library's category list (#libraryCategories); each item carries data-category="all" | "uncategorised" | "<id>". */
-export function CategorySidebar({ selected, onSelect }: CategorySidebarProps) {
+export function CategorySidebar({ selected, onSelect, expanded: controlledExpanded, onExpandedChange }: CategorySidebarProps) {
   const t = useT();
   const confirm = useConfirm();
   const { categories, totalCount, uncategorisedCount } = useCategories();
   const { create, rename, reorder, remove } = useCategoryMutations();
   const { assign } = useAssignCategory();
-  const [expanded, setExpanded] = usePersistentState(EXPANDED_KEY, parseExpanded);
+  const [storedExpanded, setStoredExpanded] = useCategoriesExpanded();
+  const controlled = controlledExpanded !== undefined;
+  const expanded = controlledExpanded ?? storedExpanded;
+  const setExpanded = (next: boolean) => {
+    if (!controlled) {
+      setStoredExpanded(next);
+    }
+    onExpandedChange?.(next);
+  };
   const [editing, setEditing] = useState<number | "new" | null>(null);
   const [dropKey, setDropKey] = useState<string | null>(null);
   const dragged = useRef<number | null>(null);
@@ -188,7 +205,11 @@ export function CategorySidebar({ selected, onSelect }: CategorySidebarProps) {
   );
 
   return (
-    <aside id="libraryCategories" className="library-categories grid content-start gap-1" aria-label={t("library.categories.label")}>
+    <aside
+      id="libraryCategories"
+      className={cn("library-categories grid content-start gap-1", controlled && !expanded && "hidden mobile:grid")}
+      aria-label={t("library.categories.label")}
+    >
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
