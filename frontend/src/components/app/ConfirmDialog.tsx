@@ -43,7 +43,7 @@ export function ConfirmDialog({ open, onOpenChange, onConfirm, title, descriptio
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{cancelLabel || t("common.cancel")}</AlertDialogCancel>
-          <AlertDialogAction variant={destructive ? "destructive" : "default"} onClick={onConfirm}>
+          <AlertDialogAction variant={destructive ? "destructive" : "primary"} onClick={onConfirm}>
             {confirmLabel || t("common.confirm")}
           </AlertDialogAction>
         </AlertDialogFooter>

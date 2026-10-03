@@ -2,16 +2,19 @@
  * Glass material (SPEC-005 D1): translucent chrome and floating layers only
  * (navigation bar, Reader controls, popovers, menus, dialogs, toasts), never
  * behind reading text. Solid when the user asks for reduced transparency or
- * the browser has no backdrop-filter. Unlayered, like the rest of the CSS.
+ * the browser has no backdrop-filter. Unlayered, like the rest of the CSS. The
+ * `.toaster` selector outranks Sonner's own toast rules so toasts get the same fallbacks.
  */
-.glass {
+.glass,
+.toaster [data-sonner-toast].glass {
   border: 1px solid var(--glass-border);
   background: var(--glass-solid);
   color: var(--text-main);
 }
 
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass {
+  .glass,
+  .toaster [data-sonner-toast].glass {
     background: var(--glass-bg);
     -webkit-backdrop-filter: var(--glass-blur);
     backdrop-filter: var(--glass-blur);
@@ -19,7 +22,8 @@
 
   /* Reduce wins; browsers without the media feature keep the glass. */
   @media (prefers-reduced-transparency: reduce) {
-    .glass {
+    .glass,
+    .toaster [data-sonner-toast].glass {
       background: var(--glass-solid);
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
