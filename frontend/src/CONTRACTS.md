@@ -249,7 +249,7 @@ Shared CSS classes (in `styles/components.css`): `.visually-hidden`,
 `.danger-button`, `.material-icon-button` (+ `.material-rename-button`,
 `.material-delete-button`, `.material-action-icon`), the `.is-active`
 segmented-button styles (`.tab-button`, `.display-mode-button`,
-`.theme-button`, `.reader-sidebar-tab-button`,
+`.theme-button`,
 `.auth-mode-button`, `.upload-target-button`, `.locale-button`).
 
 ## I7 Test hooks
@@ -271,15 +271,14 @@ A component rendered by another feature is exported from its owner's
 ships typed stubs; the owner implements them behind the same names and props.
 Every other feature's `index.ts` is `export {}`.
 
-| Export                 | Owner → consumer                                   | Props                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Stub           |
-| ---------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
-| `VerifyBanner`         | auth (RX-003) → AppShell                           | none. Reads `session.user.emailVerified` and `session.verifyNotice`; renders `#verifyBanner`, `#verifyResendButton`, `#verifyBannerStatus` (`api.auth.resendVerification`, outcome via `setVerifyNotice`).                                                                                                                                                                                                                                             | renders `null` |
-| `MaterialList`         | materials (RX-006) → reader documents tab (RX-007) | `{ selectedMaterialId: number \| null; onOpenMaterial(material: MaterialListItem): void; onMaterialDeleted?(materialId: number): void }`. Renders `#materialImportOpen` (opens the import dialog itself), `#materialSearch`, `#materialList`, with rename, delete (useConfirm), import/translation progress and polling. Calls `onOpenMaterial` when the user picks a ready material and when a material it imported becomes ready (legacy auto-open). | renders `null` |
-| `MaterialImportDialog` | materials (RX-006) → any                           | `{ open: boolean; onOpenChange(open: boolean): void; onImportStarted?(material: MaterialDetail): void }`. `#materialImportModal`.                                                                                                                                                                                                                                                                                                                      | renders `null` |
+| Export                 | Owner → consumer         | Props                                                                                                                                                                                                      | Stub           |
+| ---------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| `VerifyBanner`         | auth (RX-003) → AppShell | none. Reads `session.user.emailVerified` and `session.verifyNotice`; renders `#verifyBanner`, `#verifyResendButton`, `#verifyBannerStatus` (`api.auth.resendVerification`, outcome via `setVerifyNotice`). | renders `null` |
+| `MaterialImportDialog` | materials (RX-006) → any | `{ open: boolean; onOpenChange(open: boolean): void; onImportStarted?(material: MaterialDetail): void }`. `#materialImportModal`.                                                                          | renders `null` |
 
 Division of state: the route (`/reader/:materialId`) owns the open material id; the reader owns its per-language
 cache key `wordMarkerSelectedMaterialId:<userId>:<languageId>` (a legacy `…:<languageId>` entry moves to the first user who reads it), and loading the material
-(`api.materials.reader`). Materials owns the list, search and import tracking.
+(`api.materials.reader`). Materials owns the import dialog, row state helpers and the rename/delete hooks; the Library owns the list and search.
 The auth feature owns `WelcomePage`/`AuthPage` (built by RX-002 for the
 first-run path; forgot/reset panels are minimal placeholders) and all auth
 screens after RX-002.
@@ -352,7 +351,7 @@ C3 Data hooks (LIB-002 produces in frontend/src/features/library/data/;
 LIB-003/004 use).
 - useLibraryMaterials({ category, search }): an infinite query over C1's
   list (pages of 50), polling while any work is importing or translating,
-  as MaterialList does today.
+  as the Library did before.
 - useCategories(): returns { categories, totalCount, uncategorisedCount }.
 - useCategoryMutations(): returns { create(name), rename(id, name),
   reorder(ids), remove(id) }. Each invalidates categories and library

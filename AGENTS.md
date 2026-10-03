@@ -42,6 +42,7 @@
 - `frontend/` is the React app (Vite, TypeScript, Tailwind v4, shadcn/ui on Radix, TanStack Query, Zustand, React Router). `frontend/src/CONTRACTS.md` documents its structure and contracts.
 - `frontend/src/app/` contains the entry wiring, routes, route gating and providers.
 - `frontend/src/features/<name>/` contains one folder per feature (pages, components, feature-local TanStack Query hooks and CSS).
+- The main navigation's "Read" tab opens the Library (`features/library/`: work list, search, category sidebar, `data/` hooks). Opening a work goes to the Reader (`features/reader/`, `/reader/:materialId`), a distraction-free view with an "Aa" settings panel. `features/materials/` holds the import dialog and shared work helpers.
 - `frontend/src/components/ui/` contains the shadcn kit; `frontend/src/components/app/` contains shared app components (shell, sidebar, confirm dialog, toasts).
 - `frontend/src/lib/api/` contains the typed API client and query keys; `frontend/src/stores/` contains the Zustand stores for client state. Server data belongs in TanStack Query, not in stores.
 - `frontend/public/locales.json` is the localisation catalogue (bundled at build time); `frontend/static/` is the Vite public dir (vendored Bergamot engine, logo, theme script); translation models are fetched into the gitignored `frontend/public/models/` by `npm run fetch:mt-models -w backend`.
