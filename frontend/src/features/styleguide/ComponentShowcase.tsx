@@ -35,6 +35,7 @@ import {
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { FloatingPanel } from "@/components/ui/floating-panel";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -425,6 +426,9 @@ export function ComponentShowcase() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <FloatingPanel open className="static w-72">
+            <Text variant="body">{t("styleguide.dialogText")}</Text>
+          </FloatingPanel>
           <Button variant="secondary" onClick={() => toast.success(t("styleguide.toastText"))}>
             {t("styleguide.showToast")}
           </Button>

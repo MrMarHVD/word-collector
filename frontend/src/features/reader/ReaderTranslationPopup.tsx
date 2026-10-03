@@ -1,11 +1,10 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
-import { m } from "motion/react";
 import { CloseButton } from "@/components/app/CloseButton";
+import { FloatingPanel } from "@/components/ui/floating-panel";
 import { SheetTitle } from "@/components/ui/sheet";
 import { Text } from "@/components/ui/text";
 import { useExitHold } from "@/lib/hooks/use-exit-hold";
 import { useT } from "@/lib/i18n";
-import { MOTION_FADE, MOTION_FADE_FAST } from "@/lib/motion";
 import { sheetClearsAbove, sheetClearsBelow, sheetFallback, translationAnchoredPosition, type Rect } from "./reader-popup-position";
 import { ReaderSheet } from "./ReaderSheet";
 import { segmentSourcePieces, type SegmentWord } from "./segment-text";
@@ -193,18 +192,7 @@ export function ReaderTranslationPopup({ translation, getAnchorRect, readerTextR
   }
 
   return (
-    <m.aside
-      ref={popupRef}
-      id="readerTranslation"
-      className={TRANSLATION_CLASS}
-      hidden={!held}
-      aria-hidden={open ? undefined : true}
-      style={open ? undefined : { pointerEvents: "none" }}
-      initial={false}
-      animate={open ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.97 }}
-      transition={open ? MOTION_FADE : MOTION_FADE_FAST}
-      onAnimationComplete={() => !open && release()}
-    >
+    <FloatingPanel ref={popupRef} id="readerTranslation" className={TRANSLATION_CLASS} hidden={!held} open={open} onExitComplete={release}>
       {held ? (
         <TranslationBody
           translation={held}
@@ -216,6 +204,6 @@ export function ReaderTranslationPopup({ translation, getAnchorRect, readerTextR
           )}
         />
       ) : null}
-    </m.aside>
+    </FloatingPanel>
   );
 }
