@@ -59,7 +59,6 @@
 .tab-button.is-active,
 .locale-button.is-active,
 .display-mode-button.is-active,
-.reader-sidebar-tab-button.is-active,
 .theme-button.is-active,
 .upload-target-button.is-active {
   background: var(--surface-panel);
@@ -72,7 +71,6 @@
 .tab-button:hover,
 .locale-button:hover,
 .display-mode-button:hover,
-.reader-sidebar-tab-button:hover,
 .theme-button:hover {
   background: var(--surface-panel);
   color: var(--text-main);

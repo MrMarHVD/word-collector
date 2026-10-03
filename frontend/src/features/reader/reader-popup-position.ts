@@ -23,7 +23,7 @@ export interface Size {
 
 const WORD_INFO_GAP = 10;
 const WORD_INFO_MARGIN = 12;
-/** Space kept free below word-info for the fixed page controls in mobile focus mode. */
+/** Space kept free below word-info for the fixed page controls in the mobile Reader. */
 const WORD_INFO_MOBILE_FOCUS_BOTTOM = 86;
 
 export const TRANSLATION_GAP = 10;
