@@ -99,18 +99,22 @@ function UserRow({ row, editable, onSave }: { row: AdminUser; editable: boolean;
   const formatCount = useFormatCount();
   const badgeKey = row.isSuperadmin ? "admin.usersSuperadminBadge" : row.isAdmin ? "admin.usersAdminBadge" : null;
   return (
-    <m.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={MOTION_FADE}>
+    <m.div className="border-b border-line last:border-b-0" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={MOTION_FADE}>
       <ListRow
+        className="border-b-0"
         title={<span data-admin-user-email>{row.email}</span>}
-        meta={[
-          t("admin.usersEffectiveMaterials", { count: formatCount(row.maxMaterials) }),
-          t("admin.usersEffectiveUpload", { mb: formatCount(bytesToMb(row.maxUploadBytes)) }),
-          t("admin.usersMaterialCount", { count: formatCount(row.materialCount) })
-        ].join(" · ")}
+        meta={
+          <span className="flex flex-wrap gap-x-2.5">
+            <span>{t("admin.usersEffectiveMaterials", { count: formatCount(row.maxMaterials) })}</span>
+            <span>{t("admin.usersEffectiveUpload", { mb: formatCount(bytesToMb(row.maxUploadBytes)) })}</span>
+            <span>{t("admin.usersMaterialCount", { count: formatCount(row.materialCount) })}</span>
+            <span className="hidden mobile:inline">{t("admin.usersCreatedOn", { date: formatDate(row.createdAt) })}</span>
+          </span>
+        }
         trailing={
           <>
             {badgeKey ? <Badge variant="accent">{t(badgeKey)}</Badge> : null}
-            <span>{t("admin.usersCreatedOn", { date: formatDate(row.createdAt) })}</span>
+            <span className="mobile:hidden">{t("admin.usersCreatedOn", { date: formatDate(row.createdAt) })}</span>
           </>
         }
         below={<UserLimitsForm row={row} editable={editable} onSave={onSave} />}
@@ -176,7 +180,7 @@ export function UsersPanel() {
           {t(sort === "created_at" ? "admin.usersSortByDate" : "admin.usersSortByEmail")}
         </Button>
       </div>
-      <div className="max-h-[28rem] overflow-y-auto" data-admin-users-list onScroll={handleScroll}>
+      <div className="-mx-4 max-h-[28rem] overflow-y-auto" data-admin-users-list onScroll={handleScroll}>
         {rows && !rows.length ? (
           <Text className="p-3" tone="muted">
             {t("admin.usersEmpty")}

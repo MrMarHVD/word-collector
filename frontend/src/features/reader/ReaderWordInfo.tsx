@@ -18,8 +18,8 @@ import { ReaderSheet } from "./ReaderSheet";
 
 const WORD_STATUSES: WordStatus[] = ["unknown", "learning", "known"];
 
-/** Classes of #readerWordInfo: a floating layer (glass); reader.css positions it and turns it into a bottom sheet on mobile. */
-const WORD_INFO_CLASS = "reader-word-info fixed z-10 min-w-60 max-w-[min(340px,calc(100vw-24px))] rounded-container p-4 text-main glass shadow-float";
+/** Size hooks of #readerWordInfo (FloatingPanel supplies the glass layer); reader.css positions it and turns it into a bottom sheet on mobile. */
+const WORD_INFO_CLASS = "reader-word-info min-w-60 max-w-[min(340px,calc(100vw-24px))]";
 
 export interface ReaderWordInfoProps {
   /** The word shown, or null when closed. */
@@ -167,7 +167,7 @@ function WordInfoBody({
           onClick={onClose}
         />
       </div>
-      <dl className="my-3 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1.5 text-body">
+      <dl className="my-3 grid grid-cols-[max-content_1fr] items-baseline gap-x-3 gap-y-1.5 text-body">
         {rows.map((row) => (
           <FragmentRow key={row.label} label={row.label} value={row.value} />
         ))}
@@ -188,7 +188,7 @@ function WordInfoBody({
       <StatusToggle wordId={token.wordId} status={status} onSelect={(next) => onStatusChange(token.wordId, next)} />
       {showDisambiguation ? (
         <div
-          className="mt-3 h-[95px] max-h-[195px] min-h-0 resize-y overflow-y-auto overscroll-contain rounded-control border border-line bg-panel"
+          className="mt-3 h-[95px] max-h-[195px] min-h-0 resize-y overflow-y-auto overscroll-contain border-t border-line"
           data-disambiguation-panel
           hidden={!disambiguationOpen}
         >

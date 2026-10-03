@@ -16,8 +16,8 @@ const ERROR_KEYS: Partial<Record<TranslationErrorCode, string>> = {
   failed: "reader.translation.error.failed"
 };
 
-/** Classes of #readerTranslation: a floating layer (glass); reader.css positions it and turns it into a sheet on mobile. */
-const TRANSLATION_CLASS = "reader-translation fixed z-10 rounded-container p-4 text-main glass shadow-float";
+/** Hook of #readerTranslation (FloatingPanel supplies the glass layer); reader.css positions it and turns it into a sheet on mobile. */
+const TRANSLATION_CLASS = "reader-translation";
 
 /** What the open popup shows (SPEC-002 contract C4 states). */
 export interface ReaderTranslationState {

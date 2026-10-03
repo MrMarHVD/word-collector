@@ -7,7 +7,7 @@ export interface ReaderSheetProps {
   onClose: () => void;
   /** The popup's legacy id (#readerWordInfo, #readerTranslation). */
   id: string;
-  /** The popup's classes: the floating-layer look plus the hook reader.css lays out as the mobile sheet. */
+  /** The popup's hook class, which reader.css lays out as the mobile sheet (the glass look comes from the Sheet). */
   className: string;
   contentRef: RefObject<HTMLElement | null>;
   children: ReactNode;
@@ -36,7 +36,7 @@ export function ReaderSheet({ open, onClose, id, className, contentRef, children
           side="bottom"
           showCloseButton={false}
           // Portalled to the body, so it must clear the fixed Reader layout (z-index 11) that holds the desktop popups.
-          className={cn(className, "z-[12] gap-0")}
+          className={cn("rounded-container p-4", className, "z-[12] gap-0")}
           aria-describedby={undefined}
           onOpenAutoFocus={preventDefault}
           onCloseAutoFocus={preventDefault}

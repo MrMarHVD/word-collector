@@ -52,17 +52,20 @@ export function SettingRow({ label, description, htmlFor, labelId, stacked = fal
 export interface SettingSectionProps extends Omit<ComponentProps<"section">, "title"> {
   /** Heading above the container (caption style, normal case). */
   title: ReactNode;
+  /** `card` (default): bordered container. `inset`: no border or fill, rows flush with the section edge; use inside a floating panel or card so surfaces are not nested. */
+  variant?: "card" | "inset";
 }
 
 /**
- * A titled group of settings: one bordered container whose children (usually
- * `SettingRow`s) are divided by a `Separator`.
+ * A titled group of settings: one bordered container (`variant="card"`) or a
+ * borderless group (`variant="inset"`) whose children (usually `SettingRow`s)
+ * are divided by a `Separator`.
  */
-export function SettingSection({ title, className, children, ...props }: SettingSectionProps) {
+export function SettingSection({ title, variant = "card", className, children, ...props }: SettingSectionProps) {
   return (
     <section className={cn("grid gap-2", className)} {...props}>
       <h3 className="px-1 text-caption font-semibold text-label">{title}</h3>
-      <div className="overflow-hidden rounded-container border border-line bg-panel">
+      <div className={cn("overflow-hidden", variant === "card" ? "rounded-container border border-line bg-panel" : "[&_[data-slot=field]]:px-1")}>
         {Children.toArray(children).map((child, index) => (
           <Fragment key={index}>
             {index > 0 ? <Separator /> : null}

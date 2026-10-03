@@ -78,7 +78,7 @@ export function MaterialImportDialog({ open, onOpenChange, onImportStarted }: Ma
         id="materialImportModal"
         showCloseButton={false}
         aria-describedby={undefined}
-        className="block sm:max-w-md mobile:max-h-[calc(100dvh-24px)] mobile:overflow-auto mobile:p-[18px]"
+        className="block sm:max-w-md mobile:max-h-[calc(100dvh-24px)] mobile:overflow-auto mobile:p-4"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           restoreChosenFile(fileInput.current, chosenFile.current);

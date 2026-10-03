@@ -12,10 +12,10 @@ import { studyLanguageLabelKey, studyLanguageMenuOptions } from "@/lib/study-lan
 import { cn } from "@/lib/utils";
 import { useAvailableStudyLanguages, useStudyLanguageStore } from "@/stores/study-language";
 
-/** Flag in a small rounded frame; the SVG fills the frame. */
+/** Flag in a small rounded frame with a hairline border (light flags, e.g. Japan's, stay visible on the light chip); the SVG fills the frame. */
 function FlagChip({ language, className }: { language: string; className?: string }) {
   return (
-    <span className={cn("inline-flex shrink-0 overflow-hidden rounded-control-sm [&_svg]:size-full", className)}>
+    <span className={cn("inline-flex shrink-0 overflow-hidden rounded-control-sm border border-line-strong [&_svg]:size-full", className)}>
       <Flag language={language} />
     </span>
   );
@@ -68,11 +68,11 @@ export function StudyLanguageSelect({ className }: StudyLanguageSelectProps) {
 
   return (
     <div className={cn("contents", className)}>
-      <div id="studyLanguageButtons" className="mobile:min-w-0 mobile:overflow-x-auto">
+      <div id="studyLanguageButtons" className="mobile:min-w-0 mobile:flex-initial mobile:overflow-x-auto">
         <Segmented
           aria-label={t("learning.studyLanguage")}
           size="sm"
-          className="w-auto"
+          className="w-fit"
           value={enrolled.find((language) => language.id === selectedId)?.name ?? ""}
           onValueChange={switchLanguage}
           options={enrolled.map((language) => {
@@ -80,7 +80,7 @@ export function StudyLanguageSelect({ className }: StudyLanguageSelectProps) {
             return {
               value: language.name,
               label: <FlagChip language={language.name} className="h-4 w-6" />,
-              itemProps: { "data-language-name": language.name, "aria-label": label, title: label }
+              itemProps: { className: "mobile:flex-none mobile:px-2", "data-language-name": language.name, "aria-label": label, title: label }
             };
           })}
         />

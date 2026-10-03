@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Text } from "@/components/ui/text";
+import { PageHeader } from "@/components/app/PageHeader";
 import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { useT } from "@/lib/i18n";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
@@ -19,9 +19,7 @@ export default function SettingsPage() {
   const setActiveTab = useSettingsTabStore((state) => state.setTab);
   return (
     <section id="settingsView" className="grid gap-4">
-      <Text variant="title" as="h2">
-        {t("settings.title")}
-      </Text>
+      <PageHeader title={t("settings.title")} className="mb-0" />
       <Tabs
         value={activeTab}
         onValueChange={(tab) => setActiveTab(tab as SettingsTab)}

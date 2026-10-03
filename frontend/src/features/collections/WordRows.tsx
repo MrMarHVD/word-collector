@@ -105,10 +105,7 @@ export function WordRows({
         return (
           <Fragment key={entry.id}>
             <TableRow
-              className={cn(
-                "word-row group/row cursor-default mobile:mb-2.5 mobile:block mobile:overflow-hidden mobile:rounded-container mobile:border mobile:bg-panel",
-                draggingId === entry.id && "opacity-50"
-              )}
+              className={cn("word-row group/row cursor-default mobile:block", draggingId === entry.id && "opacity-50")}
               data-state={selected ? "selected" : undefined}
               draggable
               data-word-id={entry.id}
@@ -131,8 +128,8 @@ export function WordRows({
                   <DragHandleIcon />
                 </span>
               </TableCell>
-              <TableCell className="align-top whitespace-normal mobile:block mobile:w-full mobile:px-3.5 mobile:pt-3.5 mobile:pb-0.5">
-                <div className="word-cell grid gap-0.5">
+              <TableCell className="min-w-56 whitespace-normal mobile:block mobile:min-w-0 mobile:w-full mobile:px-3.5 mobile:pt-3.5 mobile:pb-0.5">
+                <div className="word-cell flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mobile:grid mobile:gap-0.5">
                   <Text as="span" className="word-cell-main font-semibold mobile:text-heading">
                     {entry.word}
                   </Text>
@@ -142,13 +139,13 @@ export function WordRows({
                     </Text>
                   ) : null}
                   {posKey ? (
-                    <span className="word-cell-badges flex flex-wrap gap-1 mobile:hidden">
+                    <span className="word-cell-badges flex flex-wrap gap-1 self-center mobile:hidden">
                       <Badge>{t(`pos.${posKey}`, {}, posKey)}</Badge>
                     </span>
                   ) : null}
                 </div>
               </TableCell>
-              <TableCell className="align-top whitespace-normal text-label mobile:block mobile:w-full mobile:px-3.5 mobile:pb-3 mobile:[overflow-wrap:anywhere]">
+              <TableCell className="min-w-44 whitespace-normal text-label mobile:block mobile:min-w-0 mobile:w-full mobile:px-3.5 mobile:pb-3 mobile:[overflow-wrap:anywhere]">
                 <TranslationOverride
                   entry={entry}
                   wordId={entry.id}
