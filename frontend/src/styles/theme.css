@@ -33,6 +33,7 @@
   --shadow-panel: none;
   --shadow-float: var(--shadow-float-value);
 
+  --radius-control-sm: 0.25rem;
   --radius-control: 0.5rem;
   --radius-container: 0.875rem;
   --radius-pill: 999px;
