@@ -77,7 +77,7 @@ function AccountMenu({ activeTab, isAdmin, onNavigate }: AccountMenuProps) {
             <DropdownMenuItem
               key={tab}
               id={tab === "admin" ? "adminTabMenuButton" : undefined}
-              className={cn("mobile:min-h-11", activeTab === tab && "bg-accent font-semibold")}
+              className={cn("mobile:min-h-11", activeTab === tab && "bg-selected font-semibold text-brand")}
               data-tab={tab}
               aria-current={activeTab === tab ? "page" : undefined}
               onSelect={() => onNavigate(tab)}

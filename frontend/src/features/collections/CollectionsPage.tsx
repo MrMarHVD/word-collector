@@ -305,8 +305,8 @@ export default function CollectionsPage() {
         variant="ghost"
         className={cn(
           "collection-button h-auto min-h-9 justify-start px-3 py-2 text-left whitespace-normal mobile:min-h-11",
-          active && "bg-accent font-semibold",
-          dropTargetId === id && "bg-accent ring-2 ring-primary ring-inset"
+          active && "bg-selected font-semibold text-brand",
+          dropTargetId === id && "bg-selected ring-2 ring-primary ring-inset"
         )}
         data-collection-id={id}
         aria-pressed={active}

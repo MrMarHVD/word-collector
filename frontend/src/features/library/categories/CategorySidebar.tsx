@@ -185,7 +185,7 @@ export function CategorySidebar({ selected, onSelect, expanded: controlledExpand
   });
 
   const itemClass = (key: string) =>
-    cn("min-h-11 gap-1 rounded-control border-b-0 py-0 pr-1 pl-3", dropKey === key && "bg-accent outline-2 -outline-offset-2 outline-primary");
+    cn("min-h-11 gap-1 rounded-control border-b-0 py-0 pr-1 pl-3", dropKey === key && "bg-selected outline-2 -outline-offset-2 outline-primary");
 
   /** The select button filling a category row: label left, count right. */
   const selectButton = (active: boolean, label: string, count: number, onClick: () => void) => (

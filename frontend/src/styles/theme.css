@@ -17,7 +17,9 @@
   --color-line-strong: var(--border-strong);
   --color-brand: var(--accent);
   --color-brand-strong: var(--accent-strong);
-  --color-hover: var(--accent-subtle);
+  --color-hover: var(--hover-overlay);
+  --color-selected: var(--selected-overlay);
+  --color-accent-subtle: var(--accent-subtle);
   --color-focus: var(--focus-ring);
   --color-status-unknown: var(--status-unknown);
   --color-status-learning: var(--status-learning);
@@ -82,6 +84,9 @@
   --accent-foreground: oklch(0.99 0 0);
   --accent-subtle: oklch(0.955 0.02 225);
   --accent-strong: oklch(0.32 0.06 225);
+  /* Translucent state overlays: hover = text colour, selected = accent; both read on page, panel and glass. */
+  --hover-overlay: color-mix(in oklch, var(--text-main) 6%, transparent);
+  --selected-overlay: color-mix(in oklch, var(--accent) 12%, transparent);
   --focus-ring: oklch(0.38 0.06 225 / 0.35);
 
   /* Word-status colours */
@@ -132,6 +137,8 @@ html[data-theme="dark"] {
   --accent-foreground: oklch(0.2 0.02 225);
   --accent-subtle: oklch(0.28 0.03 225);
   --accent-strong: oklch(0.62 0.05 220);
+  --hover-overlay: color-mix(in oklch, var(--text-main) 9%, transparent);
+  --selected-overlay: color-mix(in oklch, var(--accent) 20%, transparent);
   --focus-ring: oklch(0.7 0.05 220 / 0.4);
 
   --status-unknown: oklch(0.82 0.13 85);

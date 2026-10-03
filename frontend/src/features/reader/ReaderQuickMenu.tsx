@@ -63,7 +63,7 @@ export function ReaderQuickMenu({ menu }: { menu: ReaderQuickMenuState }) {
             variant="ghost"
             className={cn(
               "reader-convenience-option h-10 min-w-24 rounded-container px-3 text-body font-medium shadow-float",
-              selected ? "border border-primary bg-accent hover:bg-accent" : "glass"
+              selected ? "border border-primary bg-selected hover:bg-selected" : "glass"
             )}
           >
             <m.button

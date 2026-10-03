@@ -18,7 +18,7 @@ export interface ListRowProps extends Omit<ComponentProps<"div">, "title"> {
   actions?: ReactNode;
   /** Content under the row (e.g. an inline form), inside the same hairline-divided item. */
   below?: ReactNode;
-  /** Active/selected row (accent-subtle fill). */
+  /** Active/selected row (selected overlay, accent text). */
   selected?: boolean;
 }
 
@@ -43,7 +43,7 @@ export function ListRow({ leading, title, meta, trailing, actions, below, select
       data-slot="list-row"
       data-selected={selected || undefined}
       className={cn(
-        "border-b border-line transition-colors last:border-b-0 hover:bg-subtle data-[selected]:bg-accent",
+        "border-b border-line transition-colors last:border-b-0 hover:bg-hover data-[selected]:bg-selected data-[selected]:text-brand",
         !below && "flex min-h-11 items-center gap-3 px-4 py-2",
         className
       )}

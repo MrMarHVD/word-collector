@@ -16,6 +16,8 @@ const SURFACES = ["page", "panel", "subtle", "muted", "reader"] as const;
 const COLOURS = [
   ["accent", "var(--accent)"],
   ["accent-subtle", "var(--accent-subtle)"],
+  ["hover-overlay", "var(--hover-overlay)"],
+  ["selected-overlay", "var(--selected-overlay)"],
   ["text-main", "var(--text-main)"],
   ["text-label", "var(--text-label)"],
   ["text-muted", "var(--text-muted)"],
