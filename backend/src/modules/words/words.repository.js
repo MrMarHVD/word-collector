@@ -56,6 +56,7 @@ export function createWordsRepository(db) {
     WHERE c.id = ? AND c.user_id = ?
   `);
   const createCollection = db.prepare("INSERT INTO collections (user_id, language_id, name) VALUES (?, ?, ?)");
+  const ensureCollection = db.prepare("INSERT INTO collections (user_id, language_id, name) VALUES (?, ?, ?) ON CONFLICT (user_id, language_id, name) DO NOTHING");
   const deleteCollection = db.prepare("DELETE FROM collections WHERE id = ?");
   const updateCollectionLanguage = db.prepare("UPDATE collections SET language_id = ? WHERE id = ?");
 
@@ -236,6 +237,18 @@ export function createWordsRepository(db) {
      */
     createCollection(userId, languageId, name) {
       return createCollection.run(userId, languageId, name);
+    },
+    /**
+     * Create a collection unless one with the same user, language and name exists.
+     * Race-safe: concurrent callers wait on the unique key instead of failing.
+     * Inserts into: `collections`.
+     * @param {number} userId
+     * @param {number} languageId
+     * @param {string} name
+     * @returns {object} Run result.
+     */
+    ensureCollection(userId, languageId, name) {
+      return ensureCollection.run(userId, languageId, name);
     },
     /**
      * Hard-delete a collection row.
