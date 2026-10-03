@@ -59,7 +59,7 @@ function SettingsForm({ showWordSpacesOption, onWordsPerPageChange, onClose, tit
               <Slider
                 id="readerFontSize"
                 aria-labelledby="readerFontSizeLabel"
-                min={16}
+                min={14}
                 max={34}
                 step={1}
                 value={[fontSize]}
