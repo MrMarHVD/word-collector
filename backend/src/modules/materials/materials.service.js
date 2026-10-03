@@ -343,11 +343,12 @@ export async function runMaterialImport(repositories, { materialId, userId, lang
  * @param {number} languageId
  * @param {number} [offset=0]
  * @param {string} [search=""]
+ * @param {"uncategorised"|number|null} [category=null] - Category filter; `null` for all works.
  * @returns {Promise<object[]>}
  */
-export async function getMaterials(repositories, userId, languageId, offset = 0, search = "") {
+export async function getMaterials(repositories, userId, languageId, offset = 0, search = "", category = null) {
   const nativeLanguage = (await repositories.auth.findUserById(userId))?.nativeLanguage || "English";
-  const materials = await repositories.materials.listByUserAndLanguage(userId, Number(languageId), READER_WORK_PAGE_SIZE, Number(offset) || 0, search || "");
+  const materials = await repositories.materials.listByUserAndLanguage(userId, Number(languageId), READER_WORK_PAGE_SIZE, Number(offset) || 0, search || "", category);
   const result = [];
   for (const material of materials) {
     // While an import is still running the token set is incomplete, so the
@@ -444,14 +445,15 @@ export async function updateMaterialReaderStart(repositories, userId, materialId
 
 /**
  * Apply one or more updates to a material. Supported fields: `readerStart`
- * (clamped to [0, wordCount - 1]) and `title` (trimmed; required when present).
+ * (clamped to [0, wordCount - 1]), `title` (trimmed; required when present) and
+ * `categoryId` (a category of the same user and language, or `null` for uncategorised).
  * Returns an error descriptor when a field is invalid; returns `null` when the
  * material does not exist or does not belong to the user.
  *
  * @param {object} repositories
  * @param {number} userId
  * @param {number} materialId
- * @param {{ readerStart?: number, title?: string }} [updates={}]
+ * @param {{ readerStart?: number, title?: string, categoryId?: number|null }} [updates={}]
  * @returns {Promise<object|null|{ error: string, errorKey: string }>}
  */
 export async function updateMaterial(repositories, userId, materialId, updates = {}) {
@@ -459,6 +461,16 @@ export async function updateMaterial(repositories, userId, materialId, updates =
   const material = await repositories.materials.findById(Number(materialId), userId);
   if (!material) {
     return null;
+  }
+  if (Object.hasOwn(requestedUpdates, "categoryId")) {
+    const categoryId = requestedUpdates.categoryId;
+    if (categoryId !== null) {
+      const category = Number.isInteger(categoryId) ? await repositories.categories.findById(categoryId, userId) : null;
+      if (!category || category.languageId !== material.languageId) {
+        return { error: "Category not found for this document's language.", errorKey: "errors.categoryInvalid" };
+      }
+    }
+    await repositories.materials.updateCategory(categoryId, material.id, userId);
   }
   if (Object.hasOwn(requestedUpdates, "readerStart")) {
     const safeStart = Math.min(Math.max(Number(requestedUpdates.readerStart) || 0, 0), Math.max(Number(material.wordCount || 0) - 1, 0));
@@ -472,4 +484,16 @@ export async function updateMaterial(repositories, userId, materialId, updates =
     await repositories.materials.updateTitle(title.slice(0, 200), material.id, userId);
   }
   return repositories.materials.findById(material.id, userId);
+}
+
+/**
+ * Record that a material was opened in the Reader.
+ *
+ * @param {object} repositories
+ * @param {number} userId
+ * @param {number} materialId
+ * @returns {Promise<{ lastOpenedAt: Date }|null>} `null` when the material does not exist or is not owned by the user.
+ */
+export async function markMaterialOpened(repositories, userId, materialId) {
+  return (await repositories.materials.markOpened(Number(materialId), userId)) || null;
 }

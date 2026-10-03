@@ -44,7 +44,7 @@ function applyCors(req, res) {
   // Echo only the single allowed origin; never reflect an arbitrary value.
   res.setHeader("access-control-allow-origin", CORS_ORIGIN);
   res.setHeader("access-control-allow-credentials", "true");
-  res.setHeader("access-control-allow-methods", "GET,POST,PATCH,DELETE,OPTIONS");
+  res.setHeader("access-control-allow-methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
   res.setHeader("access-control-allow-headers", "content-type, x-csrf-token");
   res.setHeader("vary", "Origin");
 }

@@ -6,7 +6,7 @@
  * from a processed material so the frontend can display them word-by-word.
  */
 
-import { getMaterialReader, getMaterials, startMaterialImport, updateMaterial } from "../../modules/materials/materials.service.js";
+import { getMaterialReader, getMaterials, markMaterialOpened, startMaterialImport, updateMaterial } from "../../modules/materials/materials.service.js";
 import { effectiveUploadBytesForUser } from "../../modules/admin/admin-users.service.js";
 import { readJson, readMultipart } from "../request.js";
 import { jsonResponse } from "../response.js";
@@ -14,10 +14,13 @@ import { jsonResponse } from "../response.js";
 /**
  * Creates the route handler for `/api/materials` and `/api/materials/:id`.
  *
- * **GET /api/materials?languageId=&[offset=]&[search=]**
- * Lists materials for a language, paginated (page size 50).
+ * **GET /api/materials?languageId=&[offset=]&[search=]&[category=all|uncategorised|<id>]**
+ * Lists materials for a language, paginated (page size 50), sorted by last
+ * opened (never-opened last), then date added. Each item includes `categoryId`,
+ * `lastOpenedAt`, `readTokens` and `totalTokens`.
  * - Response 200: `{ materials: Material[], pageSize: 50 }`
- * - Response 404: language not found or not owned by the user.
+ * - Response 400: `category` is not `all`, `uncategorised` or a number.
+ * - Response 404: language or category not found or not owned by the user.
  *
  * **POST /api/materials** _(multipart/form-data)_
  * Uploads a new document file and begins background import processing.
@@ -31,8 +34,13 @@ import { jsonResponse } from "../response.js";
  * - Response 200: reader payload from `getMaterialReader`.
  * - Response 404: material not found or not owned by the user.
  *
+ * **POST /api/materials/:id/opened**
+ * Records that the material was opened in the Reader.
+ * - Response 200: `{ lastOpenedAt }`
+ * - Response 404: material not found or not owned by the user.
+ *
  * **PATCH /api/materials/:id**
- * Updates mutable fields on a material (e.g. title).
+ * Updates mutable fields on a material (title, readerStart, categoryId).
  * - Body: partial material fields accepted by `updateMaterial`.
  * - Response 200: `{ material: Material }`
  * - Response 400: validation error.
@@ -55,8 +63,23 @@ export function createMaterialsRoutes({ repositories }) {
         jsonResponse(res, 404, { error: "Language not found." });
         return true;
       }
+      const categoryParam = url.searchParams.get("category") || "all";
+      let category = null;
+      if (categoryParam === "uncategorised") {
+        category = "uncategorised";
+      } else if (categoryParam !== "all") {
+        if (!/^\d+$/.test(categoryParam)) {
+          jsonResponse(res, 400, { error: "Invalid category filter.", errorKey: "errors.categoryInvalid" });
+          return true;
+        }
+        category = Number(categoryParam);
+        if (!(await repositories.categories.findById(category, user.userId))) {
+          jsonResponse(res, 404, { error: "Category not found." });
+          return true;
+        }
+      }
       jsonResponse(res, 200, {
-        materials: await getMaterials(repositories, user.userId, languageId, url.searchParams.get("offset"), url.searchParams.get("search") || ""),
+        materials: await getMaterials(repositories, user.userId, languageId, url.searchParams.get("offset"), url.searchParams.get("search") || "", category),
         pageSize: 50
       });
       return true;
@@ -88,6 +111,17 @@ export function createMaterialsRoutes({ repositories }) {
         return true;
       }
       jsonResponse(res, 201, result);
+      return true;
+    }
+
+    const openedMatch = url.pathname.match(/^\/api\/materials\/(\d+)\/opened$/);
+    if (req.method === "POST" && openedMatch) {
+      const opened = await markMaterialOpened(repositories, user.userId, Number(openedMatch[1]));
+      if (!opened) {
+        jsonResponse(res, 404, { error: "Material not found." });
+        return true;
+      }
+      jsonResponse(res, 200, opened);
       return true;
     }
 

@@ -25,7 +25,8 @@ export function createMaterialsRepository(db) {
   const materialById = db.prepare(`
     SELECT m.id, m.user_id AS "userId", m.language_id AS "languageId", l.name AS "languageName", m.title, m.file_name AS "fileName",
            m.file_type AS "fileType", m.word_count AS "wordCount", m.reader_start AS "readerStart", m.created_at AS "createdAt",
-           m.import_status AS "importStatus", m.import_total AS "importTotal", m.import_processed AS "importProcessed", m.import_error AS "importError"
+           m.import_status AS "importStatus", m.import_total AS "importTotal", m.import_processed AS "importProcessed", m.import_error AS "importError",
+           m.category_id AS "categoryId", m.last_opened_at AS "lastOpenedAt"
     FROM materials m
     JOIN languages l ON l.id = m.language_id
     WHERE m.id = ? AND m.user_id = ?
@@ -44,22 +45,8 @@ export function createMaterialsRepository(db) {
   const updateMaterialReaderStart = db.prepare("UPDATE materials SET reader_start = ? WHERE id = ? AND user_id = ?");
   const updateMaterialTitle = db.prepare("UPDATE materials SET title = ? WHERE id = ? AND user_id = ?");
   const deleteMaterial = db.prepare("DELETE FROM materials WHERE id = ? AND user_id = ?");
-  const materialsByUserAndLanguage = db.prepare(`
-    SELECT id, title, file_name AS "fileName", file_type AS "fileType", word_count AS "wordCount", reader_start AS "readerStart", created_at AS "createdAt",
-           import_status AS "importStatus", import_total AS "importTotal", import_processed AS "importProcessed", import_error AS "importError"
-    FROM materials
-    WHERE user_id = ? AND language_id = ?
-    ORDER BY created_at DESC, id DESC
-    LIMIT ? OFFSET ?
-  `);
-  const materialsByUserLanguageSearch = db.prepare(`
-    SELECT id, title, file_name AS "fileName", file_type AS "fileType", word_count AS "wordCount", reader_start AS "readerStart", created_at AS "createdAt",
-           import_status AS "importStatus", import_total AS "importTotal", import_processed AS "importProcessed", import_error AS "importError"
-    FROM materials
-    WHERE user_id = ? AND language_id = ? AND title ILIKE ? ESCAPE '\\'
-    ORDER BY created_at DESC, id DESC
-    LIMIT ? OFFSET ?
-  `);
+  const updateMaterialCategory = db.prepare("UPDATE materials SET category_id = ? WHERE id = ? AND user_id = ?");
+  const markMaterialOpened = db.prepare("UPDATE materials SET last_opened_at = now() WHERE id = ? AND user_id = ? RETURNING last_opened_at AS \"lastOpenedAt\"");
   const materialsByUser = db.prepare(`
     SELECT m.id, m.user_id AS "userId", m.language_id AS "languageId", l.name AS "languageName", m.title, m.file_name AS "fileName",
            m.file_type AS "fileType", m.word_count AS "wordCount", m.reader_start AS "readerStart", m.created_at AS "createdAt"
@@ -281,23 +268,65 @@ export function createMaterialsRepository(db) {
       return deleteMaterial.run(materialId, userId);
     },
     /**
-     * Return a paginated list of materials for a user and language, optionally
-     * filtered by title substring.
-     * Queries: `materials`.
+     * Return a paginated list of materials for a user and language with
+     * reading progress, optionally filtered by title substring and category.
+     * Sorted by last opened (never-opened last), then date added, newest first.
+     * Queries: `materials` with a `material_tokens` count for `totalTokens`.
      * @param {number} userId
      * @param {number} languageId
      * @param {number} pageSize
      * @param {number} offset
      * @param {string} [search=""]
+     * @param {"uncategorised"|number|null} [category=null] - `null` for all works.
      * @returns {object[]}
      */
-    listByUserAndLanguage(userId, languageId, pageSize, offset, search = "") {
+    listByUserAndLanguage(userId, languageId, pageSize, offset, search = "", category = null) {
+      const filters = ["m.user_id = ?", "m.language_id = ?"];
+      const params = [userId, languageId];
       const term = search.trim();
-      if (!term) {
-        return materialsByUserAndLanguage.all(userId, languageId, pageSize, offset);
+      if (term) {
+        filters.push("m.title ILIKE ? ESCAPE '\\'");
+        params.push(`%${term.replace(/[\\%_]/g, (char) => `\\${char}`)}%`);
       }
-      const pattern = `%${term.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
-      return materialsByUserLanguageSearch.all(userId, languageId, pattern, pageSize, offset);
+      if (category === "uncategorised") {
+        filters.push("m.category_id IS NULL");
+      } else if (category !== null) {
+        filters.push("m.category_id = ?");
+        params.push(category);
+      }
+      params.push(pageSize, offset);
+      return db.prepare(`
+        SELECT m.id, m.title, m.file_name AS "fileName", m.file_type AS "fileType", m.word_count AS "wordCount", m.reader_start AS "readerStart", m.created_at AS "createdAt",
+               m.import_status AS "importStatus", m.import_total AS "importTotal", m.import_processed AS "importProcessed", m.import_error AS "importError",
+               m.category_id AS "categoryId", m.last_opened_at AS "lastOpenedAt",
+               t.total AS "totalTokens", LEAST(m.reader_start, t.total) AS "readTokens"
+        FROM materials m
+        CROSS JOIN LATERAL (SELECT COUNT(*)::int AS total FROM material_tokens mt WHERE mt.material_id = m.id) t
+        WHERE ${filters.join(" AND ")}
+        ORDER BY m.last_opened_at DESC NULLS LAST, m.created_at DESC, m.id DESC
+        LIMIT ? OFFSET ?
+      `).all(...params);
+    },
+    /**
+     * Set or clear a material's category.
+     * Updates: `materials`.
+     * @param {number|null} categoryId - `null` for uncategorised.
+     * @param {number} materialId
+     * @param {number} userId
+     * @returns {object} Run result.
+     */
+    updateCategory(categoryId, materialId, userId) {
+      return updateMaterialCategory.run(categoryId, materialId, userId);
+    },
+    /**
+     * Record that a material was opened in the Reader (sets `last_opened_at` to now).
+     * Updates: `materials`.
+     * @param {number} materialId
+     * @param {number} userId
+     * @returns {{ lastOpenedAt: Date }|undefined} `undefined` when not found.
+     */
+    markOpened(materialId, userId) {
+      return markMaterialOpened.get(materialId, userId);
     },
     /**
      * List all materials across all languages for a user (used by the
