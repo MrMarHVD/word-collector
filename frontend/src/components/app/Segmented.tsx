@@ -38,13 +38,14 @@ export function Segmented<T extends string>({ value, onValueChange, options, siz
       className={cn("w-full rounded-control bg-subtle p-0.5", className)}
       {...props}
     >
-      {options.map(({ value: optionValue, label, itemProps }) => (
+      {options.map(({ value: optionValue, label, itemProps: { className: itemClassName, ...itemProps } = {} }) => (
         <ToggleGroupItem
           key={optionValue}
           value={optionValue}
           className={cn(
             "flex-1 rounded-control px-3 text-body font-medium text-secondary hover:bg-accent hover:text-main data-[state=on]:bg-panel data-[state=on]:font-semibold data-[state=on]:inset-ring-1 data-[state=on]:inset-ring-line data-[state=on]:text-main",
-            size === "sm" ? "h-8" : "h-9 mobile:h-11"
+            size === "sm" ? "h-8" : "h-9 mobile:h-11",
+            itemClassName
           )}
           {...itemProps}
         >
