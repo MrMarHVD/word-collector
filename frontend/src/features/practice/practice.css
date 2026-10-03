@@ -1,29 +1,13 @@
-/* Practice, ported from public/css/practice.css plus its rules in dashboard.css and responsive.css. */
+/* Practice layout only: the 3D card stage and flip. Look and feel come from the canonical components. */
 
 .practice-content {
   max-width: 920px;
   margin: 0 auto;
 }
 
-.practice-layout {
-  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
-}
-
 .practice-sidebar {
   position: sticky;
   top: 88px;
-}
-
-.practice-sidebar-button {
-  text-align: left;
-}
-
-.practice-sidebar-button[aria-current="page"] {
-  background: var(--surface-panel);
-  color: var(--brand);
-  box-shadow:
-    0 1px 2px var(--shadow-color),
-    inset 0 0 0 1px color-mix(in srgb, var(--brand) 18%, transparent);
 }
 
 .practice-session {
@@ -44,14 +28,7 @@
 }
 
 .practice-card-side-button {
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 64px;
   justify-self: center;
-  font-size: 1.35rem;
-  font-weight: 900;
-  line-height: 1;
 }
 
 .practice-card {
@@ -59,12 +36,6 @@
   min-height: min(420px, 56vh);
   transform-style: preserve-3d;
   cursor: pointer;
-  outline: none;
-}
-
-.practice-card:focus-visible {
-  border-radius: 14px;
-  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 /* The flip itself is driven by Motion (PracticeSessionView). Under reduced motion
@@ -95,29 +66,13 @@
 }
 
 .practice-card-face {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  gap: 16px;
-  align-content: center;
   min-width: 0;
   padding: clamp(24px, 7vw, 56px);
-  border: 1px solid var(--border-main);
-  border-radius: 14px;
-  background: var(--surface-panel);
-  box-shadow: var(--shadow-panel);
   backface-visibility: hidden;
-  text-align: center;
-}
-
-.practice-card-front {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 10%, transparent), transparent 46%), var(--surface-panel);
 }
 
 .practice-card-back {
   transform: rotateY(180deg);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--known) 12%, transparent), transparent 48%), var(--surface-panel);
 }
 
 .practice-card-word,
@@ -126,9 +81,8 @@
   max-height: 100%;
   overflow-wrap: anywhere;
   hyphens: auto;
-  color: var(--text-main);
-  font-size: var(--practice-card-text-size, clamp(2.25rem, 4.5rem, 4.5rem));
-  font-weight: 900;
+  font-size: var(--practice-card-text-size, 4.5rem);
+  font-weight: 600;
   line-height: 1.12;
 }
 
@@ -136,48 +90,13 @@
   overflow: hidden;
 }
 
-.practice-card-hint,
-.practice-card-phonetic {
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-
-.practice-answer-button.is-unknown {
-  border-color: color-mix(in srgb, var(--unknown) 36%, var(--border-main));
-  background: color-mix(in srgb, var(--unknown) 12%, var(--surface-panel));
-  color: var(--unknown-strong);
-}
-
-.practice-answer-button.is-known {
-  border-color: color-mix(in srgb, var(--known) 36%, var(--border-main));
-  background: color-mix(in srgb, var(--known) 12%, var(--surface-panel));
-  color: var(--known-strong);
-}
-
-.practice-answer-button:not(:disabled):hover {
-  filter: brightness(0.98);
-}
-
 @media (max-width: 760px) {
   .practice-content {
     max-width: none;
   }
 
-  .practice-layout {
-    grid-template-columns: 1fr;
-  }
-
   .practice-sidebar {
     position: static;
-  }
-
-  .practice-sidebar-menu {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .practice-sidebar-button {
-    text-align: center;
   }
 
   .practice-card {
@@ -195,8 +114,6 @@
 
   .practice-card-side-button {
     grid-row: 2;
-    width: 56px;
-    height: 48px;
   }
 
   .practice-card-side-button-prev {
@@ -213,10 +130,6 @@
 
   .practice-answer {
     grid-template-columns: 1fr;
-  }
-
-  .practice-panel {
-    padding: 16px;
   }
 
   .practice-session-head,
