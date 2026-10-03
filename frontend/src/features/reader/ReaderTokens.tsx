@@ -1,6 +1,15 @@
 import { memo, type ReactNode } from "react";
 import type { ReaderToken } from "@/lib/api/types";
-import { tokenDataStatus, type ReaderBlock, type ReaderLayout, type ReaderPart } from "./reader-tokens";
+import { cn } from "@/lib/utils";
+import {
+  READER_LIST_CLASS,
+  READER_TOKEN_CLASS,
+  readerTokenHighlightClass,
+  tokenDataStatus,
+  type ReaderBlock,
+  type ReaderLayout,
+  type ReaderPart
+} from "./reader-tokens";
 
 interface ReaderTokenButtonProps {
   token: ReaderToken;
@@ -8,13 +17,17 @@ interface ReaderTokenButtonProps {
   segmentSelected: boolean;
 }
 
-/** One word of the page (the legacy `.reader-token` button); gestures are handled on #readerText. */
+/** One word of the page (a `.reader-token` button); gestures are handled on #readerText. */
 const ReaderTokenButton = memo(function ReaderTokenButton({ token, selected, segmentSelected }: ReaderTokenButtonProps) {
-  let className = "reader-token";
-  if (selected) className += " is-selected";
-  if (segmentSelected) className += " is-segment-selected";
+  const status = tokenDataStatus(token);
   return (
-    <button className={className} type="button" data-word-id={token.wordId} data-token-id={token.id} data-status={tokenDataStatus(token)}>
+    <button
+      className={cn(READER_TOKEN_CLASS, readerTokenHighlightClass(status, selected, segmentSelected))}
+      type="button"
+      data-word-id={token.wordId}
+      data-token-id={token.id}
+      data-status={status}
+    >
       {token.surface}
     </button>
   );
@@ -60,7 +73,7 @@ export const ReaderTokens = memo(function ReaderTokens({ layout, selectedTokenId
     <>
       {layout.nodes.map((node) =>
         node.kind === "list" ? (
-          <ul key={node.key} className="reader-list">
+          <ul key={node.key} className={READER_LIST_CLASS}>
             {node.items.map(renderBlock)}
           </ul>
         ) : (

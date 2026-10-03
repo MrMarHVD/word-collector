@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { testToken as token } from "./test-token";
-import { isWordSpacingLanguage, layoutReaderTokens, normalizeStatus, readerLayoutToHtml, tokenDataStatus } from "./reader-tokens";
+import { isWordSpacingLanguage, layoutReaderTokens, normalizeStatus, READER_TOKEN_CLASS, readerLayoutToHtml, tokenDataStatus } from "./reader-tokens";
 
 function text(layout: ReturnType<typeof layoutReaderTokens>): string {
-  return readerLayoutToHtml(layout).replace(/<button[^>]*>([^<]*)<\/button>/g, "[$1]");
+  return readerLayoutToHtml(layout)
+    .replace(/<button[^>]*>([^<]*)<\/button>/g, "[$1]")
+    .replace(/ class="[^"]*"/g, "");
 }
 
 describe("normalizeStatus / tokenDataStatus", () => {
@@ -58,17 +60,13 @@ describe("layoutReaderTokens", () => {
       token("Two", { ...gap, blockIndex: 2, blockType: "list-item" }),
       token("Body", { ...gap, blockIndex: 3, blockType: "unknown-type" })
     ];
-    expect(text(layoutReaderTokens(tokens, "Spanish", false))).toBe(
-      '<h1 class="reader-block reader-heading reader-heading-1">[Title]</h1>' +
-        '<ul class="reader-list"><li class="reader-block reader-list-item">[One]</li><li class="reader-block reader-list-item">[Two]</li></ul>' +
-        '<p class="reader-block reader-paragraph">[Body]</p>'
-    );
+    expect(text(layoutReaderTokens(tokens, "Spanish", false))).toBe("<h1>[Title]</h1><ul><li>[One]</li><li>[Two]</li></ul><p>[Body]</p>");
   });
 
   it("serialises tokens with the legacy button markup, escaped", () => {
     const tokenValue = token("<b>", { status: "learning", leadingText: "", trailingText: "&" });
     expect(readerLayoutToHtml(layoutReaderTokens([tokenValue], "Spanish", false))).toBe(
-      `<button class="reader-token" type="button" data-word-id="${tokenValue.wordId}" data-token-id="${tokenValue.id}" data-status="learning">&lt;b&gt;</button>&amp;`
+      `<button class="${READER_TOKEN_CLASS}" type="button" data-word-id="${tokenValue.wordId}" data-token-id="${tokenValue.id}" data-status="learning">&lt;b&gt;</button>&amp;`
     );
   });
 });
