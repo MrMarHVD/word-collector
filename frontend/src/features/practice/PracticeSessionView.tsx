@@ -74,7 +74,7 @@ export function PracticeSessionView() {
             onClick={() => updateSession(flipCard)}
           >
             <Card className={`${FACE_CLASS} practice-card-front`}>
-              <span className="practice-card-word" style={cardTextStyle(card.word, 4.5)}>
+              <span className="practice-card-word font-semibold" style={cardTextStyle(card.word, 4.5)}>
                 {card.word}
               </span>
               <Text variant="caption" tone="muted" className="practice-card-hint">
@@ -82,7 +82,7 @@ export function PracticeSessionView() {
               </Text>
             </Card>
             <Card className={`${FACE_CLASS} practice-card-back`}>
-              <span className="practice-card-translation" style={cardTextStyle(translation, 4.1)}>
+              <span className="practice-card-translation font-semibold" style={cardTextStyle(translation, 4.1)}>
                 {translation}
               </span>
               {phonetic ? (

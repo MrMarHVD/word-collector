@@ -23,13 +23,13 @@ export interface StatusToggleProps {
   onSelect: (status: WordStatus) => void;
 }
 
-/** Three-segment unknown/learning/known toggle (.status-toggle); clicking the active segment does nothing. */
+/** Three-segment unknown/learning/known toggle (`.status-toggle` is the selector hook for specs and row-click guards); clicking the active segment does nothing. */
 export function StatusToggle({ wordId, status, pendingStatus, onSelect }: StatusToggleProps) {
   const t = useT();
   const isMobile = useIsMobileLayout();
   return (
     <Segmented
-      className="status-toggle"
+      className="status-toggle max-w-[210px]"
       aria-label={t("table.status")}
       size={isMobile ? "md" : "sm"}
       value={normalizeStatus(status)}

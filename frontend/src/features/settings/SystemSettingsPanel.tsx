@@ -134,7 +134,7 @@ export function SystemSettingsPanel() {
             </SettingRow>
           )}
         </SettingSection>
-        <p id="settingsStatus" className="visually-hidden" role="status" aria-live="off">
+        <p id="settingsStatus" className="sr-only" role="status" aria-live="off">
           {status}
         </p>
       </div>

@@ -178,7 +178,7 @@ export function PracticeSettings() {
             />
           </SettingRow>
         </SettingSection>
-        <p id="practiceSettingsStatus" className="visually-hidden" role="status" aria-live="off">
+        <p id="practiceSettingsStatus" className="sr-only" role="status" aria-live="off">
           {status}
         </p>
       </form>

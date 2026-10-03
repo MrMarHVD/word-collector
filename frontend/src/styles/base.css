@@ -6,8 +6,7 @@
   box-sizing: border-box;
 }
 
-[hidden],
-.tab-view[hidden] {
+[hidden] {
   display: none !important;
 }
 

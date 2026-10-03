@@ -43,7 +43,7 @@ export default function AdminPage() {
   }
 
   return (
-    <section id="adminView" className="tab-view">
+    <section id="adminView">
       <Tabs className="mb-4" value={subtab} activationMode="manual">
         <TabsList aria-label={t("admin.sectionsLabel")}>
           {SUBTABS.filter((value) => value === "admin" || superadmin).map((value) => (

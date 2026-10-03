@@ -9,7 +9,6 @@
   display: grid;
   place-items: center;
   height: 3.5rem;
-  border-radius: var(--radius-control);
 }
 
 /* Busy content behind the glass sample, to judge legibility. */

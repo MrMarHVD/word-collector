@@ -82,7 +82,6 @@
   overflow-wrap: anywhere;
   hyphens: auto;
   font-size: var(--practice-card-text-size, 4.5rem);
-  font-weight: 600;
   line-height: 1.12;
 }
 
