@@ -4,5 +4,12 @@
  */
 export { MaterialList, type MaterialListProps } from "./MaterialList";
 export { MaterialImportDialog, type MaterialImportDialogProps } from "./MaterialImportDialog";
-export { hasPendingWork, MATERIAL_POLL_INTERVAL_MS } from "./materials";
-export { flattenMaterials } from "./use-materials";
+export {
+  hasPendingWork,
+  importProgress,
+  MATERIAL_LOAD_MORE_THRESHOLD_PX,
+  MATERIAL_POLL_INTERVAL_MS,
+  MATERIAL_SEARCH_DEBOUNCE_MS,
+  materialRowState
+} from "./materials";
+export { flattenMaterials, useDeleteMaterial, useRenameMaterial } from "./use-materials";
