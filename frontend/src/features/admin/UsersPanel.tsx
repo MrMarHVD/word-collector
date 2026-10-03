@@ -99,7 +99,7 @@ function UserRow({ row, editable, onSave }: { row: AdminUser; editable: boolean;
   const formatCount = useFormatCount();
   const badgeKey = row.isSuperadmin ? "admin.usersSuperadminBadge" : row.isAdmin ? "admin.usersAdminBadge" : null;
   return (
-    <m.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={MOTION_FADE} className="border-b border-line last:border-b-0">
+    <m.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={MOTION_FADE}>
       <ListRow
         title={<span data-admin-user-email>{row.email}</span>}
         meta={[
@@ -113,11 +113,8 @@ function UserRow({ row, editable, onSave }: { row: AdminUser; editable: boolean;
             <span>{t("admin.usersCreatedOn", { date: formatDate(row.createdAt) })}</span>
           </>
         }
-        className="border-b-0"
+        below={<UserLimitsForm row={row} editable={editable} onSave={onSave} />}
       />
-      <div className="px-4 pb-3">
-        <UserLimitsForm row={row} editable={editable} onSave={onSave} />
-      </div>
     </m.div>
   );
 }

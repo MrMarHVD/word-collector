@@ -262,6 +262,11 @@ export function ComponentShowcase() {
             }
           />
           <ListRow selected title={t("styleguide.sampleTitle")} meta={t("styleguide.sampleMeta")} trailing={t("styleguide.sampleValue")} />
+          <ListRow
+            title={t("styleguide.sampleTitle")}
+            meta={t("styleguide.sampleMeta")}
+            below={<Input aria-label={t("styleguide.sampleLabel")} className="max-w-xs" />}
+          />
         </Card>
       </Block>
 

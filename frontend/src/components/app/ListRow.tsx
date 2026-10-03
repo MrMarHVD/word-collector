@@ -16,6 +16,8 @@ export interface ListRowProps extends Omit<ComponentProps<"div">, "title"> {
   trailing?: ReactNode;
   /** Icon buttons or a menu at the far right. */
   actions?: ReactNode;
+  /** Content under the row (e.g. an inline form), inside the same hairline-divided item. */
+  below?: ReactNode;
   /** Active/selected row (accent-subtle fill). */
   selected?: boolean;
 }
@@ -24,17 +26,9 @@ export interface ListRowProps extends Omit<ComponentProps<"div">, "title"> {
  * One row. Place rows in a list or card; the last row has no divider. Extra props (onClick, data-*,
  * role, className) go to the root element.
  */
-export function ListRow({ leading, title, meta, trailing, actions, selected = false, className, ...props }: ListRowProps) {
-  return (
-    <div
-      data-slot="list-row"
-      data-selected={selected || undefined}
-      className={cn(
-        "flex min-h-11 items-center gap-3 border-b border-line px-4 py-2 transition-colors last:border-b-0 hover:bg-subtle data-[selected]:bg-accent",
-        className
-      )}
-      {...props}
-    >
+export function ListRow({ leading, title, meta, trailing, actions, below, selected = false, className, ...props }: ListRowProps) {
+  const content = (
+    <>
       {leading ? <div className="flex shrink-0 items-center">{leading}</div> : null}
       <div className="grid min-w-0 flex-1 gap-0.5">
         <div className="truncate text-body text-main">{title}</div>
@@ -42,6 +36,29 @@ export function ListRow({ leading, title, meta, trailing, actions, selected = fa
       </div>
       {trailing ? <div className="flex shrink-0 items-center gap-2 text-caption text-label">{trailing}</div> : null}
       {actions ? <div className="flex shrink-0 items-center gap-1">{actions}</div> : null}
+    </>
+  );
+  return (
+    <div
+      data-slot="list-row"
+      data-selected={selected || undefined}
+      className={cn(
+        "border-b border-line transition-colors last:border-b-0 hover:bg-subtle data-[selected]:bg-accent",
+        !below && "flex min-h-11 items-center gap-3 px-4 py-2",
+        className
+      )}
+      {...props}
+    >
+      {below ? (
+        <>
+          <div className="flex min-h-11 items-center gap-3 px-4 py-2">{content}</div>
+          <div data-slot="list-row-below" className="px-4 pb-3">
+            {below}
+          </div>
+        </>
+      ) : (
+        content
+      )}
     </div>
   );
 }
