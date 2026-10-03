@@ -2,8 +2,16 @@ import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-quer
 import { useCallback, useLayoutEffect, useRef, useState, type DragEvent, type MouseEvent, type UIEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useConfirm } from "@/components/app/ConfirmDialog";
+import { Segmented } from "@/components/app/Segmented";
 import { Sidebar, SidebarLayout, SidebarOpenButton } from "@/components/app/Sidebar";
 import { toastError } from "@/components/app/toast";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Text } from "@/components/ui/text";
 import { api, dashboardSummaryQuery, errorMessage, refreshStudyData } from "@/lib/api";
 import type { CollectionStats, ImportWordsResponse, Word, WordStatus } from "@/lib/api/types";
 import { useAnimatedSidebar } from "@/lib/hooks/use-animated-sidebar";
@@ -39,13 +47,7 @@ const DRAG_TYPE = "application/x-word-marker-words";
 const NO_COLLECTIONS: CollectionStats[] = [];
 const NO_WORDS: Word[] = [];
 const NO_SELECTION: RowSelection = { ids: new Set(), anchorId: null };
-const DISPLAY_MODES: { mode: WordDisplayMode; labelKey: string }[] = [
-  { mode: "page", labelKey: "collections.displayPage" },
-  { mode: "infinite", labelKey: "collections.displayInfinite" }
-];
-const COLLECTION_BUTTON_CLASS =
-  "collection-button min-h-11 rounded-md border border-line bg-panel px-3 text-left text-sm font-semibold text-label hover:bg-hover";
-const SECONDARY_BUTTON_CLASS = "secondary-button min-h-10 rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover";
+const DISPLAY_MODES: WordDisplayMode[] = ["page", "infinite"];
 
 const parseCollapsed = (stored: string | null) => stored === "true";
 
@@ -298,10 +300,14 @@ export default function CollectionsPage() {
   function renderCollectionButton(id: CollectionSelection, name: string) {
     const active = id === selection;
     return (
-      <button
+      <Button
         key={id}
-        className={cn(COLLECTION_BUTTON_CLASS, active && "is-active", dropTargetId === id && "is-drop-target")}
-        type="button"
+        variant="ghost"
+        className={cn(
+          "collection-button h-auto min-h-9 justify-start px-3 py-2 text-left whitespace-normal mobile:min-h-11",
+          active && "bg-accent font-semibold",
+          dropTargetId === id && "bg-accent ring-2 ring-primary ring-inset"
+        )}
         data-collection-id={id}
         aria-pressed={active}
         onClick={() => handleSelectCollection(id)}
@@ -310,7 +316,7 @@ export default function CollectionsPage() {
         onDrop={(event) => void handleDrop(event, id)}
       >
         {name}
-      </button>
+      </Button>
     );
   }
 
@@ -332,15 +338,15 @@ export default function CollectionsPage() {
     const { knownWords, learningWords, unknownWords, totalWords } = stats;
     return (
       <>
-        <span>{stats.name}</span>
-        <small>{stats.languageName}</small>
-        <strong>
+        <span className="font-semibold text-main">{stats.name}</span>
+        <span className="text-caption">{stats.languageName}</span>
+        <span className="font-semibold text-brand">
           {formatCount(knownWords)} / {formatCount(totalWords)}
-        </strong>
-        <small>
+        </span>
+        <span className="text-caption">
           {t("progress.statusBreakdown", { known: formatCount(knownWords), learning: formatCount(learningWords), unknown: formatCount(unknownWords) })}
-        </small>
-        <small>{t("progress.knownPercent", { percent: knownPercent(knownWords, totalWords) })}</small>
+        </span>
+        <span className="text-caption">{t("progress.knownPercent", { percent: knownPercent(knownWords, totalWords) })}</span>
       </>
     );
   }
@@ -364,25 +370,19 @@ export default function CollectionsPage() {
       >
         <Sidebar
           ref={sidebarRef}
-          className="collections-sidebar rounded-lg border border-line bg-panel p-3.5 shadow-panel"
+          className="collections-sidebar rounded-container border border-line bg-panel p-3.5"
           collapsed={sidebarCollapsed}
           onCollapsedChange={setSidebarCollapsed}
           toggleId="collectionsSidebarToggle"
           toggleLabel={t("collections.toggleSidebar")}
         >
-          <button
-            id="uploadOpenButton"
-            className="collections-sidebar-upload mb-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong"
-            type="button"
-            onClick={() => setUploadOpen(true)}
-          >
+          <Button id="uploadOpenButton" size="lg" className="collections-sidebar-upload mb-3 w-full" onClick={() => setUploadOpen(true)}>
             {t("collections.upload")}
-          </button>
-          <label className="collections-mobile-select-wrap grid gap-1.5 text-sm font-semibold text-label">
-            <span>{t("collections.collection")}</span>
-            <select
+          </Button>
+          <div className="collections-mobile-select-wrap hidden gap-1.5 mobile:grid">
+            <Label htmlFor="collectionsSelect">{t("collections.collection")}</Label>
+            <NativeSelect
               id="collectionsSelect"
-              className="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus"
               value={String(selection)}
               onChange={(event) => handleSelectCollection(parseCollectionSelection(event.target.value))}
             >
@@ -392,141 +392,121 @@ export default function CollectionsPage() {
                   {collection.name}
                 </option>
               ))}
-            </select>
-          </label>
-          <nav id="collectionsList" className="collections-list grid max-h-[calc(100vh-220px)] gap-1 overflow-auto" aria-label={t("collections.listLabel")}>
+            </NativeSelect>
+          </div>
+          <nav
+            id="collectionsList"
+            className="collections-list grid max-h-[calc(100vh-220px)] gap-1 overflow-auto mobile:hidden"
+            aria-label={t("collections.listLabel")}
+          >
             {renderCollectionButton("all", t("collections.all"))}
             {collections.map((collection) => renderCollectionButton(collection.id, collection.name))}
           </nav>
         </Sidebar>
 
-        <section className="browser-panel rounded-lg border border-line bg-panel p-5 shadow-panel">
+        <Card className="browser-panel gap-0 p-5">
           <div className="section-head mb-4 flex min-h-8 items-center justify-between gap-3 mobile:grid">
-            <h2 className="text-base font-bold">{t("collections.wordsTitle")}</h2>
-            <div className="collection-actions desktop-display-mode flex flex-wrap items-center justify-end gap-2.5 mobile:grid">
-              <div
-                className="display-mode-buttons grid grid-cols-2 gap-1 rounded-lg border border-line bg-muted p-1"
-                role="group"
-                aria-label={t("collections.displayMode")}
-              >
-                {DISPLAY_MODES.map(({ mode, labelKey }) => (
-                  <button
-                    key={mode}
-                    className={cn("display-mode-button rounded-md px-3 py-2 text-sm font-semibold text-secondary", displayMode === mode && "is-active")}
-                    type="button"
-                    data-display-mode={mode}
-                    aria-pressed={displayMode === mode}
-                    onClick={() => handleDisplayMode(mode)}
-                  >
-                    {t(labelKey)}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <Text variant="heading">{t("collections.wordsTitle")}</Text>
+            <Segmented
+              className="desktop-display-mode w-56 mobile:hidden"
+              aria-label={t("collections.displayMode")}
+              size="sm"
+              value={displayMode}
+              onValueChange={handleDisplayMode}
+              options={DISPLAY_MODES.map((mode) => ({
+                value: mode,
+                label: t(mode === "page" ? "collections.displayPage" : "collections.displayInfinite"),
+                itemProps: { "data-display-mode": mode }
+              }))}
+            />
           </div>
           <div className="browser-tools grid items-end gap-3">
-            <label className="grid gap-1.5 text-sm font-semibold text-label">
-              <span>{t("collections.search")}</span>
-              <input
+            <div className="grid gap-1.5">
+              <Label htmlFor="searchInput">{t("collections.search")}</Label>
+              <Input
                 id="searchInput"
-                className="min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus"
                 type="search"
                 placeholder={t("collections.searchPlaceholder")}
                 value={searchInput}
                 onChange={(event) => handleSearch(event.target.value)}
               />
-            </label>
-          </div>
-          <div id="selectedCollectionStats" className="selected-stats my-3 flex min-h-8 flex-wrap items-baseline gap-2.5 text-sm text-secondary">
-            {renderSelectedStats()}
-          </div>
-          <div className="word-table-toolbar mb-2 flex items-center justify-end gap-3">
-            <p id="wordActionError" className="word-action-error mr-auto text-sm font-semibold text-danger" role="alert" hidden={!actionError}>
-              {actionError}
-            </p>
-            <div className="delete-slot flex justify-center">
-              <button
-                id="deleteSelectedButton"
-                className="delete-toggle danger-button disabled:cursor-not-allowed disabled:opacity-50"
-                type="button"
-                disabled={!rowSelection.ids.size || deleting}
-                onClick={() => void handleDelete()}
-              >
-                {t("collections.deleteSelected")}
-              </button>
             </div>
           </div>
-          <div
-            ref={tableWrapRef}
-            className={cn("table-wrap overflow-x-auto rounded-lg border border-line", displayMode !== "page" && words.length > 5 && "is-scrollable")}
-            onScroll={handleTableScroll}
-          >
-            <table className="w-full min-w-[760px] border-collapse">
-              <thead>
-                <tr>
-                  <th className="word-drag-header sticky top-0 z-[1] border-b border-line bg-subtle px-2 py-3" aria-hidden="true"></th>
-                  <th className="sticky top-0 z-[1] border-b border-line bg-subtle px-3 py-3 text-left text-xs font-bold text-secondary uppercase">
-                    {t("table.word")}
-                  </th>
-                  <th className="sticky top-0 z-[1] border-b border-line bg-subtle px-3 py-3 text-left text-xs font-bold text-secondary uppercase">
-                    {t("table.translation")}
-                  </th>
-                  <th className="sticky top-0 z-[1] border-b border-line bg-subtle px-3 py-3" aria-hidden="true"></th>
-                  <th className="sticky top-0 z-[1] border-b border-line bg-subtle px-3 py-3 text-left text-xs font-bold text-secondary uppercase">
-                    {t("table.status")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody id="wordRows">
-                <WordRows
-                  words={visibleWords}
-                  selectedIds={rowSelection.ids}
-                  expandedDisambiguationId={expandedDisambiguationId}
-                  editingTranslationId={editingTranslationId}
-                  pendingStatus={pendingStatus}
-                  draggingId={draggingId}
-                  onSelectRow={handleSelectRow}
-                  onStatus={(wordId, status) => void handleStatus(wordId, status)}
-                  onToggleDisambiguation={(wordId) => setExpandedDisambiguationId((current) => (current === wordId ? null : wordId))}
-                  onEditTranslation={setEditingTranslationId}
-                  onSaveTranslation={handleSaveTranslation}
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDragEnd}
-                />
-              </tbody>
-            </table>
+          <div id="selectedCollectionStats" className="selected-stats my-3 flex min-h-8 flex-wrap items-baseline gap-2.5 text-body text-secondary">
+            {renderSelectedStats()}
           </div>
+          <div className="word-table-toolbar mb-2 flex items-center justify-end gap-3 mobile:hidden">
+            <p id="wordActionError" className="word-action-error mr-auto text-body font-medium text-destructive" role="alert" hidden={!actionError}>
+              {actionError}
+            </p>
+            <Button id="deleteSelectedButton" variant="destructive" size="sm" disabled={!rowSelection.ids.size || deleting} onClick={() => void handleDelete()}>
+              {t("collections.deleteSelected")}
+            </Button>
+          </div>
+          <Card className="gap-0 overflow-hidden py-0 mobile:border-0 mobile:bg-transparent">
+            <div
+              ref={tableWrapRef}
+              className={cn(
+                "table-wrap overflow-auto mobile:overflow-visible [&_[data-slot=table-container]]:overflow-visible",
+                displayMode !== "page" && words.length > 5 && "max-h-[clamp(240px,calc(100vh-490px),680px)] mobile:max-h-none"
+              )}
+              onScroll={handleTableScroll}
+            >
+              <Table className="min-w-[760px] mobile:block mobile:min-w-0">
+                <TableHeader className="mobile:hidden">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="sticky top-0 z-[1] w-7 bg-subtle px-2" aria-hidden="true"></TableHead>
+                    <TableHead className="sticky top-0 z-[1] bg-subtle">{t("table.word")}</TableHead>
+                    <TableHead className="sticky top-0 z-[1] bg-subtle">{t("table.translation")}</TableHead>
+                    <TableHead className="sticky top-0 z-[1] bg-subtle" aria-hidden="true"></TableHead>
+                    <TableHead className="sticky top-0 z-[1] bg-subtle">{t("table.status")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody id="wordRows" className="mobile:block">
+                  <WordRows
+                    words={visibleWords}
+                    selectedIds={rowSelection.ids}
+                    expandedDisambiguationId={expandedDisambiguationId}
+                    editingTranslationId={editingTranslationId}
+                    pendingStatus={pendingStatus}
+                    draggingId={draggingId}
+                    onSelectRow={handleSelectRow}
+                    onStatus={(wordId, status) => void handleStatus(wordId, status)}
+                    onToggleDisambiguation={(wordId) => setExpandedDisambiguationId((current) => (current === wordId ? null : wordId))}
+                    onEditTranslation={setEditingTranslationId}
+                    onSaveTranslation={handleSaveTranslation}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                  />
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
           <div
             id="wordPagination"
-            className="word-pagination mt-3 flex items-center justify-center gap-3 text-sm"
+            className="word-pagination mt-3 flex items-center justify-center gap-3 text-body mobile:grid mobile:grid-cols-1 mobile:gap-2"
             hidden={displayMode !== "page" || !words.length}
           >
-            <button
-              id="wordPrevPage"
-              className={SECONDARY_BUTTON_CLASS}
-              type="button"
-              disabled={wordRange.page <= 0}
-              onClick={() => setPage(wordRange.page - 1)}
-            >
+            <Button id="wordPrevPage" variant="secondary" className="mobile:h-11" disabled={wordRange.page <= 0} onClick={() => setPage(wordRange.page - 1)}>
               {t("collections.prevPage")}
-            </button>
-            <span id="wordPageStatus" className="text-secondary" role="status">
+            </Button>
+            <span id="wordPageStatus" className="text-secondary mobile:text-center" role="status">
               {t("collections.pageStatus", { current: formatCount(wordRange.page + 1), total: formatCount(wordRange.totalPages) })}
             </span>
-            <button
+            <Button
               id="wordNextPage"
-              className={SECONDARY_BUTTON_CLASS}
-              type="button"
+              variant="secondary"
+              className="mobile:h-11"
               disabled={wordRange.page >= wordRange.totalPages - 1}
               onClick={() => setPage(wordRange.page + 1)}
             >
               {t("collections.nextPage")}
-            </button>
+            </Button>
           </div>
-          <p id="emptyState" className="empty mt-4 text-sm text-secondary" hidden={!showEmptyState}>
+          <p id="emptyState" className="empty mt-4 text-body text-secondary" hidden={!showEmptyState}>
             {t(hasCollections ? "collections.noSearchResults" : "collections.empty")}
           </p>
-        </section>
+        </Card>
       </SidebarLayout>
       <UploadDialog open={uploadOpen} onOpenChange={setUploadOpen} languageId={languageId} collections={collections} onImported={handleImported} />
     </section>

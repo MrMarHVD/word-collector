@@ -1,10 +1,15 @@
 import { useRef, useState, type FormEvent } from "react";
 import { CloseButton } from "@/components/app/CloseButton";
+import { Segmented } from "@/components/app/Segmented";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Text } from "@/components/ui/text";
 import { api, errorMessage } from "@/lib/api";
 import type { CollectionStats, ImportWordsRequest, ImportWordsResponse } from "@/lib/api/types";
 import { useFormatCount, useT } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 import { parseCsv } from "./csv";
 
 type UploadTarget = "new" | "existing";
@@ -19,8 +24,6 @@ export interface UploadDialogProps {
   /** Called after a successful import, before the dialog closes; awaited. */
   onImported: (result: ImportWordsResponse) => Promise<void>;
 }
-
-const FIELD_CLASS = "min-h-11 rounded-md border border-line bg-panel px-3 text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus";
 
 /**
  * CSV word-list upload dialog (#uploadModal, ported from the imports
@@ -84,7 +87,7 @@ export function UploadDialog({ open, onOpenChange, languageId, collections, onIm
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogContent
         id="uploadModal"
-        className="upload-modal upload-panel block w-full max-w-md gap-0 rounded-lg border-line bg-panel p-5 shadow-panel sm:max-w-md"
+        className="upload-modal gap-0 sm:max-w-md"
         showCloseButton={false}
         aria-describedby={undefined}
         onOpenAutoFocus={(event) => {
@@ -94,46 +97,38 @@ export function UploadDialog({ open, onOpenChange, languageId, collections, onIm
       >
         <form id="uploadForm" onSubmit={(event) => void handleSubmit(event)}>
           <div className="section-head mb-4 flex min-h-8 items-center justify-between gap-3">
-            <DialogTitle id="uploadModalTitle" className="text-base leading-normal font-bold">
-              {t("upload.title")}
-            </DialogTitle>
+            <DialogTitle id="uploadModalTitle">{t("upload.title")}</DialogTitle>
             <CloseButton id="uploadModalClose" label={t("upload.close")} onClick={() => changeOpen(false)} />
           </div>
-          <div
-            className="upload-target-tabs mb-3 grid grid-cols-2 gap-1 rounded-lg border border-line bg-muted p-1"
-            role="group"
+          <Segmented
+            className="upload-target-tabs mb-3"
             aria-label={t("collections.uploadTarget")}
-          >
-            {(["new", "existing"] as const).map((value) => (
-              <button
-                key={value}
-                id={value === "new" ? "uploadTargetNewButton" : "uploadTargetExistingButton"}
-                className={cn("upload-target-button rounded-md px-3 py-2 text-sm font-semibold text-secondary", activeTarget === value && "is-active")}
-                type="button"
-                data-upload-target={value}
-                aria-pressed={activeTarget === value}
-                disabled={value === "existing" && !hasExisting}
-                onClick={() => setTarget(value)}
-              >
-                {t(value === "new" ? "upload.targetNew" : "upload.targetExisting")}
-              </button>
-            ))}
-          </div>
-          <label id="uploadNewCollectionField" className="grid gap-1.5 text-sm font-semibold text-label" hidden={activeTarget === "existing"}>
-            <span>{t("upload.collection")}</span>
-            <input
+            value={activeTarget}
+            onValueChange={setTarget}
+            options={(["new", "existing"] as const).map((value) => ({
+              value,
+              label: t(value === "new" ? "upload.targetNew" : "upload.targetExisting"),
+              itemProps: {
+                id: value === "new" ? "uploadTargetNewButton" : "uploadTargetExistingButton",
+                "data-upload-target": value,
+                disabled: value === "existing" && !hasExisting
+              }
+            }))}
+          />
+          <div id="uploadNewCollectionField" className="grid gap-1.5" hidden={activeTarget === "existing"}>
+            <Label htmlFor="collectionName">{t("upload.collection")}</Label>
+            <Input
               ref={nameRef}
               id="collectionName"
-              className={FIELD_CLASS}
               name="collectionName"
               type="text"
               placeholder={t("upload.collectionPlaceholder")}
               required={activeTarget === "new"}
             />
-          </label>
-          <label id="uploadExistingCollectionField" className="grid gap-1.5 text-sm font-semibold text-label" hidden={activeTarget !== "existing"}>
-            <span>{t("upload.existingCollection")}</span>
-            <select ref={selectRef} id="uploadCollectionSelect" className={FIELD_CLASS} name="collectionId" required={activeTarget === "existing"}>
+          </div>
+          <div id="uploadExistingCollectionField" className="grid gap-1.5" hidden={activeTarget !== "existing"}>
+            <Label htmlFor="uploadCollectionSelect">{t("upload.existingCollection")}</Label>
+            <NativeSelect ref={selectRef} id="uploadCollectionSelect" name="collectionId" required={activeTarget === "existing"}>
               {hasExisting ? (
                 collections.map((collection) => (
                   <option key={collection.id} value={collection.id}>
@@ -143,26 +138,21 @@ export function UploadDialog({ open, onOpenChange, languageId, collections, onIm
               ) : (
                 <option value="">{t("collections.noCollections")}</option>
               )}
-            </select>
-          </label>
-          <label className="mt-3 grid gap-1.5 text-sm font-semibold text-label">
-            <span>{t("upload.file")}</span>
-            <input
-              id="csvFile"
-              className="min-h-11 rounded-md border border-line bg-panel px-3 py-2 text-sm text-main file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-label"
-              name="csvFile"
-              type="file"
-              accept=".csv,text/csv,text/plain"
-              required
-            />
-          </label>
-          <p className="hint mt-3 min-h-5 text-sm text-secondary">{t("upload.format")}</p>
-          <button className="mt-2 min-h-11 w-full rounded-md bg-brand px-4 text-sm font-bold text-white hover:bg-brand-strong" type="submit" disabled={pending}>
+            </NativeSelect>
+          </div>
+          <div className="mt-3 grid gap-1.5">
+            <Label htmlFor="csvFile">{t("upload.file")}</Label>
+            <Input id="csvFile" className="h-auto py-1.5" name="csvFile" type="file" accept=".csv,text/csv,text/plain" required />
+          </div>
+          <Text variant="caption" tone="muted" className="hint mt-3 block min-h-5">
+            {t("upload.format")}
+          </Text>
+          <Button className="mt-2 w-full" size="lg" type="submit" disabled={pending}>
             {t("upload.button")}
-          </button>
-          <p id="uploadStatus" className="status mt-3 min-h-5 text-sm text-secondary" role="status">
+          </Button>
+          <Text as="p" variant="caption" tone="muted" id="uploadStatus" className="status mt-3 min-h-5" role="status">
             {status}
-          </p>
+          </Text>
         </form>
       </DialogContent>
     </Dialog>
