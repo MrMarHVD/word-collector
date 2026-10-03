@@ -1,8 +1,11 @@
 /**
  * Reading-font registry (SPEC-005 D1). Entries pair a Latin family with CJK
  * fallbacks; the @font-face rules live in styles/fonts.css. Adding a font means
- * one entry here plus its faces; the --font-reading token carries the default.
+ * one entry here plus its faces. The registry is the single source of the
+ * --font-reading stack: useReadingFont() writes it onto <html> at runtime.
  */
+
+import { useEffect } from "react";
 
 /** One registered reading font. */
 export type ReadingFont = {
@@ -32,7 +35,30 @@ export function getReadingFont(id: string | null | undefined): ReadingFont {
 }
 
 /** Builds the CSS font-family stack for a font. */
-export function readingFontStack(font: ReadingFont): string {
+export function readingFontStack(font: ReadingFont, lang: "ja" | "zh" = "ja"): string {
   const quote = (family: string) => `"${family}"`;
-  return [font.latinFamily, ...font.cjkFamilies].map(quote).join(", ") + ", ui-sans-serif, system-ui, sans-serif";
+  const cjk = lang === "zh" ? [...font.cjkFamilies].reverse() : font.cjkFamilies;
+  return [font.latinFamily, ...cjk].map(quote).join(", ") + ", ui-sans-serif, system-ui, sans-serif";
+}
+
+/** CSS custom properties for a font: the default (Japanese-first) stack and the Chinese-first stack used under :lang(zh). */
+export function readingFontCssVars(font: ReadingFont): Record<string, string> {
+  return {
+    "--font-reading-default": readingFontStack(font),
+    "--font-reading-zh": readingFontStack(font, "zh")
+  };
+}
+
+/** Writes a font's stacks onto the document root so --font-reading (styles/theme.css) resolves to it. */
+export function applyReadingFont(font: ReadingFont, root: HTMLElement = document.documentElement): void {
+  for (const [name, value] of Object.entries(readingFontCssVars(font))) {
+    root.style.setProperty(name, value);
+  }
+}
+
+/** Applies the active reading font (the registry default until a font picker exists) to <html>. */
+export function useReadingFont(id: string | null | undefined = DEFAULT_READING_FONT_ID): void {
+  useEffect(() => {
+    applyReadingFont(getReadingFont(id));
+  }, [id]);
 }

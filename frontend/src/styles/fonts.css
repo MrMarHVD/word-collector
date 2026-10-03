@@ -41,7 +41,7 @@
   src: url("/fonts/ia-writer-quattro/iAWriterQuattroS-BoldItalic.woff2") format("woff2");
 }
 
-/* Han glyph variants follow the language: Chinese text prefers the SC face. */
+/* Han glyph variants follow the language: Chinese text prefers the SC face (stack built by the registry). */
 :lang(zh) {
-  --font-reading: "iA Writer Quattro", "Noto Sans SC Variable", "Noto Sans JP Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-reading: var(--font-reading-zh, var(--font-reading-default));
 }
