@@ -48,7 +48,6 @@ button {
 
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.62;
 }
 
 @media (max-width: 760px) {
