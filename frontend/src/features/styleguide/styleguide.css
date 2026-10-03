@@ -28,3 +28,9 @@
   line-height: 1.8;
   color: var(--text-main);
 }
+
+/* Forced focus state for the catalogue: the same indicator as the focus-ring utility. */
+.sg-focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

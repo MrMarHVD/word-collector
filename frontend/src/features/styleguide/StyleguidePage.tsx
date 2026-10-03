@@ -1,11 +1,14 @@
 /**
  * Style guide (SPEC-005 D1), dev/internal at /styleguide, outside the main
  * navigation. Renders every design-token group in the active theme (switch the
- * theme in Settings for the other), a glass sample over busy content and a
- * reading sample. Later issues add the canonical components here.
+ * theme with the toggle at the top), a glass sample over busy content, a
+ * reading sample and the canonical component catalogue (SPEC-005 D2).
  */
 
+import { Segmented } from "@/components/app/Segmented";
 import { useT } from "@/lib/i18n";
+import { useThemeStore } from "@/stores/theme";
+import { ComponentShowcase } from "./ComponentShowcase";
 import "./styleguide.css";
 
 const SURFACES = ["page", "panel", "subtle", "muted", "reader"] as const;
@@ -33,9 +36,24 @@ const WEIGHTS = [
 /** The /styleguide page. */
 export default function StyleguidePage() {
   const t = useT();
+  const resolvedTheme = useThemeStore((state) => state.resolved);
+  const setTheme = useThemeStore((state) => state.setTheme);
   return (
     <div className="styleguide mx-auto grid max-w-5xl gap-10 p-6 mobile:p-3" data-testid="styleguide">
-      <h1 className="text-title">{t("styleguide.title")}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-title">{t("styleguide.title")}</h1>
+        <Segmented
+          aria-label={t("settings.theme")}
+          size="sm"
+          className="w-48"
+          value={resolvedTheme}
+          onValueChange={setTheme}
+          options={[
+            { value: "light", label: t("settings.themeLight") },
+            { value: "dark", label: t("settings.themeDark") }
+          ]}
+        />
+      </div>
 
       <section className="grid gap-3" id="styleguide-palette">
         <h2 className="text-heading">{t("styleguide.palette")}</h2>
@@ -124,6 +142,11 @@ export default function StyleguidePage() {
           <p lang="ja">吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。</p>
           <p lang="zh">天下大势，分久必合，合久必分。读书使人明智，写作使人精确。</p>
         </article>
+      </section>
+
+      <section className="grid gap-4" id="styleguide-components">
+        <h2 className="text-heading">{t("styleguide.components")}</h2>
+        <ComponentShowcase />
       </section>
     </div>
   );
