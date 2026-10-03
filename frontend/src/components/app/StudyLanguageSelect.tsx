@@ -80,10 +80,10 @@ export function StudyLanguageSelect({ className }: StudyLanguageSelectProps) {
             return {
               value: language.name,
               // The flag fills the whole segment; selection is an accent outline drawn over it, unselected flags are faded.
-              label: <Flag language={language.name} />,
+              label: <Flag language={language.name} className="size-full" />,
               itemProps: {
                 className:
-                  "w-12 flex-none overflow-hidden p-0 [&_svg]:size-full opacity-60 hover:opacity-100 data-[state=on]:opacity-100 data-[state=on]:outline-solid data-[state=on]:outline-2 data-[state=on]:-outline-offset-2 data-[state=on]:outline-primary",
+                  "w-12 flex-none overflow-hidden p-0 opacity-60 hover:opacity-100 data-[state=on]:opacity-100 data-[state=on]:outline-solid data-[state=on]:outline-2 data-[state=on]:-outline-offset-2 data-[state=on]:outline-primary",
                 "data-language-name": language.name,
                 "aria-label": label,
                 title: label

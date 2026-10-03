@@ -3,22 +3,24 @@ import { useId } from "react";
 export interface FlagProps {
   /** Language name as stored in the database (e.g. "Japanese"); matched case-insensitively. */
   language: string;
+  /** Size utilities for the SVG (e.g. `size-full` to fill a container); kit parents only size SVGs that lack a size class. */
+  className?: string;
 }
 
 /** Simplified flag icon for a study language; renders nothing for unknown languages. It always fills its box (`slice`), cropping rather than letterboxing when the box ratio differs. */
-export function Flag({ language }: FlagProps) {
+export function Flag({ language, className }: FlagProps) {
   const clipId = useId();
   switch (language.toLowerCase()) {
     case "japanese":
       return (
-        <svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <svg className={className} viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           <rect width="30" height="20" fill="#ffffff" />
           <circle cx="15" cy="10" r="6" fill="#bc002d" />
         </svg>
       );
     case "english":
       return (
-        <svg viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <svg className={className} viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           <clipPath id={clipId}>
             <rect width="60" height="40" />
           </clipPath>
@@ -33,7 +35,7 @@ export function Flag({ language }: FlagProps) {
       );
     case "chinese":
       return (
-        <svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <svg className={className} viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           <rect width="30" height="20" fill="#de2910" />
           <g fill="#ffde00">
             <polygon points="6,3.6 6.84,6.18 9.55,6.18 7.36,7.78 8.2,10.36 6,8.76 3.8,10.36 4.64,7.78 2.45,6.18 5.16,6.18" />
@@ -46,14 +48,14 @@ export function Flag({ language }: FlagProps) {
       );
     case "spanish":
       return (
-        <svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <svg className={className} viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           <rect width="30" height="20" fill="#aa151b" />
           <rect y="5" width="30" height="10" fill="#f1bf00" />
         </svg>
       );
     case "french":
       return (
-        <svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <svg className={className} viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           <rect width="10" height="20" fill="#0055a4" />
           <rect x="10" width="10" height="20" fill="#ffffff" />
           <rect x="20" width="10" height="20" fill="#ef4135" />
