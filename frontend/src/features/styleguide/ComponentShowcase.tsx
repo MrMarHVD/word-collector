@@ -38,6 +38,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -237,6 +238,11 @@ export function ComponentShowcase() {
           <div className="grid max-w-sm gap-3">
             <Slider aria-label="slider" value={volume} onValueChange={setVolume} />
             <Slider aria-label="slider disabled" defaultValue={[60]} disabled />
+          </div>
+          <div className="grid max-w-sm gap-3">
+            <Progress aria-label="progress md" value={60} />
+            <Progress aria-label="progress sm" size="sm" value={35} />
+            <Progress aria-label="progress indeterminate" indeterminate />
           </div>
         </div>
       </Block>

@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toastError } from "@/components/app/toast";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Text } from "@/components/ui/text";
 import { libraryPath } from "@/app/route-paths";
 import { api, queryKeys } from "@/lib/api";
@@ -602,21 +603,14 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
           </div>
         </div>
         <section className="reader-panel relative grid overflow-hidden">
-          <div
+          <Progress
             id="readerProgress"
-            className={cn("mx-6 h-0.5 mobile:mx-5", !pageStatus && "invisible")}
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={pageStatus?.progressPercent ?? 0}
+            size="sm"
+            className={cn("mx-6 w-auto h-0.5 mobile:mx-5", !pageStatus && "invisible")}
             aria-label={t("reader.progressLabel")}
-          >
-            <div
-              id="readerProgressBar"
-              className="h-full w-[var(--readerProgress,0%)] bg-secondary transition-[width] duration-200 ease-out motion-reduce:transition-none"
-              style={{ "--readerProgress": `${pageStatus?.progressPercent ?? 0}%` } as CSSProperties}
-            />
-          </div>
+            value={pageStatus?.progressPercent ?? 0}
+            indicatorProps={{ id: "readerProgressBar", className: "duration-200 ease-out" }}
+          />
           <div
             ref={readerTextRef}
             id="readerText"
