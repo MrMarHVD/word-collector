@@ -14,6 +14,7 @@ import { useConfirm } from "@/components/app/ConfirmDialog";
 import { FadeIn } from "@/components/app/FadeIn";
 import { toast, toastError } from "@/components/app/toast";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/app/PageHeader";
 import { Card } from "@/components/ui/card";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
@@ -223,74 +224,77 @@ export default function LibraryPage() {
   }
 
   return (
-    <section id="libraryView" ref={layout} className={cn("library-layout", !categoriesExpanded && "is-collapsed")}>
-      <div ref={sidebarColumn} className="library-sidebar-column">
-        <CategorySidebar
-          selected={category}
-          expanded={categoriesExpanded}
-          onExpandedChange={setCategoriesExpanded}
-          onSelect={(next) => go({ category: next, q })}
-        />
-      </div>
-      <FadeIn className="min-w-0">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <IconButton
-            variant="secondary"
-            className={cn("shrink-0 mobile:hidden", categoriesExpanded && "hidden")}
-            aria-label={t("library.categories.open")}
-            title={t("library.categories.open")}
-            onClick={() => setCategoriesExpanded(true)}
-          >
-            <PanelLeftOpenIcon aria-hidden="true" />
-          </IconButton>
-          <Input
-            id="materialSearch"
-            className="min-w-0 flex-1 mobile:basis-full"
-            type="search"
-            autoComplete="off"
-            placeholder={t("reader.searchPlaceholder")}
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
+    <>
+      <PageHeader title={t("library.title")} />
+      <section id="libraryView" ref={layout} className={cn("library-layout", !categoriesExpanded && "is-collapsed")}>
+        <div ref={sidebarColumn} className="library-sidebar-column">
+          <CategorySidebar
+            selected={category}
+            expanded={categoriesExpanded}
+            onExpandedChange={setCategoriesExpanded}
+            onSelect={(next) => go({ category: next, q })}
           />
-          {/* Reserved for the future filter and display buttons. */}
-          <div id="libraryHeaderSlots" className="flex shrink-0 items-center gap-2 mobile:flex-1" aria-hidden="true">
-            <span data-slot="filter" className="size-9 rounded-control bg-subtle mobile:size-11" />
-            <span data-slot="display" className="size-9 rounded-control bg-subtle mobile:size-11" />
-          </div>
-          <Button id="materialImportOpen" className="shrink-0 mobile:h-11" type="button" onClick={() => setImportOpen(true)}>
-            {t("reader.importButton")}
-          </Button>
         </div>
-        <Card className="gap-0 overflow-hidden py-0">
-          <div id="materialList" ref={list} className="max-h-[calc(100vh-220px)] overflow-auto" onScroll={loadMoreOnScroll}>
-            <AnimatePresence initial={false}>
-              {materials.map((material) => (
-                <LibraryRow
-                  key={material.id}
-                  material={material}
-                  categories={categories}
-                  focused={material.id === outlinedId}
-                  renaming={material.id === renameId}
-                  deleting={material.id === deletingId}
-                  wordCount={formatCount(material.wordCount)}
-                  onOpen={() => openMaterial(material)}
-                  onStartRename={() => setRenameId(material.id)}
-                  onCancelRename={() => setRenameId(null)}
-                  onSaveRename={(input) => saveRename(material, input)}
-                  onDelete={() => void removeMaterial(material)}
-                  onMove={(categoryId) => void moveMaterial(material, categoryId)}
-                />
-              ))}
-            </AnimatePresence>
-            {emptyKey ? (
-              <Text tone="muted" className="py-6 text-center" data-library-empty>
-                {t(emptyKey)}
-              </Text>
-            ) : null}
+        <FadeIn className="min-w-0">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <IconButton
+              variant="secondary"
+              className={cn("shrink-0 mobile:hidden", categoriesExpanded && "hidden")}
+              aria-label={t("library.categories.open")}
+              title={t("library.categories.open")}
+              onClick={() => setCategoriesExpanded(true)}
+            >
+              <PanelLeftOpenIcon aria-hidden="true" />
+            </IconButton>
+            <Input
+              id="materialSearch"
+              className="min-w-0 flex-1 mobile:basis-full"
+              type="search"
+              autoComplete="off"
+              placeholder={t("reader.searchPlaceholder")}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+            />
+            {/* Reserved for the future filter and display buttons. */}
+            <div id="libraryHeaderSlots" className="flex shrink-0 items-center gap-2 mobile:flex-1" aria-hidden="true">
+              <span data-slot="filter" className="size-9 mobile:size-11" />
+              <span data-slot="display" className="size-9 mobile:size-11" />
+            </div>
+            <Button id="materialImportOpen" className="shrink-0 mobile:h-11" type="button" onClick={() => setImportOpen(true)}>
+              {t("reader.importButton")}
+            </Button>
           </div>
-        </Card>
-        <MaterialImportDialog open={importOpen} onOpenChange={setImportOpen} />
-      </FadeIn>
-    </section>
+          <Card className="gap-0 overflow-hidden py-0">
+            <div id="materialList" ref={list} className="max-h-[calc(100vh-220px)] overflow-auto" onScroll={loadMoreOnScroll}>
+              <AnimatePresence initial={false}>
+                {materials.map((material) => (
+                  <LibraryRow
+                    key={material.id}
+                    material={material}
+                    categories={categories}
+                    focused={material.id === outlinedId}
+                    renaming={material.id === renameId}
+                    deleting={material.id === deletingId}
+                    wordCount={formatCount(material.wordCount)}
+                    onOpen={() => openMaterial(material)}
+                    onStartRename={() => setRenameId(material.id)}
+                    onCancelRename={() => setRenameId(null)}
+                    onSaveRename={(input) => saveRename(material, input)}
+                    onDelete={() => void removeMaterial(material)}
+                    onMove={(categoryId) => void moveMaterial(material, categoryId)}
+                  />
+                ))}
+              </AnimatePresence>
+              {emptyKey ? (
+                <Text tone="muted" className="py-6 text-center" data-library-empty>
+                  {t(emptyKey)}
+                </Text>
+              ) : null}
+            </div>
+          </Card>
+          <MaterialImportDialog open={importOpen} onOpenChange={setImportOpen} />
+        </FadeIn>
+      </section>
+    </>
   );
 }
