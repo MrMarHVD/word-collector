@@ -109,7 +109,7 @@ export function PracticeSessionView() {
         <Button
           variant="secondary"
           size="lg"
-          className="border-status-unknown/50 text-status-unknown-text"
+          className="border-status-learning/50 text-status-learning-text"
           data-practice-answer="unknown"
           disabled={!session.flipped}
           onClick={() => void answer("unknown")}
