@@ -3,7 +3,8 @@
  * moving a work between categories in the cached lists and category counts.
  */
 
-import type { InfiniteData } from "@tanstack/react-query";
+import type { InfiniteData, QueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/api/query-keys";
 import type { CategoriesResponse, Category, LibraryCategory, MaterialsResponse } from "@/lib/api/types";
 
 export type LibraryPages = InfiniteData<MaterialsResponse, number>;
@@ -57,4 +58,21 @@ export function assignInCounts(counts: CategoriesResponse, previous: number | nu
     categories: counts.categories.map(shift(previous, -1)).map(shift(next, 1)),
     uncategorisedCount: counts.uncategorisedCount + (next === null ? 1 : 0) - (previous === null ? 1 : 0)
   };
+}
+
+/** The cached category lists of one study language; other languages' lists are left alone. */
+export function categoryCountsFor(client: QueryClient, languageId: number | null): [readonly unknown[], CategoriesResponse | undefined][] {
+  return client.getQueriesData<CategoriesResponse>({ queryKey: queryKeys.categories.list(languageId) });
+}
+
+/** Moves the category `draggedId` next to `targetId`: after it when it started above, before it otherwise. */
+export function moveCategoryTo(ids: number[], draggedId: number, targetId: number): number[] {
+  const from = ids.indexOf(draggedId);
+  const rest = ids.filter((id) => id !== draggedId);
+  const to = rest.indexOf(targetId);
+  if (from < 0 || to < 0) {
+    return ids;
+  }
+  rest.splice(from < ids.indexOf(targetId) ? to + 1 : to, 0, draggedId);
+  return rest;
 }

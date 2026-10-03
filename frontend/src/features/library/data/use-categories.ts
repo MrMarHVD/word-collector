@@ -7,7 +7,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, queryKeys, type CategoriesResponse, type LibraryCategory } from "@/lib/api";
 import { useStudyLanguageStore } from "@/stores/study-language";
-import { assignInCounts, assignInPages, findCachedCategoryId, type LibraryPages } from "./library-cache";
+import { assignInCounts, assignInPages, categoryCountsFor, findCachedCategoryId, type LibraryPages } from "./library-cache";
 
 /** GET /api/categories for the selected study language; `categories` is empty and the counts are 0 until loaded. */
 export function useCategories() {
@@ -55,12 +55,13 @@ interface AssignContext {
  */
 export function useAssignCategory() {
   const client = useQueryClient();
+  const languageId = useStudyLanguageStore((state) => state.selectedId);
   const mutation = useMutation<unknown, Error, { materialId: number; categoryId: number | null }, AssignContext>({
     mutationFn: ({ materialId, categoryId }) => api.materials.update(materialId, { categoryId }),
     onMutate: async ({ materialId, categoryId }) => {
       await Promise.all([client.cancelQueries({ queryKey: queryKeys.library.materialsAll }), client.cancelQueries({ queryKey: queryKeys.categories.all })]);
       const lists = client.getQueriesData<LibraryPages>({ queryKey: queryKeys.library.materialsAll });
-      const counts = client.getQueriesData<CategoriesResponse>({ queryKey: queryKeys.categories.all });
+      const counts = categoryCountsFor(client, languageId);
       const previous = findCachedCategoryId(
         lists.map(([, data]) => data),
         materialId

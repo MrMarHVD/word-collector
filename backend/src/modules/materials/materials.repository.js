@@ -271,7 +271,7 @@ export function createMaterialsRepository(db) {
      * Return a paginated list of materials for a user and language with
      * reading progress, optionally filtered by title substring and category.
      * Sorted by last opened (never-opened last), then date added, newest first.
-     * Queries: `materials` with a `material_tokens` count for `totalTokens`.
+     * Queries: `materials` (filtered, sorted and paged first), then a `material_tokens` count per page row for `totalTokens`.
      * @param {number} userId
      * @param {number} languageId
      * @param {number} pageSize
@@ -296,15 +296,18 @@ export function createMaterialsRepository(db) {
       }
       params.push(pageSize, offset);
       return db.prepare(`
-        SELECT m.id, m.title, m.file_name AS "fileName", m.file_type AS "fileType", m.word_count AS "wordCount", m.reader_start AS "readerStart", m.created_at AS "createdAt",
-               m.import_status AS "importStatus", m.import_total AS "importTotal", m.import_processed AS "importProcessed", m.import_error AS "importError",
-               m.category_id AS "categoryId", m.last_opened_at AS "lastOpenedAt",
-               t.total AS "totalTokens", LEAST(m.reader_start, t.total) AS "readTokens"
-        FROM materials m
-        CROSS JOIN LATERAL (SELECT COUNT(*)::int AS total FROM material_tokens mt WHERE mt.material_id = m.id) t
-        WHERE ${filters.join(" AND ")}
-        ORDER BY m.last_opened_at DESC NULLS LAST, m.created_at DESC, m.id DESC
-        LIMIT ? OFFSET ?
+        SELECT p.*, t.total AS "totalTokens", LEAST(p."readerStart", t.total) AS "readTokens"
+        FROM (
+          SELECT m.id, m.title, m.file_name AS "fileName", m.file_type AS "fileType", m.word_count AS "wordCount", m.reader_start AS "readerStart", m.created_at AS "createdAt",
+                 m.import_status AS "importStatus", m.import_total AS "importTotal", m.import_processed AS "importProcessed", m.import_error AS "importError",
+                 m.category_id AS "categoryId", m.last_opened_at AS "lastOpenedAt"
+          FROM materials m
+          WHERE ${filters.join(" AND ")}
+          ORDER BY m.last_opened_at DESC NULLS LAST, m.created_at DESC, m.id DESC
+          LIMIT ? OFFSET ?
+        ) p
+        CROSS JOIN LATERAL (SELECT COUNT(*)::int AS total FROM material_tokens mt WHERE mt.material_id = p.id) t
+        ORDER BY p."lastOpenedAt" DESC NULLS LAST, p."createdAt" DESC, p.id DESC
       `).all(...params);
     },
     /**

@@ -25,7 +25,7 @@ import {
   useDeleteMaterial,
   useRenameMaterial
 } from "@/features/materials";
-import { refreshStudyData } from "@/lib/api";
+import { ApiError, refreshStudyData } from "@/lib/api";
 import type { LibraryCategory, MaterialListItem } from "@/lib/api/types";
 import { useFormatCount, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -59,7 +59,7 @@ export default function LibraryPage() {
   const list = useRef<HTMLDivElement>(null);
   // The work a dashboard go-to is still bringing into view.
   const goToId = useRef<number | null>(null);
-  const { materials, isSuccess, hasNextPage, isFetchingNextPage, fetchNextPage } = useLibraryMaterials({ category, search: q });
+  const { materials, isSuccess, error, hasNextPage, isFetchingNextPage, fetchNextPage } = useLibraryMaterials({ category, search: q });
   const { categories } = useCategories();
   const { assign } = useAssignCategory();
   const renameMaterial = useRenameMaterial();
@@ -93,6 +93,13 @@ export default function LibraryPage() {
     const id = window.setTimeout(() => go({ category, q: searchInput.trim() }, true), MATERIAL_SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(id);
   }, [searchInput, q, category, go]);
+
+  // A ?category= that no longer exists (e.g. deleted) answers 404: fall back to All, keeping the search.
+  useEffect(() => {
+    if (typeof category === "number" && error instanceof ApiError && error.status === 404) {
+      go({ category: "all", q }, true);
+    }
+  }, [error, category, q, go]);
 
   // The dashboard go-to (?focus=): select All, clear the search, and drop focus from the address at once so a reload does not repeat it.
   useEffect(() => {

@@ -191,7 +191,6 @@ export function useReaderMaterial(languageId: number | null, wordsPerPage: Reade
 
   // Load the routed work, unless the page on screen already is that work's.
   useEffect(() => {
-    writeCachedMaterialId(userId, languageId, materialId);
     if (viewRef.current?.materialId === materialId) {
       return;
     }
@@ -200,6 +199,14 @@ export function useReaderMaterial(languageId: number | null, wordsPerPage: Reade
       onLoadFailedRef.current?.();
     });
   }, [load, materialId, userId, languageId]);
+
+  // Remember the work under its own language, which a deep link may make differ from the selected one.
+  const loadedLanguageId = data?.material.id === materialId ? data.material.languageId : null;
+  useEffect(() => {
+    if (loadedLanguageId !== null) {
+      writeCachedMaterialId(userId, loadedLanguageId, materialId);
+    }
+  }, [userId, loadedLanguageId, materialId]);
 
   // Remember the state for the next visit to the reader.
   useEffect(() => {
