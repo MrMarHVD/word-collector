@@ -26,10 +26,10 @@ afterEach(() => {
 
 describe("session reset", () => {
   it("forgets the reader and vocab view state when the session ends", () => {
-    Object.assign(readerSession, { languageId: 3, selectedMaterialId: 9, view: { materialId: 9, params: {} }, sidebarTab: "settings" });
+    Object.assign(readerSession, { languageId: 3, selectedMaterialId: 9, view: { materialId: 9, params: {} } });
     useCollectionsViewStore.setState({ selectedCollectionId: 4, search: "cat" });
     useSessionStore.getState().handleUnauthorized();
-    expect(readerSession).toEqual({ languageId: null, selectedMaterialId: null, view: null, sidebarTab: "read" });
+    expect(readerSession).toEqual({ languageId: null, selectedMaterialId: null, view: null });
     expect(useCollectionsViewStore.getState()).toMatchObject({ selectedCollectionId: "all", search: "" });
   });
 });

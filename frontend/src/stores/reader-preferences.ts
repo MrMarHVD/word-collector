@@ -8,13 +8,7 @@ export interface ReaderPreferences {
   wordsPerPage: ReaderWordsPerPage;
   /** wordMarkerReaderFontSize (px); default 22. */
   fontSize: number;
-  /** wordMarkerReaderSidebarCollapsed; default false. */
-  sidebarCollapsed: boolean;
-  /** wordMarkerReaderPanelWidth (px, 0 = automatic): the text width in normal mode, set from the reader settings; default 0. */
-  panelWidth: number;
-  /** wordMarkerReaderFocusMode; default false. */
-  focusMode: boolean;
-  /** wordMarkerReaderFocusPanelWidth (px, 0 = automatic); default 0. */
+  /** wordMarkerReaderFocusPanelWidth (px, 0 = automatic): the text width, set from the reader settings; default 0. */
   focusPanelWidth: number;
   /** wordMarkerReaderAutoMarkKnownOnPageTurn; default false. */
   autoMarkKnownOnPageTurn: boolean;
@@ -26,13 +20,13 @@ export interface ReaderPreferences {
   highlightOpacity: number;
 }
 
-/** localStorage key for each reader preference (unchanged from public/js/state.js). */
+/**
+ * localStorage key for each reader preference (unchanged from public/js/state.js). The retired sidebar, focus-mode
+ * and normal-mode width keys are no longer read, but their stored values are left in place.
+ */
 export const READER_PREFERENCE_KEYS: Record<keyof ReaderPreferences, string> = {
   wordsPerPage: "wordMarkerReaderWordsPerPage",
   fontSize: "wordMarkerReaderFontSize",
-  sidebarCollapsed: "wordMarkerReaderSidebarCollapsed",
-  panelWidth: "wordMarkerReaderPanelWidth",
-  focusMode: "wordMarkerReaderFocusMode",
   focusPanelWidth: "wordMarkerReaderFocusPanelWidth",
   autoMarkKnownOnPageTurn: "wordMarkerReaderAutoMarkKnownOnPageTurn",
   autoMarkLearningOnClick: "wordMarkerReaderAutoMarkLearningOnClick",
@@ -47,9 +41,6 @@ export function readReaderPreferences(): ReaderPreferences {
   return {
     wordsPerPage: wordsPerPage === "fit" ? "fit" : Number(wordsPerPage) || 250,
     fontSize: Number(read("fontSize")) || 22,
-    sidebarCollapsed: read("sidebarCollapsed") === "true",
-    panelWidth: Number(read("panelWidth")) || 0,
-    focusMode: read("focusMode") === "true",
     focusPanelWidth: Number(read("focusPanelWidth")) || 0,
     autoMarkKnownOnPageTurn: read("autoMarkKnownOnPageTurn") === "true",
     autoMarkLearningOnClick: read("autoMarkLearningOnClick") !== "false",

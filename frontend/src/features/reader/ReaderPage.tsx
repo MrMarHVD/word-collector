@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Navigate, useNavigate, useParams } from "react-router";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { SidebarLayout, SidebarOpenButton } from "@/components/app/Sidebar";
 import { toastError } from "@/components/app/toast";
-import { SettingSelect } from "@/components/app/SettingRow";
-import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { Tabs } from "@/components/ui/tabs";
-import { libraryPath, readerPath } from "@/app/route-paths";
-import { api } from "@/lib/api";
+import { libraryPath } from "@/app/route-paths";
+import { api, queryKeys } from "@/lib/api";
 import { refreshStudyData } from "@/lib/api/queries";
-import type { MaterialListItem, ReaderToken, WordStatus } from "@/lib/api/types";
-import { useAnimatedSidebar } from "@/lib/hooks/use-animated-sidebar";
+import type { ReaderToken, WordStatus } from "@/lib/api/types";
 import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { useFormatCount, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -20,12 +15,11 @@ import { useStudyLanguageStore } from "@/stores/study-language";
 import { QUICK_MENU_ACTIONS, type QuickMenuActionKey } from "./quick-menu";
 import { attachReaderGestures, SEGMENT_SELECTED_EVENT, type ReaderGestures, type SegmentRange, type SegmentSelectedDetail } from "./reader-gestures";
 import { measureFitTokenCount } from "./reader-fit";
-import { computeReaderLayout, readerSidebarColumnWidth } from "./reader-layout";
+import { computeReaderLayout } from "./reader-layout";
 import { pageTurnStart, readerPageStatus, type PageDirection } from "./reader-pagination";
-import { readerSession, type ReaderSidebarTab } from "./reader-session";
 import { isWordSpacingLanguage, layoutReaderTokens, normalizeStatus, type ReaderLayout } from "./reader-tokens";
 import { ReaderQuickMenu, type ReaderQuickMenuState } from "./ReaderQuickMenu";
-import { ReaderSidebar, ReaderSidebarTabList } from "./ReaderSidebar";
+import { ReaderSettings, READER_SETTINGS_ATTRIBUTE } from "./ReaderSettings";
 import { ReaderTokens } from "./ReaderTokens";
 import { ReaderTranslationPopup, type ReaderTranslationState } from "./ReaderTranslationPopup";
 import { ReaderWordInfo } from "./ReaderWordInfo";
@@ -34,10 +28,8 @@ import { translate, TranslationError } from "./translation/translation.service";
 import { useReaderMaterial } from "./use-reader-material";
 import "./reader.css";
 
-const WORDS_PER_PAGE_OPTIONS = ["fit", "100", "250", "500", "1000"] as const;
 const NO_TOKENS: ReaderToken[] = [];
 const PAGE_BUTTON = "secondary-button min-h-10 rounded-md border border-line bg-panel px-4 text-sm font-bold text-brand hover:bg-hover";
-const FOCUS_BUTTON = "secondary-button border border-line bg-panel text-brand shadow-panel hover:bg-hover";
 
 /** Word-info target: the tapped token, with a snapshot kept for when the page no longer holds it. */
 interface WordInfoTarget {
@@ -48,6 +40,11 @@ interface WordInfoTarget {
 
 function isTextInputTarget(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+}
+
+/** Whether the target is inside the settings panel or its Aa button, whose keys and clicks the page leaves alone. */
+function isSettingsTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && Boolean(target.closest(`[${READER_SETTINGS_ATTRIBUTE}]`));
 }
 
 /** The reader route (/reader/:materialId). Keyed on the study language, so a switch starts from that language's state; a malformed id goes to the Library. */
@@ -62,13 +59,14 @@ export default function ReaderPage() {
 
 /**
  * The reader (ported from views/reader.js and reader.controller.js): the
- * sidebar with documents and settings, and the reading panel with token
- * pages, pagination, focus mode, word-info, the radial quick
- * menu and sentence translation.
+ * distraction-free reading view with a top bar (title, Aa settings, exit),
+ * token pages, pagination, word-info, the radial quick menu and sentence
+ * translation.
  */
 function ReaderScreen({ languageId, materialId }: { languageId: number | null; materialId: number }) {
   const t = useT();
   const navigate = useNavigate();
+  const location = useLocation();
   const formatCount = useFormatCount();
   const queryClient = useQueryClient();
   const user = useSessionStore((state) => state.user);
@@ -76,9 +74,6 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
   const isMobile = useIsMobileLayout();
   const wordsPerPage = useReaderPreferencesStore((state) => state.wordsPerPage);
   const fontSize = useReaderPreferencesStore((state) => state.fontSize);
-  const focusMode = useReaderPreferencesStore((state) => state.focusMode);
-  const sidebarCollapsed = useReaderPreferencesStore((state) => state.sidebarCollapsed);
-  const panelWidth = useReaderPreferencesStore((state) => state.panelWidth);
   const focusPanelWidth = useReaderPreferencesStore((state) => state.focusPanelWidth);
   const autoMarkKnown = useReaderPreferencesStore((state) => state.autoMarkKnownOnPageTurn);
   const autoMarkLearning = useReaderPreferencesStore((state) => state.autoMarkLearningOnClick);
@@ -87,7 +82,7 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
   const setPreference = useReaderPreferencesStore((state) => state.setPreference);
 
   const reader = useReaderMaterial(languageId, wordsPerPage, materialId, () => navigate(libraryPath(), { replace: true }));
-  const [sidebarTab, setSidebarTab] = useState<ReaderSidebarTab>(() => (readerSession.languageId === languageId ? readerSession.sidebarTab : "read"));
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [fit, setFit] = useState<{ key: string; count: number } | null>(null);
   const [wordInfo, setWordInfo] = useState<WordInfoTarget | null>(null);
   const [editingWordId, setEditingWordId] = useState<number | null>(null);
@@ -98,16 +93,13 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
   const [segment, setSegment] = useState<{ layout: ReaderLayout; range: SegmentRange } | null>(null);
   const [translation, setTranslation] = useState<(ReaderTranslationState & { layout: ReaderLayout; fontSize: number }) | null>(null);
 
-  const layoutRef = useRef<HTMLElement | null>(null);
-  const sidebarRef = useRef<HTMLElement | null>(null);
-  const openButtonRef = useRef<HTMLButtonElement | null>(null);
-  const panelRef = useRef<HTMLElement | null>(null);
+  const layoutRef = useRef<HTMLDivElement | null>(null);
   const readerTextRef = useRef<HTMLDivElement | null>(null);
   const wordInfoRef = useRef<HTMLElement | null>(null);
   const gesturesRef = useRef<ReaderGestures | null>(null);
   const selectionRef = useRef<number | null>(null);
-  // The sidebar column's width while it animates open or closed (null at rest).
-  const sidebarColumnWidth = useRef<number | null>(null);
+  // The Escape keydown that the settings panel took (the panel closes on it, so the page leaves it alone).
+  const settingsEscape = useRef<KeyboardEvent | null>(null);
   const selectionSequence = useRef(0);
   const pageTurnInProgress = useRef(false);
   const pendingFlip = useRef<PageDirection | null>(null);
@@ -156,13 +148,14 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
     gesturesRef.current?.clearSegmentSelection();
   }, []);
 
-  const setFocusMode = useCallback(
-    (enabled: boolean) => {
-      setPreference("focusMode", enabled);
-      closeWordInfo();
-    },
-    [closeWordInfo, setPreference]
-  );
+  // Back to where the reader was opened from; a reader opened directly (no history in the app) goes to the Library.
+  const exit = useCallback(() => {
+    if (location.key !== "default") {
+      navigate(-1);
+    } else {
+      navigate(libraryPath(), { replace: true });
+    }
+  }, [location.key, navigate]);
 
   const refresh = useCallback(() => refreshStudyData(queryClient), [queryClient]);
   const segmentAnchorRect = useCallback(() => gesturesRef.current?.segmentAnchorRect() ?? null, []);
@@ -337,34 +330,6 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
     [reader, refresh]
   );
 
-  // Stable: MaterialList's auto-open of a finished import runs in an effect that depends on it.
-  const openMaterial = useCallback(
-    (item: MaterialListItem) => {
-      if (item.translationStatus && !item.translationStatus.ready) {
-        return;
-      }
-      setSidebarTab("read");
-      navigate(readerPath(item.id));
-    },
-    [navigate]
-  );
-
-  function handleMaterialDeleted(deletedId: number) {
-    if (deletedId === reader.selectedMaterialId) {
-      closeWordInfo();
-      reader.clear();
-      navigate(libraryPath(), { replace: true });
-    }
-  }
-
-  function changeSidebarTab(value: string) {
-    const tab = value as ReaderSidebarTab;
-    setSidebarTab(tab);
-    if (tab !== "read") {
-      setPreference("sidebarCollapsed", false);
-    }
-  }
-
   function changeWordsPerPage(value: string) {
     const next: ReaderWordsPerPage = value === "fit" ? "fit" : Number(value);
     setPreference("wordsPerPage", next);
@@ -373,49 +338,22 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
 
   // ------------------------------------------------------------ layout
 
-  /** Sizes the sidebar and panel through CSS variables (legacy renderReaderSidebar). */
+  /** Sizes the reading panel through CSS variables (the width chosen in the settings). */
   const applyLayout = useCallback(() => {
     const layoutElement = layoutRef.current;
-    const panel = panelRef.current;
-    if (!layoutElement || !panel) {
+    if (!layoutElement) {
       return;
     }
-    // Measure in the right mode: the shell sets the same body class, but only after this effect.
-    document.body.classList.toggle("is-reader-focus", focusMode);
-    const viewportWidth = document.documentElement.clientWidth;
-    const size = computeReaderLayout({
-      focusMode,
-      mobile: isMobile,
-      viewportWidth,
-      viewportHeight: window.innerHeight,
-      panelTop: panel.getBoundingClientRect().top,
-      sidebarCollapsed,
-      sidebarWidth: sidebarColumnWidth.current ?? undefined,
-      savedPanelWidth: focusMode ? focusPanelWidth : panelWidth
-    });
-    const vars: Record<string, string> = {
-      "--readerViewportWidth": `${viewportWidth}px`,
-      "--readerViewportOffset": `${layoutElement.parentElement?.getBoundingClientRect().left ?? 0}px`,
-      "--readerSidebarWidth": `${size.sidebarWidth}px`,
-      "--readerSidebarOpenWidth": `${readerSidebarColumnWidth(false, isMobile)}px`,
-      "--readerPanelMinWidth": `${size.minPanelWidth}px`,
-      "--readerPanelMaxHeight": `${size.maxPanelHeight}px`,
-      "--readerPanelMinHeight": `${size.minPanelHeight}px`,
-      "--readerPanelWidth": `${size.panelWidth}px`,
-      "--readerPanelHeight": `${size.panelHeight}px`,
-      "--readerPanelOffset": `${size.panelOffset}px`
-    };
-    for (const [name, value] of Object.entries(vars)) {
-      layoutElement.style.setProperty(name, value);
-    }
-    if (sidebarRef.current && openButtonRef.current) {
-      openButtonRef.current.style.setProperty("--readerSidebarOpenTop", `${sidebarRef.current.getBoundingClientRect().top + 14}px`);
-    }
-  }, [focusMode, focusPanelWidth, isMobile, panelWidth, sidebarCollapsed]);
+    // Measure in the reader's layout: the shell sets the same body class, but only after this effect.
+    document.body.classList.add("is-reader-focus");
+    const size = computeReaderLayout({ viewportWidth: document.documentElement.clientWidth, savedPanelWidth: focusPanelWidth });
+    layoutElement.style.setProperty("--readerPanelMinWidth", `${size.minPanelWidth}px`);
+    layoutElement.style.setProperty("--readerPanelWidth", `${size.panelWidth}px`);
+  }, [focusPanelWidth]);
 
   useLayoutEffect(() => {
     applyLayout();
-  }, [applyLayout, sidebarTab]);
+  }, [applyLayout]);
 
   // Fit to page: probe how many fetched tokens fit, before the page is painted.
   const measureFit = useCallback(() => {
@@ -465,10 +403,10 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
     handleSegmentSelected,
     closeWordInfo,
     closeTranslation,
-    setFocusMode,
+    exit,
     reload
   });
-  const latestState = useRef({ eligible, tokensById, layout, focusMode, isMobile, translationOpen: false, wordInfoOpen: false });
+  const latestState = useRef({ eligible, tokensById, layout, settingsOpen, translationOpen: false, wordInfoOpen: false });
   useLayoutEffect(() => {
     latest.current = {
       applyLayout,
@@ -479,15 +417,14 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
       handleSegmentSelected,
       closeWordInfo,
       closeTranslation,
-      setFocusMode,
+      exit,
       reload
     };
     latestState.current = {
       eligible,
       tokensById,
       layout,
-      focusMode,
-      isMobile,
+      settingsOpen,
       translationOpen: openTranslation !== null,
       wordInfoOpen: wordInfoToken !== null
     };
@@ -526,11 +463,18 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
   }, []);
 
   useEffect(() => {
+    // Runs before the panel's own Escape handling (Radix listens later), so it sees whether the panel or one of its selects is open.
+    function handleKeydownCapture(event: KeyboardEvent) {
+      settingsEscape.current = event.key === "Escape" && latestState.current.settingsOpen ? event : null;
+    }
     function handleKeydown(event: KeyboardEvent) {
-      const { focusMode: inFocusMode, translationOpen, wordInfoOpen, isMobile: mobile } = latestState.current;
-      // Escape closes the top layer first: the translation popup, then the mobile word-info sheet, then focus mode.
-      const wordInfoSheetOpen = mobile && wordInfoOpen && !translationOpen;
-      if (!event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && !isTextInputTarget(event.target)) {
+      const { translationOpen, wordInfoOpen } = latestState.current;
+      // Escape closes the top layer first: the settings panel, then the translation popup, then word-info, then the reader exits.
+      if (event.key === "Escape" && event === settingsEscape.current) {
+        return;
+      }
+      const wordInfoClosable = wordInfoOpen && !translationOpen;
+      if (!event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && !isTextInputTarget(event.target) && !isSettingsTarget(event.target)) {
         // Widgets that own the arrow keys (tabs, selects, menus) prevent them first.
         if (event.key === "ArrowLeft" && !event.defaultPrevented) {
           event.preventDefault();
@@ -538,14 +482,14 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
         } else if (event.key === "ArrowRight" && !event.defaultPrevented) {
           event.preventDefault();
           void latest.current.turnPage("next");
-        } else if (event.key === "Escape" && inFocusMode && !translationOpen && !wordInfoSheetOpen) {
-          // An open translation popup takes the Escape; focus mode exits on the next one.
-          latest.current.setFocusMode(false);
+        } else if (event.key === "Escape" && !translationOpen && !wordInfoClosable) {
+          // An open popup takes the Escape; the reader exits on the next one.
+          latest.current.exit();
         }
       }
       if (event.key === "Escape" && translationOpen) {
         latest.current.closeTranslation();
-      } else if (event.key === "Escape" && wordInfoSheetOpen) {
+      } else if (event.key === "Escape" && wordInfoClosable) {
         latest.current.closeWordInfo();
       }
     }
@@ -557,6 +501,7 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
       if (
         !latestState.current.wordInfoOpen ||
         (popup && path.includes(popup)) ||
+        path.some((node) => node instanceof Element && node.hasAttribute(READER_SETTINGS_ATTRIBUTE)) ||
         path.some((node) => node instanceof Element && node.classList.contains("reader-token"))
       ) {
         return;
@@ -571,33 +516,20 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
     frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => latest.current.applyLayout());
     });
+    document.addEventListener("keydown", handleKeydownCapture, true);
     document.addEventListener("keydown", handleKeydown);
     document.addEventListener("click", handleClick);
     window.addEventListener("resize", handleResize);
     return () => {
       cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", handleKeydownCapture, true);
       document.removeEventListener("keydown", handleKeydown);
       document.removeEventListener("click", handleClick);
       window.removeEventListener("resize", handleResize);
     };
   }, []);
 
-  // Slide the desktop sidebar column open or closed, re-laying out the panel on
-  // every frame so it never jumps (this runs after the applyLayout effect, so
-  // it re-applies the starting width before paint); fit to page once settled.
-  const { isAnimating: isSidebarAnimating } = useAnimatedSidebar({
-    collapsed: sidebarCollapsed,
-    enabled: !focusMode && !isMobile,
-    restWidth: (collapsed) => readerSidebarColumnWidth(collapsed, false),
-    sidebar: sidebarRef,
-    onFrame: (width) => {
-      sidebarColumnWidth.current = width;
-      latest.current.applyLayout();
-    },
-    onSettled: () => latest.current.measureFit()
-  });
-
-  // Re-fit whenever the text area changes size (window, sidebar, panel or focus mode).
+  // Re-fit whenever the text area changes size (window or text width).
   useEffect(() => {
     const readerText = readerTextRef.current;
     if (!readerText) {
@@ -606,10 +538,6 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
     let frame = 0;
     const observer = new ResizeObserver(() => {
       cancelAnimationFrame(frame);
-      // A sliding sidebar re-fits once, when it has settled.
-      if (isSidebarAnimating()) {
-        return;
-      }
       frame = requestAnimationFrame(() => latest.current.measureFit());
     });
     observer.observe(readerText);
@@ -617,202 +545,129 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [isSidebarAnimating]);
+  }, []);
 
-  // Remember the sidebar tab for the next visit to the reader.
+  // Record the work as last opened (C1) once it is on screen, so the Library lists it first.
+  const openedMaterialId = material?.id;
   useEffect(() => {
-    readerSession.sidebarTab = sidebarTab;
-  }, [sidebarTab]);
+    if (!openedMaterialId) {
+      return;
+    }
+    api.materials
+      .markOpened(openedMaterialId)
+      .then(() => queryClient.invalidateQueries({ queryKey: queryKeys.library.all }))
+      .catch(() => {});
+  }, [openedMaterialId, queryClient]);
 
   // ------------------------------------------------------------ render
 
-  const readTab = isMobile && sidebarTab === "read";
-  const desktopTab: ReaderSidebarTab = sidebarTab === "settings" ? "settings" : "documents";
   let title = t("reader.title");
-  let meta = "";
   let content: ReactNode = null;
-  if (!reader.selectedMaterialId) {
-    content = <p className="empty">{t("reader.selectMaterial")}</p>;
-  } else if (material && !ready) {
+  if (material && !ready) {
     title = material.title || t("reader.title");
     content = <p className="empty">{t("reader.translatingWait")}</p>;
   } else if (material) {
     title = material.title || t("reader.title");
-    meta = t("reader.readerMeta", { words: formatCount(material.wordCount), language: material.languageName });
     content = <ReaderTokens layout={layout} selectedTokenId={selectedTokenId} segmentRange={segmentRange} />;
   }
 
   return (
-    <Tabs asChild value={isMobile ? sidebarTab : desktopTab} onValueChange={changeSidebarTab} className="tab-view block gap-0">
-      <section id="readerView">
-        <ReaderSidebarTabList
-          id="readerSidebarTabs"
-          tabs={["read", "documents", "settings"]}
-          activeTab={sidebarTab}
-          className="mobile-reader-tabs mb-3 grid grid-cols-3"
-        />
-        <SidebarOpenButton
-          ref={openButtonRef}
-          id="readerSidebarOpen"
-          className="reader-sidebar-open top-[86px] mobile:top-3"
-          collapsed={!focusMode && !readTab && sidebarCollapsed}
-          onOpen={() => setPreference("sidebarCollapsed", false)}
-          label={t("reader.openSidebar")}
-        />
-        <SidebarLayout
-          ref={layoutRef}
-          collapsed={sidebarCollapsed}
-          className={cn("reader-layout relative grid items-start", isMobile && (sidebarTab === "read" ? "is-reader-read-panel" : "is-reader-side-panel"))}
-        >
-          <ReaderSidebar
-            sidebarRef={sidebarRef}
-            hidden={readTab}
-            desktopTab={desktopTab}
-            showWordSpacesOption={isWordSpacingLanguage(languageName) || isWordSpacingLanguage(studyLanguageName)}
-            selectedMaterialId={reader.selectedMaterialId}
-            onOpenMaterial={openMaterial}
-            onMaterialDeleted={handleMaterialDeleted}
-          />
-          <section
-            ref={panelRef}
-            className="reader-panel relative grid overflow-hidden rounded-r-lg border border-line bg-panel p-5 shadow-panel"
-            hidden={isMobile && sidebarTab !== "read"}
-          >
-            <button
-              className={cn("reader-focus-toggle reader-focus-command", FOCUS_BUTTON)}
-              type="button"
-              aria-pressed="false"
-              onClick={() => setFocusMode(true)}
-            >
-              {t("reader.focus")}
-            </button>
-            <button
-              id="readerFocusExit"
-              className={cn("reader-focus-exit", FOCUS_BUTTON)}
-              type="button"
-              aria-label={t("reader.exitFocus")}
-              hidden={!focusMode}
-              onClick={() => setFocusMode(false)}
-            >
+    <section id="readerView">
+      <div ref={layoutRef} className="reader-layout relative grid items-start">
+        <div className="reader-topbar">
+          <h2 id="readerTitle" className="reader-topbar-title">
+            {title}
+          </h2>
+          <div className="reader-topbar-actions">
+            <ReaderSettings
+              open={settingsOpen}
+              onOpenChange={setSettingsOpen}
+              showWordSpacesOption={isWordSpacingLanguage(languageName) || isWordSpacingLanguage(studyLanguageName)}
+              onWordsPerPageChange={changeWordsPerPage}
+            />
+            <button id="readerFocusExit" className="reader-topbar-button" type="button" aria-label={t("reader.exitToLibrary")} onClick={exit}>
               {t("reader.exit")}
             </button>
-            <div className="reader-toolbar mb-4 flex items-end justify-between gap-4 mobile:grid">
-              <div>
-                <h2 id="readerTitle" className="text-xl font-bold">
-                  {title}
-                </h2>
-                <p id="readerMeta" className="hint mt-1 min-h-5 text-sm text-secondary">
-                  {meta}
-                </p>
-              </div>
-              <div className="reader-controls grid grid-cols-[minmax(180px,220px)_minmax(130px,160px)] items-end gap-3">
-                <label className="grid gap-1.5 text-sm font-semibold text-label">
-                  <span>{t("reader.fontSize")}</span>
-                  <input
-                    id="readerFontSize"
-                    className="accent-brand"
-                    type="range"
-                    min="16"
-                    max="34"
-                    value={fontSize}
-                    onChange={(event) => setPreference("fontSize", Number(event.target.value))}
-                  />
-                </label>
-                <div className="grid gap-1.5 text-sm font-semibold text-label">
-                  <span id="readerWordsPerPageLabel">{t("reader.wordsPerPage")}</span>
-                  <Select value={String(wordsPerPage)} onValueChange={changeWordsPerPage}>
-                    <SettingSelect id="readerWordsPerPage" aria-labelledby="readerWordsPerPageLabel">
-                      <SelectValue />
-                    </SettingSelect>
-                    <SelectContent>
-                      {WORDS_PER_PAGE_OPTIONS.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option === "fit" ? t("reader.fitToPage") : option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
+          </div>
+        </div>
+        <section className="reader-panel relative grid overflow-hidden rounded-lg border border-line bg-panel p-5 shadow-panel">
+          <div
+            id="readerProgress"
+            className={cn("reader-progress", !pageStatus && "is-hidden")}
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={pageStatus?.progressPercent ?? 0}
+            aria-label={t("reader.progressLabel")}
+          >
             <div
-              id="readerProgress"
-              className={cn("reader-progress", !pageStatus && "is-hidden")}
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={pageStatus?.progressPercent ?? 0}
-              aria-label={t("reader.progressLabel")}
-            >
-              <div
-                id="readerProgressBar"
-                className="reader-progress-bar"
-                style={{ "--readerProgress": `${pageStatus?.progressPercent ?? 0}%` } as CSSProperties}
-              />
-            </div>
-            <div
-              ref={readerTextRef}
-              id="readerText"
-              className={cn(
-                "reader-text h-full min-h-0 overflow-auto rounded-lg border border-line bg-reader p-6 leading-[1.9]",
-                eligible && "is-segment-selectable"
-              )}
-              style={{ "--readerFontSize": `${fontSize}px`, "--readerHighlightOpacity": String(highlightOpacity) } as CSSProperties}
-            >
-              {content}
-            </div>
-            <div className="reader-page-actions mt-4 grid items-center gap-3.5">
-              <div className="reader-pagination-controls flex items-center justify-center gap-3.5">
-                <button
-                  id="readerPrevPage"
-                  className={PAGE_BUTTON}
-                  type="button"
-                  disabled={!pageStatus || pageStatus.prevDisabled}
-                  onClick={() => void turnPage("prev")}
-                >
-                  {t("reader.previous")}
-                </button>
-                <span id="readerPageStatus" className="hint text-sm text-secondary">
-                  {pageStatus
-                    ? t("reader.pageStatus", { start: formatCount(pageStatus.first), end: formatCount(pageStatus.end), total: formatCount(pageStatus.total) })
-                    : ""}
-                </span>
-                <button
-                  id="readerNextPage"
-                  className={PAGE_BUTTON}
-                  type="button"
-                  disabled={!pageStatus || pageStatus.nextDisabled}
-                  onClick={() => void turnPage("next")}
-                >
-                  {t("reader.next")}
-                </button>
-              </div>
-            </div>
-            <ReaderWordInfo
-              token={wordInfoToken}
-              readerTextRef={readerTextRef}
-              popupRef={wordInfoRef}
-              isMobile={isMobile}
-              mobileFocus={isMobile && focusMode}
-              editing={wordInfoToken !== null && editingWordId === wordInfoToken.wordId}
-              onEditOverride={() => wordInfoToken && setEditingWordId(wordInfoToken.wordId)}
-              onCancelOverride={() => setEditingWordId(null)}
-              onSaveOverride={saveOverride}
-              onClose={closeWordInfo}
-              onStatusChange={changeStatus}
-              onPracticeChange={changePractice}
+              id="readerProgressBar"
+              className="reader-progress-bar"
+              style={{ "--readerProgress": `${pageStatus?.progressPercent ?? 0}%` } as CSSProperties}
             />
-            <ReaderTranslationPopup
-              translation={openTranslation}
-              getAnchorRect={segmentAnchorRect}
-              readerTextRef={readerTextRef}
-              isMobile={isMobile}
-              onClose={closeTranslation}
-            />
-          </section>
-        </SidebarLayout>
-        {quickMenu ? <ReaderQuickMenu menu={quickMenu} /> : null}
-      </section>
-    </Tabs>
+          </div>
+          <div
+            ref={readerTextRef}
+            id="readerText"
+            className={cn(
+              "reader-text h-full min-h-0 overflow-auto rounded-lg border border-line bg-reader p-6 leading-[1.9]",
+              eligible && "is-segment-selectable"
+            )}
+            style={{ "--readerFontSize": `${fontSize}px`, "--readerHighlightOpacity": String(highlightOpacity) } as CSSProperties}
+          >
+            {content}
+          </div>
+          <div className="reader-page-actions mt-4 grid items-center gap-3.5">
+            <div className="reader-pagination-controls flex items-center justify-center gap-3.5">
+              <button
+                id="readerPrevPage"
+                className={PAGE_BUTTON}
+                type="button"
+                disabled={!pageStatus || pageStatus.prevDisabled}
+                onClick={() => void turnPage("prev")}
+              >
+                {t("reader.previous")}
+              </button>
+              <span id="readerPageStatus" className="hint text-sm text-secondary">
+                {pageStatus
+                  ? t("reader.pageStatus", { start: formatCount(pageStatus.first), end: formatCount(pageStatus.end), total: formatCount(pageStatus.total) })
+                  : ""}
+              </span>
+              <button
+                id="readerNextPage"
+                className={PAGE_BUTTON}
+                type="button"
+                disabled={!pageStatus || pageStatus.nextDisabled}
+                onClick={() => void turnPage("next")}
+              >
+                {t("reader.next")}
+              </button>
+            </div>
+          </div>
+          <ReaderWordInfo
+            token={wordInfoToken}
+            readerTextRef={readerTextRef}
+            popupRef={wordInfoRef}
+            isMobile={isMobile}
+            mobileFocus={isMobile}
+            editing={wordInfoToken !== null && editingWordId === wordInfoToken.wordId}
+            onEditOverride={() => wordInfoToken && setEditingWordId(wordInfoToken.wordId)}
+            onCancelOverride={() => setEditingWordId(null)}
+            onSaveOverride={saveOverride}
+            onClose={closeWordInfo}
+            onStatusChange={changeStatus}
+            onPracticeChange={changePractice}
+          />
+          <ReaderTranslationPopup
+            translation={openTranslation}
+            getAnchorRect={segmentAnchorRect}
+            readerTextRef={readerTextRef}
+            isMobile={isMobile}
+            onClose={closeTranslation}
+          />
+        </section>
+      </div>
+      {quickMenu ? <ReaderQuickMenu menu={quickMenu} /> : null}
+    </section>
   );
 }
