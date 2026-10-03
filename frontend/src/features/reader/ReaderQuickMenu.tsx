@@ -1,6 +1,10 @@
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { m } from "motion/react";
+import { CheckIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 import type { ReaderToken } from "@/lib/api/types";
 import { useT } from "@/lib/i18n";
 import { MOTION_FADE_FAST, MOTION_STAGGER } from "@/lib/motion";
@@ -37,31 +41,51 @@ export function ReaderQuickMenu({ menu }: { menu: ReaderQuickMenuState }) {
     "--readerMenuRadius": `${READER_MENU_RADIUS}px`
   } as CSSProperties;
   return createPortal(
-    <div className={cn("reader-convenience-menu", menu.selectedKey && "has-selection")} role="menu" style={style}>
-      <m.div className="reader-convenience-scrim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={MOTION_FADE_FAST} />
-      <m.div className="reader-convenience-center" aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={MOTION_FADE_FAST}>
-        <span>{menu.token.surface}</span>
+    <div className="reader-convenience-menu" role="menu" style={style}>
+      <m.div className="absolute inset-0 bg-reader/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={MOTION_FADE_FAST} />
+      <m.div
+        className="reader-convenience-center rounded-container px-3 py-2 glass shadow-float"
+        aria-hidden="true"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={MOTION_FADE_FAST}
+      >
+        <Text as="span" variant="heading" className="block max-w-32 truncate font-reading">
+          {menu.token.surface}
+        </Text>
       </m.div>
       {QUICK_MENU_ACTIONS.map((action, index) => {
         const selected = action.key === menu.selectedKey;
         return (
-          <m.button
+          <Button
             key={action.key}
-            className={cn("reader-convenience-option", `reader-convenience-${action.key}`, selected && "is-selected")}
-            type="button"
-            role="menuitemradio"
-            data-action={action.key}
-            aria-pressed={selected}
-            style={{ "--optionX": action.x, "--optionY": action.y } as CSSProperties}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ ...MOTION_FADE_FAST, delay: (index + 1) * MOTION_STAGGER }}
+            asChild
+            variant="ghost"
+            className={cn(
+              "reader-convenience-option h-10 min-w-24 rounded-container px-3 text-body font-medium shadow-float",
+              selected ? "border border-primary bg-accent hover:bg-accent" : "glass"
+            )}
           >
-            {action.key === "practice" ? (
-              <span className={cn("reader-convenience-checkbox", menu.token.wantToPractice && "is-checked")} aria-hidden="true" />
-            ) : null}
-            <span>{t(ACTION_LABEL_KEYS[action.key])}</span>
-          </m.button>
+            <m.button
+              type="button"
+              role="menuitemradio"
+              data-action={action.key}
+              aria-pressed={selected}
+              style={{ "--optionX": action.x, "--optionY": action.y } as CSSProperties}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ ...MOTION_FADE_FAST, delay: (index + 1) * MOTION_STAGGER }}
+            >
+              {action.key === "practice" ? (
+                <>
+                  {menu.token.wantToPractice ? <CheckIcon className="size-4" aria-hidden="true" /> : null}
+                  <span>{t(ACTION_LABEL_KEYS[action.key])}</span>
+                </>
+              ) : (
+                <Badge variant={action.key}>{t(ACTION_LABEL_KEYS[action.key])}</Badge>
+              )}
+            </m.button>
+          </Button>
         );
       })}
     </div>,

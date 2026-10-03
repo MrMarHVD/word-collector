@@ -7,7 +7,7 @@ export interface ReaderSheetProps {
   onClose: () => void;
   /** The popup's legacy id (#readerWordInfo, #readerTranslation). */
   id: string;
-  /** The popup's legacy classes; reader.css lays them out as the mobile sheet. */
+  /** The popup's classes: the floating-layer look plus the hook reader.css lays out as the mobile sheet. */
   className: string;
   contentRef: RefObject<HTMLElement | null>;
   children: ReactNode;
@@ -35,7 +35,7 @@ export function ReaderSheet({ open, onClose, id, className, contentRef, children
           id={id}
           side="bottom"
           showCloseButton={false}
-          // Portalled to the body, so it must clear the fixed Reader layout (z-index 11) that holds the legacy popups.
+          // Portalled to the body, so it must clear the fixed Reader layout (z-index 11) that holds the desktop popups.
           className={cn(className, "z-[12] gap-0")}
           aria-describedby={undefined}
           onOpenAutoFocus={preventDefault}

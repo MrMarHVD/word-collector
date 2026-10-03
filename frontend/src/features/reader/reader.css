@@ -1,56 +1,12 @@
 /*
- * Reader styles, ported unchanged from public/css/reader.css,
- * public/css/reader-translation.css and the reader-layout rules of
- * public/css/shell.css. The disambiguation rules already live in
- * styles/components.css. Unlayered, so they still beat utility classes.
+ * Reader layout: grid, sizes, positioning and the page-flip motion. Colours,
+ * type, borders, radii and shadows come from the design-system components and
+ * utilities in the markup. Unlayered, so these rules still beat utility classes.
  */
 
 /* The reader is the distraction-free view only: ReaderPage sets the text width through CSS variables. */
 .reader-layout {
   --readerPanelWidth: 100%;
-}
-
-.reader-checkbox {
-  appearance: none;
-  display: grid;
-  flex: 0 0 24px;
-  place-content: center;
-  width: 24px;
-  height: 24px;
-  margin-top: 1px;
-  border: 2px solid var(--border-main);
-  border-radius: 6px;
-  background: var(--surface-panel);
-  cursor: pointer;
-  transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    box-shadow 140ms ease;
-}
-
-.reader-checkbox::before {
-  content: "";
-  width: 7px;
-  height: 12px;
-  margin-top: -2px;
-  border-right: 2px solid #ffffff;
-  border-bottom: 2px solid #ffffff;
-  transform: rotate(45deg) scale(0);
-  transition: transform 120ms ease;
-}
-
-.reader-checkbox:checked {
-  border-color: var(--brand);
-  background: var(--brand);
-}
-
-.reader-checkbox:checked::before {
-  transform: rotate(45deg) scale(1);
-}
-
-.reader-checkbox:focus-visible {
-  outline: 0;
-  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .reader-panel {
@@ -62,63 +18,6 @@
 
 .reader-page-actions {
   grid-template-columns: 1fr;
-}
-
-/* Top bar over the text: the title on the left, Aa and exit on the right. The scrim of
-   the open settings panel sits inside it, behind its controls, so a click or tap
-   outside the panel never reaches the text. */
-.reader-topbar {
-  position: absolute;
-  inset: 0 0 auto;
-  z-index: 14;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  height: 44px;
-  padding: 0 12px 0 20px;
-}
-
-.reader-topbar-title {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--reader-focus-chrome);
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.reader-topbar-actions {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 4px;
-}
-
-.reader-topbar-button {
-  min-height: 0;
-  padding: 6px 10px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--reader-focus-chrome);
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: opacity 160ms ease;
-}
-
-.reader-topbar-button:hover,
-.reader-topbar-button:focus-visible,
-.reader-topbar-button[data-state="open"] {
-  background: transparent;
-  color: var(--text-main);
-}
-
-.reader-settings-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
 }
 
 .reader-pagination-controls {
@@ -177,6 +76,7 @@
 
 .is-reader-focus .reader-panel {
   padding-top: 44px;
+  padding-bottom: 16px;
   height: 100vh;
   height: 100dvh;
   height: 100svh;
@@ -186,7 +86,6 @@
   min-height: 0;
   margin-left: 0 !important;
   overflow: hidden;
-  border-radius: 0;
 }
 
 .is-reader-focus .reader-page-actions {
@@ -199,38 +98,16 @@
   overflow: auto;
 }
 
-/* Thin reading-progress line sitting directly above the reader pane. */
-.reader-progress {
-  height: 3px;
-  margin-bottom: 8px;
-  border-radius: 999px;
-  background: var(--surface-muted);
-  overflow: hidden;
+.is-reader-convenience-active {
+  user-select: none;
 }
 
-/* Stays in the grid (preserving the reader pane's flexible row) but is not
-   drawn when there is no material to track. */
-.reader-progress.is-hidden {
-  visibility: hidden;
-}
-
-.reader-progress-bar {
-  height: 100%;
-  width: var(--readerProgress, 0%);
-  border-radius: inherit;
-  background: var(--brand);
-  transition: width 200ms ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .reader-progress-bar {
-    transition: none;
-  }
+.is-reader-segment-selecting {
+  user-select: none;
 }
 
 .reader-text {
   min-height: 0;
-  font-size: var(--readerFontSize, 22px);
   transform-origin: center;
   will-change: transform, opacity;
 }
@@ -272,117 +149,12 @@
   }
 }
 
-.reader-token {
-  min-height: 0;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: inherit;
-  padding: 1px 2px;
-  font-weight: 500;
-  font-size: inherit;
-  line-height: inherit;
-}
-
-.reader-block {
-  margin: 0;
-}
-
-.reader-paragraph {
-  margin: 0.6em 0;
-}
-
-.reader-heading {
-  font-weight: 700;
-  line-height: 1.25;
-  color: var(--text-main);
-}
-
-.reader-heading-1 {
-  margin: 1.4em 0 0.6em;
-  font-size: 1.9em;
-  font-weight: 800;
-}
-
-.reader-heading-2 {
-  margin: 1.2em 0 0.5em;
-  font-size: 1.55em;
-}
-
-.reader-heading-3 {
-  margin: 1em 0 0.45em;
-  font-size: 1.3em;
-}
-
-.reader-heading-4 {
-  margin: 0.9em 0 0.4em;
-  font-size: 1.15em;
-}
-
-.reader-heading-5 {
-  margin: 0.85em 0 0.35em;
-  font-size: 1.05em;
-}
-
-.reader-heading-6 {
-  margin: 0.8em 0 0.35em;
-  font-size: 1em;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.reader-blockquote {
-  margin: 0.8em 0;
-  padding: 0.1em 0 0.1em 1em;
-  border-left: 3px solid var(--border-main);
-  color: var(--text-label);
-  font-style: italic;
-}
-
-.reader-list {
-  margin: 0.6em 0;
-  padding-left: 1.5em;
-  list-style: disc;
-}
-
-.reader-list-item {
-  margin: 0.25em 0;
-  display: list-item;
-}
-
-.reader-token[data-status="unknown"] {
-  background: rgb(var(--reader-token-unknown-rgb) / var(--readerHighlightOpacity, 0.2));
-  box-shadow: 0 0 10px rgb(var(--reader-token-unknown-rgb) / var(--readerHighlightOpacity, 0.2));
-}
-
-.reader-token[data-status="learning"] {
-  background: rgb(var(--reader-token-learning-rgb) / var(--readerHighlightOpacity, 0.2));
-  box-shadow: 0 0 10px rgb(var(--reader-token-learning-rgb) / var(--readerHighlightOpacity, 0.2));
-}
-
-.reader-token:hover,
-.reader-token.is-selected {
-  background: var(--reader-token-selected);
-}
-
-.is-reader-convenience-active {
-  user-select: none;
-}
-
-.reader-token.is-segment-selected {
-  background: var(--reader-token-selected);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 35%, transparent);
-}
-
 .reader-text.is-segment-selectable .reader-token {
   -webkit-touch-callout: none;
   user-select: none;
 }
 
-.is-reader-segment-selecting {
-  user-select: none;
-}
-
+/* Radial quick menu: the centre and the options are placed around the pressed word. */
 .reader-convenience-menu {
   position: fixed;
   inset: 0;
@@ -393,13 +165,6 @@
   --readerMenuRadius: 82px;
 }
 
-.reader-convenience-scrim {
-  position: absolute;
-  inset: 0;
-  background: color-mix(in srgb, var(--surface-page) 28%, transparent);
-  backdrop-filter: blur(1px);
-}
-
 .reader-convenience-center,
 .reader-convenience-option {
   position: absolute;
@@ -408,108 +173,21 @@
   transform: translate(-50%, -50%);
 }
 
-.reader-convenience-center {
-  display: grid;
-  width: 76px;
-  height: 76px;
-  place-items: center;
-  border: 2px solid color-mix(in srgb, var(--brand) 30%, transparent);
-  border-radius: 999px;
-  background: radial-gradient(circle, var(--surface-panel) 0 48%, color-mix(in srgb, var(--brand) 12%, var(--surface-panel)) 49% 100%);
-  box-shadow: 0 18px 45px var(--shadow-color);
-  color: var(--text-label);
-  font-size: 0.76rem;
-  font-weight: 900;
-  line-height: 1.1;
-  text-align: center;
-}
-
-.reader-convenience-center span {
-  max-width: 62px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .reader-convenience-option {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-width: 98px;
-  min-height: 42px;
-  padding: 0 13px;
-  border: 2px solid var(--border-main);
-  border-radius: 999px;
-  background: var(--surface-panel);
-  box-shadow: 0 14px 32px var(--shadow-color);
-  color: var(--text-main);
-  font-size: 0.8rem;
-  font-weight: 900;
-  line-height: 1;
   transform: translate(-50%, -50%) translate(calc(var(--optionX) * var(--readerMenuRadius)), calc(var(--optionY) * var(--readerMenuRadius)));
-  transition:
-    border-color 120ms ease,
-    box-shadow 120ms ease,
-    transform 120ms ease,
-    background-color 120ms ease;
 }
 
-.reader-convenience-option.is-selected {
-  border-color: var(--brand);
-  background: color-mix(in srgb, var(--brand) 9%, var(--surface-panel));
-  box-shadow:
-    0 0 0 5px var(--focus-ring),
-    0 18px 38px var(--shadow-color);
+.reader-convenience-option[aria-pressed="true"] {
   transform: translate(-50%, -50%) translate(calc(var(--optionX) * var(--readerMenuRadius)), calc(var(--optionY) * var(--readerMenuRadius))) scale(1.05);
 }
 
-.reader-convenience-unknown {
-  border-color: color-mix(in srgb, var(--unknown) 40%, var(--border-main));
+@media (prefers-reduced-motion: no-preference) {
+  .reader-convenience-option {
+    transition: transform 120ms ease;
+  }
 }
 
-.reader-convenience-learning {
-  border-color: color-mix(in srgb, var(--learning) 40%, var(--border-main));
-}
-
-.reader-convenience-known {
-  border-color: color-mix(in srgb, var(--known) 40%, var(--border-main));
-}
-
-.reader-convenience-practice {
-  border-color: color-mix(in srgb, var(--brand) 36%, var(--border-main));
-}
-
-.reader-convenience-checkbox {
-  display: grid;
-  flex: 0 0 17px;
-  width: 17px;
-  height: 17px;
-  place-items: center;
-  border: 2px solid var(--border-main);
-  border-radius: 5px;
-  background: var(--surface-panel);
-}
-
-.reader-convenience-checkbox::before {
-  content: "";
-  width: 5px;
-  height: 9px;
-  margin-top: -2px;
-  border-right: 2px solid #ffffff;
-  border-bottom: 2px solid #ffffff;
-  transform: rotate(45deg) scale(0);
-}
-
-.reader-convenience-checkbox.is-checked {
-  border-color: var(--brand);
-  background: var(--brand);
-}
-
-.reader-convenience-checkbox.is-checked::before {
-  transform: rotate(45deg) scale(1);
-}
-
+/* Word-info popup, placed beside the word through CSS variables. */
 .reader-word-info {
   top: var(--readerInfoTop, 84px);
   left: var(--readerInfoLeft, 12px);
@@ -534,129 +212,36 @@
 
 /* Siblings of the disambiguation panel keep their natural height so the
    status toggle and other controls are never squeezed when the panel opens. */
-.reader-word-info:not([hidden]) > :not(.disambiguation-panel) {
+.reader-word-info:not([hidden]) > :not([data-disambiguation-panel]) {
   flex-shrink: 0;
 }
 
-.reader-word-info-head {
-  display: grid;
-  grid-template-columns: 1fr auto 30px;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+/* Translation popup: the selected original on top, its translation below. Positioned by
+   ReaderTranslationPopup through CSS variables; --readerTranslationMaxHeight caps the
+   height when the space beside the selection is short, so the popup never covers it. */
+.reader-translation {
+  top: var(--readerTranslationTop, 84px);
+  left: var(--readerTranslationLeft, 12px);
+  /* Entry/exit scale (Motion) grows from the side facing the selection. */
+  transform-origin: var(--readerTranslationOrigin, center);
+  width: max-content;
+  min-width: 240px;
+  max-width: min(420px, calc(100vw - 24px));
+  max-height: var(--readerTranslationMaxHeight, min(420px, calc(100vh - 24px)));
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
-.reader-word-info strong {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  font-size: 1.08rem;
-  line-height: 1.25;
+/* Mobile bottom sheets (kit Sheet): no slide animation, so the popup can be
+   positioned against the selection as soon as it opens. The translation popup
+   is a block, not the kit's flex column. */
+.reader-word-info[data-slot="sheet-content"],
+.reader-translation[data-slot="sheet-content"] {
+  animation: none;
 }
 
-.reader-word-info-head .disambiguation-button {
-  justify-self: end;
-}
-
-.reader-word-info-head [data-slot="close-button"] {
-  grid-column: 3;
-}
-
-.reader-word-info dl {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 6px 10px;
-  margin: 10px 0;
-}
-
-.reader-word-info dt {
-  color: var(--text-muted);
-  font-weight: 700;
-}
-
-.reader-word-info dd {
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-/* Practice mark: a full-width row that lines up with the status toggle below it
-   and matches the popup's bordered-surface styling. */
-.reader-practice-toggle {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  margin: 0 0 10px;
-  padding: 9px 12px;
-  border: 1px solid var(--border-main);
-  border-radius: 10px;
-  background: var(--surface-subtle);
-  color: var(--text-label);
-  font-size: 0.78rem;
-  font-weight: 800;
-  line-height: 1;
-  cursor: pointer;
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease;
-}
-
-.reader-practice-toggle:hover {
-  border-color: color-mix(in srgb, var(--brand) 24%, transparent);
-  background: var(--surface-muted);
-}
-
-.reader-practice-toggle.is-disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.reader-practice-toggle.is-disabled:hover {
-  border-color: var(--border-main);
-  background: var(--surface-subtle);
-}
-
-.reader-practice-toggle .reader-checkbox {
-  flex: 0 0 20px;
-  width: 20px;
-  height: 20px;
-  margin: 0;
-}
-
-.reader-practice-toggle .reader-checkbox::before {
-  width: 6px;
-  height: 10px;
-  margin-top: -2px;
-}
-
-.reader-practice-toggle span {
-  min-width: 0;
-  white-space: nowrap;
-}
-
-@media (max-width: 760px) {
-  .reader-word-info {
-    top: var(--readerInfoTop, 12px);
-    left: var(--readerInfoLeft, 12px);
-    right: auto;
-    bottom: auto;
-    width: max-content;
-    max-width: calc(100vw - 24px);
-    max-height: min(340px, calc(100vh - 24px));
-  }
-}
-
-@media (max-width: 760px) {
-  .reader-word-info {
-    position: fixed;
-    inset: auto 10px calc(10px + env(safe-area-inset-bottom)) 10px;
-    width: auto;
-    max-width: none;
-    max-height: min(70dvh, 520px);
-    border-radius: 12px;
-  }
+.reader-translation[data-slot="sheet-content"] {
+  display: block;
 }
 
 @media (max-width: 760px) {
@@ -681,7 +266,6 @@
     max-height: 100dvh;
     max-height: 100svh;
     overflow: hidden;
-    border-radius: 0;
     padding-top: 50px;
     padding-bottom: calc(70px + env(safe-area-inset-bottom));
   }
@@ -691,6 +275,7 @@
     overflow: auto;
   }
 
+  /* The page controls float over the bottom of the screen. */
   .is-reader-focus .reader-page-actions {
     position: fixed;
     right: 14px;
@@ -700,19 +285,8 @@
     margin-top: 0;
   }
 
-  .reader-topbar {
-    height: 50px;
-    padding-left: 14px;
-  }
-
   .reader-text {
     min-height: 52dvh;
-    padding: 16px;
-    line-height: 1.8;
-  }
-
-  .reader-pagination-controls {
-    grid-column: 1;
   }
 
   .reader-pagination-controls {
@@ -721,98 +295,26 @@
     gap: 0.625rem;
   }
 
-  .reader-word-info {
+  .reader-word-info,
+  .reader-translation {
     position: fixed;
     inset: auto 10px calc(10px + env(safe-area-inset-bottom)) 10px;
     max-width: none;
     min-width: 0;
     width: auto;
+  }
+
+  .reader-word-info {
     max-height: min(70dvh, 520px);
-    border-radius: 12px;
+  }
+
+  .reader-translation {
+    max-height: var(--readerTranslationMaxHeight, min(70dvh, 520px));
   }
 
   .is-reader-focus .reader-word-info {
     bottom: calc(86px + env(safe-area-inset-bottom));
     max-height: min(58dvh, calc(100svh - 112px - env(safe-area-inset-bottom)));
-  }
-}
-
-@media (max-width: 420px) {
-  .reader-text {
-    padding: 14px;
-  }
-}
-
-/* Translation popup (from public/css/reader-translation.css). */
-/* Reader translation popup: the selected original on top, its translation
-   below. Positioned by views/reader-translation.js through CSS variables;
-   --readerTranslationMaxHeight caps the height when the space beside the
-   selection is short, so the popup never covers it. */
-.reader-translation {
-  top: var(--readerTranslationTop, 84px);
-  left: var(--readerTranslationLeft, 12px);
-  /* Entry/exit scale (Motion) grows from the side facing the selection. */
-  transform-origin: var(--readerTranslationOrigin, center);
-  width: max-content;
-  min-width: 240px;
-  max-width: min(420px, calc(100vw - 24px));
-  max-height: var(--readerTranslationMaxHeight, min(420px, calc(100vh - 24px)));
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.reader-translation-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 6px;
-}
-
-.reader-translation-label {
-  display: block;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.reader-translation-source {
-  margin: 0 0 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-main);
-  overflow-wrap: anywhere;
-  font-size: 1.08rem;
-  line-height: 1.6;
-}
-
-.reader-translation-result {
-  margin-top: 6px;
-}
-
-.reader-translation-target,
-.reader-translation-message {
-  margin: 0;
-  overflow-wrap: anywhere;
-  line-height: 1.5;
-}
-
-.reader-translation-message {
-  color: var(--text-muted);
-}
-
-.reader-translation-message.is-error {
-  color: var(--danger);
-}
-
-@media (max-width: 760px) {
-  .reader-translation {
-    position: fixed;
-    inset: auto 10px calc(10px + env(safe-area-inset-bottom)) 10px;
-    min-width: 0;
-    width: auto;
-    max-width: none;
-    max-height: var(--readerTranslationMaxHeight, min(70dvh, 520px));
-    border-radius: 12px;
   }
 
   .is-reader-focus .reader-translation {
@@ -827,88 +329,4 @@
     bottom: auto;
     z-index: 21;
   }
-}
-
-/* Word-info status toggle: full width (the shared toggle is in
-   styles/components.css). */
-.reader-word-info .status-toggle {
-  width: 100%;
-}
-
-/* Mobile bottom sheets (kit Sheet): keep the legacy sheet exactly as it was,
-   without the kit's slide animation, so the popup can be positioned against
-   the selection as soon as it opens. The translation popup is a block, as in
-   the legacy app, not the kit's flex column. */
-.reader-word-info[data-slot="sheet-content"],
-.reader-translation[data-slot="sheet-content"] {
-  animation: none;
-}
-
-.reader-translation[data-slot="sheet-content"] {
-  display: block;
-}
-
-/* The Reader is just text on the page: no panel frame, and the few controls
-   (exit, page turns, progress) are muted so they never compete with the
-   text. Placed last so these rules win over the panel rules above. */
-.is-reader-focus .reader-layout {
-  /* Muted chrome tone: at least 3:1 against the page in both themes. */
-  --reader-focus-chrome: color-mix(in srgb, var(--text-main) 62%, var(--surface-page));
-  background: var(--surface-page);
-}
-
-.is-reader-focus .reader-panel,
-.is-reader-focus .reader-text {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-/* Faint side rules mark where the text column begins and ends. */
-.is-reader-focus .reader-text {
-  border-inline: 1px solid color-mix(in srgb, var(--text-muted) 80%, transparent);
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--text-muted) 30%, transparent) transparent;
-}
-
-/* Full-bleed on mobile, so the screen edge already bounds the text. */
-@media (max-width: 760px) {
-  .is-reader-focus .reader-text {
-    border-inline: 0;
-  }
-}
-
-.is-reader-focus .reader-pagination-controls button {
-  min-height: 0;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  box-shadow: none;
-  color: var(--reader-focus-chrome);
-  font-weight: 500;
-  transition: opacity 160ms ease;
-}
-
-.is-reader-focus .reader-pagination-controls button:hover:not(:disabled),
-.is-reader-focus .reader-pagination-controls button:focus-visible {
-  background: transparent;
-  color: var(--text-main);
-}
-
-.is-reader-focus .reader-pagination-controls button:disabled {
-  opacity: 0.6;
-}
-
-.is-reader-focus .reader-pagination-controls #readerPageStatus {
-  color: var(--reader-focus-chrome);
-}
-
-.is-reader-focus .reader-progress {
-  height: 2px;
-  background: transparent;
-}
-
-.is-reader-focus .reader-progress-bar {
-  background: var(--reader-focus-chrome);
 }

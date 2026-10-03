@@ -33,17 +33,47 @@ export type ReaderLayout = { kind: "flat"; parts: ReaderPart[] } | { kind: "bloc
 
 const WORD_STATUSES: WordStatus[] = ["unknown", "learning", "known"];
 
+/** Block styles: even rhythm in the reading font; headings are 600 at most and only slightly larger, as in iA Writer. */
+const HEADING = "font-semibold leading-[1.35] text-main";
+
 const BLOCK_WRAPPERS: Record<string, { tag: ReaderBlockTag; className: string }> = {
-  "heading-1": { tag: "h1", className: "reader-block reader-heading reader-heading-1" },
-  "heading-2": { tag: "h2", className: "reader-block reader-heading reader-heading-2" },
-  "heading-3": { tag: "h3", className: "reader-block reader-heading reader-heading-3" },
-  "heading-4": { tag: "h4", className: "reader-block reader-heading reader-heading-4" },
-  "heading-5": { tag: "h5", className: "reader-block reader-heading reader-heading-5" },
-  "heading-6": { tag: "h6", className: "reader-block reader-heading reader-heading-6" },
-  paragraph: { tag: "p", className: "reader-block reader-paragraph" },
-  blockquote: { tag: "blockquote", className: "reader-block reader-blockquote" },
-  "list-item": { tag: "li", className: "reader-block reader-list-item" }
+  "heading-1": { tag: "h1", className: `${HEADING} mt-[1.6em] mb-[0.6em] text-[1.5em]` },
+  "heading-2": { tag: "h2", className: `${HEADING} mt-[1.4em] mb-[0.5em] text-[1.3em]` },
+  "heading-3": { tag: "h3", className: `${HEADING} mt-[1.2em] mb-[0.45em] text-[1.15em]` },
+  "heading-4": { tag: "h4", className: `${HEADING} mt-[1.1em] mb-[0.4em] text-[1.08em]` },
+  "heading-5": { tag: "h5", className: `${HEADING} mt-[1em] mb-[0.35em]` },
+  "heading-6": { tag: "h6", className: `${HEADING} mt-[1em] mb-[0.35em] text-label` },
+  paragraph: { tag: "p", className: "my-[0.8em]" },
+  blockquote: { tag: "blockquote", className: "my-[0.8em] border-l border-line-strong pl-[1em] text-label" },
+  "list-item": { tag: "li", className: "my-[0.25em] list-item" }
 };
+
+/** The unordered list wrapped around consecutive list items. */
+export const READER_LIST_CLASS = "my-[0.8em] list-disc pl-[1.5em]";
+
+/**
+ * Word button: the reader's one raw button (a word of running text, not a UI control, and
+ * hundreds per page). `reader-token` is the hook the gestures and specs find words by; the
+ * rest is the layout-affecting box, shared with the fit probe's markup.
+ */
+export const READER_TOKEN_CLASS = "reader-token cursor-pointer rounded-control px-0.5 py-px box-decoration-clone";
+
+/** Highlight of one word: the selection tint wins over the status tint, and hovering previews the selection. */
+export function readerTokenHighlightClass(status: string, selected: boolean, segmentSelected: boolean): string {
+  if (segmentSelected) {
+    return "is-segment-selected bg-[var(--reader-token-selected)] outline-1 outline-primary/40";
+  }
+  if (selected) {
+    return "is-selected bg-[var(--reader-token-selected)]";
+  }
+  if (status === "unknown") {
+    return "bg-[rgb(var(--reader-token-unknown-rgb)/var(--readerHighlightOpacity,0.2))] hover:bg-[var(--reader-token-selected)]";
+  }
+  if (status === "learning") {
+    return "bg-[rgb(var(--reader-token-learning-rgb)/var(--readerHighlightOpacity,0.2))] hover:bg-[var(--reader-token-selected)]";
+  }
+  return "hover:bg-[var(--reader-token-selected)]";
+}
 
 /** A stored status, or "unknown" for anything unrecognised (shared/status.js). */
 export function normalizeStatus(value: string | null | undefined): WordStatus {
@@ -144,7 +174,7 @@ function partsToHtml(parts: ReaderPart[]): string {
     .map((part) =>
       part.kind === "text"
         ? escapeHtml(part.text)
-        : `<button class="reader-token" type="button" data-word-id="${part.token.wordId}" data-token-id="${part.token.id}" data-status="${escapeHtml(tokenDataStatus(part.token))}">${escapeHtml(part.token.surface)}</button>`
+        : `<button class="${READER_TOKEN_CLASS}" type="button" data-word-id="${part.token.wordId}" data-token-id="${part.token.id}" data-status="${escapeHtml(tokenDataStatus(part.token))}">${escapeHtml(part.token.surface)}</button>`
     )
     .join("");
 }
@@ -163,6 +193,6 @@ export function readerLayoutToHtml(layout: ReaderLayout): string {
     return partsToHtml(layout.parts);
   }
   return layout.nodes
-    .map((node) => (node.kind === "list" ? `<ul class="reader-list">${node.items.map(blockToHtml).join("")}</ul>` : blockToHtml(node)))
+    .map((node) => (node.kind === "list" ? `<ul class="${READER_LIST_CLASS}">${node.items.map(blockToHtml).join("")}</ul>` : blockToHtml(node)))
     .join("");
 }

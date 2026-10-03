@@ -1,23 +1,26 @@
-import { useLayoutEffect, useState, type ReactNode, type RefObject } from "react";
+import { useId, useLayoutEffect, useState, type ReactNode, type RefObject } from "react";
 import { m } from "motion/react";
 import { CloseButton } from "@/components/app/CloseButton";
 import { DisambiguationTable, DisambiguationToggle, hasDisambiguation } from "@/components/app/Disambiguation";
 import { TranslationOverride } from "@/components/app/TranslationOverride";
+import { Segmented } from "@/components/app/Segmented";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { SheetTitle } from "@/components/ui/sheet";
+import { Text } from "@/components/ui/text";
 import type { ReaderToken, WordStatus } from "@/lib/api/types";
 import { useExitHold } from "@/lib/hooks/use-exit-hold";
 import { useT } from "@/lib/i18n";
 import { MOTION_FADE, MOTION_FADE_FAST } from "@/lib/motion";
-import { cn } from "@/lib/utils";
 import { wordInfoPosition } from "./reader-popup-position";
 import { normalizeStatus } from "./reader-tokens";
 import { ReaderSheet } from "./ReaderSheet";
 
 const WORD_STATUSES: WordStatus[] = ["unknown", "learning", "known"];
 
-/** Base classes of #readerWordInfo (legacy index.html); reader.css turns it into a bottom sheet on mobile. */
-const WORD_INFO_CLASS =
-  "reader-word-info fixed z-10 max-h-[min(420px,calc(100vh-24px))] min-w-60 max-w-[min(340px,calc(100vw-24px))] overflow-auto rounded-lg border border-line bg-panel p-3.5 shadow-panel";
+/** Classes of #readerWordInfo: a floating layer (glass); reader.css positions it and turns it into a bottom sheet on mobile. */
+const WORD_INFO_CLASS = "reader-word-info fixed z-10 min-w-60 max-w-[min(340px,calc(100vw-24px))] rounded-container p-4 text-main glass shadow-float";
 
 export interface ReaderWordInfoProps {
   /** The word shown, or null when closed. */
@@ -45,7 +48,7 @@ interface WordInfoBodyProps extends Omit<ReaderWordInfoProps, "token" | "readerT
   renderTitle: (surface: string) => ReactNode;
 }
 
-/** The three-segment status control (legacy renderStatusToggle), with the word id under data-reader-word-id. */
+/** The three-segment status control, with the word id under data-reader-word-id. */
 function StatusToggle({ wordId, status, onSelect }: { wordId: number; status: WordStatus; onSelect: (status: WordStatus) => Promise<void> }) {
   const t = useT();
   const [pendingStatus, setPendingStatus] = useState<WordStatus | null>(null);
@@ -63,21 +66,18 @@ function StatusToggle({ wordId, status, onSelect }: { wordId: number; status: Wo
   }
 
   return (
-    <div className="status-toggle" role="group" data-reader-word-id={wordId}>
-      {WORD_STATUSES.map((value) => (
-        <button
-          key={value}
-          className="status-segment"
-          type="button"
-          data-status={value}
-          data-active={value === status}
-          aria-pressed={value === status}
-          disabled={pendingStatus === value}
-          onClick={() => void select(value)}
-        >
-          {t(`word.${value}`)}
-        </button>
-      ))}
+    <div data-reader-word-id={wordId}>
+      <Segmented
+        aria-label={t("table.status")}
+        size="sm"
+        value={status}
+        onValueChange={(next) => void select(next)}
+        options={WORD_STATUSES.map((value) => ({
+          value,
+          label: t(`word.${value}`),
+          itemProps: { "data-status": value, "aria-pressed": value === status, disabled: pendingStatus === value }
+        }))}
+      />
     </div>
   );
 }
@@ -109,6 +109,7 @@ function WordInfoBody({
   const canPractice = status === "learning";
   const practiceChecked = pendingPractice ?? (canPractice && Boolean(token.wantToPractice));
   const showDisambiguation = hasDisambiguation(token);
+  const practiceId = useId();
 
   const rows: { label: string; value: ReactNode }[] = [
     { label: t("reader.dictionaryForm"), value: `${dictionaryForm}${subcategoryLabel ? ` (${subcategoryLabel})` : ""}` },
@@ -141,7 +142,7 @@ function WordInfoBody({
   if (posLabelParts.length) {
     rows.push({ label: t("reader.partOfSpeech"), value: posLabelParts.join(" · ") });
   }
-  rows.push({ label: t("table.status"), value: t(`word.${status}`) });
+  rows.push({ label: t("table.status"), value: <Badge variant={status}>{t(`word.${status}`)}</Badge> });
 
   async function togglePractice(wantToPractice: boolean) {
     setPendingPractice(wantToPractice);
@@ -155,33 +156,39 @@ function WordInfoBody({
 
   return (
     <>
-      <div className="reader-word-info-head">
+      <div className="flex items-center gap-2">
         {renderTitle(token.surface)}
         {showDisambiguation ? (
-          <DisambiguationToggle expanded={disambiguationOpen} onToggle={() => setDisambiguationOpen((open) => !open)} data-disambiguate />
+          <DisambiguationToggle className="ml-auto" expanded={disambiguationOpen} onToggle={() => setDisambiguationOpen((open) => !open)} data-disambiguate />
         ) : null}
-        <CloseButton label={t("reader.closeTranslation")} data-reader-word-info-close onClick={onClose} />
+        <CloseButton
+          className={showDisambiguation ? undefined : "ml-auto"}
+          label={t("reader.closeTranslation")}
+          data-reader-word-info-close
+          onClick={onClose}
+        />
       </div>
-      <dl>
+      <dl className="my-3 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1.5 text-body">
         {rows.map((row) => (
           <FragmentRow key={row.label} label={row.label} value={row.value} />
         ))}
       </dl>
-      <label className={cn("reader-practice-toggle", !canPractice && "is-disabled")} title={canPractice ? undefined : t("reader.practiceHint")}>
-        <input
-          className="reader-checkbox"
-          type="checkbox"
+      <div className="mb-3 flex items-center gap-2.5" title={canPractice ? undefined : t("reader.practiceHint")}>
+        <Checkbox
+          id={practiceId}
           data-reader-practice-checkbox
           data-reader-word-id={token.wordId}
           checked={practiceChecked}
           disabled={!canPractice || pendingPractice !== null}
-          onChange={(event) => void togglePractice(event.target.checked)}
+          onCheckedChange={(checked) => void togglePractice(checked === true)}
         />
-        <span>{t("reader.practice")}</span>
-      </label>
+        <Label htmlFor={practiceId} className="text-body font-medium">
+          {t("reader.practice")}
+        </Label>
+      </div>
       <StatusToggle wordId={token.wordId} status={status} onSelect={(next) => onStatusChange(token.wordId, next)} />
       {showDisambiguation ? (
-        <div className="disambiguation-panel" data-disambiguation-panel hidden={!disambiguationOpen}>
+        <div className="disambiguation-panel mt-3 min-h-0 overflow-auto" data-disambiguation-panel hidden={!disambiguationOpen}>
           <DisambiguationTable entry={token} />
         </div>
       ) : null}
@@ -192,8 +199,8 @@ function WordInfoBody({
 function FragmentRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <>
-      <dt>{label}</dt>
-      <dd>{value}</dd>
+      <dt className="text-label">{label}</dt>
+      <dd className="min-w-0 break-words">{value}</dd>
     </>
   );
 }
@@ -243,7 +250,9 @@ export function ReaderWordInfo({ token, readerTextRef, popupRef, isMobile, mobil
             {...handlers}
             renderTitle={(surface) => (
               <SheetTitle asChild>
-                <strong>{surface}</strong>
+                <Text as="strong" variant="heading" className="min-w-0 break-words">
+                  {surface}
+                </Text>
               </SheetTitle>
             )}
           />
@@ -265,7 +274,18 @@ export function ReaderWordInfo({ token, readerTextRef, popupRef, isMobile, mobil
       transition={token ? MOTION_FADE : MOTION_FADE_FAST}
       onAnimationComplete={() => !token && release()}
     >
-      {held ? <WordInfoBody key={held.id} token={held} {...handlers} renderTitle={(surface) => <strong>{surface}</strong>} /> : null}
+      {held ? (
+        <WordInfoBody
+          key={held.id}
+          token={held}
+          {...handlers}
+          renderTitle={(surface) => (
+            <Text as="strong" variant="heading" className="min-w-0 break-words">
+              {surface}
+            </Text>
+          )}
+        />
+      ) : null}
     </m.aside>
   );
 }
