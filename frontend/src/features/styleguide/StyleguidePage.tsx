@@ -5,6 +5,7 @@
  * reading sample and the canonical component catalogue (SPEC-005 D2).
  */
 
+import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/app/Segmented";
 import { useT } from "@/lib/i18n";
 import { useThemeStore } from "@/stores/theme";
@@ -119,9 +120,7 @@ export default function StyleguidePage() {
         <h2 className="text-heading">{t("styleguide.elevation")}</h2>
         <div className="flex flex-wrap gap-4">
           <div className="grid h-20 w-40 place-items-center rounded-container bg-panel text-caption shadow-float">--shadow-float</div>
-          <button type="button" className="focus-ring rounded-control bg-primary px-3 py-2 text-body text-primary-foreground">
-            --focus-ring
-          </button>
+          <Button variant="primary">--focus-ring</Button>
         </div>
       </section>
 
