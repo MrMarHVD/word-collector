@@ -1,4 +1,9 @@
 import { useState, type FormEvent } from "react";
+import { PencilIcon, XIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
+import { Input } from "@/components/ui/input";
+import { Text } from "@/components/ui/text";
 import { hasTranslationOverride, type TranslationEntry } from "@/lib/disambiguation";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -22,23 +27,6 @@ export interface TranslationOverrideProps {
   onSave: (value: string) => void | Promise<void>;
   /** Clear pressed (only shown while an override exists); send translationOverride: null. */
   onClear: () => void | Promise<void>;
-}
-
-function EditIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="material-action-icon">
-      <path d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16v4Z" />
-      <path d="M13.5 6.5l4 4" />
-    </svg>
-  );
-}
-
-function ClearIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="material-action-icon">
-      <path d="M6 6l12 12M18 6L6 18" />
-    </svg>
-  );
 }
 
 /**
@@ -68,9 +56,14 @@ export function TranslationOverride({ entry, wordId, context, compact = false, e
 
   if (editing) {
     return (
-      <form className={cn("translation-override-form", compact && "is-compact")} data-translation-override-form data-word-id={wordId} onSubmit={handleSubmit}>
-        <input
-          className="translation-override-input"
+      <form
+        className={cn("flex w-full items-center gap-1.5", !compact && "max-w-[360px]")}
+        data-translation-override-form
+        data-word-id={wordId}
+        onSubmit={handleSubmit}
+      >
+        <Input
+          className="min-w-0 flex-1"
           name="translationOverride"
           defaultValue={overridden ? entry.translationOverride || "" : entry.translation || ""}
           placeholder={t("translation.overridePlaceholder")}
@@ -78,31 +71,31 @@ export function TranslationOverride({ entry, wordId, context, compact = false, e
           autoComplete="off"
           autoFocus
         />
-        <button className="secondary-button translation-override-save" type="submit" disabled={pending}>
+        <Button size="sm" type="submit" disabled={pending}>
           {t("translation.save")}
-        </button>
-        <button
-          className="material-icon-button material-delete-button translation-override-cancel"
-          type="button"
+        </Button>
+        <IconButton
+          size="sm"
           data-translation-override-cancel
           data-word-id={wordId}
           aria-label={t("translation.cancel")}
           title={t("translation.cancel")}
           onClick={onCancel}
         >
-          <ClearIcon />
-        </button>
+          <XIcon />
+        </IconButton>
       </form>
     );
   }
 
   return (
-    <div className={cn("translation-override-display", compact && "is-compact")}>
-      <span className={cn("translation-override-text", overridden && "is-overridden")}>{entry.translation || t("reader.noTranslation")}</span>
-      <span className="translation-override-actions">
-        <button
-          className="material-icon-button material-rename-button translation-override-edit"
-          type="button"
+    <div className={cn("inline-flex max-w-full items-center gap-2", compact && "w-full justify-between")}>
+      <Text as="span" tone={overridden ? "main" : "label"} className={cn("min-w-0 break-words", overridden && "font-semibold")} data-translation-override-text>
+        {entry.translation || t("reader.noTranslation")}
+      </Text>
+      <span className="inline-flex flex-none gap-1">
+        <IconButton
+          size="sm"
           data-translation-override-edit
           data-word-id={wordId}
           data-translation-context={context}
@@ -110,12 +103,12 @@ export function TranslationOverride({ entry, wordId, context, compact = false, e
           title={t("translation.edit")}
           onClick={onEdit}
         >
-          <EditIcon />
-        </button>
+          <PencilIcon />
+        </IconButton>
         {overridden ? (
-          <button
-            className="material-icon-button material-delete-button translation-override-clear"
-            type="button"
+          <IconButton
+            size="sm"
+            variant="destructive"
             data-translation-override-clear
             data-word-id={wordId}
             aria-label={t("translation.clearOverride")}
@@ -123,8 +116,8 @@ export function TranslationOverride({ entry, wordId, context, compact = false, e
             disabled={pending}
             onClick={() => void run(onClear)}
           >
-            <ClearIcon />
-          </button>
+            <XIcon />
+          </IconButton>
         ) : null}
       </span>
     </div>

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { XIcon } from "lucide-react";
 import { Dialog as SheetPrimitive } from "radix-ui";
@@ -42,6 +43,7 @@ function SheetContent({
   side?: "top" | "right" | "bottom" | "left";
   showCloseButton?: boolean;
 }) {
+  const t = useT();
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -62,7 +64,7 @@ function SheetContent({
         {showCloseButton && (
           <SheetPrimitive.Close className="absolute top-4 right-4 focus-ring rounded-control p-1 text-label transition-colors outline-none hover:bg-accent disabled:pointer-events-none">
             <XIcon className="size-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t("common.close")}</span>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Content>
