@@ -16,7 +16,7 @@ const badgeVariants = cva(
         neutral: "bg-muted text-main [a&]:hover:bg-accent",
         default: "bg-muted text-main [a&]:hover:bg-accent",
         secondary: "bg-muted text-main [a&]:hover:bg-accent",
-        accent: "bg-accent text-main",
+        accent: "bg-accent-subtle text-main",
         destructive: "bg-destructive/10 text-destructive",
         outline: "border-line text-main [a&]:hover:bg-accent",
         unknown: "bg-status-unknown/20 text-status-unknown-text",
