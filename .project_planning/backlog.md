@@ -19,6 +19,12 @@ picked up.
 
 ## Library (follow-ups to SPEC-004)
 
+- **Bug: go-to highlight is clipped.** When arriving from the dashboard
+  (`/library?focus=<id>`), the outline around the focused work row isn't
+  fully visible; it's cut off by the surrounding list container (likely an
+  overflow or clipping container). Fix after SPEC-005, e.g. with an inset
+  outline or ring, or padding on the scroll container.
+
 - **Filter button** in the Library header. SPEC-004 only reserves the space.
 - **Display-mode button** in the Library header (cards vs list). SPEC-004
   only reserves the space.

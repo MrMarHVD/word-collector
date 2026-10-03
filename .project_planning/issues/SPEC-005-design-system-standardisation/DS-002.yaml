@@ -1,0 +1,114 @@
+code: DS-002
+title: "Canonical component set, full style guide and binding rules"
+status: to do
+spec: SPEC-005-design-system-standardisation
+summary: >
+  Restyle and complete the kit and app components on the D1 tokens so each canonical component (D2) has exactly one design, render every variant in the style guide, and write the binding 'canonical components only' rules into AGENTS.md and CONTRACTS.md.
+scope:
+  files:
+    - "frontend/src/components/ui/**"
+    - "frontend/src/components/app/**"
+    - "frontend/src/features/styleguide/**"
+    - "AGENTS.md (the binding rules section)"
+    - "frontend/src/CONTRACTS.md (Canonical components section; remove the 'legacy classes work unchanged' guidance)"
+  layers:
+    - frontend
+    - docs
+  description: >
+    In scope:
+    - Implement and restyle every D2 component and variant.
+    - Add ListRow, IconButton and the text components if missing, and a NativeSelect wrapper for the test-hook exceptions.
+    - Apply the glass material to every floating layer.
+    - Render each component and variant in /styleguide, in light and dark.
+    - Write the binding rules:
+      - always use an existing canonical component;
+      - never create a new implementation of something it already covers;
+      - add a new component only when nothing fits, then justify it, design it consistently with D1/D2, add it to the catalogue and style guide, and document it.
+    Out of scope: migrating feature screens (DS-003..010) and deleting legacy shared CSS (DS-011). Existing feature code keeps working, since the variants stay backward-compatible where features already use them.
+dependencies:
+  - DS-001
+acceptance_criteria:
+  - "Every D2 component exists once with the documented variants, sizes and props, uses only D1 tokens, and is documented in CONTRACTS.md."
+  - "The floating layers (Dialog, Sheet, Popover, DropdownMenu, Toast) use the glass material, are legible, and have the fallback."
+  - "/styleguide renders every component and variant, including interactive states (hover, focus, disabled), in light and dark, at desktop and mobile widths."
+  - "AGENTS.md and CONTRACTS.md contain the binding rules verbatim from the spec intent, and the outdated legacy guidance is removed."
+  - "The existing app still works and all Playwright specs pass."
+verification:
+  - "In frontend/, `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all pass."
+  - "Review /styleguide screenshots in light and dark at 1280 and 390, and the keyboard focus order through the components."
+  - "`npx playwright test` with PW_FRONTEND_URL=http://localhost:5502 PW_API_URL=http://localhost:3302."
+special_context: |
+  D1 Design tokens and fonts (DS-001 produces; every later issue uses).
+  Defined in frontend/src/styles/ (theme.css / shadcn.css) for light and
+  dark, mapped into Tailwind @theme, and documented in CONTRACTS.md "Design
+  tokens":
+  - colour:
+    - neutral greys --color-* with no green tint;
+    - ONE accent (--accent, --accent-foreground, --accent-subtle), a subtle
+      light-blue / blue-teal, for primary actions, links, focus and active
+      states only;
+    - status colours for word states (unknown, learning, known);
+  - surfaces: --surface-page, --surface-panel, --surface-subtle (a tonal
+    step), --surface-reader (warm paper / soft dark);
+  - border: one hairline --border (1px) plus --border-strong for inputs;
+  - radius scale (exactly): --radius-control, --radius-container, and
+    --radius-pill (badges only);
+  - type scale and text styles: title, heading, body, caption (sizes and line
+    heights); weights 400/500/600 only;
+  - elevation: --shadow-float, for floating layers only; NO panel shadow;
+  - glass material: --glass-bg, --glass-border, --glass-blur, plus a utility
+    or class (e.g. `.glass`) with a solid fallback under
+    @media (prefers-reduced-transparency: reduce) and when backdrop-filter is
+    unsupported;
+  - focus: --focus-ring (accent based) and one focus-visible utility;
+  - fonts: a font registry module (e.g. src/lib/fonts.ts) listing reading
+    fonts { id, label, latinFamily, cjkFamilies } with one entry,
+    "ia-quattro" (iA Writer Quattro + Noto Sans JP/SC), and a
+    --font-reading token. iA Writer Quattro is self-hosted unmodified (SIL OFL
+    1.1, Reserved Font Name "iA Writer"); Noto JP/SC are self-hosted with
+    unicode-range subsets.
+
+  D2 Canonical component catalogue (DS-002 produces; DS-003..011 use).
+  Exactly one implementation each, in components/ui (kit) or components/app,
+  documented in CONTRACTS.md "Canonical components" with variants, sizes and
+  props:
+  - Button: primary, secondary, ghost, destructive; sizes sm, md, lg.
+  - IconButton: sizes sm and md, with a required aria-label.
+  - Card: one flat style (hairline OR tonal, no shadow); slots for header,
+    content and footer.
+  - Input, Textarea, Select (kit, plus a NativeSelect wrapper for the
+    test-hook exceptions).
+  - Tabs: underline style, for page navigation.
+  - Segmented: value picking.
+  - Switch, Slider, Checkbox.
+  - ListRow: hairline-divided row with a tonal hover; slots for leading,
+    title, meta, trailing and actions.
+  - Badge: neutral plus word-status variants.
+  - Floating material (glass): Dialog, AlertDialog, Sheet, Popover,
+    DropdownMenu, Toast.
+  - Table: kit, with hairline rows and normal-case headers.
+  - SettingSection and SettingRow.
+  - Text components or classes for title, heading, body and caption.
+  The style guide at /styleguide (dev and internal) renders every component
+  and variant in light and dark.
+
+  General rules:
+  - Follow AGENTS.md: ja/en/zh localisation, mobile parity ≤760px, commits
+    allowed.
+  - Follow frontend/src/CONTRACTS.md, including the Motion conventions and
+    reduced motion.
+  - Accessibility: WCAG AA contrast in light and dark, including text over
+    glass, and a visible focus indicator.
+  - Contracts are fixed. If one blocks you, stop and report.
+  - Ports: use only your assigned ports and export PW_FRONTEND_URL/PW_API_URL
+    explicitly in every Playwright command. Never hit or kill 3000/5173 (the
+    user's servers) or other agents' ports.
+  - Test database: the shared dev DB may lack recent migrations. Verify
+    against a temporary database:
+    1. create it on the same server and migrate it;
+    2. point your worktree .env at it;
+    3. afterwards, restore .env and drop the database.
+  - The known login rate limit can produce 429s. Restart the API and rerun,
+    and identify any 429s explicitly.
+implementation_notes: >
+  Model the material on Vercel Geist: one radius per role and shadow only on floating tiers. Keep the kit's API stable where features already use it, adding variants rather than breaking props, so the existing app keeps working until migrated. After this issue the user reviews and approves the look on /styleguide before DS-003..010 start.

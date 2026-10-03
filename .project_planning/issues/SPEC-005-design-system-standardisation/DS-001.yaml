@@ -1,0 +1,82 @@
+code: DS-001
+title: "Design tokens, fonts, glass material and style-guide skeleton"
+status: to do
+spec: SPEC-005-design-system-standardisation
+summary: >
+  Define the new visual foundations (D1) for light and dark, add the self-hosted reading fonts and the font registry, and add a /styleguide page showing the tokens. No screen changes beyond what the token values themselves change.
+scope:
+  files:
+    - "frontend/src/styles/** (tokens only: theme.css, shadcn.css, a new tokens or glass file)"
+    - "frontend/src/lib/fonts.ts (new)"
+    - "frontend/static/fonts/** or the Vite public dir (self-hosted font files)"
+    - "frontend/src/features/styleguide/** (new; route registered in app/routes.tsx, dev/internal only)"
+    - "frontend/src/app/routes.tsx (styleguide route only)"
+    - "frontend/src/CONTRACTS.md (Design tokens section)"
+  layers:
+    - frontend
+  description: >
+    In scope: everything in D1. Tune the existing token values towards neutral minimal (remove the panel shadow token's use, lighten borders, neutral greys, the subtle blue-teal accent) so the app already looks calmer through tokens alone, without editing components or feature code. The styleguide page shows the palette, surfaces, radii, type styles, elevation, a glass sample over busy content (to judge legibility), and a reading sample in the registered font with Latin and Japanese/Chinese text. Out of scope: component restyling (DS-002) and screen migrations.
+dependencies: []
+acceptance_criteria:
+  - "Every D1 token exists in light and dark with the exact names, and is documented in CONTRACTS.md."
+  - "The accent is a subtle blue-teal used sparingly; the greys are neutral (no green tint); all text-on-surface pairs meet WCAG AA."
+  - "The glass material renders translucently with a legible foreground and falls back to solid under prefers-reduced-transparency and without backdrop-filter support."
+  - "iA Writer Quattro and Noto Sans JP/SC load from the app's own origin (no third-party requests), with unicode-range subsets for CJK. The font registry has the ia-quattro entry."
+  - "/styleguide shows every token group, the glass sample and the reading sample in light and dark."
+  - "All Playwright specs still pass."
+verification:
+  - "In frontend/, `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all pass."
+  - "Screenshots of /styleguide at 1280 and 390 in light and dark, reviewed. Run a contrast check on the token pairs."
+  - "DevTools/network check: font requests are same-origin and CJK fonts load subsets only."
+  - "`npx playwright test` with PW_FRONTEND_URL=http://localhost:5501 PW_API_URL=http://localhost:3301 (identify 429s)."
+special_context: |
+  D1 Design tokens and fonts (DS-001 produces; every later issue uses).
+  Defined in frontend/src/styles/ (theme.css / shadcn.css) for light and
+  dark, mapped into Tailwind @theme, and documented in CONTRACTS.md "Design
+  tokens":
+  - colour:
+    - neutral greys --color-* with no green tint;
+    - ONE accent (--accent, --accent-foreground, --accent-subtle), a subtle
+      light-blue / blue-teal, for primary actions, links, focus and active
+      states only;
+    - status colours for word states (unknown, learning, known);
+  - surfaces: --surface-page, --surface-panel, --surface-subtle (a tonal
+    step), --surface-reader (warm paper / soft dark);
+  - border: one hairline --border (1px) plus --border-strong for inputs;
+  - radius scale (exactly): --radius-control, --radius-container, and
+    --radius-pill (badges only);
+  - type scale and text styles: title, heading, body, caption (sizes and line
+    heights); weights 400/500/600 only;
+  - elevation: --shadow-float, for floating layers only; NO panel shadow;
+  - glass material: --glass-bg, --glass-border, --glass-blur, plus a utility
+    or class (e.g. `.glass`) with a solid fallback under
+    @media (prefers-reduced-transparency: reduce) and when backdrop-filter is
+    unsupported;
+  - focus: --focus-ring (accent based) and one focus-visible utility;
+  - fonts: a font registry module (e.g. src/lib/fonts.ts) listing reading
+    fonts { id, label, latinFamily, cjkFamilies } with one entry,
+    "ia-quattro" (iA Writer Quattro + Noto Sans JP/SC), and a
+    --font-reading token. iA Writer Quattro is self-hosted unmodified (SIL OFL
+    1.1, Reserved Font Name "iA Writer"); Noto JP/SC are self-hosted with
+    unicode-range subsets.
+
+  General rules:
+  - Follow AGENTS.md: ja/en/zh localisation, mobile parity ≤760px, commits
+    allowed.
+  - Follow frontend/src/CONTRACTS.md, including the Motion conventions and
+    reduced motion.
+  - Accessibility: WCAG AA contrast in light and dark, including text over
+    glass, and a visible focus indicator.
+  - Contracts are fixed. If one blocks you, stop and report.
+  - Ports: use only your assigned ports and export PW_FRONTEND_URL/PW_API_URL
+    explicitly in every Playwright command. Never hit or kill 3000/5173 (the
+    user's servers) or other agents' ports.
+  - Test database: the shared dev DB may lack recent migrations. Verify
+    against a temporary database:
+    1. create it on the same server and migrate it;
+    2. point your worktree .env at it;
+    3. afterwards, restore .env and drop the database.
+  - The known login rate limit can produce 429s. Restart the API and rerun,
+    and identify any 429s explicitly.
+implementation_notes: >
+  Prefer OKLCH tokens. Pick the accent around a light blue-teal hue with low chroma, and choose a dark-mode variant with adequate contrast. Get iA Writer Quattro from github.com/iaolo/iA-Fonts (iA Writer Quattro/Webfonts), keeping the LICENSE file alongside, and Noto from @fontsource-variable packages (self-hosted by Vite). Keep the style guide out of the main navigation.

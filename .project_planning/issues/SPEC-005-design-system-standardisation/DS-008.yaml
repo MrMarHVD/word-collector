@@ -1,0 +1,120 @@
+code: DS-008
+title: "Migrate Practice to the canonical design system"
+status: to do
+spec: SPEC-005-design-system-standardisation
+summary: >
+  Convert the practice screens (landing, settings, flashcard (calm and flat: no gradient or heavy shadow), summary) to the D2 canonical components and D1 tokens, and delete this area's duplicate and legacy styling.
+scope:
+  files:
+    - "frontend/src/features/practice/**"
+    - "frontend/public/locales.json (only if a new label is needed)"
+    - "tests/smoke/** (hook-preserving edits for this area only, listed)"
+  layers:
+    - frontend
+  description: >
+    In scope: every screen and state in this area, desktop and mobile, light and dark, following D3. Replace raw and legacy elements with D2 components, remove this area's legacy classes and feature-CSS rules (keeping layout only), and confirm no panel shadows, nested bordered boxes or heavy weights remain in the area. Out of scope: editing components/ui, components/app internals or styles/ (DS-002/DS-011 own them); report gaps instead.
+dependencies:
+  - DS-002
+acceptance_criteria:
+  - "The area uses only D2 components and D1 tokens, with no raw interactive or form elements beyond the documented exceptions, no legacy classes, and feature CSS limited to layout."
+  - "No content-panel shadows, nested bordered boxes, 800/900 weights or off-scale radii in the area; glass appears only on chrome and floating layers."
+  - "Behaviour, test hooks, mobile layouts, ja/en/zh and WCAG AA contrast are all intact."
+  - "practice.spec.ts pass, with any spec edits listed and justified."
+verification:
+  - "In frontend/, `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all pass."
+  - "Run the area's specs with PW_FRONTEND_URL=http://localhost:5508 PW_API_URL=http://localhost:3308."
+  - "Compare before/after screenshots at 1280 and 390, light and dark, in en plus one CJK locale. Review them for consistency with /styleguide."
+  - "Grep the area for raw elements, legacy class names and banned values, and report the result."
+special_context: |
+  D1 Design tokens and fonts (DS-001 produces; every later issue uses).
+  Defined in frontend/src/styles/ (theme.css / shadcn.css) for light and
+  dark, mapped into Tailwind @theme, and documented in CONTRACTS.md "Design
+  tokens":
+  - colour:
+    - neutral greys --color-* with no green tint;
+    - ONE accent (--accent, --accent-foreground, --accent-subtle), a subtle
+      light-blue / blue-teal, for primary actions, links, focus and active
+      states only;
+    - status colours for word states (unknown, learning, known);
+  - surfaces: --surface-page, --surface-panel, --surface-subtle (a tonal
+    step), --surface-reader (warm paper / soft dark);
+  - border: one hairline --border (1px) plus --border-strong for inputs;
+  - radius scale (exactly): --radius-control, --radius-container, and
+    --radius-pill (badges only);
+  - type scale and text styles: title, heading, body, caption (sizes and line
+    heights); weights 400/500/600 only;
+  - elevation: --shadow-float, for floating layers only; NO panel shadow;
+  - glass material: --glass-bg, --glass-border, --glass-blur, plus a utility
+    or class (e.g. `.glass`) with a solid fallback under
+    @media (prefers-reduced-transparency: reduce) and when backdrop-filter is
+    unsupported;
+  - focus: --focus-ring (accent based) and one focus-visible utility;
+  - fonts: a font registry module (e.g. src/lib/fonts.ts) listing reading
+    fonts { id, label, latinFamily, cjkFamilies } with one entry,
+    "ia-quattro" (iA Writer Quattro + Noto Sans JP/SC), and a
+    --font-reading token. iA Writer Quattro is self-hosted unmodified (SIL OFL
+    1.1, Reserved Font Name "iA Writer"); Noto JP/SC are self-hosted with
+    unicode-range subsets.
+
+  D2 Canonical component catalogue (DS-002 produces; DS-003..011 use).
+  Exactly one implementation each, in components/ui (kit) or components/app,
+  documented in CONTRACTS.md "Canonical components" with variants, sizes and
+  props:
+  - Button: primary, secondary, ghost, destructive; sizes sm, md, lg.
+  - IconButton: sizes sm and md, with a required aria-label.
+  - Card: one flat style (hairline OR tonal, no shadow); slots for header,
+    content and footer.
+  - Input, Textarea, Select (kit, plus a NativeSelect wrapper for the
+    test-hook exceptions).
+  - Tabs: underline style, for page navigation.
+  - Segmented: value picking.
+  - Switch, Slider, Checkbox.
+  - ListRow: hairline-divided row with a tonal hover; slots for leading,
+    title, meta, trailing and actions.
+  - Badge: neutral plus word-status variants.
+  - Floating material (glass): Dialog, AlertDialog, Sheet, Popover,
+    DropdownMenu, Toast.
+  - Table: kit, with hairline rows and normal-case headers.
+  - SettingSection and SettingRow.
+  - Text components or classes for title, heading, body and caption.
+  The style guide at /styleguide (dev and internal) renders every component
+  and variant in light and dark.
+
+  D3 Migration rules (for DS-003..DS-010).
+  - Use ONLY D2 components and D1 tokens.
+  - Do NOT edit components/ui/**, components/app/** or styles/** (DS-002 and
+    DS-011 own them). If a needed component or variant is missing, stop and
+    report it to the orchestrator, describing the need. Never build a local
+    substitute.
+  - Delete your area's legacy classes and feature-CSS rules. Feature CSS may
+    keep layout only (grid, flex, sizes, positioning), with no colours,
+    borders, radii, shadows or typography values.
+  - No raw <button>, <input>, <select>, <textarea> or <table> in your area,
+    except the documented native-select test-hook exceptions
+    (CONTRACTS.md).
+  - Preserve every test hook (ids, data-*, ARIA) and all behaviour. Spec
+    edits only where markup necessarily changes, asserting the same
+    behaviour, each listed.
+  - No content-panel shadows, no nested bordered boxes, glass only on chrome
+    and floating layers, and weights 400–600 only.
+
+  General rules:
+  - Follow AGENTS.md: ja/en/zh localisation, mobile parity ≤760px, commits
+    allowed.
+  - Follow frontend/src/CONTRACTS.md, including the Motion conventions and
+    reduced motion.
+  - Accessibility: WCAG AA contrast in light and dark, including text over
+    glass, and a visible focus indicator.
+  - Contracts are fixed. If one blocks you, stop and report.
+  - Ports: use only your assigned ports and export PW_FRONTEND_URL/PW_API_URL
+    explicitly in every Playwright command. Never hit or kill 3000/5173 (the
+    user's servers) or other agents' ports.
+  - Test database: the shared dev DB may lack recent migrations. Verify
+    against a temporary database:
+    1. create it on the same server and migrate it;
+    2. point your worktree .env at it;
+    3. afterwards, restore .env and drop the database.
+  - The known login rate limit can produce 429s. Restart the API and rerun,
+    and identify any 429s explicitly.
+implementation_notes: >
+  Work through the area screen by screen against /styleguide. If something genuinely needs a component or variant that D2 lacks, stop and report rather than improvise.
