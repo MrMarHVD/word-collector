@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 import { PencilIcon, PlusIcon, SettingsIcon, Trash2Icon, XIcon } from "lucide-react";
 import { ListRow } from "@/components/app/ListRow";
 import { Segmented } from "@/components/app/Segmented";
+import { PageHeader } from "@/components/app/PageHeader";
 import { SettingRow, SettingSection, SettingSelect } from "@/components/app/SettingRow";
 import { toast } from "@/components/app/toast";
 import {
@@ -339,12 +340,23 @@ export function ComponentShowcase() {
               <Slider aria-label={t("styleguide.sampleSetting")} defaultValue={[50]} />
             </SettingRow>
           </SettingSection>
+          <FloatingPanel open className="static w-full">
+            <SettingSection variant="inset" title={t("styleguide.sampleSetting")}>
+              <SettingRow label={t("styleguide.sampleSetting")} description={t("styleguide.sampleSettingHint")}>
+                <Switch aria-label={t("styleguide.sampleSetting")} defaultChecked />
+              </SettingRow>
+              <SettingRow label={t("styleguide.sampleSetting")}>
+                <Switch aria-label={t("styleguide.sampleSetting")} />
+              </SettingRow>
+            </SettingSection>
+          </FloatingPanel>
         </div>
       </Block>
 
       <Block id="styleguide-text" title={t("styleguide.textStyles")}>
         <div className="grid gap-1">
           <Text variant="title">title: {t("styleguide.sampleTitle")}</Text>
+          <PageHeader title={`PageHeader: ${t("styleguide.sampleTitle")}`} className="mb-0" />
           <Text variant="heading" as="h4">
             heading: {t("styleguide.sampleTitle")}
           </Text>
