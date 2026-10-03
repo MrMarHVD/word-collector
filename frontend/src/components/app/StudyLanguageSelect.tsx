@@ -79,8 +79,15 @@ export function StudyLanguageSelect({ className }: StudyLanguageSelectProps) {
             const label = t(studyLanguageLabelKey(language.name));
             return {
               value: language.name,
-              label: <FlagChip language={language.name} className="h-4 w-6" />,
-              itemProps: { className: "mobile:flex-none mobile:px-2", "data-language-name": language.name, "aria-label": label, title: label }
+              // The flag fills the whole segment; selection is an accent outline drawn over it, unselected flags are faded.
+              label: <Flag language={language.name} />,
+              itemProps: {
+                className:
+                  "w-12 flex-none overflow-hidden p-0 [&_svg]:size-full opacity-60 hover:opacity-100 data-[state=on]:opacity-100 data-[state=on]:outline-solid data-[state=on]:outline-2 data-[state=on]:-outline-offset-2 data-[state=on]:outline-primary",
+                "data-language-name": language.name,
+                "aria-label": label,
+                title: label
+              }
             };
           })}
         />
