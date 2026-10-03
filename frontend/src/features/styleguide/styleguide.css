@@ -1,0 +1,30 @@
+/* Style guide page (SPEC-005 D1): swatch grid, busy glass backdrop and reading sample. */
+.styleguide-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 1rem;
+}
+
+.styleguide-swatch {
+  display: grid;
+  place-items: center;
+  height: 3.5rem;
+  border-radius: var(--radius-control);
+}
+
+/* Busy content behind the glass sample, to judge legibility. */
+.styleguide-busy {
+  background:
+    repeating-linear-gradient(45deg, var(--accent) 0 14px, transparent 14px 28px),
+    repeating-linear-gradient(-45deg, var(--status-unknown) 0 10px, var(--text-main) 10px 20px);
+}
+
+.styleguide-reading {
+  display: grid;
+  gap: 1rem;
+  max-width: 38rem;
+  font-family: var(--font-reading);
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: var(--text-main);
+}

@@ -449,7 +449,15 @@
     "admin.superadminSnapshotNone": "—",
     "errors.adminTargetRequired": "対象のメールアドレスが必要です。",
     "errors.adminTargetNotFound": "そのメールアドレスに一致するユーザーはいません。",
-    "errors.adminSuperadminImmutable": "スーパー管理者の権限は変更できません。"
+    "errors.adminSuperadminImmutable": "スーパー管理者の権限は変更できません。",
+    "styleguide.title": "スタイルガイド",
+    "styleguide.palette": "カラー",
+    "styleguide.surfaces": "サーフェス",
+    "styleguide.radii": "角丸",
+    "styleguide.type": "文字スタイル",
+    "styleguide.elevation": "エレベーション",
+    "styleguide.glass": "ガラス",
+    "styleguide.reading": "読書用フォント"
   },
   "en": {
     "app.title": "Supergloss",
@@ -901,7 +909,15 @@
     "admin.superadminSnapshotNone": "—",
     "errors.adminTargetRequired": "A target email is required.",
     "errors.adminTargetNotFound": "No user matches that email.",
-    "errors.adminSuperadminImmutable": "A superadmin's privileges cannot be changed."
+    "errors.adminSuperadminImmutable": "A superadmin's privileges cannot be changed.",
+    "styleguide.title": "Style guide",
+    "styleguide.palette": "Palette",
+    "styleguide.surfaces": "Surfaces",
+    "styleguide.radii": "Radii",
+    "styleguide.type": "Type styles",
+    "styleguide.elevation": "Elevation",
+    "styleguide.glass": "Glass",
+    "styleguide.reading": "Reading font"
   },
   "zh": {
     "app.title": "Supergloss",
@@ -1353,6 +1369,14 @@
     "admin.superadminSnapshotNone": "—",
     "errors.adminTargetRequired": "需要目标邮箱。",
     "errors.adminTargetNotFound": "没有与该邮箱匹配的用户。",
-    "errors.adminSuperadminImmutable": "无法更改超级管理员的权限。"
+    "errors.adminSuperadminImmutable": "无法更改超级管理员的权限。",
+    "styleguide.title": "样式指南",
+    "styleguide.palette": "调色板",
+    "styleguide.surfaces": "表面",
+    "styleguide.radii": "圆角",
+    "styleguide.type": "文字样式",
+    "styleguide.elevation": "层级阴影",
+    "styleguide.glass": "玻璃",
+    "styleguide.reading": "阅读字体"
   }
 }
