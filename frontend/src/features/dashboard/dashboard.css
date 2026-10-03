@@ -40,6 +40,20 @@
   overflow-wrap: anywhere;
 }
 
+.chart-card-link {
+  color: inherit;
+  border-radius: 2px;
+}
+
+.chart-card-link:hover {
+  text-decoration: underline;
+}
+
+.chart-card-link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .chart-card span {
   color: var(--text-muted);
   font-size: 0.9rem;

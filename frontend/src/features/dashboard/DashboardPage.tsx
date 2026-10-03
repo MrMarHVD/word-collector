@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { m } from "motion/react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { libraryPath } from "@/app/route-paths";
 import { dashboardSummaryQuery } from "@/lib/api";
 import { usePersistentState } from "@/lib/hooks/use-persistent-state";
 import { useFormatCount, useT } from "@/lib/i18n";
@@ -171,6 +172,7 @@ export default function DashboardPage() {
                   <ProgressCard
                     key={document.id}
                     title={document.title}
+                    titleTo={libraryPath({ focus: document.id })}
                     subtitle={documentMeta(document)}
                     detailText={t("progress.readOfTotal", { total: formatCount(document.totalTokens), read: formatCount(document.readTokens) })}
                     totalWords={document.totalWords}
