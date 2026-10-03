@@ -1,6 +1,7 @@
 import { useEffect, useState, type UIEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { m } from "motion/react";
+import { PageHeader } from "@/components/app/PageHeader";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,6 +91,7 @@ export default function DashboardPage() {
 
   return (
     <section id="dashboardView">
+      <PageHeader title={t("tabs.dashboard")} />
       <Tabs className="block" value={tab} onValueChange={(value) => setTab(parseDashboardStatsTab(value))}>
         <TabsList className="mb-4" aria-label={t("dashboard.statsTabs")}>
           {(["overview", "documents"] as const).map((value) => (

@@ -18,7 +18,7 @@ export interface ProgressCardProps {
   unknownWords: number;
 }
 
-/** Progress card: a known/learning/unknown pie that fills in on mount, beside the counts. */
+/** Progress entry (flat: it sits inside a Card, so it has no surface of its own): a known/learning/unknown pie that fills in on mount, beside the counts. */
 export function ProgressCard({ title, titleTo, subtitle, detailText, totalWords, knownWords, learningWords, unknownWords }: ProgressCardProps) {
   const t = useT();
   const formatCount = useFormatCount();
@@ -26,7 +26,7 @@ export function ProgressCard({ title, titleTo, subtitle, detailText, totalWords,
   const reducedMotion = useReducedMotion();
   const pieVars = { "--knownPercent": `${knownPercent}%`, "--learningPercent": `${learningPercent}%` };
   return (
-    <article className="grid min-h-28 grid-cols-[74px_1fr] items-center gap-3 rounded-control bg-subtle p-3.5 mobile:min-h-23 mobile:grid-cols-[56px_1fr] mobile:p-3">
+    <article className="grid grid-cols-[74px_1fr] items-center gap-4 py-1 mobile:grid-cols-[56px_1fr] mobile:gap-3">
       {/* The fill is a CSS-variable animation, which MotionConfig's reduced-motion policy does not cover, so it is skipped explicitly. */}
       <m.div
         className="aspect-square w-18.5 bg-[conic-gradient(var(--status-known)_0_var(--knownPercent),var(--status-learning)_var(--knownPercent)_var(--learningPercent),var(--status-unknown)_var(--learningPercent)_100%)] [mask-image:radial-gradient(circle_farthest-side,transparent_55%,#000_56%,#000_99%,transparent_100%)] mobile:w-14"
