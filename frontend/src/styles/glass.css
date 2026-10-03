@@ -10,6 +10,10 @@
   border: 1px solid var(--glass-border);
   background: var(--glass-solid);
   color: var(--text-main);
+  /* Muted text inside glass uses the AA-safe tone; --color-secondary resolves at :root, so it is re-pointed here too. */
+  --text-muted: var(--glass-muted);
+  --muted-foreground: var(--glass-muted);
+  --color-secondary: var(--glass-muted);
 }
 
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -29,6 +33,15 @@
       backdrop-filter: none;
     }
   }
+}
+
+/*
+ * transition-colors without outline-color: the focus ring must appear at full strength at once,
+ * not fade in from the 50% base outline colour. Unlayered, so it beats Tailwind's own utility
+ * (a same-named @utility is emitted next to it and loses).
+ */
+.transition-colors {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to;
 }
 
 /* The one focus indicator: apply to any focusable element. */

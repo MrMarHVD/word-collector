@@ -56,7 +56,7 @@ export const READER_LIST_CLASS = "my-[0.8em] list-disc pl-[1.5em]";
  * hundreds per page). `reader-token` is the hook the gestures and specs find words by; the
  * rest is the layout-affecting box, shared with the fit probe's markup.
  */
-export const READER_TOKEN_CLASS = "reader-token cursor-pointer rounded-control px-0.5 py-px box-decoration-clone";
+export const READER_TOKEN_CLASS = "reader-token focus-ring cursor-pointer rounded-control px-0.5 py-px box-decoration-clone";
 
 /** Highlight of one word: the selection tint wins over the status tint, and hovering previews the selection. */
 export function readerTokenHighlightClass(status: string, selected: boolean, segmentSelected: boolean): string {
@@ -67,10 +67,10 @@ export function readerTokenHighlightClass(status: string, selected: boolean, seg
     return "is-selected bg-[var(--reader-token-selected)]";
   }
   if (status === "unknown") {
-    return "bg-[rgb(var(--reader-token-unknown-rgb)/var(--readerHighlightOpacity,0.2))] hover:bg-[var(--reader-token-selected)]";
+    return "bg-[color-mix(in_oklab,var(--status-unknown)_calc(var(--readerHighlightOpacity,0.2)*100%),transparent)] hover:bg-[var(--reader-token-selected)]";
   }
   if (status === "learning") {
-    return "bg-[rgb(var(--reader-token-learning-rgb)/var(--readerHighlightOpacity,0.2))] hover:bg-[var(--reader-token-selected)]";
+    return "bg-[color-mix(in_oklab,var(--status-learning)_calc(var(--readerHighlightOpacity,0.2)*100%),transparent)] hover:bg-[var(--reader-token-selected)]";
   }
   return "hover:bg-[var(--reader-token-selected)]";
 }
