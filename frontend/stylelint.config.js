@@ -25,9 +25,13 @@ export default {
         "border-end-start-radius",
         "border-end-end-radius",
         "box-shadow",
-        "font-weight"
+        "font-weight",
+        "font-size",
+        "backdrop-filter",
+        "-webkit-backdrop-filter"
       ],
-      { message: "Radii, shadows and font weights come from the canonical components or Tailwind utilities, not feature CSS." }
-    ]
+      { message: "Radii, shadows, type and glass come from the canonical components, Tailwind utilities or styles/, not feature CSS." }
+    ],
+    "declaration-property-value-disallowed-list": [{ filter: [/drop-shadow/] }, { message: "Shadows are banned in feature CSS." }]
   }
 };

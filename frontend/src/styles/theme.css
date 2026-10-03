@@ -28,6 +28,7 @@
   --color-status-known-text: var(--status-known-text);
   --color-danger: var(--danger);
   --color-danger-fill: var(--danger-fill);
+  --color-contrast: oklch(0.99 0 0); /* fixed near-white for thumbs and text on solid fills, in both themes */
 
   /* Panels carry no shadow (FR-2); floating layers use shadow-float. */
   --shadow-float: var(--shadow-float-value);

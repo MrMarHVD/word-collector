@@ -50,7 +50,7 @@ function Slider({
           key={index}
           aria-label={ariaLabel}
           aria-labelledby={ariaLabelledBy}
-          className="focus-ring block size-4 shrink-0 rounded-pill border border-primary bg-white transition-colors outline-none hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+          className="focus-ring block size-4 shrink-0 rounded-pill border border-primary bg-contrast transition-colors outline-none hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
         />
       ))}
     </SliderPrimitive.Root>
