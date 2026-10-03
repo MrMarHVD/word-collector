@@ -51,7 +51,10 @@
   --text-caption--line-height: 1.45;
   --text-caption--font-weight: 400;
 
-  --font-reading: "iA Writer Quattro", "Noto Sans JP Variable", "Noto Sans SC Variable", ui-sans-serif, system-ui, sans-serif;
+  /* The registry (@/lib/fonts) sets --font-reading-default on <html> at runtime. This one fallback only
+     covers the moment before JS runs, so the first paint is not in the wrong font; keep it in sync with
+     the registry default. */
+  --font-reading: var(--font-reading-default, "iA Writer Quattro", "Noto Sans JP Variable", "Noto Sans SC Variable", ui-sans-serif, system-ui, sans-serif);
 }
 
 :root {
