@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Segmented } from "@/components/app/Segmented";
 import { SettingRow, SettingSection } from "@/components/app/SettingRow";
 import { toast, toastError } from "@/components/app/toast";
+import { NativeSelect } from "@/components/ui/native-select";
 import { api, errorMessage } from "@/lib/api";
 import { refreshStudyData } from "@/lib/api/queries";
 import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
@@ -96,19 +97,13 @@ export function SystemSettingsPanel() {
       <div id="settingsForm" className="grid gap-6">
         <SettingSection title={t("settings.sectionLanguage")}>
           <SettingRow label={t("settings.nativeLanguage")} description={t("settings.nativeLanguageHint")} htmlFor="nativeLanguageSelect" stacked>
-            <select
-              id="nativeLanguageSelect"
-              className="min-h-11 w-full rounded-md border border-line bg-panel px-3 text-base text-main outline-none focus:border-brand focus:ring-2 focus:ring-focus "
-              value={nativeLanguage}
-              aria-busy={saving}
-              onChange={(event) => void saveNativeLanguage(event.target.value)}
-            >
+            <NativeSelect id="nativeLanguageSelect" value={nativeLanguage} aria-busy={saving} onChange={(event) => void saveNativeLanguage(event.target.value)}>
               {nativeLanguageOptions.map((language) => (
                 <option key={language} value={language}>
                   {t(`settings.nativeLanguage.${language}`)}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </SettingRow>
         </SettingSection>
         <SettingSection title={t("settings.sectionAppearance")}>

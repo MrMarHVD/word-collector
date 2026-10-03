@@ -50,7 +50,7 @@ function ChangePasswordSection() {
     <>
       <SettingSection id="changePasswordSection" title={t("settings.securityTitle")}>
         <SettingRow label={t("settings.passwordTitle")}>
-          <Button id="changePasswordToggle" type="button" variant="outline" className="min-h-11" onClick={() => setOpen(true)}>
+          <Button id="changePasswordToggle" type="button" variant="secondary" size="lg" onClick={() => setOpen(true)}>
             {t("settings.changePasswordButton")}
           </Button>
         </SettingRow>
@@ -64,21 +64,21 @@ function ChangePasswordSection() {
           <form id="changePasswordForm" className="grid gap-4" onSubmit={handleSubmit}>
             <Field>
               <FieldLabel htmlFor="currentPassword">{t("settings.currentPassword")}</FieldLabel>
-              <Input id="currentPassword" name="currentPassword" className="min-h-11" type="password" autoComplete="current-password" required />
+              <Input id="currentPassword" name="currentPassword" type="password" autoComplete="current-password" required />
             </Field>
             <Field>
               <FieldLabel htmlFor="newPassword">{t("auth.newPassword")}</FieldLabel>
-              <Input id="newPassword" name="newPassword" className="min-h-11" type="password" autoComplete="new-password" required />
+              <Input id="newPassword" name="newPassword" type="password" autoComplete="new-password" required />
             </Field>
             <Field>
               <FieldLabel htmlFor="confirmNewPassword">{t("auth.confirmPassword")}</FieldLabel>
-              <Input id="confirmNewPassword" name="confirmPassword" className="min-h-11" type="password" autoComplete="new-password" required />
+              <Input id="confirmNewPassword" name="confirmPassword" type="password" autoComplete="new-password" required />
             </Field>
-            <p id="changePasswordStatus" className="status min-h-5 text-sm text-secondary" role="status">
+            <p id="changePasswordStatus" className="min-h-5 text-caption text-secondary" role="status">
               {status}
             </p>
             <DialogFooter>
-              <Button type="submit" className="min-h-11" disabled={submitting}>
+              <Button type="submit" size="lg" disabled={submitting}>
                 {t("settings.updatePassword")}
               </Button>
             </DialogFooter>
@@ -143,7 +143,7 @@ function DeleteAccountSection({ email }: { email: string }) {
     <>
       <SettingSection id="deleteAccountSection" title={t("settings.dangerZoneTitle")}>
         <SettingRow label={t("settings.deleteAccountTitle")} description={t("settings.deleteAccountDescription")}>
-          <Button id="deleteAccountToggle" type="button" variant="destructive" className="min-h-11" onClick={() => setOpen(true)}>
+          <Button id="deleteAccountToggle" type="button" variant="destructive" size="lg" onClick={() => setOpen(true)}>
             {t("settings.deleteAccountButton")}
           </Button>
         </SettingRow>
@@ -159,7 +159,7 @@ function DeleteAccountSection({ email }: { email: string }) {
               <FieldLabel htmlFor="deleteAccountConfirmation">{t("settings.deleteAccountConfirmLabel")}</FieldLabel>
               <Input
                 id="deleteAccountConfirmation"
-                className="min-h-11"
+
                 type="email"
                 autoComplete="off"
                 spellCheck={false}
@@ -172,11 +172,11 @@ function DeleteAccountSection({ email }: { email: string }) {
                 }}
               />
             </Field>
-            <p id="deleteAccountStatus" className="status min-h-5 text-sm text-secondary" role="status">
+            <p id="deleteAccountStatus" className="min-h-5 text-caption text-secondary" role="status">
               {status}
             </p>
             <DialogFooter>
-              <Button id="deleteAccountSubmit" type="submit" variant="destructive" className="min-h-11" disabled={!matches || deleting}>
+              <Button id="deleteAccountSubmit" type="submit" variant="destructive" size="lg" disabled={!matches || deleting}>
                 {t("settings.deleteAccountButton")}
               </Button>
             </DialogFooter>
@@ -196,10 +196,9 @@ export function AccountSettingsPanel() {
     <div className="grid gap-6">
       <SettingSection id="accountDetails" title={t("settings.accountDetailsTitle")}>
         {accountDetailRows(user, t, locale).map((row) => (
-          <div key={row.labelKey} className="flex min-h-11 items-center justify-between gap-4 px-4 py-3">
-            <span className="text-sm text-secondary">{t(row.labelKey)}</span>
-            <span className="break-words text-right text-sm font-semibold text-main mobile:max-w-52 mobile:break-all">{row.value}</span>
-          </div>
+          <SettingRow key={row.labelKey} label={t(row.labelKey)}>
+            <span className="break-words text-right text-body font-medium text-main mobile:max-w-52 mobile:break-all">{row.value}</span>
+          </SettingRow>
         ))}
       </SettingSection>
       {user?.hasPassword === true ? <ChangePasswordSection /> : null}
