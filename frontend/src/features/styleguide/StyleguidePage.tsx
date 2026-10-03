@@ -61,7 +61,7 @@ export default function StyleguidePage() {
         <div className="styleguide-swatches">
           {COLOURS.map(([name, value]) => (
             <div key={name} className="grid gap-1.5">
-              <span className="styleguide-swatch" style={{ background: value }} />
+              <span className="styleguide-swatch" style={{ "--swatch": value } as React.CSSProperties} />
               <span className="text-caption text-secondary">--{name}</span>
             </div>
           ))}
@@ -136,7 +136,7 @@ export default function StyleguidePage() {
 
       <section className="grid gap-3" id="styleguide-reading">
         <h2 className="text-heading">{t("styleguide.reading")}</h2>
-        <article className="styleguide-reading rounded-container bg-reader p-6 mobile:p-4">
+        <article className="styleguide-reading text-[1.125em] rounded-container bg-reader p-6 mobile:p-4">
           <p lang="en">The quick brown fox jumps over the lazy dog. Reading should feel calm, even and typographic.</p>
           <p lang="ja">吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。</p>
           <p lang="zh">天下大势，分久必合，合久必分。读书使人明智，写作使人精确。</p>

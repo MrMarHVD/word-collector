@@ -9,6 +9,7 @@
   display: grid;
   place-items: center;
   height: 3.5rem;
+  background: var(--swatch);
 }
 
 /* Busy content behind the glass sample, to judge legibility. */
@@ -23,7 +24,6 @@
   gap: 1rem;
   max-width: 38rem;
   font-family: var(--font-reading);
-  font-size: 1.125rem;
   line-height: 1.8;
   color: var(--text-main);
 }
