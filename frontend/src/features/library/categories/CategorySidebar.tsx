@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useAssignCategory, useCategories, useCategoryMutations } from "@/features/library/data";
+import { moveCategoryTo } from "@/features/library/data/library-cache";
 import { usePersistentState } from "@/lib/hooks/use-persistent-state";
 import type { Category, LibraryCategory } from "@/lib/api/types";
 import { useT } from "@/lib/i18n";
@@ -170,9 +171,13 @@ export function CategorySidebar({ selected, onSelect, expanded: controlledExpand
         assign(materialId, target === "uncategorised" ? null : target.id).catch(toastError);
       } else if (target !== "uncategorised" && dragged.current !== null) {
         event.preventDefault();
-        const ids = categories.map((category) => category.id).filter((id) => id !== dragged.current);
-        ids.splice(ids.indexOf(target.id), 0, dragged.current);
-        reorder(ids).catch(toastError);
+        reorder(
+          moveCategoryTo(
+            categories.map((category) => category.id),
+            dragged.current,
+            target.id
+          )
+        ).catch(toastError);
       }
       dragged.current = null;
     }
