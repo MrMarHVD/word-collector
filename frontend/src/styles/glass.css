@@ -1,0 +1,36 @@
+/*
+ * Glass material (SPEC-005 D1): translucent chrome and floating layers only
+ * (navigation bar, Reader controls, popovers, menus, dialogs, toasts), never
+ * behind reading text. Solid when the user asks for reduced transparency or
+ * the browser has no backdrop-filter. Unlayered, like the rest of the CSS.
+ */
+.glass {
+  border: 1px solid var(--glass-border);
+  background: var(--glass-solid);
+  color: var(--text-main);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+  }
+
+  /* Reduce wins; browsers without the media feature keep the glass. */
+  @media (prefers-reduced-transparency: reduce) {
+    .glass {
+      background: var(--glass-solid);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+}
+
+/* The one focus indicator: apply to any focusable element. */
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}

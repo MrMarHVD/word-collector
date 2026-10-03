@@ -2,27 +2,26 @@
  * Maps shadcn/ui's colour and radius variables onto the existing theme.css
  * tokens, so every shadcn component renders in the app's own palette and
  * follows html[data-theme] (the dark overrides live on the same element).
+ * The kit's accent (bg-accent: hover and selected surface) is the tonal
+ * --accent-subtle, not the --accent colour; the accent colour is --primary.
  * shadcn's "secondary" colour is not mapped: the app's `text-secondary`
  * (muted text, theme.css) keeps that name, and the kit uses `bg-muted` instead.
  */
 :root {
-  --radius: 0.5rem;
+  --radius: var(--radius-control);
   --background: var(--surface-page);
   --foreground: var(--text-main);
   --card: var(--surface-panel);
   --card-foreground: var(--text-main);
   --popover: var(--surface-panel);
   --popover-foreground: var(--text-main);
-  --primary: var(--brand);
-  --primary-foreground: #ffffff;
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-foreground);
   --muted: var(--surface-muted);
   --muted-foreground: var(--text-muted);
-  --accent: var(--brand-hover-surface);
-  --accent-foreground: var(--text-main);
   --destructive: var(--danger);
-  --border: var(--border-main);
-  --input: var(--border-main);
-  --ring: var(--brand);
+  --input: var(--border-strong);
+  --ring: var(--accent);
 }
 
 /* Kit Input/Textarea placeholders: the legacy (Tailwind preflight) half-strength
@@ -50,8 +49,8 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent-subtle);
+  --color-accent-foreground: var(--text-main);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
