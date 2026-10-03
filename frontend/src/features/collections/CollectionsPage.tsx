@@ -354,7 +354,7 @@ export default function CollectionsPage() {
   const showEmptyState = Boolean(dashboard) && wordsLoaded && !words.length;
 
   return (
-    <section id="collectionsView" className="tab-view">
+    <section id="collectionsView">
       <SidebarOpenButton
         ref={openButtonRef}
         id="collectionsSidebarOpen"
@@ -503,7 +503,7 @@ export default function CollectionsPage() {
               {t("collections.nextPage")}
             </Button>
           </div>
-          <p id="emptyState" className="empty mt-4 text-body text-secondary" hidden={!showEmptyState}>
+          <p id="emptyState" className="mt-4 text-body text-secondary" hidden={!showEmptyState}>
             {t(hasCollections ? "collections.noSearchResults" : "collections.empty")}
           </p>
         </Card>

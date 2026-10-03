@@ -89,7 +89,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <section id="dashboardView" className="tab-view">
+    <section id="dashboardView">
       <Tabs className="block" value={tab} onValueChange={(value) => setTab(parseDashboardStatsTab(value))}>
         <TabsList className="mb-4" aria-label={t("dashboard.statsTabs")}>
           {(["overview", "documents"] as const).map((value) => (

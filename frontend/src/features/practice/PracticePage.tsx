@@ -53,7 +53,7 @@ export default function PracticePage() {
   }, [answer]);
 
   return (
-    <section id="practiceView" className="tab-view">
+    <section id="practiceView">
       <div id="practiceContent" className="practice-content">
         {view === "session" ? <PracticeSessionView /> : null}
         {view === "summary" ? <PracticeSummary /> : null}
