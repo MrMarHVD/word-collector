@@ -20,7 +20,7 @@ function FieldLegend({ className, variant = "legend", ...props }: React.Componen
     <legend
       data-slot="field-legend"
       data-variant={variant}
-      className={cn("mb-3 font-medium", "data-[variant=legend]:text-base", "data-[variant=label]:text-body", className)}
+      className={cn("mb-3 font-medium", "data-[variant=legend]:text-body", "data-[variant=label]:text-body", className)}
       {...props}
     />
   );
@@ -74,7 +74,7 @@ function FieldLabel({ className, ...props }: React.ComponentProps<typeof Label>)
       data-slot="field-label"
       className={cn(
         "group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50",
-        "has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4",
+        "has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-control has-[>[data-slot=field]]:border [&>*]:data-[slot=field]:p-4",
         "has-data-[state=checked]:border-primary has-data-[state=checked]:bg-primary/5 dark:has-data-[state=checked]:bg-primary/10",
         className
       )}
@@ -119,7 +119,7 @@ function FieldSeparator({
     <div
       data-slot="field-separator"
       data-content={!!children}
-      className={cn("relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2", className)}
+      className={cn("relative -my-2 h-5 text-caption group-data-[variant=outline]/field-group:-mb-2", className)}
       {...props}
     >
       <Separator className="absolute inset-0 top-1/2" />

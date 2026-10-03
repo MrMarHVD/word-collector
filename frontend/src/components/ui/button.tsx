@@ -9,7 +9,7 @@ import { Slot } from "radix-ui";
  * backward-compatible aliases of `primary`, `md` and `secondary`; new code uses the canonical names.
  */
 const buttonVariants = cva(
-  "focus-ring inline-flex shrink-0 items-center justify-center gap-2 rounded-control text-sm font-medium whitespace-nowrap transition-colors outline-none disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "focus-ring inline-flex shrink-0 items-center justify-center gap-2 rounded-control text-body font-medium whitespace-nowrap transition-colors outline-none disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -18,7 +18,7 @@ const buttonVariants = cva(
         secondary: "border border-line-strong bg-panel text-main hover:bg-accent",
         outline: "border border-line-strong bg-panel text-main hover:bg-accent",
         ghost: "text-main hover:bg-accent",
-        destructive: "bg-danger-fill text-white hover:bg-danger-fill/90 disabled:bg-danger-fill/10 disabled:text-destructive",
+        destructive: "bg-danger-fill text-contrast hover:bg-danger-fill/90 disabled:bg-danger-fill/10 disabled:text-destructive",
         link: "text-primary underline-offset-4 hover:underline"
       },
       size: {
@@ -26,7 +26,7 @@ const buttonVariants = cva(
         md: "h-9 px-4 py-2 has-[>svg]:px-3",
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
         lg: "h-11 px-6 has-[>svg]:px-4",
-        xs: "h-6 gap-1 px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
+        xs: "h-6 gap-1 px-2 text-caption has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
         icon: "size-9",
         "icon-xs": "size-6 [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-8",
