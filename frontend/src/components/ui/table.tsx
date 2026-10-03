@@ -3,10 +3,19 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+/**
+ * Table. Wraps itself in a horizontal scroll container; pass `container={false}`
+ * when the caller supplies its own scroll container (a nested wrapper would
+ * break `position: sticky` headers).
+ */
+function Table({ className, container = true, ...props }: React.ComponentProps<"table"> & { container?: boolean }) {
+  const table = <table data-slot="table" className={cn("w-full caption-bottom text-body", className)} {...props} />;
+  if (!container) {
+    return table;
+  }
   return (
     <div data-slot="table-container" className="relative w-full overflow-x-auto">
-      <table data-slot="table" className={cn("w-full caption-bottom text-body", className)} {...props} />
+      {table}
     </div>
   );
 }

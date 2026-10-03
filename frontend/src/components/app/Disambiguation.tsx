@@ -13,6 +13,8 @@ export interface DisambiguationTableProps {
   entry: TranslationEntry;
   /** Extra classes on the <table>. */
   className?: string;
+  /** Pin the header row and drop the table's own scroll container, for a caller that scrolls the table vertically. */
+  stickyHeader?: boolean;
 }
 
 /**
@@ -20,19 +22,20 @@ export interface DisambiguationTableProps {
  * translation highlighted. Renders nothing when there are no entries. The
  * caller supplies the wrapper (the reader's panel or a vocab row cell).
  */
-export function DisambiguationTable({ entry, className }: DisambiguationTableProps) {
+export function DisambiguationTable({ entry, className, stickyHeader }: DisambiguationTableProps) {
   const t = useT();
   const entries = disambiguationEntries(entry);
   if (!entries.length) {
     return null;
   }
+  const headClass = stickyHeader ? "sticky top-0 z-10 bg-panel" : undefined;
   return (
-    <Table className={className}>
+    <Table className={className} container={!stickyHeader}>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
-          <TableHead>{t("table.word")}</TableHead>
-          <TableHead>{t("table.translation")}</TableHead>
-          <TableHead>{t("reader.partOfSpeech")}</TableHead>
+          <TableHead className={headClass}>{t("table.word")}</TableHead>
+          <TableHead className={headClass}>{t("table.translation")}</TableHead>
+          <TableHead className={headClass}>{t("reader.partOfSpeech")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

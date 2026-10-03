@@ -187,8 +187,12 @@ function WordInfoBody({
       </div>
       <StatusToggle wordId={token.wordId} status={status} onSelect={(next) => onStatusChange(token.wordId, next)} />
       {showDisambiguation ? (
-        <div className="disambiguation-panel mt-3 min-h-0 overflow-auto" data-disambiguation-panel hidden={!disambiguationOpen}>
-          <DisambiguationTable entry={token} />
+        <div
+          className="mt-3 h-[95px] max-h-[195px] min-h-0 resize-y overflow-y-auto overscroll-contain rounded-control border border-line bg-panel"
+          data-disambiguation-panel
+          hidden={!disambiguationOpen}
+        >
+          <DisambiguationTable entry={token} stickyHeader />
         </div>
       ) : null}
     </>
