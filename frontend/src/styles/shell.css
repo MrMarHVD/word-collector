@@ -1,6 +1,6 @@
 /*
- * AppShell and StudyLanguageSelect styles, ported from public/css/shell.css.
- * The reader-layout rules that also lived there belong to the reader feature.
+ * Styles of StudyLanguageSelect and LocaleSelect (components/app internals, migrated by DS-002).
+ * The shell frame itself is styled with utilities in AppShell.tsx.
  */
 
 .study-language-button {
@@ -67,115 +67,7 @@
   display: block;
 }
 
-.tabs {
-  min-width: 0;
-}
-
-.tabs .tab-button {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.menu-icon-burger {
-  display: none;
-}
-
-@media (min-width: 761px) {
-  .account-menu-item {
-    min-height: 52px;
-    border: 1px solid var(--border-main);
-    background: var(--surface-panel);
-    padding: 0 16px;
-    text-align: center;
-  }
-
-  /* Logged out: only the locale select remains, so center it in the bar. */
-  .menu-bar.is-guest .menu-actions {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-}
-
 @media (max-width: 760px) {
-  .account-dropdown {
-    width: min(220px, calc(100vw - 20px));
-  }
-
-  .account-menu-item {
-    min-height: 42px;
-  }
-
-  .shell {
-    width: 100%;
-    padding: 12px 10px calc(12px + env(safe-area-inset-bottom));
-  }
-
-  .menu-bar {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    margin: -12px -10px 12px;
-    padding: calc(8px + env(safe-area-inset-top)) 10px 10px;
-    border-bottom: 1px solid var(--border-main);
-  }
-
-  .menu-left,
-  .menu-actions {
-    width: 100%;
-  }
-
-  .menu-brand {
-    min-height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    font-size: 1.55rem;
-    line-height: 1;
-    text-align: center;
-  }
-
-  /* The tab bar is replaced by the hamburger dropdown on mobile. */
-  .tabs {
-    display: none;
-  }
-
-  .menu-icon-gear {
-    display: none;
-  }
-
-  .menu-icon-burger {
-    display: block;
-  }
-
-  .menu-actions {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(7.5rem, auto) auto;
-    align-items: center;
-    gap: 8px;
-  }
-
-  /* Logged out: only the locale select remains, so center it. */
-  .menu-bar.is-guest .menu-actions {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-
-  .menu-bar.is-guest .locale-select-wrap {
-    width: min(15rem, 100%);
-  }
-
-  .study-language-bar {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    min-width: 0;
-    justify-self: stretch;
-    overflow: visible;
-  }
-
   #studyLanguageButtons {
     min-width: 0;
     overflow-x: auto;
@@ -187,10 +79,6 @@
     flex: none;
   }
 
-  .known-total-badge small {
-    display: none;
-  }
-
   .locale-select-wrap {
     min-width: 7.5rem;
   }
@@ -199,11 +87,5 @@
     width: 100%;
     min-height: 44px;
     padding-inline: 10px 28px;
-  }
-
-  #settingsButton {
-    width: 44px;
-    height: 44px;
-    min-height: 44px;
   }
 }

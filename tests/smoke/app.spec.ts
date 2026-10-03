@@ -27,7 +27,7 @@ test.describe("authenticated app shell", () => {
 
     // Auth view must be gone; the main tab bar must be present.
     await expect(page.locator("#authView")).toBeHidden();
-    await expect(page.locator(".tab-button").first()).toBeVisible();
+    await expect(page.locator('nav.tabs [role="tab"]').first()).toBeVisible();
 
     expect(errors, `console errors: ${errors.join("\n")}`).toEqual([]);
   });
