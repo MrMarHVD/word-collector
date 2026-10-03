@@ -474,7 +474,9 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
         return;
       }
       const wordInfoClosable = wordInfoOpen && !translationOpen;
-      if (!event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && !isTextInputTarget(event.target) && !isSettingsTarget(event.target)) {
+      // The Aa button keeps focus after the panel closes, so only an open panel owns the keys.
+      const inSettings = latestState.current.settingsOpen && isSettingsTarget(event.target);
+      if (!event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && !isTextInputTarget(event.target) && !inSettings) {
         // Widgets that own the arrow keys (tabs, selects, menus) prevent them first.
         if (event.key === "ArrowLeft" && !event.defaultPrevented) {
           event.preventDefault();

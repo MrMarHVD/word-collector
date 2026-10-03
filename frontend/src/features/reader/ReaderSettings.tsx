@@ -79,7 +79,7 @@ function SettingsForm({ showWordSpacesOption, onWordsPerPageChange, onClose, tit
                 <SettingSelect id="readerTextWidth">
                   <SelectValue />
                 </SettingSelect>
-                <SelectContent>
+                <SelectContent {...{ [READER_SETTINGS_ATTRIBUTE]: "" }}>
                   {widthOptions.map((width) => (
                     <SelectItem key={width} value={String(width)}>
                       {width === 0 ? t("reader.textWidthAuto") : `${width} px`}
@@ -127,7 +127,7 @@ function SettingsForm({ showWordSpacesOption, onWordsPerPageChange, onClose, tit
               <SettingSelect id="readerWordsPerPage" aria-labelledby="readerWordsPerPageLabel">
                 <SelectValue />
               </SettingSelect>
-              <SelectContent>
+              <SelectContent {...{ [READER_SETTINGS_ATTRIBUTE]: "" }}>
                 {WORDS_PER_PAGE_OPTIONS.map((option) => (
                   <SelectItem key={option} value={option}>
                     {option === "fit" ? t("reader.fitToPage") : option}
