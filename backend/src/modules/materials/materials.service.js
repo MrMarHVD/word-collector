@@ -23,14 +23,11 @@ const UNCOLLECTED_COLLECTION_NAME = "Uncollected";
 
 // Reader imports place auto-discovered words in a stable collection instead of
 // requiring users to create one before importing material.
-// Return the user's auto-created collection for imported reader words.
+// Return the user's auto-created collection for imported reader words. The
+// insert is conflict-tolerant because concurrent imports for one user race here.
 async function getUncollectedCollection(repositories, userId, languageId) {
-  let collection = await repositories.words.findCollectionByName(userId, languageId, UNCOLLECTED_COLLECTION_NAME);
-  if (!collection) {
-    await repositories.words.createCollection(userId, languageId, UNCOLLECTED_COLLECTION_NAME);
-    collection = await repositories.words.findCollectionByName(userId, languageId, UNCOLLECTED_COLLECTION_NAME);
-  }
-  return collection;
+  await repositories.words.ensureCollection(userId, languageId, UNCOLLECTED_COLLECTION_NAME);
+  return repositories.words.findCollectionByName(userId, languageId, UNCOLLECTED_COLLECTION_NAME);
 }
 
 // Resolve per-lemma metadata fields for the source language word row.
