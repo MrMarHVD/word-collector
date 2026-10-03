@@ -7,7 +7,7 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
 import { RootLayout } from "./RootLayout";
 import { HomeRoute, RouteGate } from "./RouteGate";
-import { AdminPage, CollectionsPage, DashboardPage, PracticePage, ReaderPage, SettingsPage } from "./pages";
+import { AdminPage, CollectionsPage, DashboardPage, LibraryPage, PracticePage, ReaderPage, ReaderRedirect, SettingsPage } from "./pages";
 import { RouteError } from "./RouteError";
 
 export const routes: RouteObject[] = [
@@ -37,7 +37,23 @@ export const routes: RouteObject[] = [
             )
           },
           {
+            path: "library",
+            element: (
+              <RouteGate tab="reader">
+                <LibraryPage />
+              </RouteGate>
+            )
+          },
+          {
             path: "reader",
+            element: (
+              <RouteGate tab="reader">
+                <ReaderRedirect />
+              </RouteGate>
+            )
+          },
+          {
+            path: "reader/:materialId",
             element: (
               <RouteGate tab="reader">
                 <ReaderPage />

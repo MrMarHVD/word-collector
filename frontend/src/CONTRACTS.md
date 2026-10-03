@@ -58,19 +58,21 @@ src/
 `src/features/<name>/<Name>Page.tsx`, lazily loaded via `src/app/pages.ts`.
 Replace the page's contents, but keep the file path and the default export.
 
-| Path          | Tab (`route-paths.ts`) | Page                                       | Gate                                                            |
-| ------------- | ---------------------- | ------------------------------------------ | --------------------------------------------------------------- |
-| `/`           | –                      | `features/auth/WelcomePage.tsx`            | signed in with a language → redirect to the saved tab           |
-| `/dashboard`  | `dashboard`            | `features/dashboard/DashboardPage.tsx`     | auth + language                                                 |
-| `/vocab`      | `collections`          | `features/collections/CollectionsPage.tsx` | auth + language                                                 |
-| `/reader`     | `reader`               | `features/reader/ReaderPage.tsx`           | auth + language                                                 |
-| `/practice`   | `practice`             | `features/practice/PracticePage.tsx`       | auth + language                                                 |
-| `/settings`   | `settings`             | `features/settings/SettingsPage.tsx`       | auth                                                            |
-| `/admin`      | `admin`                | `features/admin/AdminPage.tsx`             | auth + `isAdminUser`                                            |
-| anything else | –                      | as `/`                                     |                                                                 |
-| (no path)     | –                      | `features/auth/AuthPage.tsx`               | rendered instead of the shell while `session.authScreen` is set |
+| Path                  | Tab (`route-paths.ts`) | Page                                       | Gate                                                            |
+| --------------------- | ---------------------- | ------------------------------------------ | --------------------------------------------------------------- |
+| `/`                   | –                      | `features/auth/WelcomePage.tsx`            | signed in with a language → redirect to the saved tab           |
+| `/dashboard`          | `dashboard`            | `features/dashboard/DashboardPage.tsx`     | auth + language                                                 |
+| `/vocab`              | `collections`          | `features/collections/CollectionsPage.tsx` | auth + language                                                 |
+| `/library`            | `reader` (Read)        | `features/library/LibraryPage.tsx`         | auth + language                                                 |
+| `/reader`             | `reader` (Read)        | `features/reader/ReaderRedirect.tsx`       | auth + language; redirects (C2)                                 |
+| `/reader/:materialId` | `reader` (Read)        | `features/reader/ReaderPage.tsx`           | auth + language                                                 |
+| `/practice`           | `practice`             | `features/practice/PracticePage.tsx`       | auth + language                                                 |
+| `/settings`           | `settings`             | `features/settings/SettingsPage.tsx`       | auth                                                            |
+| `/admin`              | `admin`                | `features/admin/AdminPage.tsx`             | auth + `isAdminUser`                                            |
+| anything else         | –                      | as `/`                                     |                                                                 |
+| (no path)             | –                      | `features/auth/AuthPage.tsx`               | rendered instead of the shell while `session.authScreen` is set |
 
-`materials` has no page: it exports components only (I8).
+`materials` has no page: it exports components only (I8). The Library and Reader routes, their address and the data hooks are specified in C1–C4 below; `readerPath(id)`, `libraryPath({category,q,focus})`, `parseLibraryAddress(params)` and `isReaderPath(pathname)` live in `@/app/route-paths`.
 
 Gating (`RouteGate`), as in legacy `router.js`:
 
@@ -82,7 +84,7 @@ Gating (`RouteGate`), as in legacy `router.js`:
 
 The shell renders your page inside `<main id="appShell">` below the fixed menu
 bar, and toggles `body.is-reader-active` / `body.is-reader-focus` (the latter
-from `readerPreferences.focusMode`) on `/reader`. Keep the legacy view ids on
+from `readerPreferences.focusMode`) on `/reader` and `/reader/*` (`isReaderPath`). Keep the legacy view ids on
 your page root (`#dashboardView`, `#collectionsView`, `#readerView`,
 `#practiceView`, `#settingsView`, `#adminView`).
 
@@ -130,9 +132,10 @@ Behaviour (`client.ts`, ported from `api.js`):
 | Module            | Function → endpoint                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `api.auth`        | `me()` GET /api/auth/me · `login({email,password})` · `register({email,password,confirmPassword})` · `logout()` · `resendVerification()` · `verifyEmail(token)` · `requestPasswordReset(email)` · `resetPassword({token,password,confirmPassword})` · `googleStartUrl()` (navigate the window to it)                                                                                                                                                                                |
+| `api.categories`  | `list(languageId)` GET /api/categories · `create({languageId,name})` POST · `rename(id,name)` PATCH · `reorder({languageId,ids})` PUT /api/categories/order · `remove(id)` DELETE                                                                                                                                                                                                                                                                                                   |
 | `api.languages`   | `list()` GET /api/languages · `add(name)` POST /api/languages                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `api.dashboard`   | `get({languageId})` GET /api/dashboard · `documents({languageId,search,limit,offset})` GET /api/dashboard/documents                                                                                                                                                                                                                                                                                                                                                                 |
-| `api.materials`   | `list({languageId,offset,search})` GET /api/materials · `upload({languageId,file})` POST multipart · `reader(id,{start,limit})` GET /api/materials/:id · `update(id,{title?,readerStart?})` PATCH · `remove(id)` DELETE                                                                                                                                                                                                                                                             |
+| `api.materials`   | `list({languageId,offset,search,category})` GET /api/materials · `upload({languageId,file})` POST multipart · `reader(id,{start,limit})` GET /api/materials/:id · `update(id,{title?,readerStart?,categoryId?})` PATCH · `markOpened(id)` POST /api/materials/:id/opened · `remove(id)` DELETE                                                                                                                                                                                      |
 | `api.words`       | `listByLanguage(languageId,{search})` GET /api/languages/:id/words · `listByCollection(collectionId,{search})` GET /api/collections/:id/words · `setStatus(id,status)` PATCH /api/words/:id · `setStatuses(ids,status)` POST /api/words/status · `move(ids,collectionId)` POST /api/words/move · `remove(ids)` POST /api/words/delete · `click(id)` POST /api/words/:id/click · `setWantToPractice(id,bool)` POST /api/words/:id/want-to-practice · `setTranslationOverride(id,text | null)` PATCH /api/words/:id/translation-override               |
 | `api.collections` | `updateLanguage(id,languageId)` PATCH /api/collections/:id · `remove(id)` DELETE                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `api.imports`     | `importWords({languageId,collectionId?                                                                                                                                                                                                                                                                                                                                                                                                                                              | collectionName?,words:[{word,translation}]})` POST /api/import |
@@ -277,7 +280,7 @@ Every other feature's `index.ts` is `export {}`.
 | `MaterialList`         | materials (RX-006) → reader documents tab (RX-007) | `{ selectedMaterialId: number \| null; onOpenMaterial(material: MaterialListItem): void; onMaterialDeleted?(materialId: number): void }`. Renders `#materialImportOpen` (opens the import dialog itself), `#materialSearch`, `#materialList`, with rename, delete (useConfirm), import/translation progress and polling. Calls `onOpenMaterial` when the user picks a ready material and when a material it imported becomes ready (legacy auto-open). | renders `null` |
 | `MaterialImportDialog` | materials (RX-006) → any                           | `{ open: boolean; onOpenChange(open: boolean): void; onImportStarted?(material: MaterialDetail): void }`. `#materialImportModal`.                                                                                                                                                                                                                                                                                                                      | renders `null` |
 
-Division of state: the reader owns the selected material id, its per-language
+Division of state: the route (`/reader/:materialId`) owns the open material id; the reader owns its per-language
 cache key `wordMarkerSelectedMaterialId:<userId>:<languageId>` (a legacy `…:<languageId>` entry moves to the first user who reads it), and loading the material
 (`api.materials.reader`). Materials owns the list, search and import tracking.
 The auth feature owns `WelcomePage`/`AuthPage` (built by RX-002 for the
@@ -292,3 +295,97 @@ screens after RX-002.
 - Never animate dialogs, popovers, sheets or toasts: the kit's `tw-animate-css` classes and Sonner already do. The reader's desktop popups are plain `aside`s, so they animate with `m.aside`.
 - Exits must stay inert and test-safe: an exiting element sets `pointerEvents: "none"` (`aria-hidden` for popups) and is gone within 150 ms. Where an exit would leave a second `[data-*]` hook in the DOM (flashcards) or collide with native handlers (`m.*` swallows `onDragStart`/`onDragEnd`, so the draggable vocab rows stay plain `tr`s), use enter-only or no motion.
 - Never put a transform on a wrapper of `position: fixed` content (it becomes the containing block): the routed-page fade in `AppShell` is opacity-only (`<FadeIn rise={false}>`) for that reason.
+
+## SPEC-004 contracts (Library and Reader, C1–C4)
+
+```text
+C1 API (LIB-001 produces; LIB-002 wraps it in the typed client). All
+endpoints require auth plus CSRF on mutations, and enforce ownership (404
+for another user's resources).
+- GET /api/categories?languageId=N
+    -> 200 { categories: [{ id, name, position, materialCount }],
+            totalCount, uncategorisedCount }
+       categories are ordered by position.
+- POST /api/categories { languageId, name }
+    -> 201 { category }; 409 errorKey "errors.categoryNameTaken" for a
+       case-insensitive duplicate; 400 for an empty or too-long name
+       (max 60 chars, trimmed).
+- PATCH /api/categories/:id { name } -> 200 { category }; 409 or 400 as
+  above.
+- PUT /api/categories/order { languageId, ids: number[] }
+    -> 200 { categories }; ids must be exactly the user's categories for
+       that language.
+- DELETE /api/categories/:id -> 200 { ok: true }; its works become
+  uncategorised, and works are never deleted.
+- PATCH /api/materials/:id accepts { categoryId: number | null } (in
+  addition to the existing fields). The category must belong to the same
+  user and language (400 otherwise); null means uncategorised.
+- POST /api/materials/:id/opened -> 200 { lastOpenedAt }: records that the
+  work was opened in the Reader.
+- GET /api/materials?languageId=N&offset=&search=&category=all|uncategorised|<id>
+    keeps the existing params and response shape ({ materials, pageSize })
+    and adds category filtering. Each material item gains categoryId
+    (number|null), lastOpenedAt (ISO|null), readTokens and totalTokens
+    (reading progress, as the dashboard documents use), on top of the
+    existing id, title, fileType, wordCount, readerStart, createdAt and
+    import status fields. Default sort: lastOpenedAt DESC NULLS LAST, then
+    createdAt DESC, then id DESC. search matches the title
+    case-insensitively.
+
+C2 Routes and Library address (LIB-002 produces; LIB-003/004/005/006 use).
+- /library — the Library. Search params:
+  - category = all | uncategorised | <categoryId> (default all);
+  - q = search text;
+  - focus = <materialId>: the dashboard "go to" target. The Library selects
+    category=all, clears q, scrolls the work into view, outlines it with a
+    transition, then removes focus from the address (replace) so a reload
+    doesn't repeat it.
+- /reader/:materialId — the Reader for that work.
+- /reader — redirects to the last-opened work for the study language
+  (lastOpenedAt from C1, falling back to the existing
+  wordMarkerSelectedMaterialId:<userId>:<languageId> key), or to /library
+  if there is none.
+- The main navigation has ONE tab, labelled "Read" (new key nav.read in
+  ja/en/zh), active on both /library and /reader/*, linking to /library.
+  It replaces the old reader tab; keep `nav.tabs [data-tab="reader"]` as
+  the tab's hook, so the existing specs still find it.
+- Language-gated like the old reader route.
+
+C3 Data hooks (LIB-002 produces in frontend/src/features/library/data/;
+LIB-003/004 use).
+- useLibraryMaterials({ category, search }): an infinite query over C1's
+  list (pages of 50), polling while any work is importing or translating,
+  as MaterialList does today.
+- useCategories(): returns { categories, totalCount, uncategorisedCount }.
+- useCategoryMutations(): returns { create(name), rename(id, name),
+  reorder(ids), remove(id) }. Each invalidates categories and library
+  materials.
+- useAssignCategory(): returns assign(materialId, categoryId | null), with
+  an optimistic update of the list and counts and rollback on error.
+- Query keys go under queryKeys.library.* and queryKeys.categories.* in
+  lib/api/query-keys.ts.
+
+C4 Library and category-sidebar connection (LIB-002 creates the stubs;
+LIB-003 owns LibraryPage, LIB-004 owns the sidebar).
+- LibraryPage renders
+  <CategorySidebar selected={category} onSelect={(c) => …} /> from
+  frontend/src/features/library/categories/CategorySidebar.tsx, where
+  category is "all" | "uncategorised" | number.
+- Drag source (LIB-003): each work row is draggable and sets
+  dataTransfer "application/x-word-marker-material" = String(materialId).
+  Drop targets (LIB-004) read that type, call
+  useAssignCategory().assign(id, categoryId | null) (Uncategorised = null;
+  All isn't a drop target), and show a drop indicator.
+- Keyboard and touch alternative (LIB-003): each row's ⋯ menu has
+  "Move to category ▸", listing Uncategorised plus the user categories
+  from useCategories() and calling assign.
+- Ids: the sidebar root is #libraryCategories; each category item has
+  data-category="all" | "uncategorised" | "<id>".
+```
+
+Implementation notes (LIB-002):
+
+- Client: `api.categories.*`, `api.materials.list({languageId,offset,search,category})` (`category` is `"all" | "uncategorised" | number`, type `LibraryCategory`), `api.materials.update(id,{categoryId})` and `api.materials.markOpened(id)`. `request` accepts `method: "PUT"`.
+- Keys: `queryKeys.library.{all,materialsAll,materials(languageId,category,search),lastOpened(languageId)}` and `queryKeys.categories.{all,list(languageId)}`. `refreshStudyData` also invalidates both domains.
+- Hooks (`@/features/library/data`): `useLibraryMaterials({category,search})` returns the infinite query plus `materials`; `useCategories()` returns the query plus `{categories,totalCount,uncategorisedCount}`; `useCategoryMutations()` returns promise-returning `{create,rename,reorder,remove}`; `useAssignCategory()` returns `{assign}`.
+- `useReaderMaterial(languageId, wordsPerPage, materialId, onLoadFailed?)` takes the work from the route; `select` is gone.

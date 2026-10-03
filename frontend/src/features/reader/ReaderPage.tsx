@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Navigate, useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { SidebarLayout, SidebarOpenButton } from "@/components/app/Sidebar";
 import { toastError } from "@/components/app/toast";
 import { SettingSelect } from "@/components/app/SettingRow";
 import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
+import { libraryPath, readerPath } from "@/app/route-paths";
 import { api } from "@/lib/api";
 import { refreshStudyData } from "@/lib/api/queries";
 import type { MaterialListItem, ReaderToken, WordStatus } from "@/lib/api/types";
@@ -48,10 +50,14 @@ function isTextInputTarget(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
 }
 
-/** The reader route (/reader). Keyed on the study language, so a switch starts from that language's saved material. */
+/** The reader route (/reader/:materialId). Keyed on the study language, so a switch starts from that language's state; a malformed id goes to the Library. */
 export default function ReaderPage() {
   const languageId = useStudyLanguageStore((state) => state.selectedId);
-  return <ReaderScreen key={languageId ?? "none"} languageId={languageId} />;
+  const materialId = Number(useParams().materialId);
+  if (!Number.isInteger(materialId) || materialId <= 0) {
+    return <Navigate to={libraryPath()} replace />;
+  }
+  return <ReaderScreen key={languageId ?? "none"} languageId={languageId} materialId={materialId} />;
 }
 
 /**
@@ -60,8 +66,9 @@ export default function ReaderPage() {
  * pages, pagination, focus mode, word-info, the radial quick
  * menu and sentence translation.
  */
-function ReaderScreen({ languageId }: { languageId: number | null }) {
+function ReaderScreen({ languageId, materialId }: { languageId: number | null; materialId: number }) {
   const t = useT();
+  const navigate = useNavigate();
   const formatCount = useFormatCount();
   const queryClient = useQueryClient();
   const user = useSessionStore((state) => state.user);
@@ -79,7 +86,7 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
   const highlightOpacity = useReaderPreferencesStore((state) => state.highlightOpacity);
   const setPreference = useReaderPreferencesStore((state) => state.setPreference);
 
-  const reader = useReaderMaterial(languageId, wordsPerPage);
+  const reader = useReaderMaterial(languageId, wordsPerPage, materialId, () => navigate(libraryPath(), { replace: true }));
   const [sidebarTab, setSidebarTab] = useState<ReaderSidebarTab>(() => (readerSession.languageId === languageId ? readerSession.sidebarTab : "read"));
   const [fit, setFit] = useState<{ key: string; count: number } | null>(null);
   const [wordInfo, setWordInfo] = useState<WordInfoTarget | null>(null);
@@ -330,24 +337,23 @@ function ReaderScreen({ languageId }: { languageId: number | null }) {
     [reader, refresh]
   );
 
-  const { select: selectMaterial, load: loadMaterial } = reader;
   // Stable: MaterialList's auto-open of a finished import runs in an effect that depends on it.
   const openMaterial = useCallback(
     (item: MaterialListItem) => {
       if (item.translationStatus && !item.translationStatus.ready) {
         return;
       }
-      selectMaterial(item.id);
       setSidebarTab("read");
-      loadMaterial(item.id).catch(toastError);
+      navigate(readerPath(item.id));
     },
-    [loadMaterial, selectMaterial]
+    [navigate]
   );
 
-  function handleMaterialDeleted(materialId: number) {
-    if (materialId === reader.selectedMaterialId) {
+  function handleMaterialDeleted(deletedId: number) {
+    if (deletedId === reader.selectedMaterialId) {
       closeWordInfo();
       reader.clear();
+      navigate(libraryPath(), { replace: true });
     }
   }
 

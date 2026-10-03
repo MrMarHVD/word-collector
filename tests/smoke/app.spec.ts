@@ -38,6 +38,19 @@ test.describe("authenticated app shell", () => {
     await expect(page.locator("#materialList")).toBeVisible();
   });
 
+  test("library view mounts under the single Read tab, and /reader resolves to a work or the library", async ({ page }) => {
+    await page.goto("/library");
+    await expect(page.locator('nav.tabs [data-tab="reader"]')).toHaveClass(/is-active/);
+    await expect(page.locator("#libraryCategories [data-category='all']")).toBeVisible();
+    await expect(page.locator("#libraryCategories [data-category='uncategorised']")).toBeVisible();
+    await expect(page.locator("#materialList")).toBeVisible();
+    await page.goto("/reader");
+    await expect(page).toHaveURL(/\/(library|reader\/\d+)$/);
+    await expect(page.locator('nav.tabs [data-tab="reader"]')).toHaveClass(/is-active/);
+    await page.goto("/reader/not-a-number");
+    await expect(page).toHaveURL(/\/library$/);
+  });
+
   test("collections (vocab) view mounts", async ({ page }) => {
     await page.goto("/vocab");
     await expect(page.locator('nav.tabs [data-tab="collections"]')).toHaveClass(/is-active/);

@@ -13,6 +13,8 @@ export const WelcomePage = lazy(loadWelcomePage);
 export const AuthPage = lazy(loadAuthPage);
 export const DashboardPage = lazy(() => import("@/features/dashboard/DashboardPage"));
 export const CollectionsPage = lazy(() => import("@/features/collections/CollectionsPage"));
+export const LibraryPage = lazy(() => import("@/features/library/LibraryPage"));
+export const ReaderRedirect = lazy(() => import("@/features/reader/ReaderRedirect"));
 export const ReaderPage = lazy(() => import("@/features/reader/ReaderPage"));
 export const PracticePage = lazy(() => import("@/features/practice/PracticePage"));
 export const SettingsPage = lazy(() => import("@/features/settings/SettingsPage"));

@@ -15,6 +15,10 @@ function material(overrides: Partial<MaterialListItem> = {}): MaterialListItem {
     importTotal: null,
     importProcessed: null,
     importError: null,
+    categoryId: null,
+    lastOpenedAt: null,
+    readTokens: 0,
+    totalTokens: 10,
     translationStatus: { targetLanguage: "English", ready: true, totalWords: 10, completedWords: 10, missingWords: 0 },
     ...overrides
   };

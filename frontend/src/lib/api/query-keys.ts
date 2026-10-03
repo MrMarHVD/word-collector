@@ -5,7 +5,7 @@
  * its id, so a language switch never serves another language's cache.
  */
 
-import type { AdminUsersParams, AdminWordsParams, MaterialReaderParams, PracticeMode } from "./types";
+import type { AdminUsersParams, AdminWordsParams, LibraryCategory, MaterialReaderParams, PracticeMode } from "./types";
 
 export const queryKeys = {
   dashboard: {
@@ -20,6 +20,17 @@ export const queryKeys = {
     all: ["materials"] as const,
     list: (languageId: number | null, search: string) => ["materials", "list", languageId, search] as const,
     reader: (materialId: number, params: MaterialReaderParams) => ["materials", "reader", materialId, params] as const
+  },
+  library: {
+    all: ["library"] as const,
+    /** Prefix of every Library list (any category or search) of every language. */
+    materialsAll: ["library", "materials"] as const,
+    materials: (languageId: number | null, category: LibraryCategory, search: string) => ["library", "materials", languageId, category, search] as const,
+    lastOpened: (languageId: number | null) => ["library", "last-opened", languageId] as const
+  },
+  categories: {
+    all: ["categories"] as const,
+    list: (languageId: number | null) => ["categories", "list", languageId] as const
   },
   words: {
     all: ["words"] as const,

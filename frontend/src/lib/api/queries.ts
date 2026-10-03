@@ -18,13 +18,15 @@ export function dashboardSummaryQuery(languageId: number | null) {
 
 /**
  * React counterpart of the legacy `loadDashboard()` refresh: invalidates the
- * dashboard, word lists and materials so every mounted view refetches after a
+ * dashboard, word lists, materials, the Library and its category counts so every mounted view refetches after a
  * mutation that changes vocabulary or documents.
  */
 export function refreshStudyData(client: QueryClient): Promise<void> {
   return Promise.all([
     client.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
     client.invalidateQueries({ queryKey: queryKeys.words.all }),
-    client.invalidateQueries({ queryKey: queryKeys.materials.all })
+    client.invalidateQueries({ queryKey: queryKeys.materials.all }),
+    client.invalidateQueries({ queryKey: queryKeys.library.all }),
+    client.invalidateQueries({ queryKey: queryKeys.categories.all })
   ]).then(() => undefined);
 }
