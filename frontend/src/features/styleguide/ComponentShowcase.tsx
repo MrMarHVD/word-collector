@@ -4,11 +4,16 @@
  */
 import { useState, type ReactNode } from "react";
 import { PencilIcon, PlusIcon, SettingsIcon, Trash2Icon, XIcon } from "lucide-react";
+import { CloseButton } from "@/components/app/CloseButton";
+import { useConfirm } from "@/components/app/ConfirmDialog";
+import { DisambiguationTable } from "@/components/app/Disambiguation";
+import { Flag } from "@/components/app/Flag";
 import { ListRow } from "@/components/app/ListRow";
 import { Segmented } from "@/components/app/Segmented";
 import { PageHeader } from "@/components/app/PageHeader";
 import { SettingRow, SettingSection, SettingSelect } from "@/components/app/SettingRow";
 import { toast } from "@/components/app/toast";
+import { TranslationOverride } from "@/components/app/TranslationOverride";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,15 +48,33 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useT } from "@/lib/i18n";
 
 const BUTTON_VARIANTS = ["primary", "secondary", "ghost", "destructive", "link"] as const;
 const BUTTON_SIZES = ["sm", "md", "lg"] as const;
 const ICON_VARIANTS = ["ghost", "secondary", "destructive"] as const;
+const EXTRA_BUTTON_SIZES = ["xs", "icon-xs", "icon-sm", "icon", "icon-lg"] as const;
+const SHEET_SIDES = ["left", "right", "top", "bottom"] as const;
+const FLAG_LANGUAGES = ["Japanese", "English", "Chinese"] as const;
+const SAMPLE_WORD = {
+  surface: "猫",
+  translation: "cat",
+  canonicalTranslation: "cat",
+  disambiguationCandidates: [
+    { source: "猫", translation: "cat", pos: "noun" },
+    { source: "猫", translation: "feline", pos: "noun" },
+    { source: "猫", translation: "to purr", pos: "verb" },
+    { source: "猫", translation: "kitty", pos: "noun" },
+    { source: "猫", translation: "tomcat", pos: "noun" },
+    { source: "猫", translation: "pet", pos: "noun" }
+  ]
+};
+const SAMPLE_OVERRIDDEN_WORD = { ...SAMPLE_WORD, translation: "kitten", translationOverride: "kitten" };
 const BADGE_VARIANTS = ["neutral", "accent", "destructive", "outline", "unknown", "learning", "known"] as const;
 
 /** A titled block of the catalogue. */
@@ -72,6 +95,9 @@ function Tag({ children }: { children: ReactNode }) {
 /** The component catalogue section of /styleguide. */
 export function ComponentShowcase() {
   const t = useT();
+  const confirm = useConfirm();
+  const [editing, setEditing] = useState<"plain" | "overridden" | null>(null);
+  const [overrides, setOverrides] = useState<{ plain: string; overridden: string }>({ plain: "", overridden: "kitten" });
   const [tab, setTab] = useState("one");
   const [segment, setSegment] = useState("a");
   const [segmentSmall, setSegmentSmall] = useState("a");
@@ -114,6 +140,14 @@ export function ComponentShowcase() {
               </Button>
             </div>
           ))}
+          <div className="flex flex-wrap items-center gap-3">
+            <Tag>sizes</Tag>
+            {EXTRA_BUTTON_SIZES.map((size) => (
+              <Button key={size} variant="secondary" size={size} aria-label={size}>
+                {size.startsWith("icon") ? <PlusIcon /> : size}
+              </Button>
+            ))}
+          </div>
         </div>
       </Block>
 
@@ -136,6 +170,12 @@ export function ComponentShowcase() {
               </IconButton>
             </div>
           ))}
+          <div className="flex flex-wrap items-center gap-3">
+            <Tag>CloseButton</Tag>
+            <CloseButton label={t("common.close")} />
+            <CloseButton label={t("styleguide.closeButton")} className="sg-focus" />
+            <CloseButton label={t("styleguide.closeButton")} disabled />
+          </div>
         </div>
       </Block>
 
@@ -186,6 +226,18 @@ export function ComponentShowcase() {
               ))}
             </SelectContent>
           </Select>
+          <Select defaultValue="a">
+            <SelectTrigger aria-label="select small" size="sm" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <NativeSelect aria-label="native select" defaultValue="a">
             {options.map((option) => (
               <option key={option.value} value={option.value}>
@@ -215,6 +267,12 @@ export function ComponentShowcase() {
             <TabsContent value="two" className="pt-3 text-body">
               {t("styleguide.sampleMeta")}
             </TabsContent>
+          </Tabs>
+          <Tabs defaultValue="one" orientation="vertical">
+            <TabsList aria-label="tabs vertical">
+              <TabsTrigger value="one">{t("styleguide.sampleOptionA")}</TabsTrigger>
+              <TabsTrigger value="two">{t("styleguide.sampleOptionB")}</TabsTrigger>
+            </TabsList>
           </Tabs>
           <Segmented aria-label="segmented" value={segment} onValueChange={setSegment} options={options} className="max-w-sm" />
           <Segmented aria-label="segmented small" size="sm" value={segmentSmall} onValueChange={setSegmentSmall} options={options} className="max-w-sm" />
@@ -272,6 +330,19 @@ export function ComponentShowcase() {
         </Card>
       </Block>
 
+      <Block id="styleguide-flags" title={t("styleguide.flags")}>
+        <div className="flex flex-wrap items-center gap-3">
+          {FLAG_LANGUAGES.map((language) => (
+            <span key={language} className="inline-flex items-center gap-2 text-caption text-secondary">
+              <span className="inline-block h-5 w-7">
+                <Flag language={language} />
+              </span>
+              {language}
+            </span>
+          ))}
+        </div>
+      </Block>
+
       <Block id="styleguide-badges" title={t("styleguide.badges")}>
         <div className="flex flex-wrap items-center gap-3">
           {BADGE_VARIANTS.map((variant) => (
@@ -312,8 +383,68 @@ export function ComponentShowcase() {
                 </TableRow>
               ))}
             </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TableCell>{t("styleguide.tableFooter")}</TableCell>
+                <TableCell />
+                <TableCell>3</TableCell>
+              </TableRow>
+            </TableFooter>
+            <TableCaption>{t("styleguide.tableCaption")}</TableCaption>
           </Table>
         </Card>
+      </Block>
+
+      <Block id="styleguide-disambiguation" title={t("styleguide.disambiguation")}>
+        <div className="grid gap-4 desktop:grid-cols-2">
+          <Card className="overflow-hidden py-0">
+            <DisambiguationTable entry={SAMPLE_OVERRIDDEN_WORD} />
+          </Card>
+          <div className="grid gap-1.5">
+            <Text variant="caption" tone="label">
+              {t("styleguide.stickyHeader")}
+            </Text>
+            <Card className="max-h-40 overflow-auto py-0">
+              <DisambiguationTable entry={SAMPLE_WORD} stickyHeader />
+            </Card>
+          </div>
+        </div>
+      </Block>
+
+      <Block id="styleguide-translation-override" title={t("styleguide.translationOverride")}>
+        <div className="grid max-w-md gap-3">
+          {(["plain", "overridden"] as const).map((key) => {
+            const base = key === "plain" ? SAMPLE_WORD : SAMPLE_OVERRIDDEN_WORD;
+            const override = overrides[key];
+            return (
+              <TranslationOverride
+                key={key}
+                entry={{ ...base, translation: override || base.canonicalTranslation, translationOverride: override }}
+                wordId={key === "plain" ? 1 : 2}
+                context="vocab"
+                editing={editing === key}
+                onEdit={() => setEditing(key)}
+                onCancel={() => setEditing(null)}
+                onSave={(value) => {
+                  setOverrides((current) => ({ ...current, [key]: value.trim() }));
+                  setEditing(null);
+                }}
+                onClear={() => setOverrides((current) => ({ ...current, [key]: "" }))}
+              />
+            );
+          })}
+          <TranslationOverride
+            entry={SAMPLE_OVERRIDDEN_WORD}
+            wordId={3}
+            context="reader"
+            compact
+            editing={false}
+            onEdit={() => undefined}
+            onCancel={() => undefined}
+            onSave={() => undefined}
+            onClear={() => undefined}
+          />
+        </div>
       </Block>
 
       <Block id="styleguide-settings" title={t("styleguide.settingsRows")}>
@@ -357,6 +488,13 @@ export function ComponentShowcase() {
         <div className="grid gap-1">
           <Text variant="title">title: {t("styleguide.sampleTitle")}</Text>
           <PageHeader title={`PageHeader: ${t("styleguide.sampleTitle")}`} className="mb-0" />
+          <PageHeader
+            title={`${t("styleguide.pageHeader")}: ${t("styleguide.sampleTitle")}`}
+            className="mb-0"
+            actions={
+              <Segmented aria-label="page header actions" size="sm" className="w-40" value={segmentSmall} onValueChange={setSegmentSmall} options={options} />
+            }
+          />
           <Text variant="heading" as="h4">
             heading: {t("styleguide.sampleTitle")}
           </Text>
@@ -438,11 +576,55 @@ export function ComponentShowcase() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button
+            variant="secondary"
+            onClick={async () =>
+              toast.info(
+                (await confirm({
+                  title: t("styleguide.confirmTitle"),
+                  description: t("styleguide.confirmText"),
+                  destructive: true,
+                  confirmLabel: t("common.delete")
+                }))
+                  ? t("styleguide.confirmed")
+                  : t("styleguide.cancelled")
+              )
+            }
+          >
+            {t("styleguide.openConfirm")}
+          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="secondary">{t("styleguide.tooltipTrigger")}</Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("styleguide.tooltipText")}</TooltipContent>
+          </Tooltip>
+          {SHEET_SIDES.map((side) => (
+            <Sheet key={side}>
+              <SheetTrigger asChild>
+                <Button variant="secondary">
+                  {t("styleguide.openSheet")}: {side}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side={side}>
+                <SheetHeader>
+                  <SheetTitle>{t("styleguide.sampleTitle")}</SheetTitle>
+                  <SheetDescription>{t("styleguide.dialogText")}</SheetDescription>
+                </SheetHeader>
+              </SheetContent>
+            </Sheet>
+          ))}
           <FloatingPanel open className="static w-72">
             <Text variant="body">{t("styleguide.dialogText")}</Text>
           </FloatingPanel>
           <Button variant="secondary" onClick={() => toast.success(t("styleguide.toastText"))}>
             {t("styleguide.showToast")}
+          </Button>
+          <Button variant="secondary" onClick={() => toast.error(t("styleguide.toastText"))}>
+            {t("styleguide.showToastError")}
+          </Button>
+          <Button variant="secondary" onClick={() => toast.info(t("styleguide.toastText"))}>
+            {t("styleguide.showToastInfo")}
           </Button>
         </div>
       </Block>
