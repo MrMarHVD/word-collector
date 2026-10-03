@@ -1,10 +1,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Text } from "@/components/ui/text";
 import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { useT } from "@/lib/i18n";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import { useSettingsTabStore, type SettingsTab } from "./settings-tab-store";
 import { SystemSettingsPanel } from "./SystemSettingsPanel";
-import "./settings.css";
 
 const SETTINGS_TABS: { tab: SettingsTab; labelKey: string }[] = [
   { tab: "system", labelKey: "settings.menuSystem" },
@@ -18,17 +18,19 @@ export default function SettingsPage() {
   const activeTab = useSettingsTabStore((state) => state.tab);
   const setActiveTab = useSettingsTabStore((state) => state.setTab);
   return (
-    <section id="settingsView" className="tab-view grid gap-4">
-      <h2 className="text-lg font-bold">{t("settings.title")}</h2>
+    <section id="settingsView" className="grid gap-4">
+      <Text variant="title" as="h2">
+        {t("settings.title")}
+      </Text>
       <Tabs
         value={activeTab}
         onValueChange={(tab) => setActiveTab(tab as SettingsTab)}
         orientation={isMobile ? "horizontal" : "vertical"}
-        className="settings-layout gap-4 desktop:flex-row desktop:items-start mobile:flex-col"
+        className="gap-4 desktop:flex-row desktop:items-start mobile:flex-col"
       >
         <TabsList id="settingsMenu" aria-label={t("settings.title")} className="shrink-0 desktop:w-44 mobile:w-full">
           {SETTINGS_TABS.map(({ tab, labelKey }) => (
-            <TabsTrigger key={tab} value={tab} data-settings-tab={tab} className="min-h-9 px-3">
+            <TabsTrigger key={tab} value={tab} data-settings-tab={tab}>
               {t(labelKey)}
             </TabsTrigger>
           ))}

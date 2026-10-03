@@ -1,7 +1,0 @@
-/* Settings screen, ported from public/css/settings.css. */
-
-@media (max-width: 760px) {
-  .settings-layout {
-    gap: 12px;
-  }
-}
