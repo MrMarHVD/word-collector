@@ -11,6 +11,12 @@ picked up.
   Suggested source: the last-read work for the current study language,
   showing its title and progress.
 
+## Reader
+
+- **Reading-font picker.** Let users choose the Reader font in the Aa panel,
+  built on the font registry from SPEC-005. Initial font: iA Writer Quattro
+  plus Noto JP/SC.
+
 ## Library (follow-ups to SPEC-004)
 
 - **Filter button** in the Library header. SPEC-004 only reserves the space.
