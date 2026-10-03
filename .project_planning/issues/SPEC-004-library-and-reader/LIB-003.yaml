@@ -1,0 +1,131 @@
+code: LIB-003
+title: "Library page: search, works list, rows, actions and go-to highlight"
+status: to do
+spec: SPEC-004-library-and-reader
+summary: >
+  Build the Library page: live search, header slots for future filter and display buttons, a scrollable list of works (letter placeholder, title, word count, progress bar), import, rename and delete, empty and no-results states, drag sources and a 'Move to category' action, and the ?focus go-to highlight.
+scope:
+  files:
+    - "frontend/src/features/library/** (except categories/ and data/)"
+    - "frontend/src/features/materials/** (reuse or adapt the import dialog, rename, delete, import progress)"
+    - "frontend/public/locales.json (library.* keys)"
+  layers:
+    - frontend
+  description: >
+    In scope: everything in the summary, per SPEC-004 FR-6..10, FR-15 (drag source and keyboard alternative), FR-24, FR-27 (the Library side: focus, scroll, outline and transition) and FR-29 (the server sort, displayed as is).
+    - Layout: the narrow category sidebar on the left (from C4), with the list taking the main width.
+    - Mobile: the sidebar collapses into an expandable control (the sidebar internals are LIB-004's).
+    - Opening a row navigates to /reader/:id.
+
+    Out of scope: sidebar internals (LIB-004), Reader UI (LIB-005), and the dashboard (LIB-006).
+dependencies:
+  - LIB-001
+  - LIB-002
+acceptance_criteria:
+  - "Typing in the search updates the list live, within the selected category, with no full reload."
+  - "Each row shows a first-letter placeholder, title, word count and progress bar. The list scrolls and loads more pages. Importing works show their progress."
+  - "Import, rename and delete work, delete confirming via the in-app dialog. Empty and no-results states appear when relevant."
+  - "Rows are draggable with the C4 data type, and the ⋯ menu's 'Move to category' assigns via useAssignCategory, by keyboard and on touch."
+  - "Visiting /library?focus=<id> selects All, clears the search, scrolls the work into view and outlines it with a transition (instant under reduced motion), then drops focus from the address. Clicking the work opens the Reader."
+  - "The header reserves visible space for the future filter and display buttons, without implementing them."
+  - "Desktop and mobile layouts are complete in both themes. Strings exist in ja/en/zh. #materialList, #materialImportOpen and #materialSearch remain as hooks."
+verification:
+  - "In frontend/, `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all pass."
+  - "Run Playwright against your own servers (PW_FRONTEND_URL/PW_API_URL on your assigned ports, which the config auto-starts)."
+  - "Review screenshots at 1280 and 390, light and dark, in en plus one CJK locale."
+  - "Ports: PW_FRONTEND_URL=http://localhost:5403 PW_API_URL=http://localhost:3203. Run the imports and app specs, plus throwaway checks of search, focus and move-to-category."
+special_context: |
+  C1 API (LIB-001 produces; LIB-002 wraps it in the typed client). All
+  endpoints require auth plus CSRF on mutations, and enforce ownership (404
+  for another user's resources).
+  - GET /api/categories?languageId=N
+      -> 200 { categories: [{ id, name, position, materialCount }],
+              totalCount, uncategorisedCount }
+         categories are ordered by position.
+  - POST /api/categories { languageId, name }
+      -> 201 { category }; 409 errorKey "errors.categoryNameTaken" for a
+         case-insensitive duplicate; 400 for an empty or too-long name
+         (max 60 chars, trimmed).
+  - PATCH /api/categories/:id { name } -> 200 { category }; 409 or 400 as
+    above.
+  - PUT /api/categories/order { languageId, ids: number[] }
+      -> 200 { categories }; ids must be exactly the user's categories for
+         that language.
+  - DELETE /api/categories/:id -> 200 { ok: true }; its works become
+    uncategorised, and works are never deleted.
+  - PATCH /api/materials/:id accepts { categoryId: number | null } (in
+    addition to the existing fields). The category must belong to the same
+    user and language (400 otherwise); null means uncategorised.
+  - POST /api/materials/:id/opened -> 200 { lastOpenedAt }: records that the
+    work was opened in the Reader.
+  - GET /api/materials?languageId=N&offset=&search=&category=all|uncategorised|<id>
+      keeps the existing params and response shape ({ materials, pageSize })
+      and adds category filtering. Each material item gains categoryId
+      (number|null), lastOpenedAt (ISO|null), readTokens and totalTokens
+      (reading progress, as the dashboard documents use), on top of the
+      existing id, title, fileType, wordCount, readerStart, createdAt and
+      import status fields. Default sort: lastOpenedAt DESC NULLS LAST, then
+      createdAt DESC, then id DESC. search matches the title
+      case-insensitively.
+
+  C2 Routes and Library address (LIB-002 produces; LIB-003/004/005/006 use).
+  - /library — the Library. Search params:
+    - category = all | uncategorised | <categoryId> (default all);
+    - q = search text;
+    - focus = <materialId>: the dashboard "go to" target. The Library selects
+      category=all, clears q, scrolls the work into view, outlines it with a
+      transition, then removes focus from the address (replace) so a reload
+      doesn't repeat it.
+  - /reader/:materialId — the Reader for that work.
+  - /reader — redirects to the last-opened work for the study language
+    (lastOpenedAt from C1, falling back to the existing
+    wordMarkerSelectedMaterialId:<userId>:<languageId> key), or to /library
+    if there is none.
+  - The main navigation has ONE tab, labelled "Read" (new key nav.read in
+    ja/en/zh), active on both /library and /reader/*, linking to /library.
+    It replaces the old reader tab; keep `nav.tabs [data-tab="reader"]` as
+    the tab's hook, so the existing specs still find it.
+  - Language-gated like the old reader route.
+
+  C3 Data hooks (LIB-002 produces in frontend/src/features/library/data/;
+  LIB-003/004 use).
+  - useLibraryMaterials({ category, search }): an infinite query over C1's
+    list (pages of 50), polling while any work is importing or translating,
+    as MaterialList does today.
+  - useCategories(): returns { categories, totalCount, uncategorisedCount }.
+  - useCategoryMutations(): returns { create(name), rename(id, name),
+    reorder(ids), remove(id) }. Each invalidates categories and library
+    materials.
+  - useAssignCategory(): returns assign(materialId, categoryId | null), with
+    an optimistic update of the list and counts and rollback on error.
+  - Query keys go under queryKeys.library.* and queryKeys.categories.* in
+    lib/api/query-keys.ts.
+
+  C4 Library and category-sidebar connection (LIB-002 creates the stubs;
+  LIB-003 owns LibraryPage, LIB-004 owns the sidebar).
+  - LibraryPage renders
+    <CategorySidebar selected={category} onSelect={(c) => …} /> from
+    frontend/src/features/library/categories/CategorySidebar.tsx, where
+    category is "all" | "uncategorised" | number.
+  - Drag source (LIB-003): each work row is draggable and sets
+    dataTransfer "application/x-word-marker-material" = String(materialId).
+    Drop targets (LIB-004) read that type, call
+    useAssignCategory().assign(id, categoryId | null) (Uncategorised = null;
+    All isn't a drop target), and show a drop indicator.
+  - Keyboard and touch alternative (LIB-003): each row's ⋯ menu has
+    "Move to category ▸", listing Uncategorised plus the user categories
+    from useCategories() and calling assign.
+  - Ids: the sidebar root is #libraryCategories; each category item has
+    data-category="all" | "uncategorised" | "<id>".
+
+  General rules: follow AGENTS.md (localisation in ja/en/zh, mobile
+  parity ≤760px, design consistency with the kit and the existing settings
+  primitives, TypeScript docs, and commits allowed). Follow
+  frontend/src/CONTRACTS.md, including the Motion conventions and reduced
+  motion. Interface contracts are fixed: if one blocks you, stop and report
+  rather than improvise. Never kill processes on ports you weren't assigned
+  (3000/5173 may be the user's servers). The login rate limiter (10 per 15
+  minutes) can cause 429s in the admin/superadmin specs; restart the API and
+  rerun, and identify any 429s explicitly.
+implementation_notes: >
+  Prefer evolving features/materials' MaterialList into the Library list over duplicating it. The placeholder: the first grapheme of the title, uppercase where applicable, on a neutral token background. Make sure CJK first characters render well. Use AutoAnimate or FadeIn only within the Motion conventions.

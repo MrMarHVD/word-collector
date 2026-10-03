@@ -1,0 +1,83 @@
+code: LIB-001
+title: "Backend: categories, last-opened and library list API"
+status: to do
+spec: SPEC-004-library-and-reader
+summary: >
+  Add per-user, per-language work categories, each work's optional category and last-opened time, and the C1 endpoints, including the category filter, progress fields and default sort on the works list.
+scope:
+  files:
+    - "backend/migrations/ (one new migration)"
+    - "backend/src/modules/materials/** (repository/service changes)"
+    - "backend/src/modules/categories/** (new module, or an equivalent within materials)"
+    - "backend/src/http/routes/materials.routes.js"
+    - "backend/src/http/routes/categories.routes.js (new) and its registration"
+  layers:
+    - database
+    - backend
+  description: >
+    In scope:
+    - A reversible, backward-compatible migration:
+      - a categories table (user_id FK users ON DELETE CASCADE, language_id FK, name, position, created_at, case-insensitive unique name per user and language);
+      - materials.category_id (nullable FK, ON DELETE SET NULL);
+      - materials.last_opened_at (nullable timestamptz).
+      Existing works become uncategorised and never-opened.
+    - All C1 endpoints and the list changes, with ownership checks and validation.
+    - Account deletion removes the categories, via the cascade; verify it.
+
+    Out of scope: any frontend change.
+dependencies: []
+acceptance_criteria:
+  - "Migration up then down then up runs cleanly on a disposable database; existing rows are unchanged apart from the new nullable columns."
+  - "Every C1 endpoint behaves as specified, including 409 duplicate, 400 invalid, 404 for another user's category or material, and reorder validation."
+  - "The works list filters by all, uncategorised and a category, combines with search, and returns progress, categoryId and lastOpenedAt, sorted lastOpenedAt DESC NULLS LAST, then createdAt DESC."
+  - "Deleting a category leaves its works intact and uncategorised. Deleting an account removes its categories."
+  - "Existing Playwright specs still pass (the response shape is a superset)."
+verification:
+  - "Run the migration up/down on a disposable database (a throwaway local Postgres or a Neon branch); never the shared .env database."
+  - "Exercise every endpoint with curl as two temporary users, including the cross-user 404 checks, then clean up."
+  - "Run `npx playwright test tests/smoke/app.spec.ts tests/smoke/imports.spec.ts` with PW_FRONTEND_URL=http://localhost:5401 PW_API_URL=http://localhost:3201."
+special_context: |
+  C1 API (LIB-001 produces; LIB-002 wraps it in the typed client). All
+  endpoints require auth plus CSRF on mutations, and enforce ownership (404
+  for another user's resources).
+  - GET /api/categories?languageId=N
+      -> 200 { categories: [{ id, name, position, materialCount }],
+              totalCount, uncategorisedCount }
+         categories are ordered by position.
+  - POST /api/categories { languageId, name }
+      -> 201 { category }; 409 errorKey "errors.categoryNameTaken" for a
+         case-insensitive duplicate; 400 for an empty or too-long name
+         (max 60 chars, trimmed).
+  - PATCH /api/categories/:id { name } -> 200 { category }; 409 or 400 as
+    above.
+  - PUT /api/categories/order { languageId, ids: number[] }
+      -> 200 { categories }; ids must be exactly the user's categories for
+         that language.
+  - DELETE /api/categories/:id -> 200 { ok: true }; its works become
+    uncategorised, and works are never deleted.
+  - PATCH /api/materials/:id accepts { categoryId: number | null } (in
+    addition to the existing fields). The category must belong to the same
+    user and language (400 otherwise); null means uncategorised.
+  - POST /api/materials/:id/opened -> 200 { lastOpenedAt }: records that the
+    work was opened in the Reader.
+  - GET /api/materials?languageId=N&offset=&search=&category=all|uncategorised|<id>
+      keeps the existing params and response shape ({ materials, pageSize })
+      and adds category filtering. Each material item gains categoryId
+      (number|null), lastOpenedAt (ISO|null), readTokens and totalTokens
+      (reading progress, as the dashboard documents use), on top of the
+      existing id, title, fileType, wordCount, readerStart, createdAt and
+      import status fields. Default sort: lastOpenedAt DESC NULLS LAST, then
+      createdAt DESC, then id DESC. search matches the title
+      case-insensitively.
+
+  General rules: follow AGENTS.md (localisation in ja/en/zh, mobile
+  parity ≤760px, design consistency with the kit and the existing settings
+  primitives, TypeScript docs, and commits allowed). Follow
+  frontend/src/CONTRACTS.md, including the Motion conventions and reduced
+  motion. Interface contracts are fixed: if one blocks you, stop and report
+  rather than improvise. Never kill processes on ports you weren't assigned
+  (3000/5173 may be the user's servers). The login rate limiter (10 per 15
+  minutes) can cause 429s in the admin/superadmin specs; restart the API and
+  rerun, and identify any 429s explicitly.
+implementation_notes: >
+  Follow the existing route-module and repository patterns (raw pg, prepared statements). Reuse the dashboard's progress computation (readTokens/totalTokens) rather than duplicating it. Keep reorder in a single transaction. Document new functions with JSDoc per AGENTS.md.

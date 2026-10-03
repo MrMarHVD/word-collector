@@ -1,0 +1,134 @@
+code: LIB-002
+title: "Frontend foundation: routes, Read tab, API client, data hooks, stubs"
+status: to do
+spec: SPEC-004-library-and-reader
+summary: >
+  Establish the frontend skeleton every other issue builds on: the C2 routes and single Read tab, the typed C1 client, the C3 hooks, the C4 stubs and the documented contracts.
+scope:
+  files:
+    - "frontend/src/app/** (routes.tsx, route-paths.ts, pages.ts, RouteGate)"
+    - "frontend/src/components/app/AppShell.tsx (nav tab only)"
+    - "frontend/src/lib/api/** (categories client, materials additions, types, query-keys)"
+    - "frontend/src/features/library/ (new: LibraryPage.tsx placeholder, categories/CategorySidebar.tsx stub, data/ hooks)"
+    - "frontend/src/features/reader/ (route param plumbing only: read :materialId, the /reader redirect)"
+    - "frontend/public/locales.json (nav.read and any routing strings)"
+    - "frontend/src/CONTRACTS.md (C1–C4 sections)"
+  layers:
+    - frontend
+  description: >
+    In scope:
+    - The C2 routes and redirect.
+    - The single Read tab.
+    - The typed client for every C1 endpoint, with unit tests for its pure helpers.
+    - The C3 hooks.
+    - The C4 placeholder LibraryPage, which lists titles with links to /reader/:id so the flow is testable, and the CategorySidebar stub, which renders All and Uncategorised with the required ids and calls onSelect.
+    - The Reader takes its work from :materialId (minimal change: replace selected-material state with the param).
+    - CONTRACTS.md sections C1–C4, copied verbatim from this issue.
+
+    Out of scope: Library design, sidebar features, the Reader redesign and the dashboard.
+dependencies: []
+acceptance_criteria:
+  - "The Read tab is the only reading tab. It opens /library and stays active on /reader/*."
+  - "/reader/:id opens that work; reload and back/forward work. /reader redirects to the last-opened work, or to /library."
+  - "The C1 client functions and C3 hooks exist with the exact names and shapes, typecheck, and have unit tests for their pure parts."
+  - "The placeholder Library lists works and opens them in the Reader. The CategorySidebar stub has the C4 ids and props."
+  - "CONTRACTS.md documents C1–C4. The existing reader-translation, imports and app specs pass, with only listed internal-coupling edits for the new routes."
+verification:
+  - "In frontend/, `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all pass."
+  - "Run Playwright against your own servers (PW_FRONTEND_URL/PW_API_URL on your assigned ports, which the config auto-starts)."
+  - "Ports: PW_FRONTEND_URL=http://localhost:5402 PW_API_URL=http://localhost:3202."
+special_context: |
+  C1 API (LIB-001 produces; LIB-002 wraps it in the typed client). All
+  endpoints require auth plus CSRF on mutations, and enforce ownership (404
+  for another user's resources).
+  - GET /api/categories?languageId=N
+      -> 200 { categories: [{ id, name, position, materialCount }],
+              totalCount, uncategorisedCount }
+         categories are ordered by position.
+  - POST /api/categories { languageId, name }
+      -> 201 { category }; 409 errorKey "errors.categoryNameTaken" for a
+         case-insensitive duplicate; 400 for an empty or too-long name
+         (max 60 chars, trimmed).
+  - PATCH /api/categories/:id { name } -> 200 { category }; 409 or 400 as
+    above.
+  - PUT /api/categories/order { languageId, ids: number[] }
+      -> 200 { categories }; ids must be exactly the user's categories for
+         that language.
+  - DELETE /api/categories/:id -> 200 { ok: true }; its works become
+    uncategorised, and works are never deleted.
+  - PATCH /api/materials/:id accepts { categoryId: number | null } (in
+    addition to the existing fields). The category must belong to the same
+    user and language (400 otherwise); null means uncategorised.
+  - POST /api/materials/:id/opened -> 200 { lastOpenedAt }: records that the
+    work was opened in the Reader.
+  - GET /api/materials?languageId=N&offset=&search=&category=all|uncategorised|<id>
+      keeps the existing params and response shape ({ materials, pageSize })
+      and adds category filtering. Each material item gains categoryId
+      (number|null), lastOpenedAt (ISO|null), readTokens and totalTokens
+      (reading progress, as the dashboard documents use), on top of the
+      existing id, title, fileType, wordCount, readerStart, createdAt and
+      import status fields. Default sort: lastOpenedAt DESC NULLS LAST, then
+      createdAt DESC, then id DESC. search matches the title
+      case-insensitively.
+
+  C2 Routes and Library address (LIB-002 produces; LIB-003/004/005/006 use).
+  - /library — the Library. Search params:
+    - category = all | uncategorised | <categoryId> (default all);
+    - q = search text;
+    - focus = <materialId>: the dashboard "go to" target. The Library selects
+      category=all, clears q, scrolls the work into view, outlines it with a
+      transition, then removes focus from the address (replace) so a reload
+      doesn't repeat it.
+  - /reader/:materialId — the Reader for that work.
+  - /reader — redirects to the last-opened work for the study language
+    (lastOpenedAt from C1, falling back to the existing
+    wordMarkerSelectedMaterialId:<userId>:<languageId> key), or to /library
+    if there is none.
+  - The main navigation has ONE tab, labelled "Read" (new key nav.read in
+    ja/en/zh), active on both /library and /reader/*, linking to /library.
+    It replaces the old reader tab; keep `nav.tabs [data-tab="reader"]` as
+    the tab's hook, so the existing specs still find it.
+  - Language-gated like the old reader route.
+
+  C3 Data hooks (LIB-002 produces in frontend/src/features/library/data/;
+  LIB-003/004 use).
+  - useLibraryMaterials({ category, search }): an infinite query over C1's
+    list (pages of 50), polling while any work is importing or translating,
+    as MaterialList does today.
+  - useCategories(): returns { categories, totalCount, uncategorisedCount }.
+  - useCategoryMutations(): returns { create(name), rename(id, name),
+    reorder(ids), remove(id) }. Each invalidates categories and library
+    materials.
+  - useAssignCategory(): returns assign(materialId, categoryId | null), with
+    an optimistic update of the list and counts and rollback on error.
+  - Query keys go under queryKeys.library.* and queryKeys.categories.* in
+    lib/api/query-keys.ts.
+
+  C4 Library and category-sidebar connection (LIB-002 creates the stubs;
+  LIB-003 owns LibraryPage, LIB-004 owns the sidebar).
+  - LibraryPage renders
+    <CategorySidebar selected={category} onSelect={(c) => …} /> from
+    frontend/src/features/library/categories/CategorySidebar.tsx, where
+    category is "all" | "uncategorised" | number.
+  - Drag source (LIB-003): each work row is draggable and sets
+    dataTransfer "application/x-word-marker-material" = String(materialId).
+    Drop targets (LIB-004) read that type, call
+    useAssignCategory().assign(id, categoryId | null) (Uncategorised = null;
+    All isn't a drop target), and show a drop indicator.
+  - Keyboard and touch alternative (LIB-003): each row's ⋯ menu has
+    "Move to category ▸", listing Uncategorised plus the user categories
+    from useCategories() and calling assign.
+  - Ids: the sidebar root is #libraryCategories; each category item has
+    data-category="all" | "uncategorised" | "<id>".
+
+  General rules: follow AGENTS.md (localisation in ja/en/zh, mobile
+  parity ≤760px, design consistency with the kit and the existing settings
+  primitives, TypeScript docs, and commits allowed). Follow
+  frontend/src/CONTRACTS.md, including the Motion conventions and reduced
+  motion. Interface contracts are fixed: if one blocks you, stop and report
+  rather than improvise. Never kill processes on ports you weren't assigned
+  (3000/5173 may be the user's servers). The login rate limiter (10 per 15
+  minutes) can cause 429s in the admin/superadmin specs; restart the API and
+  rerun, and identify any 429s explicitly.
+implementation_notes: >
+  The backend (LIB-001) is built in parallel. Write the client against C1. Hooks may be verified against a mocked fetch in unit tests; live verification of the new endpoints comes in LIB-003/004. Keep the reader changes minimal, since LIB-005 rewrites the Reader UI.

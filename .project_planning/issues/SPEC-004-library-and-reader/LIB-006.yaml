@@ -1,0 +1,56 @@
+code: LIB-006
+title: "Dashboard: work titles as 'go to' links into the Library"
+status: to do
+spec: SPEC-004-library-and-reader
+summary: >
+  Make the work titles in the dashboard's documents panel navigate to /library?focus=<id>, which triggers the Library's scroll, outline and transition highlight; a second click there opens the Reader.
+scope:
+  files:
+    - "frontend/src/features/dashboard/** (documents panel only)"
+    - "frontend/public/locales.json (if any label is needed)"
+  layers:
+    - frontend
+  description: >
+    In scope: SPEC-004 FR-27 (the dashboard side). Titles become accessible links or buttons using the C2 focus param. The existing #dashboardDocuments* hooks stay unchanged.
+
+    Out of scope: the Library-side highlight, which LIB-003 implements.
+dependencies:
+  - LIB-003
+acceptance_criteria:
+  - "Clicking a dashboard work title navigates to the Library with that work scrolled into view and outlined with a transition, without opening it."
+  - "It's keyboard accessible with a clear focus style, and the dashboard look is otherwise unchanged. The dashboard assertions in app.spec still pass."
+verification:
+  - "In frontend/, `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all pass."
+  - "Run Playwright against your own servers (PW_FRONTEND_URL/PW_API_URL on your assigned ports, which the config auto-starts)."
+  - "Ports: PW_FRONTEND_URL=http://localhost:5406 PW_API_URL=http://localhost:3206. Run app.spec plus a throwaway go-to check."
+special_context: |
+  C2 Routes and Library address (LIB-002 produces; LIB-003/004/005/006 use).
+  - /library — the Library. Search params:
+    - category = all | uncategorised | <categoryId> (default all);
+    - q = search text;
+    - focus = <materialId>: the dashboard "go to" target. The Library selects
+      category=all, clears q, scrolls the work into view, outlines it with a
+      transition, then removes focus from the address (replace) so a reload
+      doesn't repeat it.
+  - /reader/:materialId — the Reader for that work.
+  - /reader — redirects to the last-opened work for the study language
+    (lastOpenedAt from C1, falling back to the existing
+    wordMarkerSelectedMaterialId:<userId>:<languageId> key), or to /library
+    if there is none.
+  - The main navigation has ONE tab, labelled "Read" (new key nav.read in
+    ja/en/zh), active on both /library and /reader/*, linking to /library.
+    It replaces the old reader tab; keep `nav.tabs [data-tab="reader"]` as
+    the tab's hook, so the existing specs still find it.
+  - Language-gated like the old reader route.
+
+  General rules: follow AGENTS.md (localisation in ja/en/zh, mobile
+  parity ≤760px, design consistency with the kit and the existing settings
+  primitives, TypeScript docs, and commits allowed). Follow
+  frontend/src/CONTRACTS.md, including the Motion conventions and reduced
+  motion. Interface contracts are fixed: if one blocks you, stop and report
+  rather than improvise. Never kill processes on ports you weren't assigned
+  (3000/5173 may be the user's servers). The login rate limiter (10 per 15
+  minutes) can cause 429s in the admin/superadmin specs; restart the API and
+  rerun, and identify any 429s explicitly.
+implementation_notes: >
+  Small issue: keep it to the link wiring and styling.

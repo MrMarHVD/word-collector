@@ -1,0 +1,18 @@
+# Backlog
+
+Ideas and planned work not yet specified. Move items into a SPEC when they're
+picked up.
+
+## Dashboard
+
+- **"Continue reading" element on the dashboard.** A card or button that
+  goes straight to the user's most recently read work in the Reader,
+  skipping the Library. It depends on SPEC-004 (Library and Reader).
+  Suggested source: the last-read work for the current study language,
+  showing its title and progress.
+
+## Library (follow-ups to SPEC-004)
+
+- **Filter button** in the Library header. SPEC-004 only reserves the space.
+- **Display-mode button** in the Library header (cards vs list). SPEC-004
+  only reserves the space.
