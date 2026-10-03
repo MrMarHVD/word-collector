@@ -18,7 +18,8 @@ function Tabs({ className, orientation = "horizontal", ...props }: React.Compone
 /**
  * Canonical tabs (SPEC-005 D2): underline style for page navigation. The list has a hairline under
  * (or beside, when vertical) it and the active trigger an accent underline. `line` and `default`
- * are accepted for backward compatibility and render the same.
+ * are accepted for backward compatibility and render the same. `bar` puts the list on the panel
+ * surface as a full-width hairline bar (page-level sub-menu); its edge replaces the underline hairline.
  */
 const tabsListVariants = cva(
   "group/tabs-list inline-flex w-fit items-center text-secondary group-data-[orientation=horizontal]/tabs:gap-1 group-data-[orientation=horizontal]/tabs:border-b group-data-[orientation=horizontal]/tabs:border-line group-data-[orientation=vertical]/tabs:h-fit group-data-[orientation=vertical]/tabs:flex-col group-data-[orientation=vertical]/tabs:border-r group-data-[orientation=vertical]/tabs:border-line",
@@ -26,6 +27,7 @@ const tabsListVariants = cva(
     variants: {
       variant: {
         underline: "",
+        bar: "w-full rounded-container bg-panel px-2 group-data-[orientation=horizontal]/tabs:border group-data-[orientation=horizontal]/tabs:border-line",
         default: "",
         line: ""
       }

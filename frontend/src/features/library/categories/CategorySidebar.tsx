@@ -214,7 +214,10 @@ export function CategorySidebar({ selected, onSelect, expanded: controlledExpand
   return (
     <aside
       id="libraryCategories"
-      className={cn("library-categories grid content-start gap-1", controlled && !expanded && "hidden mobile:grid")}
+      className={cn(
+        "library-categories grid content-start gap-1 rounded-container border border-line bg-panel p-3.5",
+        controlled && !expanded && "hidden mobile:grid"
+      )}
       aria-label={t("library.categories.label")}
     >
       <div className="flex items-center justify-between gap-2">

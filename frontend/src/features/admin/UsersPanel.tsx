@@ -164,6 +164,7 @@ export function UsersPanel() {
           <span>{t("admin.usersSearchLabel")}</span>
           <Input
             type="search"
+            variant="search"
             autoComplete="off"
             spellCheck={false}
             data-admin-users-search

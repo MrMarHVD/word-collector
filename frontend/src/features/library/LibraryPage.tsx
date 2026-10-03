@@ -250,6 +250,7 @@ export default function LibraryPage() {
               id="materialSearch"
               className="min-w-0 flex-1 mobile:basis-full"
               type="search"
+              variant="search"
               autoComplete="off"
               placeholder={t("reader.searchPlaceholder")}
               value={searchInput}

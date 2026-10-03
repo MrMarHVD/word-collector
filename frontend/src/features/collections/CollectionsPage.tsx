@@ -428,6 +428,7 @@ export default function CollectionsPage() {
               <Input
                 id="searchInput"
                 type="search"
+                variant="search"
                 placeholder={t("collections.searchPlaceholder")}
                 value={searchInput}
                 onChange={(event) => handleSearch(event.target.value)}

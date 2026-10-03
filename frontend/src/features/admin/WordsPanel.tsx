@@ -229,6 +229,7 @@ export function WordsPanel() {
             <Input
               className="admin-words-search"
               type="search"
+              variant="search"
               placeholder={t("admin.words.searchPlaceholder")}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
