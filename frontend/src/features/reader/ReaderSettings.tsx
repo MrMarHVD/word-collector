@@ -53,7 +53,7 @@ function SettingsForm({ showWordSpacesOption, onWordsPerPageChange, onClose, tit
         <CloseButton label={t("reader.closeSettings")} onClick={onClose} />
       </div>
       <div className="grid gap-5">
-        <SettingSection title={t("reader.settingsAppearance")}>
+        <SettingSection variant="inset" title={t("reader.settingsAppearance")}>
           <SettingRow stacked className={STACKED_ROW} label={t("reader.fontSize")} htmlFor="readerFontSize" labelId="readerFontSizeLabel">
             <div className="flex w-full items-center gap-3">
               <Slider
@@ -120,7 +120,7 @@ function SettingsForm({ showWordSpacesOption, onWordsPerPageChange, onClose, tit
             </SettingRow>
           )}
         </SettingSection>
-        <SettingSection title={t("reader.settingsBehaviour")}>
+        <SettingSection variant="inset" title={t("reader.settingsBehaviour")}>
           <SettingRow stacked className={STACKED_ROW} label={t("reader.wordsPerPage")} htmlFor="readerWordsPerPage" labelId="readerWordsPerPageLabel">
             <Select value={String(wordsPerPage)} onValueChange={onWordsPerPageChange}>
               <SettingSelect id="readerWordsPerPage" aria-labelledby="readerWordsPerPageLabel">
