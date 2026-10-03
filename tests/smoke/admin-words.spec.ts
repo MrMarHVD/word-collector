@@ -131,7 +131,7 @@ test.describe("admin words panel", () => {
     await login(page, ADMIN.email, ADMIN.password);
     await openWordsPanel(page);
 
-    const terms = page.locator("#adminWordsPanel .admin-words-row .admin-words-term .font-semibold");
+    const terms = page.locator("#adminWordsPanel .admin-words-row .admin-words-term");
     await expect(terms).toHaveCount(WORDS.length);
     await expect(terms).toHaveText(WORDS); // alphabetical order
 
