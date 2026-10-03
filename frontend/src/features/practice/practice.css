@@ -81,6 +81,8 @@
   max-height: 100%;
   overflow-wrap: anywhere;
   hyphens: auto;
+  /* Documented exception (CONTRACTS): the flashcard word is sized beyond the type scale. */
+  /* stylelint-disable-next-line property-disallowed-list */
   font-size: var(--practice-card-text-size, 4.5rem);
   line-height: 1.12;
 }
