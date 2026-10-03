@@ -73,9 +73,9 @@
   --text-label: oklch(0.36 0 0);
   --text-muted: oklch(0.48 0 0);
 
-  /* Borders: one hairline, plus a stronger one for inputs */
-  --border: oklch(0.92 0 0);
-  --border-strong: oklch(0.66 0 0);
+  /* Borders: a soft hairline (~1.2:1) and a modest step (~1.8:1) for control edges (see CONTRACTS.md) */
+  --border: oklch(0.93 0 0);
+  --border-strong: oklch(0.8 0 0);
 
   /* The one accent: primary actions, links, focus, active states */
   --accent: oklch(0.38 0.06 225);
@@ -98,7 +98,7 @@
   /* Glass: chrome and floating layers only (see .glass in glass.css) */
   --glass-bg: oklch(1 0 0 / 0.7);
   --glass-solid: oklch(0.99 0 0);
-  --glass-border: oklch(0 0 0 / 0.08);
+  --glass-border: oklch(0 0 0 / 0.06);
   --glass-blur: blur(24px) saturate(1.6);
   /* Muted text on glass: the label tone, as light glass over a dark backdrop drops muted to 3.1:1. */
   --glass-muted: var(--text-label);
@@ -125,8 +125,8 @@ html[data-theme="dark"] {
   --text-label: oklch(0.86 0 0);
   --text-muted: oklch(0.72 0 0);
 
-  --border: oklch(0.29 0 0);
-  --border-strong: oklch(0.5 0 0);
+  --border: oklch(0.27 0 0);
+  --border-strong: oklch(0.4 0 0);
 
   --accent: oklch(0.7 0.05 220);
   --accent-foreground: oklch(0.2 0.02 225);
@@ -145,7 +145,7 @@ html[data-theme="dark"] {
 
   --glass-bg: oklch(0.22 0 0 / 0.94);
   --glass-solid: oklch(0.23 0 0);
-  --glass-border: oklch(1 0 0 / 0.12);
+  --glass-border: oklch(1 0 0 / 0.09);
   --glass-muted: var(--text-muted);
   --known: var(--status-known);
   --learning: var(--status-learning);

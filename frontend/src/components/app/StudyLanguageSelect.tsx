@@ -15,7 +15,7 @@ import { useAvailableStudyLanguages, useStudyLanguageStore } from "@/stores/stud
 /** Flag in a small rounded frame with a hairline border (light flags, e.g. Japan's, stay visible on the light chip); the SVG fills the frame. */
 function FlagChip({ language, className }: { language: string; className?: string }) {
   return (
-    <span className={cn("inline-flex shrink-0 overflow-hidden rounded-control-sm border border-line-strong [&_svg]:size-full", className)}>
+    <span className={cn("inline-flex shrink-0 overflow-hidden rounded-control-sm border border-line [&_svg]:size-full", className)}>
       <Flag language={language} />
     </span>
   );

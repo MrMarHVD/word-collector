@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 /** Shared text-field surface (SPEC-005 D2): Input, Textarea, SelectTrigger and NativeSelect all use it. */
 export const FIELD_CLASS =
-  "focus-ring w-full min-w-0 rounded-control border border-line-strong bg-panel px-3 text-body text-main transition-colors outline-none placeholder:text-secondary disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive";
+  "focus-ring w-full min-w-0 rounded-control border border-line-strong bg-subtle px-3 text-body text-main transition-colors outline-none placeholder:text-secondary disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive";
 
 /** Canonical single-line text field: 36px high (44px on mobile). */
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
