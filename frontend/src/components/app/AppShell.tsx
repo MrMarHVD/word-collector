@@ -12,7 +12,6 @@ import { dashboardSummaryQuery } from "@/lib/api/queries";
 import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { useFormatCount, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { useReaderPreferencesStore } from "@/stores/reader-preferences";
 import { isAdminUser, useSessionStore } from "@/stores/session";
 import { useStudyLanguageStore } from "@/stores/study-language";
 
@@ -150,7 +149,6 @@ export function AppShell({ children }: AppShellProps) {
   const { pathname } = useLocation();
   const user = useSessionStore((state) => state.user);
   const selectedLanguageId = useStudyLanguageStore((state) => state.selectedId);
-  const focusMode = useReaderPreferencesStore((state) => state.focusMode);
   const activeTab = tabForPath(pathname);
   const isAdmin = isAdminUser(user);
   const hasStudyLanguage = selectedLanguageId !== null;
@@ -168,11 +166,11 @@ export function AppShell({ children }: AppShellProps) {
   useEffect(() => {
     const onReader = Boolean(user) && isReaderPath(pathname);
     document.body.classList.toggle("is-reader-active", onReader);
-    document.body.classList.toggle("is-reader-focus", onReader && focusMode);
+    document.body.classList.toggle("is-reader-focus", onReader);
     if (onReader) {
       window.scrollTo(0, 0);
     }
-  }, [user, pathname, focusMode]);
+  }, [user, pathname]);
 
   function goToTab(tab: Tab) {
     navigate(pathForTab(tab));

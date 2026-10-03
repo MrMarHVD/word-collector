@@ -5,28 +5,9 @@
  * styles/components.css. Unlayered, so they still beat utility classes.
  */
 
-/* ReaderPage sets --readerSidebarWidth: 0 when collapsed, animated in between. */
+/* The reader is the distraction-free view only: ReaderPage sets the text width through CSS variables. */
 .reader-layout {
-  grid-template-columns: var(--readerSidebarWidth) minmax(0, 1fr);
-  width: var(--readerViewportWidth, 100vw);
-  margin-left: calc(-1 * var(--readerViewportOffset, 0px));
-  --readerSidebarWidth: 300px;
   --readerPanelWidth: 100%;
-  --readerPanelHeight: auto;
-}
-
-.reader-sidebar {
-  width: 100%;
-  max-width: 340px;
-  height: calc(100vh - 88px);
-  overflow-x: hidden;
-  overflow-y: auto;
-  transform: translateX(0);
-  opacity: 1;
-  transition:
-    transform 220ms ease,
-    opacity 180ms ease,
-    box-shadow 220ms ease;
 }
 
 .reader-checkbox {
@@ -72,124 +53,72 @@
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
-.mobile-reader-tabs {
-  display: none;
-}
-
-.reader-sidebar-open {
-  top: var(--readerSidebarOpenTop, calc(88px + 0.875rem));
-}
-
-@media (min-width: 761px) {
-  .desktop-reader-tabs {
-    display: grid;
-  }
-
-  /* The sidebar owns the seam between it and the reading panel, so drop the
-     panel's left border to avoid a doubled line. */
-  .reader-panel {
-    border-left: 0;
-  }
-
-  /* With the sidebar hidden, the panel's left edge needs its own outline. */
-  .reader-layout.is-sidebar-collapsed .reader-panel {
-    border-left: 1px solid var(--border-main);
-  }
-}
-
-@media (max-width: 760px) {
-  .mobile-reader-tabs {
-    display: grid;
-  }
-
-  .desktop-reader-tabs {
-    display: none;
-  }
-}
-
-.reader-layout.is-sidebar-collapsed .reader-sidebar {
-  transform: translateX(-100%);
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* On desktop the sidebar keeps its open width and slides with its column, so
-   its right edge stays on the column edge while ReaderPage animates the width. */
-@media (min-width: 761px) {
-  .reader-sidebar,
-  .reader-layout.is-sidebar-collapsed .reader-sidebar {
-    width: var(--readerSidebarOpenWidth, 300px);
-    transform: translateX(calc(var(--readerSidebarWidth) - 100%));
-    /* Opacity and transform follow the column tween (useAnimatedSidebar), never a CSS transition. */
-    transition: box-shadow 220ms ease;
-  }
-}
-
 .reader-panel {
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: var(--readerPanelMinWidth, 360px);
-  min-height: var(--readerPanelMinHeight, 520px);
   width: clamp(var(--readerPanelMinWidth, 360px), var(--readerPanelWidth, 100%), 100%);
-  height: clamp(var(--readerPanelMinHeight, 520px), var(--readerPanelHeight, 620px), var(--readerPanelMaxHeight, calc(100vh - 104px)));
   max-width: 100%;
-  max-height: var(--readerPanelMaxHeight, calc(100vh - 104px));
-  margin-left: var(--readerPanelOffset, 0px);
 }
 
 .reader-page-actions {
   grid-template-columns: 1fr;
 }
 
-.reader-focus-toggle {
-  display: none;
-}
-
-/* The focus / exit-focus controls are anchored into the panel's top-right
-   corner rather than sitting inside the padding, forming a small segment whose
-   outer corner is clipped to the panel's rounded edge (the panel is
-   position: relative and overflow: hidden). */
-.reader-focus-command,
-.reader-focus-exit {
+/* Top bar over the text: the title on the left, Aa and exit on the right. The scrim of
+   the open settings panel sits inside it, behind its controls, so a click or tap
+   outside the panel never reaches the text. */
+.reader-topbar {
   position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 6;
-  width: 66px;
-  height: 30px;
-  min-height: 0;
+  inset: 0 0 auto;
+  z-index: 14;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0 8px;
+  justify-content: space-between;
+  gap: 12px;
+  height: 44px;
+  padding: 0 12px 0 20px;
+}
+
+.reader-topbar-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--reader-focus-chrome);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-topbar-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.reader-topbar-button {
+  min-height: 0;
+  padding: 6px 10px;
   border: 0;
-  border-bottom: 1px solid var(--border-main);
-  border-left: 1px solid var(--border-main);
-  border-radius: 0 0 0 10px;
-  box-shadow: none;
-  font-size: 0.82rem;
-  font-weight: 800;
-  line-height: 1;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--reader-focus-chrome);
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: opacity 160ms ease;
 }
 
-/* Keep the toolbar controls clear of the corner segment so they never overlap. */
-.is-reader-active .reader-toolbar {
-  padding-right: 76px;
+.reader-topbar-button:hover,
+.reader-topbar-button:focus-visible,
+.reader-topbar-button[data-state="open"] {
+  background: transparent;
+  color: var(--text-main);
 }
 
-.is-reader-active .reader-focus-command {
-  display: inline-flex;
-}
-
-.reader-focus-exit {
-  display: none;
-}
-
-.is-reader-focus .reader-focus-command {
-  display: none;
-}
-
-.is-reader-focus .reader-focus-exit:not([hidden]) {
-  display: inline-flex;
+.reader-settings-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
 }
 
 .reader-pagination-controls {
@@ -216,10 +145,7 @@
 }
 
 .is-reader-focus .menu-bar,
-.is-reader-focus #verifyBanner,
-.is-reader-focus .reader-sidebar,
-.is-reader-focus .reader-sidebar-open,
-.is-reader-focus .reader-toolbar {
+.is-reader-focus #verifyBanner {
   display: none;
   pointer-events: none;
 }
@@ -250,7 +176,6 @@
 }
 
 .is-reader-focus .reader-panel {
-  grid-template-rows: auto minmax(0, 1fr) auto;
   padding-top: 44px;
   height: 100vh;
   height: 100dvh;
@@ -712,21 +637,6 @@
 }
 
 @media (max-width: 760px) {
-  .reader-layout {
-    grid-template-columns: minmax(160px, min(var(--readerSidebarWidth), 240px)) minmax(0, 1fr);
-  }
-
-  .reader-layout.is-sidebar-collapsed {
-    grid-template-columns: 0 minmax(0, 1fr);
-  }
-
-  .reader-sidebar {
-    top: 0;
-    max-width: 240px;
-    height: 100vh;
-    border-radius: 0 8px 8px 0;
-  }
-
   .reader-word-info {
     top: var(--readerInfoTop, 12px);
     left: var(--readerInfoLeft, 12px);
@@ -739,33 +649,6 @@
 }
 
 @media (max-width: 760px) {
-  .reader-layout {
-    display: grid;
-    grid-template-columns: 1fr;
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .reader-layout.is-sidebar-collapsed {
-    grid-template-columns: 1fr;
-  }
-
-  .reader-sidebar {
-    position: static;
-    width: 100%;
-    max-width: none;
-    height: auto;
-    max-height: 44dvh;
-    border-right: 1px solid var(--border-main);
-    border-radius: 8px 8px 0 0;
-  }
-
-  .reader-layout.is-sidebar-collapsed .reader-sidebar {
-    max-height: 0;
-    padding-block: 0;
-    border-width: 0;
-  }
-
   .reader-word-info {
     position: fixed;
     inset: auto 10px calc(10px + env(safe-area-inset-bottom)) 10px;
@@ -777,72 +660,6 @@
 }
 
 @media (max-width: 760px) {
-  .reader-layout {
-    display: grid;
-    grid-template-columns: 1fr;
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .reader-sidebar {
-    position: static;
-    width: 100%;
-    max-width: none;
-    height: auto;
-    max-height: 44dvh;
-    border-right: 1px solid var(--border-main);
-    border-radius: 8px 8px 0 0;
-  }
-
-  .reader-layout.is-sidebar-collapsed .reader-sidebar {
-    max-height: 0;
-    padding-block: 0;
-    border-width: 0;
-  }
-
-  .reader-sidebar-open {
-    top: auto;
-    right: 10px;
-    bottom: calc(14px + env(safe-area-inset-bottom));
-    left: auto;
-    width: 48px;
-    border-left: 1px solid var(--border-main);
-    border-radius: 999px;
-  }
-
-  .reader-panel {
-    width: 100%;
-    min-width: 0;
-    min-height: calc(100dvh - 210px);
-    height: auto;
-    max-height: none;
-    margin-left: 0 !important;
-    border-radius: 0 0 8px 8px;
-    padding: 14px;
-  }
-
-  .reader-layout.is-reader-read-panel {
-    height: calc(100dvh - 190px);
-    overflow: hidden;
-  }
-
-  .reader-layout.is-reader-read-panel .reader-panel {
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
-    height: 100%;
-    min-height: 0;
-    max-height: 100%;
-    overflow: hidden;
-  }
-
-  .reader-layout.is-reader-read-panel .reader-text {
-    min-height: 0;
-    overflow: auto;
-  }
-
-  .reader-layout.is-reader-read-panel .reader-page-actions {
-    margin-top: 0.75rem;
-  }
-
   .is-reader-focus .reader-layout {
     align-items: stretch;
     justify-content: stretch;
@@ -883,13 +700,9 @@
     margin-top: 0;
   }
 
-  .reader-controls {
-    grid-template-columns: minmax(0, 1fr) minmax(112px, 140px) !important;
-    width: 100%;
-  }
-
-  .reader-controls label {
-    min-width: 0;
+  .reader-topbar {
+    height: 50px;
+    padding-left: 14px;
   }
 
   .reader-text {
@@ -900,27 +713,6 @@
 
   .reader-pagination-controls {
     grid-column: 1;
-  }
-
-  .reader-focus-command,
-  .reader-focus-exit {
-    width: 76px;
-    height: 36px;
-    margin: 0;
-    border-radius: 0 0 0 12px;
-    font-size: 0.9rem;
-  }
-
-  /* The toolbar stacks on mobile, so only the title row sits beside the corner
-       segment. Reserve room on the title block alone (not the whole toolbar, so
-       the controls row still spans full width) so the title ends just before the
-       button begins. */
-  .is-reader-active .reader-toolbar {
-    padding-right: 0;
-  }
-
-  .is-reader-active .reader-toolbar > div:first-child {
-    padding-right: 84px;
   }
 
   .reader-pagination-controls {
@@ -948,42 +740,6 @@
 @media (max-width: 420px) {
   .reader-text {
     padding: 14px;
-  }
-}
-
-/* Mobile reader tabs and panels (from public/css/shell.css). */
-@media (max-width: 760px) {
-  .reader-sidebar-tabs {
-    position: sticky;
-    top: 0;
-    z-index: 9;
-  }
-
-  .reader-layout.is-reader-read-panel {
-    grid-template-columns: 1fr;
-  }
-
-  .reader-layout.is-reader-read-panel .reader-panel {
-    border-radius: 8px;
-  }
-
-  .reader-layout.is-reader-side-panel {
-    grid-template-columns: 1fr;
-  }
-
-  .reader-layout.is-reader-side-panel .reader-sidebar {
-    max-height: none;
-    border: 1px solid var(--border-main);
-    border-radius: 8px;
-  }
-
-  .reader-layout.is-reader-side-panel .reader-sidebar-head,
-  .reader-layout.is-reader-side-panel .reader-sidebar-open {
-    display: none;
-  }
-
-  .reader-layout.is-reader-side-panel .material-list {
-    max-height: none;
   }
 }
 
@@ -1123,7 +879,6 @@
   }
 }
 
-.is-reader-focus .reader-focus-exit,
 .is-reader-focus .reader-pagination-controls button {
   min-height: 0;
   border: 0;
@@ -1135,8 +890,6 @@
   transition: opacity 160ms ease;
 }
 
-.is-reader-focus .reader-focus-exit:hover,
-.is-reader-focus .reader-focus-exit:focus-visible,
 .is-reader-focus .reader-pagination-controls button:hover:not(:disabled),
 .is-reader-focus .reader-pagination-controls button:focus-visible {
   background: transparent;
@@ -1145,16 +898,6 @@
 
 .is-reader-focus .reader-pagination-controls button:disabled {
   opacity: 0.6;
-}
-
-.is-reader-focus .reader-focus-exit {
-  position: fixed;
-  top: 10px;
-  right: 12px;
-  width: auto;
-  height: auto;
-  padding: 6px 10px;
-  font-size: 0.8rem;
 }
 
 .is-reader-focus .reader-pagination-controls #readerPageStatus {
@@ -1168,14 +911,4 @@
 
 .is-reader-focus .reader-progress-bar {
   background: var(--reader-focus-chrome);
-}
-
-/* The mobile read-panel rules would otherwise keep the four-row grid whose
-   hidden toolbar row pushes the text into an auto-sized row. */
-.is-reader-focus .reader-layout.is-reader-read-panel {
-  height: 100dvh;
-}
-
-.is-reader-focus .reader-layout.is-reader-read-panel .reader-panel {
-  grid-template-rows: auto minmax(0, 1fr);
 }
