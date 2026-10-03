@@ -13,9 +13,9 @@ export function SidebarLayout({ collapsed, className, ...props }: SidebarLayoutP
 export interface SidebarProps extends Omit<ComponentProps<"aside">, "children"> {
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
-  /** Localised, visually hidden label of the minimise button (e.g. t("reader.toggleSidebar")). */
+  /** Localised, visually hidden label of the minimise button (e.g. t("collections.toggleSidebar")). */
   toggleLabel: string;
-  /** Id of the minimise button (e.g. "readerSidebarToggle"). */
+  /** Id of the minimise button (e.g. "collectionsSidebarToggle"). */
   toggleId?: string;
   /** Extra classes on the head row. */
   headClassName?: string;
@@ -53,7 +53,7 @@ export interface SidebarOpenButtonProps extends Omit<ComponentProps<"button">, "
   /** Shown only while the sidebar is collapsed. */
   collapsed: boolean;
   onOpen: () => void;
-  /** Localised, visually hidden label (e.g. t("reader.openSidebar")). */
+  /** Localised, visually hidden label (e.g. t("collections.openSidebar")). */
   label: string;
 }
 

@@ -1,10 +1,13 @@
 import { m, useReducedMotion } from "motion/react";
+import { Link } from "react-router";
 import { useFormatCount, useT } from "@/lib/i18n";
 import { MOTION_EASE } from "@/lib/motion";
 import { progressPercents } from "./progress";
 
 export interface ProgressCardProps {
   title: string;
+  /** When set, the title is a link to this path (e.g. the Library "go to" address). */
+  titleTo?: string;
   subtitle: string;
   /** Localised line under the subtitle (known-of-total or read-of-total). */
   detailText: string;
@@ -15,7 +18,7 @@ export interface ProgressCardProps {
 }
 
 /** Progress chart card (legacy `.chart-card`): a known/learning/unknown pie that fills in on mount, beside the counts. */
-export function ProgressCard({ title, subtitle, detailText, totalWords, knownWords, learningWords, unknownWords }: ProgressCardProps) {
+export function ProgressCard({ title, titleTo, subtitle, detailText, totalWords, knownWords, learningWords, unknownWords }: ProgressCardProps) {
   const t = useT();
   const formatCount = useFormatCount();
   const { knownPercent, learningPercent } = progressPercents({ totalWords, knownWords, learningWords });
@@ -31,7 +34,15 @@ export function ProgressCard({ title, subtitle, detailText, totalWords, knownWor
         transition={{ duration: 0.5, ease: MOTION_EASE }}
       />
       <div>
-        <strong>{title}</strong>
+        <strong>
+          {titleTo ? (
+            <Link className="chart-card-link" to={titleTo}>
+              {title}
+            </Link>
+          ) : (
+            title
+          )}
+        </strong>
         <span>{subtitle}</span>
         <span>{detailText}</span>
         <span>

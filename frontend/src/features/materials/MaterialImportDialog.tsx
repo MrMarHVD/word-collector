@@ -21,8 +21,7 @@ export interface MaterialImportDialogProps {
 
 /**
  * The material import dialog (#materialImportModal): TXT/EPUB/PDF upload with
- * beta-limit errors and import progress. MaterialList renders it itself; it is
- * exported for other entry points. As in the legacy app it closes as soon as
+ * beta-limit errors and import progress. The Library renders it. As in the legacy app it closes as soon as
  * the upload starts; its status line and progress bar keep tracking the last
  * import and show again when it is reopened, as does a file chosen but not
  * yet imported.

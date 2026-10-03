@@ -1,13 +1,11 @@
 /**
  * Reader state that outlives the page component. The legacy app kept it in
- * its global state, so switching tabs and coming back showed the same page,
- * sidebar tab without refetching; this module plays that role.
+ * its global state, so switching tabs and coming back showed the same page
+ * without refetching; this module plays that role.
  */
 
 import type { MaterialReaderParams } from "@/lib/api/types";
 import { registerSessionReset } from "@/stores/session";
-
-export type ReaderSidebarTab = "read" | "documents" | "settings";
 
 /** The page on screen: which material and which request loaded it. */
 export interface ReaderView {
@@ -20,11 +18,10 @@ interface ReaderSessionState {
   languageId: number | null;
   selectedMaterialId: number | null;
   view: ReaderView | null;
-  sidebarTab: ReaderSidebarTab;
 }
 
 function initialReaderSession(): ReaderSessionState {
-  return { languageId: null, selectedMaterialId: null, view: null, sidebarTab: "read" };
+  return { languageId: null, selectedMaterialId: null, view: null };
 }
 
 export const readerSession: ReaderSessionState = initialReaderSession();

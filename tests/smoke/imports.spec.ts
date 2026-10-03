@@ -110,10 +110,10 @@ async function removeAddedListWords() {
   }
 }
 
-/** Shows the document list, which sits behind the Documents tab when the reader is open. */
+/** Shows the document list, which sits in the Library: an open reader is left through its exit button. */
 async function showDocuments(page: Page) {
   if (!(await page.locator("#materialImportOpen").isVisible())) {
-    await page.locator('[data-reader-sidebar-tab="documents"]:visible').first().click();
+    await page.locator("#readerFocusExit").click();
   }
   await expect(page.locator("#materialImportOpen")).toBeVisible();
 }
@@ -161,7 +161,7 @@ test.describe("material imports", () => {
     test(`import a ${fixture.type.toUpperCase()} work, open it from the list and delete it`, async ({ page }) => {
       test.setTimeout(150_000);
       const title = `${TITLE_PREFIX}-${fixture.type}`;
-      await page.goto("/reader");
+      await page.goto("/library");
       await page.locator("#localeSelect").selectOption("en");
       await showDocuments(page);
 
@@ -186,18 +186,19 @@ test.describe("material imports", () => {
 
       // After a reload it is still listed with its file type and opens again.
       await page.reload();
-      await page.locator("#localeSelect").selectOption("en");
       await showDocuments(page);
+      await page.locator("#localeSelect").selectOption("en");
       const listRow = page.locator("#materialList .material-row", { has: page.locator(`[data-material-id="${materialId}"]`) });
       await expect(listRow).toContainText(fill(EN["reader.materialMeta"].split("{words}")[0], { type: fixture.type.toUpperCase() }));
       await openFromList(page, titleButton, title);
 
       // Delete it from the list after confirming.
       await showDocuments(page);
-      await page.locator(`#materialList [data-delete-material-id="${materialId}"]`).click();
+      await page.locator(`#materialList [data-material-menu-id="${materialId}"]`).click();
+      await page.locator(`[data-delete-material-id="${materialId}"]`).click();
       await page.getByRole("alertdialog").getByRole("button", { name: EN["common.delete"], exact: true }).click();
       await expect(titleButton).toHaveCount(0);
-      await expect(page.locator("#readerTitle")).toHaveText(EN["reader.title"]);
+      await expect(page).toHaveURL(/\/library$/);
     });
   }
 });

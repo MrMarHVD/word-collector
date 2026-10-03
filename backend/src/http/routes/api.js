@@ -5,7 +5,7 @@
  *   - **Public routes** — handled before session validation (auth endpoints).
  *   - **Authenticated routes** — only reached after a valid session is confirmed.
  *
- * CSRF validation is enforced here for every unsafe method (POST, PATCH, DELETE)
+ * CSRF validation is enforced here for every unsafe method (POST, PUT, PATCH, DELETE)
  * before any route logic runs, so individual route handlers do not need to
  * repeat the check.
  *
@@ -20,6 +20,7 @@ import { createAdminSuperadminRoutes } from "./admin-superadmin.routes.js";
 import { createAdminUsersRoutes } from "./admin-users.routes.js";
 import { createAdminWordsRoutes } from "./admin-words.routes.js";
 import { createAuthRoutes } from "./auth.routes.js";
+import { createCategoriesRoutes } from "./categories.routes.js";
 import { createCollectionsRoutes } from "./collections.routes.js";
 import { createDashboardRoutes } from "./dashboard.routes.js";
 import { createImportsRoutes } from "./imports.routes.js";
@@ -29,7 +30,7 @@ import { createPracticeRoutes } from "./practice.routes.js";
 import { createSettingsRoutes } from "./settings.routes.js";
 import { createWordsRoutes } from "./words.routes.js";
 
-const UNSAFE_METHODS = new Set(["POST", "PATCH", "DELETE"]);
+const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 /**
  * Creates the single async request handler that dispatches all `/api/*` requests.
@@ -50,6 +51,7 @@ export function createApiHandler({ repositories, emailService }) {
     createDashboardRoutes({ repositories }),
     createLanguagesRoutes({ repositories }),
     createMaterialsRoutes({ repositories }),
+    createCategoriesRoutes({ repositories }),
     createPracticeRoutes({ repositories }),
     createSettingsRoutes({ repositories, session }),
     createWordsRoutes({ repositories }),

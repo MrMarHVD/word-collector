@@ -4,7 +4,7 @@ import { MOTION_DURATION, MOTION_EASE_SLIDE } from "@/lib/motion";
 
 export interface AnimatedSidebarOptions {
   collapsed: boolean;
-  /** False where the sidebar must switch instantly (mobile, focus mode); reduced motion is handled here. */
+  /** False where the sidebar must switch instantly (mobile); reduced motion is handled here. */
   enabled: boolean;
   /** The sidebar column's resting width, open or collapsed; read when a toggle starts. */
   restWidth: (collapsed: boolean) => number;

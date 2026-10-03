@@ -25,7 +25,7 @@ describe("wordInfoPosition", () => {
     expect(wordInfoPosition(rect(200, 300, 900, 20), { width: 300, height: 200 }, viewport, false).left).toBe(12);
   });
 
-  it("stays inside the viewport vertically, keeping room for the controls in mobile focus mode", () => {
+  it("stays inside the viewport vertically, keeping room for the controls in the mobile Reader", () => {
     expect(wordInfoPosition(rect(100, 0, 40, 20), { width: 300, height: 200 }, viewport, false).top).toBe(12);
     expect(wordInfoPosition(rect(100, 780, 40, 20), { width: 300, height: 200 }, viewport, false).top).toBe(588);
     expect(wordInfoPosition(rect(100, 780, 40, 20), { width: 300, height: 200 }, viewport, true).top).toBe(514);

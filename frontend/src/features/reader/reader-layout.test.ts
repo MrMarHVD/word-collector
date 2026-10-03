@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clamp, computeReaderLayout, readerSidebarColumnWidth, type ReaderLayoutInput } from "./reader-layout";
+import { clamp, computeReaderLayout } from "./reader-layout";
 
 describe("clamp", () => {
   it("keeps values in range, preferring the minimum when the range is empty", () => {
@@ -10,56 +10,18 @@ describe("clamp", () => {
   });
 });
 
-describe("readerSidebarColumnWidth", () => {
-  it("is 0 when collapsed and fixed per breakpoint", () => {
-    expect(readerSidebarColumnWidth(true, false)).toBe(0);
-    expect(readerSidebarColumnWidth(false, false)).toBe(300);
-    expect(readerSidebarColumnWidth(false, true)).toBe(240);
-  });
-});
-
 describe("computeReaderLayout", () => {
-  const desktop: ReaderLayoutInput = {
-    focusMode: false,
-    mobile: false,
-    viewportWidth: 1400,
-    viewportHeight: 900,
-    panelTop: 100,
-    sidebarCollapsed: false,
-    savedPanelWidth: 0
-  };
-
-  it("fills the space beside the sidebar and down to the bottom margin by default", () => {
-    expect(computeReaderLayout(desktop)).toEqual({
-      sidebarWidth: 300,
-      minPanelWidth: 360,
-      maxPanelHeight: 784,
-      minPanelHeight: 520,
-      panelWidth: 1100,
-      panelHeight: 784,
-      panelOffset: 0
-    });
+  it("uses half the viewport by default", () => {
+    expect(computeReaderLayout({ viewportWidth: 1400, savedPanelWidth: 0 })).toEqual({ minPanelWidth: 360, panelWidth: 700 });
   });
 
-  it("clamps a saved size and centres a narrower panel in the viewport", () => {
-    const layout = computeReaderLayout({ ...desktop, savedPanelWidth: 600 });
-    expect(layout.panelWidth).toBe(600);
-    expect(layout.panelHeight).toBe(784);
-    expect(layout.panelOffset).toBe(400 - 300);
+  it("clamps a saved width into the viewport", () => {
+    expect(computeReaderLayout({ viewportWidth: 1400, savedPanelWidth: 960 }).panelWidth).toBe(960);
+    expect(computeReaderLayout({ viewportWidth: 800, savedPanelWidth: 1120 }).panelWidth).toBe(800);
+    expect(computeReaderLayout({ viewportWidth: 1400, savedPanelWidth: 100 }).panelWidth).toBe(360);
   });
 
-  it("uses half the viewport and the full height in focus mode", () => {
-    const layout = computeReaderLayout({ ...desktop, focusMode: true });
-    expect(layout).toMatchObject({ sidebarWidth: 0, panelWidth: 700, panelHeight: 900, minPanelHeight: 900, panelOffset: 350 });
-  });
-
-  it("drops the sidebar column when collapsed", () => {
-    expect(computeReaderLayout({ ...desktop, sidebarCollapsed: true }).panelWidth).toBe(1400);
-  });
-
-  it("sizes the panel beside a sidebar column that is animating", () => {
-    const layout = computeReaderLayout({ ...desktop, sidebarCollapsed: true, sidebarWidth: 150, savedPanelWidth: 600 });
-    expect(layout).toMatchObject({ sidebarWidth: 150, panelWidth: 600, panelOffset: 400 - 150 });
-    expect(computeReaderLayout({ ...desktop, focusMode: true, sidebarWidth: 150 }).sidebarWidth).toBe(0);
+  it("never exceeds a viewport narrower than the minimum", () => {
+    expect(computeReaderLayout({ viewportWidth: 320, savedPanelWidth: 0 })).toEqual({ minPanelWidth: 320, panelWidth: 320 });
   });
 });
