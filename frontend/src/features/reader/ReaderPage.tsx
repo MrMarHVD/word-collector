@@ -512,7 +512,7 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
     function handleResize() {
       latest.current.applyLayout();
     }
-    // Re-measure once the route's layout has settled (legacy renderReaderSidebarAfterLayout).
+    // Re-measure once the route's layout has settled.
     frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => latest.current.applyLayout());
     });

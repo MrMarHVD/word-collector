@@ -27,7 +27,7 @@ export interface ReaderWordInfoProps {
   /** Receives the popup element, so outside clicks can be detected. */
   popupRef: RefObject<HTMLElement | null>;
   isMobile: boolean;
-  /** Mobile focus mode keeps room for the fixed page controls below the sheet. */
+  /** The mobile Reader keeps room for the fixed page controls below the sheet. */
   mobileFocus: boolean;
   /** Whether the translation override is being edited. */
   editing: boolean;

@@ -848,7 +848,7 @@
   display: block;
 }
 
-/* Focus mode is just text on the page: no panel frame, and the few controls
+/* The Reader is just text on the page: no panel frame, and the few controls
    (exit, page turns, progress) are muted so they never compete with the
    text. Placed last so these rules win over the panel rules above. */
 .is-reader-focus .reader-layout {
