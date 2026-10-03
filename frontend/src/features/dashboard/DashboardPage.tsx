@@ -93,7 +93,7 @@ export default function DashboardPage() {
     <section id="dashboardView">
       <PageHeader title={t("tabs.dashboard")} />
       <Tabs className="block" value={tab} onValueChange={(value) => setTab(parseDashboardStatsTab(value))}>
-        <TabsList className="mb-4" aria-label={t("dashboard.statsTabs")}>
+        <TabsList variant="bar" className="mb-4" aria-label={t("dashboard.statsTabs")}>
           {(["overview", "documents"] as const).map((value) => (
             <TabsTrigger key={value} value={value} data-dashboard-stats-tab={value}>
               {t(value === "overview" ? "dashboard.overviewTab" : "dashboard.documentsTab")}
@@ -160,6 +160,7 @@ export default function DashboardPage() {
                   <Input
                     id="dashboardDocumentSearch"
                     type="search"
+                    variant="search"
                     placeholder={t("dashboard.documentSearchPlaceholder")}
                     value={searchInput}
                     onChange={(event) => setSearchInput(event.target.value)}

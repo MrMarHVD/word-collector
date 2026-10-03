@@ -213,6 +213,7 @@ export function ComponentShowcase() {
             <Input key={name} className={className} disabled={disabled} placeholder={name} aria-label={name} />
           ))}
           <Input aria-invalid defaultValue="invalid" aria-label="invalid" />
+          <Input type="search" variant="search" placeholder="search" aria-label="search" />
           <Textarea placeholder="textarea" aria-label="textarea" />
           <Select defaultValue="a">
             <SelectTrigger aria-label="select" className="w-full">
@@ -267,6 +268,12 @@ export function ComponentShowcase() {
             <TabsContent value="two" className="pt-3 text-body">
               {t("styleguide.sampleMeta")}
             </TabsContent>
+          </Tabs>
+          <Tabs value={tab} onValueChange={setTab} className="mt-3">
+            <TabsList variant="bar" aria-label="tabs bar">
+              <TabsTrigger value="one">{t("styleguide.sampleOptionA")}</TabsTrigger>
+              <TabsTrigger value="two">{t("styleguide.sampleOptionB")}</TabsTrigger>
+            </TabsList>
           </Tabs>
           <Tabs defaultValue="one" orientation="vertical">
             <TabsList aria-label="tabs vertical">

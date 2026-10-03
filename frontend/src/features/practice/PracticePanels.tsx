@@ -42,7 +42,7 @@ export function PracticeShell({ children }: { children: ReactNode }) {
       orientation={isMobile ? "horizontal" : "vertical"}
       className="practice-layout gap-4 desktop:flex-row desktop:items-start mobile:flex-col"
     >
-      <TabsList aria-label={t("practice.sidebarLabel")} className="practice-sidebar shrink-0 desktop:w-44 mobile:w-full">
+      <TabsList variant="bar" aria-label={t("practice.sidebarLabel")} className="practice-sidebar shrink-0 desktop:w-44 mobile:w-full">
         {PANELS.map(({ id, labelKey }) => (
           <TabsTrigger key={id} value={id} data-practice-panel={id} className="min-h-9 px-3">
             {t(labelKey)}
