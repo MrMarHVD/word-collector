@@ -42,11 +42,13 @@ export function useMaterialsList(search: string) {
   return { ...query, materials };
 }
 
-/** Applies `update` to the materials of every cached list page. */
+/** Applies `update` to the materials of every cached list page, in both the reader's lists and the Library's. */
 function updateCachedMaterials(client: QueryClient, update: (materials: MaterialListItem[]) => MaterialListItem[]) {
-  client.setQueriesData<MaterialPages>({ queryKey: [...queryKeys.materials.all, "list"] }, (data) =>
-    data ? { ...data, pages: data.pages.map((page) => ({ ...page, materials: update(page.materials) })) } : data
-  );
+  for (const queryKey of [[...queryKeys.materials.all, "list"], queryKeys.library.materialsAll]) {
+    client.setQueriesData<MaterialPages>({ queryKey }, (data) =>
+      data ? { ...data, pages: data.pages.map((page) => ({ ...page, materials: update(page.materials) })) } : data
+    );
+  }
 }
 
 /** POST /api/materials for the selected study language; refreshes study data once the import has started. */
