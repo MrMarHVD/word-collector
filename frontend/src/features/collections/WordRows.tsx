@@ -175,10 +175,10 @@ export function WordRows({
               </TableCell>
             </TableRow>
             {expanded && disambiguationEntries(entry).length ? (
-              <TableRow className="disambiguation-row hover:bg-transparent mobile:hidden" data-disambiguation-for={entry.id}>
+              <TableRow className="bg-subtle hover:bg-subtle mobile:hidden" data-disambiguation-for={entry.id}>
                 <TableCell></TableCell>
                 <TableCell colSpan={4} className="whitespace-normal">
-                  <DisambiguationTable entry={entry} className="disambiguation-table" />
+                  <DisambiguationTable entry={entry} />
                 </TableCell>
               </TableRow>
             ) : null}
