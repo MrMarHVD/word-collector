@@ -83,8 +83,8 @@ Gating (`RouteGate`), as in legacy `router.js`:
 - Navigate with `useNavigate()` and `pathForTab(tab)` / `TAB_PATHS` from `@/app/route-paths`. Deep links, reload and back/forward are handled by React Router.
 
 The shell renders your page inside `<main id="appShell">` below the fixed menu
-bar, and toggles `body.is-reader-active` / `body.is-reader-focus` (the latter
-from `readerPreferences.focusMode`) on `/reader` and `/reader/*` (`isReaderPath`). Keep the legacy view ids on
+bar, and toggles `body.is-reader-active` / `body.is-reader-focus` (the Reader is
+focus-only) on `/reader` and `/reader/*` (`isReaderPath`). Keep the legacy view ids on
 your page root (`#dashboardView`, `#collectionsView`, `#readerView`,
 `#practiceView`, `#settingsView`, `#adminView`).
 
@@ -181,20 +181,17 @@ Server data belongs in TanStack Query, not in stores. Outside React, use `useXSt
 
 **`useReaderPreferencesStore`** (`@/stores/reader-preferences`): same keys, parsing and defaults as `state.js`; writes use `String(value)`.
 
-| Field                         | Key                                     | Default                                      |
-| ----------------------------- | --------------------------------------- | -------------------------------------------- |
-| `wordsPerPage: "fit"\|number` | wordMarkerReaderWordsPerPage            | 250                                          |
-| `fontSize`                    | wordMarkerReaderFontSize                | 22                                           |
-| `sidebarCollapsed`            | wordMarkerReaderSidebarCollapsed        | false                                        |
-| `panelWidth`                  | wordMarkerReaderPanelWidth              | 0 (automatic: full width beside the sidebar) |
-| `focusMode`                   | wordMarkerReaderFocusMode               | false                                        |
-| `focusPanelWidth`             | wordMarkerReaderFocusPanelWidth         | 0 (automatic: half the viewport)             |
-| `autoMarkKnownOnPageTurn`     | wordMarkerReaderAutoMarkKnownOnPageTurn | false                                        |
-| `autoMarkLearningOnClick`     | wordMarkerReaderAutoMarkLearningOnClick | true (only `"false"` disables it)            |
-| `showWordSpaces`              | wordMarkerReaderShowWordSpaces          | false                                        |
-| `highlightOpacity`            | wordMarkerReaderHighlightOpacity        | 0.2                                          |
+| Field                         | Key                                     | Default                           |
+| ----------------------------- | --------------------------------------- | --------------------------------- |
+| `wordsPerPage: "fit"\|number` | wordMarkerReaderWordsPerPage            | 250                               |
+| `fontSize`                    | wordMarkerReaderFontSize                | 22                                |
+| `focusPanelWidth`             | wordMarkerReaderFocusPanelWidth         | 0 (automatic: half the viewport)  |
+| `autoMarkKnownOnPageTurn`     | wordMarkerReaderAutoMarkKnownOnPageTurn | false                             |
+| `autoMarkLearningOnClick`     | wordMarkerReaderAutoMarkLearningOnClick | true (only `"false"` disables it) |
+| `showWordSpaces`              | wordMarkerReaderShowWordSpaces          | false                             |
+| `highlightOpacity`            | wordMarkerReaderHighlightOpacity        | 0.2                               |
 
-The reader is never moved or resized by pointer: the text width is set only from the reader settings ("Text width"), which writes `panelWidth` and `focusPanelWidth` together (mobile is always full width). The old sidebar, info and panel-height keys are no longer read.
+The reader is never moved or resized by pointer: the text width is set only from the reader settings ("Text width"), which writes `focusPanelWidth` (mobile is always full width). The old sidebar, focus-mode, normal-mode width, info and panel-height keys are no longer read; their stored values are left in place.
 
 Actions: `setPreference(key, value)`, `setPreferences(partial)`. Also exported: `READER_PREFERENCE_KEYS`, `readReaderPreferences()`.
 
