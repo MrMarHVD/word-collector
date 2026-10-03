@@ -273,6 +273,11 @@ export function ComponentShowcase() {
             </Badge>
           ))}
         </div>
+        <div className="flex flex-wrap items-center gap-4 text-body">
+          <span className="text-status-unknown-text">text-status-unknown-text</span>
+          <span className="text-status-learning-text">text-status-learning-text</span>
+          <span className="text-status-known-text">text-status-known-text</span>
+        </div>
       </Block>
 
       <Block id="styleguide-tables" title={t("styleguide.tables")}>

@@ -19,9 +19,9 @@ const badgeVariants = cva(
         accent: "bg-accent text-main",
         destructive: "bg-destructive/10 text-destructive",
         outline: "border-line text-main [a&]:hover:bg-accent",
-        unknown: "bg-status-unknown/20 text-(--status-unknown-text)",
-        learning: "bg-status-learning/15 text-(--status-learning-text)",
-        known: "bg-status-known/15 text-(--status-known-text)"
+        unknown: "bg-status-unknown/20 text-status-unknown-text",
+        learning: "bg-status-learning/15 text-status-learning-text",
+        known: "bg-status-known/15 text-status-known-text"
       }
     },
     defaultVariants: {

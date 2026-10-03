@@ -60,7 +60,7 @@ Defined in `styles/theme.css` (values, light in `:root`, dark in `html[data-them
 - **Text**: `--text-main`, `--text-label`, `--text-muted` (`text-main`, `text-label`, `text-secondary`). All meet WCAG AA on every surface.
 - **Border**: `--border` (1px hairline; `border-line`), `--border-strong` (inputs, 3:1; `border-line-strong`).
 - **Accent** (hue 220, low chroma): `--accent` (`text-brand`/`bg-primary`), `--accent-foreground` (text on the accent; `text-primary-foreground`), `--accent-subtle` (tonal active/hover fill; `bg-accent-subtle`), `--accent-strong`. Only for primary actions, links, focus and active states. The kit's `bg-accent` is mapped to `--accent-subtle` (its hover/selected surface); the accent colour in the kit is `primary`.
-- **Word status**: `--status-unknown`, `--status-learning`, `--status-known` (fills, `bg-status-*`) and `--status-*-text` (text-safe variants).
+- **Word status**: `--status-unknown`, `--status-learning`, `--status-known` (fills, `bg-status-*`) and `--status-*-text` (text-safe variants, `text-status-unknown-text`, `text-status-learning-text`, `text-status-known-text`). Plain `text-status-*` is the fill colour: use it only for non-text marks.
 - **Radius** (exactly these): `--radius-control` 8px (`rounded-control`), `--radius-container` 14px (`rounded-container`), `--radius-pill` (`rounded-pill`, badges only).
 - **Type**: `text-title` 22/1.3, `text-heading` 17/1.4, `text-body` 15/1.55, `text-caption` 13/1.45 (px / line height; title and heading are 600, body and caption 400). Weights are 400, 500, 600 only (`font-normal`, `font-medium`, `font-semibold`).
 - **Elevation**: `--shadow-float` (`shadow-float`) for floating layers only. There is no panel shadow.
