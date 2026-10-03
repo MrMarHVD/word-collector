@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-quer
 import { useCallback, useLayoutEffect, useRef, useState, type DragEvent, type MouseEvent, type UIEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useConfirm } from "@/components/app/ConfirmDialog";
+import { PageHeader } from "@/components/app/PageHeader";
 import { Segmented } from "@/components/app/Segmented";
 import { Sidebar, SidebarLayout, SidebarOpenButton } from "@/components/app/Sidebar";
 import { toastError } from "@/components/app/toast";
@@ -11,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Text } from "@/components/ui/text";
 import { api, dashboardSummaryQuery, errorMessage, refreshStudyData } from "@/lib/api";
 import type { CollectionStats, ImportWordsResponse, Word, WordStatus } from "@/lib/api/types";
 import { useAnimatedSidebar } from "@/lib/hooks/use-animated-sidebar";
@@ -355,6 +355,23 @@ export default function CollectionsPage() {
 
   return (
     <section id="collectionsView">
+      <PageHeader
+        title={t("tabs.collections")}
+        actions={
+          <Segmented
+            className="desktop-display-mode w-56 mobile:hidden"
+            aria-label={t("collections.displayMode")}
+            size="sm"
+            value={displayMode}
+            onValueChange={handleDisplayMode}
+            options={DISPLAY_MODES.map((mode) => ({
+              value: mode,
+              label: t(mode === "page" ? "collections.displayPage" : "collections.displayInfinite"),
+              itemProps: { "data-display-mode": mode }
+            }))}
+          />
+        }
+      />
       <SidebarOpenButton
         ref={openButtonRef}
         id="collectionsSidebarOpen"
@@ -370,7 +387,7 @@ export default function CollectionsPage() {
       >
         <Sidebar
           ref={sidebarRef}
-          className="collections-sidebar rounded-container border border-line bg-panel p-3.5"
+          className="collections-sidebar"
           collapsed={sidebarCollapsed}
           onCollapsedChange={setSidebarCollapsed}
           toggleId="collectionsSidebarToggle"
@@ -405,21 +422,6 @@ export default function CollectionsPage() {
         </Sidebar>
 
         <Card className="browser-panel gap-0 p-5">
-          <div className="section-head mb-4 flex min-h-8 items-center justify-between gap-3 mobile:grid">
-            <Text variant="heading">{t("collections.wordsTitle")}</Text>
-            <Segmented
-              className="desktop-display-mode w-56 mobile:hidden"
-              aria-label={t("collections.displayMode")}
-              size="sm"
-              value={displayMode}
-              onValueChange={handleDisplayMode}
-              options={DISPLAY_MODES.map((mode) => ({
-                value: mode,
-                label: t(mode === "page" ? "collections.displayPage" : "collections.displayInfinite"),
-                itemProps: { "data-display-mode": mode }
-              }))}
-            />
-          </div>
           <div className="browser-tools grid items-end gap-3">
             <div className="grid gap-1.5">
               <Label htmlFor="searchInput">{t("collections.search")}</Label>
@@ -432,56 +434,62 @@ export default function CollectionsPage() {
               />
             </div>
           </div>
-          <div id="selectedCollectionStats" className="selected-stats my-3 flex min-h-8 flex-wrap items-baseline gap-2.5 text-body text-secondary">
-            {renderSelectedStats()}
-          </div>
-          <div className="word-table-toolbar mb-2 flex items-center justify-end gap-3 mobile:hidden">
-            <p id="wordActionError" className="word-action-error mr-auto text-body font-medium text-destructive" role="alert" hidden={!actionError}>
-              {actionError}
-            </p>
-            <Button id="deleteSelectedButton" variant="destructive" size="sm" disabled={!rowSelection.ids.size || deleting} onClick={() => void handleDelete()}>
-              {t("collections.deleteSelected")}
-            </Button>
-          </div>
-          <Card className="gap-0 overflow-hidden py-0 mobile:border-0 mobile:bg-transparent">
-            <div
-              ref={tableWrapRef}
-              className={cn(
-                "table-wrap overflow-auto mobile:overflow-visible [&_[data-slot=table-container]]:overflow-visible",
-                displayMode !== "page" && words.length > 5 && "max-h-[clamp(240px,calc(100vh-490px),680px)] mobile:max-h-none"
-              )}
-              onScroll={handleTableScroll}
-            >
-              <Table className="min-w-[760px] mobile:block mobile:min-w-0">
-                <TableHeader className="mobile:hidden">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="sticky top-0 z-[1] w-7 bg-subtle px-2" aria-hidden="true"></TableHead>
-                    <TableHead className="sticky top-0 z-[1] bg-subtle">{t("table.word")}</TableHead>
-                    <TableHead className="sticky top-0 z-[1] bg-subtle">{t("table.translation")}</TableHead>
-                    <TableHead className="sticky top-0 z-[1] bg-subtle" aria-hidden="true"></TableHead>
-                    <TableHead className="sticky top-0 z-[1] bg-subtle">{t("table.status")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody id="wordRows" className="mobile:block">
-                  <WordRows
-                    words={visibleWords}
-                    selectedIds={rowSelection.ids}
-                    expandedDisambiguationId={expandedDisambiguationId}
-                    editingTranslationId={editingTranslationId}
-                    pendingStatus={pendingStatus}
-                    draggingId={draggingId}
-                    onSelectRow={handleSelectRow}
-                    onStatus={(wordId, status) => void handleStatus(wordId, status)}
-                    onToggleDisambiguation={(wordId) => setExpandedDisambiguationId((current) => (current === wordId ? null : wordId))}
-                    onEditTranslation={setEditingTranslationId}
-                    onSaveTranslation={handleSaveTranslation}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                  />
-                </TableBody>
-              </Table>
+          <div className="my-3 flex min-h-8 items-center gap-3">
+            <div id="selectedCollectionStats" className="selected-stats flex min-w-0 flex-1 flex-wrap items-baseline gap-2.5 text-body text-secondary">
+              {renderSelectedStats()}
             </div>
-          </Card>
+            <div className="word-table-toolbar flex shrink-0 items-center gap-3 mobile:hidden">
+              <p id="wordActionError" className="word-action-error text-body font-medium text-destructive" role="alert" hidden={!actionError}>
+                {actionError}
+              </p>
+              <Button
+                id="deleteSelectedButton"
+                variant="destructive"
+                size="sm"
+                disabled={!rowSelection.ids.size || deleting}
+                onClick={() => void handleDelete()}
+              >
+                {t("collections.deleteSelected")}
+              </Button>
+            </div>
+          </div>
+          <div
+            ref={tableWrapRef}
+            className={cn(
+              "table-wrap overflow-auto border-y border-line mobile:overflow-visible mobile:border-y-0 [&_[data-slot=table-container]]:overflow-visible",
+              displayMode !== "page" && words.length > 5 && "max-h-[max(320px,calc(100vh-390px))] mobile:max-h-none"
+            )}
+            onScroll={handleTableScroll}
+          >
+            <Table className="min-w-[760px] mobile:block mobile:min-w-0">
+              <TableHeader className="mobile:hidden">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="sticky top-0 z-[1] w-7 bg-panel px-2" aria-hidden="true"></TableHead>
+                  <TableHead className="sticky top-0 z-[1] bg-panel">{t("table.word")}</TableHead>
+                  <TableHead className="sticky top-0 z-[1] bg-panel">{t("table.translation")}</TableHead>
+                  <TableHead className="sticky top-0 z-[1] bg-panel" aria-hidden="true"></TableHead>
+                  <TableHead className="sticky top-0 z-[1] bg-panel">{t("table.status")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody id="wordRows" className="mobile:block">
+                <WordRows
+                  words={visibleWords}
+                  selectedIds={rowSelection.ids}
+                  expandedDisambiguationId={expandedDisambiguationId}
+                  editingTranslationId={editingTranslationId}
+                  pendingStatus={pendingStatus}
+                  draggingId={draggingId}
+                  onSelectRow={handleSelectRow}
+                  onStatus={(wordId, status) => void handleStatus(wordId, status)}
+                  onToggleDisambiguation={(wordId) => setExpandedDisambiguationId((current) => (current === wordId ? null : wordId))}
+                  onEditTranslation={setEditingTranslationId}
+                  onSaveTranslation={handleSaveTranslation}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                />
+              </TableBody>
+            </Table>
+          </div>
           <div
             id="wordPagination"
             className="word-pagination mt-3 flex items-center justify-center gap-3 text-body mobile:grid mobile:grid-cols-1 mobile:gap-2"
