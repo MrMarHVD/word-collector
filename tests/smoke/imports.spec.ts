@@ -161,7 +161,7 @@ test.describe("material imports", () => {
     test(`import a ${fixture.type.toUpperCase()} work, open it from the list and delete it`, async ({ page }) => {
       test.setTimeout(150_000);
       const title = `${TITLE_PREFIX}-${fixture.type}`;
-      await page.goto("/reader");
+      await page.goto("/library");
       await page.locator("#localeSelect").selectOption("en");
       await showDocuments(page);
 
@@ -197,7 +197,7 @@ test.describe("material imports", () => {
       await page.locator(`#materialList [data-delete-material-id="${materialId}"]`).click();
       await page.getByRole("alertdialog").getByRole("button", { name: EN["common.delete"], exact: true }).click();
       await expect(titleButton).toHaveCount(0);
-      await expect(page.locator("#readerTitle")).toHaveText(EN["reader.title"]);
+      await expect(page).toHaveURL(/\/library$/);
     });
   }
 });

@@ -100,18 +100,16 @@ async function openReader(page: Page) {
       }
     }).observe(document, { childList: true, subtree: true, characterData: true });
   });
-  await page.goto("/reader");
+  await page.goto("/library");
   await selectMaterial(page);
 }
 
-/** Opens the sample material from the document list (behind the Documents tab on mobile). */
+/** Opens the sample material from the Library list; it lands on /reader/:id. */
 async function selectMaterial(page: Page) {
   const materialButton = page.locator(`[data-material-id="${materialId}"]`);
   await materialButton.waitFor({ state: "attached" });
-  if (!(await materialButton.isVisible())) {
-    await page.locator('#readerSidebarTabs [data-reader-sidebar-tab="documents"]').click();
-  }
   await materialButton.click();
+  await expect(page).toHaveURL(new RegExp(`/reader/${materialId}$`));
   await expect(tokens(page).first()).toBeVisible();
   // The app may also restore the last-read material on boot; let both loads settle.
   await page.waitForLoadState("networkidle");

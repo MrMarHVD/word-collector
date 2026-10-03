@@ -1,5 +1,5 @@
 /**
- * Server state of the reader: the selected material, the page on screen and
+ * Server state of the reader: the open material (the route's :materialId), the page on screen and
  * the word mutations made from it (ported from reader.controller.js
  * loadMaterialReader and the materials controller's selection cache).
  *
@@ -97,32 +97,36 @@ export interface ReaderMaterial {
   load: (materialId: number, start?: number, options?: LoadOptions) => Promise<MaterialReaderResponse | null>;
   /** Reloads the page on screen at its start, e.g. after the words-per-page setting changed. */
   reload: (options?: LoadOptions) => Promise<MaterialReaderResponse | null>;
-  /** Selects a material and remembers it for this study language (the page loads separately). */
-  select: (materialId: number) => void;
-  /** Closes the material and forgets it for this study language. */
+  /** Drops the page on screen and forgets the open material for this study language (the route changes separately). */
   clear: () => void;
   /** Applies `updates` to every cached token of the word, like the legacy syncReaderWordTokens. */
   updateWordTokens: (wordId: number, updates: Partial<ReaderToken>) => void;
 }
 
 /**
- * Reader server state for one study language. Mount it under a component keyed
- * on the language, so a language switch starts from that language's saved
- * material. On mount it restores the last material (legacy restoreSelectedMaterial),
- * or reuses the page remembered from the previous visit to the reader.
+ * Reader server state for one study language and the work in the route
+ * (`materialId`). Mount it under a component keyed on the
+ * language. Whenever `materialId` changes (open, back/forward, reload) the work
+ * loads at its saved position and is remembered for the language, unless the
+ * page remembered from the previous visit to the reader is that work's.
+ * `onLoadFailed` is called when the work cannot be loaded (e.g. it does not exist).
  */
-export function useReaderMaterial(languageId: number | null, wordsPerPage: ReaderWordsPerPage): ReaderMaterial {
+export function useReaderMaterial(languageId: number | null, wordsPerPage: ReaderWordsPerPage, materialId: number, onLoadFailed?: () => void): ReaderMaterial {
   const queryClient = useQueryClient();
   const userId = useSessionStore((state) => state.user?.id ?? null);
-  const [remembered] = useState(() => (readerSession.languageId === languageId && readerSession.selectedMaterialId !== null ? readerSession : null));
-  const [selectedMaterialId, setSelectedMaterialId] = useState<number | null>(() => remembered?.selectedMaterialId ?? readCachedMaterialId(userId, languageId));
-  const [view, setView] = useState<ReaderView | null>(() => remembered?.view ?? null);
+  const [view, setView] = useState<ReaderView | null>(() =>
+    readerSession.languageId === languageId && readerSession.view?.materialId === materialId ? readerSession.view : null
+  );
+  const viewRef = useRef(view);
+  const onLoadFailedRef = useRef(onLoadFailed);
   const loadSequence = useRef(0);
   const wordsPerPageRef = useRef(wordsPerPage);
 
   useEffect(() => {
     wordsPerPageRef.current = wordsPerPage;
-  }, [wordsPerPage]);
+    viewRef.current = view;
+    onLoadFailedRef.current = onLoadFailed;
+  });
 
   const { data } = useQuery({
     ...readerPageQuery(view?.materialId ?? 0, view?.params ?? {}),
@@ -165,17 +169,8 @@ export function useReaderMaterial(languageId: number | null, wordsPerPage: Reade
     [load, queryClient, view]
   );
 
-  const select = useCallback(
-    (materialId: number) => {
-      setSelectedMaterialId(materialId);
-      writeCachedMaterialId(userId, languageId, materialId);
-    },
-    [userId, languageId]
-  );
-
   const clear = useCallback(() => {
     loadSequence.current += 1;
-    setSelectedMaterialId(null);
     setView(null);
     writeCachedMaterialId(userId, languageId, null);
   }, [userId, languageId]);
@@ -194,23 +189,25 @@ export function useReaderMaterial(languageId: number | null, wordsPerPage: Reade
     [queryClient, view]
   );
 
-  // Restore the material last read in this language, unless the previous
-  // visit's page is being reused.
-  const restoreRef = useRef({ remembered, selectedMaterialId, load, clear });
+  // Load the routed work, unless the page on screen already is that work's.
   useEffect(() => {
-    const { remembered: reused, selectedMaterialId: cachedId, load: loadPage, clear: forget } = restoreRef.current;
-    if (reused?.view || !cachedId) {
+    writeCachedMaterialId(userId, languageId, materialId);
+    if (viewRef.current?.materialId === materialId) {
       return;
     }
-    loadPage(cachedId, undefined, { persist: false }).catch(() => forget());
-  }, []);
+    load(materialId, undefined, { persist: false }).catch(() => {
+      writeCachedMaterialId(userId, languageId, null);
+      onLoadFailedRef.current?.();
+    });
+  }, [load, materialId, userId, languageId]);
 
   // Remember the state for the next visit to the reader.
   useEffect(() => {
     readerSession.languageId = languageId;
-    readerSession.selectedMaterialId = selectedMaterialId;
+    readerSession.selectedMaterialId = materialId;
     readerSession.view = view;
-  }, [languageId, selectedMaterialId, view]);
+  }, [languageId, materialId, view]);
 
-  return { selectedMaterialId, data: selectedMaterialId === null ? undefined : data, load, reload, select, clear, updateWordTokens };
+  // While the next work loads, `data` may still be the previous work's page.
+  return { selectedMaterialId: materialId, data: data?.material.id === materialId ? data : undefined, load, reload, clear, updateWordTokens };
 }

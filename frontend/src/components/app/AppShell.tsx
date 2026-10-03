@@ -7,7 +7,7 @@ import { StudyLanguageSelect } from "@/components/app/StudyLanguageSelect";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { VerifyBanner } from "@/features/auth";
-import { pathForTab, tabForPath, type Tab } from "@/app/route-paths";
+import { isReaderPath, pathForTab, tabForPath, type Tab } from "@/app/route-paths";
 import { dashboardSummaryQuery } from "@/lib/api/queries";
 import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
 import { useFormatCount, useT } from "@/lib/i18n";
@@ -20,7 +20,7 @@ import { useStudyLanguageStore } from "@/stores/study-language";
 const NAV_TABS: { tab: Tab; labelKey: string }[] = [
   { tab: "dashboard", labelKey: "tabs.dashboard" },
   { tab: "collections", labelKey: "tabs.collections" },
-  { tab: "reader", labelKey: "tabs.reader" },
+  { tab: "reader", labelKey: "nav.read" },
   { tab: "practice", labelKey: "tabs.practice" }
 ];
 
@@ -166,13 +166,13 @@ export function AppShell({ children }: AppShellProps) {
   }, [dashboard]);
 
   useEffect(() => {
-    const onReader = Boolean(user) && activeTab === "reader";
+    const onReader = Boolean(user) && isReaderPath(pathname);
     document.body.classList.toggle("is-reader-active", onReader);
     document.body.classList.toggle("is-reader-focus", onReader && focusMode);
     if (onReader) {
       window.scrollTo(0, 0);
     }
-  }, [user, activeTab, focusMode]);
+  }, [user, pathname, focusMode]);
 
   function goToTab(tab: Tab) {
     navigate(pathForTab(tab));
