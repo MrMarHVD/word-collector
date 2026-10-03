@@ -47,10 +47,26 @@ src/
 
 - Import with the `@/` alias (`@/lib/api`, `@/stores/session`, …).
 - TypeScript is strict. Document every new component, hook and function with a short purpose comment; the types replace JSDoc `@param`/`@returns`.
-- Tailwind scans `src/` only. The legacy classes and tokens work unchanged (`bg-panel`, `text-secondary`, `border-line`, `bg-brand`, `shadow-panel`, …).
+- Tailwind scans `src/` only. The legacy classes and tokens still resolve (`bg-panel`, `text-secondary`, `border-line`, `bg-brand`, …) as aliases of the design tokens below; `shadow-panel` now renders no shadow.
 - Feature CSS lives in `src/features/<name>/<name>.css`, imported from your page. Keep it **unlayered**, as in the legacy app, so it still beats utility classes. Global and shared CSS is in `src/styles/` (read-only for features).
 - Mobile breakpoint: `max-width: 760px` (`useIsMobileLayout()` in `@/lib/hooks/use-media-query`). In Tailwind use the `mobile:` (≤760px) and `desktop:` (≥761px) variants, not `sm:`/`md:`.
 - Button text: legacy `button { font: inherit }` (in `styles/base.css`) overrides `font-*`/`text-*` utilities on buttons, exactly as it does in the legacy app. Keep it that way for parity.
+
+## Design tokens (SPEC-005 D1)
+
+Defined in `styles/theme.css` (values, light in `:root`, dark in `html[data-theme="dark"]`) and mapped into Tailwind there and in `styles/shadcn.css`. Colours are OKLCH; greys have chroma 0 (no tint). Review them at `/styleguide` (internal, not in the navigation; switch the theme in Settings for the other mode).
+
+- **Surfaces**: `--surface-page`, `--surface-panel`, `--surface-subtle` (tonal step), `--surface-muted`, `--surface-reader` (warm paper / soft dark). Hierarchy is a hairline border or a tonal step, never both. Utilities: `bg-page`, `bg-panel`, `bg-subtle`, `bg-muted`, `bg-reader`.
+- **Text**: `--text-main`, `--text-label`, `--text-muted` (`text-main`, `text-label`, `text-secondary`). All meet WCAG AA on every surface.
+- **Border**: `--border` (1px hairline; `border-line`), `--border-strong` (inputs, 3:1; `border-line-strong`).
+- **Accent** (hue 220, low chroma): `--accent` (`text-brand`/`bg-primary`), `--accent-foreground` (text on the accent; `text-primary-foreground`), `--accent-subtle` (tonal active/hover fill; `bg-accent-subtle`), `--accent-strong`. Only for primary actions, links, focus and active states. The kit's `bg-accent` is mapped to `--accent-subtle` (its hover/selected surface); the accent colour in the kit is `primary`.
+- **Word status**: `--status-unknown`, `--status-learning`, `--status-known` (fills, `bg-status-*`) and `--status-*-text` (text-safe variants).
+- **Radius** (exactly these): `--radius-control` 8px (`rounded-control`), `--radius-container` 14px (`rounded-container`), `--radius-pill` (`rounded-pill`, badges only).
+- **Type**: `text-title` 22/1.3, `text-heading` 17/1.4, `text-body` 15/1.55, `text-caption` 13/1.45 (px / line height; title and heading are 600, body and caption 400). Weights are 400, 500, 600 only (`font-normal`, `font-medium`, `font-semibold`).
+- **Elevation**: `--shadow-float` (`shadow-float`) for floating layers only. There is no panel shadow.
+- **Glass**: `--glass-bg`, `--glass-border`, `--glass-blur`, `--glass-solid` (fallback) and the `.glass` class (`styles/glass.css`). Chrome and floating layers only, never behind reading text. It turns solid under `prefers-reduced-transparency: reduce` and without `backdrop-filter`. Put only `--text-main`/`--text-label` text on glass: they keep AA over any backdrop; `--text-muted` does not.
+- **Focus**: `--focus-ring` (soft accent halo colour) and the `focus-ring` utility (2px accent outline on `:focus-visible`).
+- **Fonts**: `@/lib/fonts` is the reading-font registry (`{ id, label, latinFamily, cjkFamilies }`, one entry `ia-quattro`); `--font-reading` / `font-reading` is the default stack. iA Writer Quattro is self-hosted unmodified in `static/fonts/ia-writer-quattro/` (SIL OFL 1.1, Reserved Font Name "iA Writer"; keep `LICENSE.md`). Noto Sans JP/SC come from `@fontsource-variable` with unicode-range slices (`styles/fonts.css`); `:lang(zh)` prefers the SC face.
 
 ## I1 Routes
 
