@@ -557,7 +557,7 @@
   justify-self: end;
 }
 
-.reader-word-info-head .close-button {
+.reader-word-info-head [data-slot="close-button"] {
   grid-column: 3;
 }
 
