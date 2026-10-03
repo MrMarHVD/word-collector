@@ -142,7 +142,7 @@ test.describe("admin users panel — limit overrides (ADM-002)", () => {
     // Default order is alphabetical by email (case-insensitive). Verify the
     // rendered email order is non-decreasing under locale collation (which the
     // DB also uses), so adjacent rows never go backwards.
-    const emails = await page.locator("[data-admin-users-list] .truncate").allInnerTexts();
+    const emails = await page.locator("[data-admin-users-list] [data-admin-user-email]").allInnerTexts();
     expect(emails.length).toBeGreaterThan(0);
     for (let i = 1; i < emails.length; i += 1) {
       expect(emails[i - 1].toLowerCase().localeCompare(emails[i].toLowerCase())).toBeLessThanOrEqual(0);
