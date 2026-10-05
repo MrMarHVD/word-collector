@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router";
 import { FadeIn } from "@/components/app/FadeIn";
@@ -14,7 +14,9 @@ import { VerifyBanner } from "@/features/auth";
 import { isReaderPath, pathForTab, tabForPath, type Tab } from "@/app/route-paths";
 import { dashboardSummaryQuery } from "@/lib/api/queries";
 import { useIsMobileLayout } from "@/lib/hooks/use-media-query";
+import { useMenuBarCollapse } from "@/lib/hooks/use-menu-bar-collapse";
 import { useFormatCount, useT } from "@/lib/i18n";
+import { useLocaleStore } from "@/stores/locale";
 import { cn } from "@/lib/utils";
 import { isAdminUser, useSessionStore } from "@/stores/session";
 import { useStudyLanguageStore } from "@/stores/study-language";
@@ -30,13 +32,15 @@ const NAV_TABS: { tab: Tab; labelKey: string }[] = [
 interface AccountMenuProps {
   activeTab: Tab | null;
   isAdmin: boolean;
+  /** Use the hamburger menu although the viewport is wider than the mobile breakpoint (the desktop menu would overlap). */
+  collapsed: boolean;
   onNavigate: (tab: Tab) => void;
 }
 
-/** Desktop: settings (gear) and logout buttons. Mobile: a hamburger menu with the tabs, settings and logout. */
-function AccountMenu({ activeTab, isAdmin, onNavigate }: AccountMenuProps) {
+/** Desktop: settings (gear) and logout buttons. Mobile or collapsed: a hamburger menu with the tabs, settings and logout. */
+function AccountMenu({ activeTab, isAdmin, collapsed, onNavigate }: AccountMenuProps) {
   const t = useT();
-  const isMobile = useIsMobileLayout();
+  const isMobile = useIsMobileLayout() || collapsed;
   const logout = useSessionStore((state) => state.logout);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -120,7 +124,20 @@ export function AppShell({ children }: AppShellProps) {
   const activeTab = tabForPath(pathname);
   const isAdmin = isAdminUser(user);
   const hasStudyLanguage = selectedLanguageId !== null;
+  const locale = useLocaleStore((state) => state.locale);
+  const isMobileLayout = useIsMobileLayout();
+  const studyLanguageCount = useStudyLanguageStore((state) => state.languages.length);
+  const barRef = useRef<HTMLElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
   const { data: dashboard } = useQuery({ ...dashboardSummaryQuery(selectedLanguageId), enabled: Boolean(user && hasStudyLanguage) });
+
+  const knownWords = dashboard?.knownWords ?? 0;
+  const collapsed = useMenuBarCollapse(
+    barRef,
+    endRef,
+    Boolean(user) && !isMobileLayout,
+    `${locale}|${studyLanguageCount}|${selectedLanguageId}|${isAdmin}|${knownWords}`
+  );
 
   // Every /api/dashboard response refreshes the study-language catalogue, as the legacy loadDashboard() did.
   useEffect(() => {
@@ -153,7 +170,10 @@ export function AppShell({ children }: AppShellProps) {
       id="appShell"
       className="mx-auto w-[min(1180px,calc(100%-32px))] pb-8 pt-24 mobile:w-full mobile:px-2.5 mobile:pb-[calc(12px+env(safe-area-inset-bottom))] mobile:pt-3"
     >
-      <header className="glass fixed inset-x-0 top-0 z-10 flex min-h-[72px] items-center gap-3 px-5 py-2.5 mobile:sticky mobile:inset-x-auto mobile:-mx-2.5 mobile:-mt-3 mobile:mb-3 mobile:flex-col mobile:items-stretch mobile:px-2.5 mobile:pb-2.5 mobile:pt-[calc(8px+env(safe-area-inset-top))]">
+      <header
+        ref={barRef}
+        className="glass fixed inset-x-0 top-0 z-10 flex min-h-[72px] items-center gap-3 px-5 py-2.5 mobile:sticky mobile:inset-x-auto mobile:-mx-2.5 mobile:-mt-3 mobile:mb-3 mobile:flex-col mobile:items-stretch mobile:px-2.5 mobile:pb-2.5 mobile:pt-[calc(8px+env(safe-area-inset-top))]"
+      >
         <div className="flex min-w-0 flex-1 items-center gap-4 mobile:grid mobile:w-full mobile:flex-none mobile:grid-cols-1">
           <Button id="brandHomeButton" variant="ghost" className="mobile:w-full" onClick={goHome}>
             <Text as="span" variant="heading">
@@ -164,7 +184,7 @@ export function AppShell({ children }: AppShellProps) {
             value={activeTab ?? ""}
             onValueChange={(value) => goToTab(value as Tab)}
             className="w-[min(560px,100%)] min-w-0 mobile:hidden"
-            hidden={!user || !hasStudyLanguage}
+            hidden={!user || !hasStudyLanguage || collapsed}
           >
             <TabsList asChild>
               <nav className="tabs w-full group-data-[orientation=horizontal]/tabs:border-b-0" aria-label={t("shell.mainViews")}>
@@ -187,6 +207,7 @@ export function AppShell({ children }: AppShellProps) {
           </Tabs>
         </div>
         <div
+          ref={endRef}
           className={cn(
             "flex flex-none flex-nowrap items-center justify-end gap-2 mobile:grid mobile:w-full mobile:grid-cols-[minmax(0,1fr)_minmax(7.5rem,auto)_auto]",
             !user && "desktop:absolute desktop:left-1/2 desktop:-translate-x-1/2 mobile:grid-cols-1 mobile:justify-items-center"
@@ -196,7 +217,7 @@ export function AppShell({ children }: AppShellProps) {
             <div className="relative flex items-center gap-1.5 justify-self-end mobile:grid mobile:min-w-0 mobile:grid-cols-[auto_minmax(0,1fr)_auto] mobile:justify-self-stretch">
               <div className="mr-1 flex items-center gap-1.5 whitespace-nowrap" title={t("stats.knownAll")}>
                 <Text as="span" id="knownTotal" variant="heading" className="leading-none">
-                  {formatCount(dashboard?.knownWords ?? 0)}
+                  {formatCount(knownWords)}
                 </Text>
                 <Text as="small" variant="caption" tone="label" className="mobile:hidden">
                   {t("stats.knownShort")}
@@ -206,7 +227,7 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           ) : null}
           <LocaleSelect />
-          {user ? <AccountMenu activeTab={activeTab} isAdmin={isAdmin} onNavigate={goToTab} /> : null}
+          {user ? <AccountMenu activeTab={activeTab} isAdmin={isAdmin} collapsed={collapsed} onNavigate={goToTab} /> : null}
         </div>
       </header>
       {user ? <VerifyBanner /> : null}
