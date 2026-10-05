@@ -6,6 +6,7 @@
  */
 
 import type { ReaderToken } from "@/lib/api/types";
+import { translationModelFor } from "./translation/translation-models";
 
 /** Fewest tokens a selection needs before it is translated. */
 export const MIN_SEGMENT_TOKENS = 2;
@@ -19,14 +20,15 @@ export interface SegmentWord {
 }
 
 /**
- * Whether drag-selection for sentence translation applies: only Japanese
- * material read by an English native speaker, compared case-insensitively.
+ * Whether drag-selection for sentence translation applies: only material in a
+ * language with a translation model (Japanese, Chinese) read by an English
+ * native speaker, compared case-insensitively.
  */
 export function isSegmentTranslationEligible(
   material: { languageName?: string | null } | null | undefined,
   user: { nativeLanguage?: string | null } | null | undefined
 ): boolean {
-  return String(material?.languageName || "").toLowerCase() === "japanese" && String(user?.nativeLanguage || "").toLowerCase() === "english";
+  return translationModelFor(material?.languageName) !== null && String(user?.nativeLanguage || "").toLowerCase() === "english";
 }
 
 /** The selected tokens as segment words. */
