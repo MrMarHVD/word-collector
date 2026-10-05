@@ -4,8 +4,8 @@
  * `frontend/public/models/`, so the browser can load them from the app's own origin.
  * Mozilla's CDN sends no CORS headers, which is why the files are self-hosted.
  *
- * Pinned model: Mozilla Firefox Translations ja→en v2.1, taken from the Remote
- * Settings `translations-models` collection. Each file is verified against its
+ * Pinned models: Mozilla Firefox Translations ja→en and zh-Hans→en v2.1, taken
+ * from the Remote Settings `translations-models` collection. Each file is verified against its
  * pinned size and SHA-256.
  *
  * The script is idempotent: files already present with the correct hash are
@@ -52,6 +52,29 @@ const MODELS = [
         path: "main-workspace/translations-models/6f4898e3-ebaa-4a79-a1af-93a4f65b96fa.spm",
         size: 1443222,
         sha256: "5cb217758bae05877bb3f0c2f612e4e7c1e4cb03c10db11f4a47098d7ae62919"
+      }
+    ]
+  },
+  {
+    dir: "zh-en-2.1",
+    files: [
+      {
+        name: "model.bin",
+        path: "main-workspace/translations-models/715efbde-c974-4696-981a-83c0c5f82ad5.bin",
+        size: 43977787,
+        sha256: "5cd149601802fc8a18124a1c1306144dbbedc058630c4ddb2d53aa76fa9c7c06"
+      },
+      {
+        name: "lex.bin",
+        path: "main-workspace/translations-models/ae5f53d2-59ec-4aad-944d-999e50d6a65c.bin",
+        size: 9219192,
+        sha256: "8524dd4c93ffd7f0ae7be32f77a7c14fea7cdbbebe34ea6ad0ec368d5ddd8b13"
+      },
+      {
+        name: "vocab.spm",
+        path: "main-workspace/translations-models/17ff5d42-6d4c-42f8-ad3c-b8042b5bafa7.spm",
+        size: 1359697,
+        sha256: "dff594318ab7d8b7b60b844ab98ebe6b932ae8045fab15235404c787715965b3"
       }
     ]
   }
