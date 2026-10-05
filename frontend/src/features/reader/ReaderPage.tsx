@@ -263,6 +263,7 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
       const update = (next: Partial<ReaderTranslationState>) => setTranslation((current) => (current && current.id === id ? { ...current, ...next } : current));
       try {
         const result = await translate(sourceText, {
+          sourceLanguage: languageName ?? undefined,
           onStatus: (status, info) => {
             if (!isCurrent()) {
               return;
@@ -284,7 +285,7 @@ function ReaderScreen({ languageId, materialId }: { languageId: number | null; m
         }
       }
     },
-    [closeWordInfo, fontSize, layout]
+    [closeWordInfo, fontSize, languageName, layout]
   );
 
   const saveOverride = useCallback(

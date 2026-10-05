@@ -1,5 +1,7 @@
 # SPEC-002: Reader Sentence Translation (Japanese → English)
 
+> Extension: Simplified Chinese → English (Mozilla zh-Hans→en v2.1, self-hosted at `/models/zh-en-2.1/`) follows the same behaviour as Japanese. Chinese material read by an English native replaces the quick menu with drag-selection translation; see `frontend/src/CONTRACTS.md`.
+
 ## Context
 
 The reader currently offers only word-level lookups: tapping a token opens the
